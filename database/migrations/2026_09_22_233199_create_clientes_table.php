@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('direccion')->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

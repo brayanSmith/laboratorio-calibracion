@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

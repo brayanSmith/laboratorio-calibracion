@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('tecnico_id')->constrained('users')->onDelete('cascade');
             $table->decimal('temperatura', 10, 2)->nullable();
             $table->decimal('humedad', 10, 2)->nullable();
-            $table->foreignId('procedimiento_id')->constrained('procedimientos')->onDelete('cascade');
+            $table->foreignId('procedimiento_id')->constrained('procedimiento_calibracions')->onDelete('cascade');
             $table->boolean('ajustes_requeridos')->default(false);
             $table->enum('estado_calibracion', ['PENDIENTE', 'EN_PROCESO', 'FINALIZADO', 'DEVOLVER_MANTENIMIENTO']);
             $table->boolean('firmado')->default(false);

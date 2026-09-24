@@ -23,7 +23,7 @@ return new class extends Migration
             $table->enum('estado_vencimiento', ['AL_DIA', 'PROXIMO_A_VENCER', 'VENCIDO']);
             $table->enum('estado', ['EN_BAHIA', 'INGRESADO', 'EN_MANTENIMIENTO', 'EN_CALIBRACION', 'FINALIZADO', 'ENTREGADO']);
             $table->boolean('equipo_ingresado');
-            $table->foreignId('novedad_ingreso_id')->constrained('novedad_ingresos')->onDelete('cascade');
+            $table->foreignId('novedad_ingreso_id')->constrained('novedads')->onDelete('cascade');
             $table->boolean('requiere_calibracion')->default(false);
             $table->boolean('mantenimiento_asignado_tercero')->default(false);
             $table->boolean('calibracion_asignado_tercero')->default(false);
