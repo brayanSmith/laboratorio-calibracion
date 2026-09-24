@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tipo_magnituds', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->foreignId('empresa_id')->constrained('empresas')->onDelete('cascade');
+            $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });

@@ -11,10 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tipo_equipos', function (Blueprint $table) {
+        Schema::create('detalle_medicion_alcances', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('tipo_mantenimiento', ['A', 'B']);
+            $table->foreignId('medicion_alcance_id')->constrained('medicion_alcances')->onDelete('cascade');
+            $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->onDelete('cascade');
+            $table->decimal('valor_instrumento', 10, 2);
+            $table->decimal('emp', 10, 2);
+            $table->decimal('incertidumbre', 10, 2);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
@@ -26,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tipo_equipos');
+        Schema::dropIfExists('detalle_medicion_alcances');
     }
 };

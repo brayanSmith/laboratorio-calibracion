@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->string('simbolo');
-            $table->foreignId('empresa_id')->constrained('empresas')->onDelete('cascade');
+            $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
         });
     }

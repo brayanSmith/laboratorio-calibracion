@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tipo_equipos', function (Blueprint $table) {
+        Schema::create('despachos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('tipo_mantenimiento', ['A', 'B']);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
+            $table->foreignId('tecnico_entrega_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('cliente_recibe_id')->constrained('clientes')->onDelete('cascade');
+            $table->string('firma_cliente_recibe')->nullable();
+            $table->foreignId('novedad_id')->constrained('novedads')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tipo_equipos');
+        Schema::dropIfExists('despachos');
     }
 };

@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tipo_equipos', function (Blueprint $table) {
+        Schema::create('mantenimiento_defecto_identificados', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('tipo_mantenimiento', ['A', 'B']);
+            $table->foreignId('mantenimiento_id')->constrained('mantenimientos')->onDelete('cascade');
+            $table->string('defecto_identificado');
+            $table->enum('nivel_riesgo', ['ALTO', 'MEDIO', 'BAJO']);
+            $table->text('accion_correctiva')->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tipo_equipos');
+        Schema::dropIfExists('mantenimiento_defecto_identificados');
     }
 };

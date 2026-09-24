@@ -13,9 +13,12 @@ return new class extends Migration
     {
         Schema::create('empresas', function (Blueprint $table) {
             $table->id();
+            $table->string('nit');
             $table->string('nombre');
-            $table->string('slug')->unique();
-            $table->boolean('activo')->default(true);
+            $table->string('direccion');
+            $table->string('telefono');
+            $table->string('logo')->nullable();
+            $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });

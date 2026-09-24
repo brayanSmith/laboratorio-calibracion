@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tipo_equipos', function (Blueprint $table) {
+        Schema::create('mantenimiento_check_lists', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('tipo_mantenimiento', ['A', 'B']);
+            $table->foreignId('mantenimiento_id')->constrained('mantenimientos')->onDelete('cascade');
+            $table->foreignId('tipo_equipo_check_list_id')->constrained('tipo_equipo_check_lists')->onDelete('cascade');
+            $table->boolean('cumple')->default(false);
+            $table->text('observacion')->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tipo_equipos');
+        Schema::dropIfExists('mantenimiento_check_lists');
     }
 };
