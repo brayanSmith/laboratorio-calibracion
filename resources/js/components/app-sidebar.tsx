@@ -1,5 +1,11 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Wrench } from 'lucide-react';
+import {
+    BookOpen,
+    Building2,
+    FolderGit2,
+    LayoutGrid,
+    Wrench,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -16,26 +22,47 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as equiposIndex } from '@/routes/equipos';
+import { dashboard as platformDashboard } from '@/routes/plataforma';
+import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
     const page = usePage();
-    const dashboardUrl = page.props.currentTeam
-        ? dashboard(page.props.currentTeam.slug)
-        : '/';
+    const isPlatformAdmin = page.props.auth.user.is_platform_admin === true;
 
-    const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboardUrl,
-            icon: LayoutGrid,
-        },
-        {
-            title: 'Equipos',
-            href: equiposIndex(),
-            icon: Wrench,
-        },
-    ];
+    let dashboardUrl: NavItem['href'] = '/';
+
+    if (isPlatformAdmin) {
+        dashboardUrl = platformDashboard();
+    } else if (page.props.currentTeam) {
+        dashboardUrl = dashboard(page.props.currentTeam.slug);
+    }
+
+    const mainNavItems: NavItem[] = isPlatformAdmin
+        ? [
+              {
+                  title: 'Dashboard',
+                  href: dashboardUrl,
+                  icon: LayoutGrid,
+              },
+              {
+                  title: 'Tenants',
+                  href: tenantsIndex(),
+                  icon: Building2,
+              },
+          ]
+        : [
+              {
+                  title: 'Dashboard',
+                  href: dashboardUrl,
+                  icon: LayoutGrid,
+              },
+              {
+                  title: 'Equipos',
+                  href: equiposIndex(),
+                  icon: Wrench,
+              },
+          ];
 
     const footerNavItems: NavItem[] = [
         {
@@ -62,11 +89,13 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <TeamSwitcher />
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                {isPlatformAdmin ? null : (
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <TeamSwitcher />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                )}
             </SidebarHeader>
 
             <SidebarContent>
