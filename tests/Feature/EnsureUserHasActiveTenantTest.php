@@ -26,7 +26,7 @@ test('un usuario de un tenant eliminado recibe 403', function () {
 
 test('un usuario de un tenant activo accede a las rutas de negocio', function () {
     $tenant = Tenant::factory()->create();
-    $user = User::factory()->create(['tenant_id' => $tenant->id]);
+    $user = User::factory()->forTenant($tenant)->create();
 
     $this->actingAs($user)->get(route('equipos.index'))->assertOk();
 });

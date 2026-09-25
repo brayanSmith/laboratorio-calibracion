@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Plataforma;
 
-use App\Actions\Teams\CreateTeam;
+use App\Actions\Tenants\SetupTenantRoles;
+use App\Actions\Usuarios\CreateTenantUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenants\StoreTenantRequest;
 use App\Http\Requests\Tenants\UpdateTenantRequest;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -37,21 +37,19 @@ class TenantController extends Controller
     /**
      * Store a newly created tenant.
      */
-    public function store(StoreTenantRequest $request, CreateTeam $createTeam): RedirectResponse
+    public function store(StoreTenantRequest $request, CreateTenantUser $createTenantUser, SetupTenantRoles $setupTenantRoles): RedirectResponse
     {
-        [$tenant, $admin] = DB::transaction(function () use ($request, $createTeam) {
+        [$tenant, $admin] = DB::transaction(function () use ($request, $createTenantUser, $setupTenantRoles) {
             $tenant = Tenant::create($request->safe()->only(['nombre', 'slug', 'activo']));
 
-            $admin = new User([
-                'name' => $request->validated('admin_name'),
-                'email' => $request->validated('admin_email'),
-                'password' => $request->validated('admin_password'),
-            ]);
-            $admin->tenant_id = $tenant->id;
-            $admin->must_change_password = true;
-            $admin->save();
+            $admin = $createTenantUser->handle(
+                $tenant,
+                $request->validated('admin_name'),
+                $request->validated('admin_email'),
+                $request->validated('admin_password'),
+            );
 
-            $createTeam->handle($admin, $admin->name."'s Team", isPersonal: true);
+            $setupTenantRoles->handle($tenant, $admin);
 
             return [$tenant, $admin];
         });

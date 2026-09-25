@@ -2,7 +2,8 @@ import { KeyRound, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import EditTenantUserModal from '@/components/tenants/edit-tenant-user-modal';
-import ResetTenantUserPasswordModal from '@/components/tenants/reset-tenant-user-password-modal';
+import TenantUserController from '@/actions/App/Http/Controllers/Plataforma/TenantUserController';
+import ResetUserPasswordModal from '@/components/reset-user-password-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Tenant, TenantUser } from '@/types';
@@ -104,8 +105,10 @@ export default function TenantUsers({ tenant, users }: Props) {
                 open={editOpen}
                 onOpenChange={setEditOpen}
             />
-            <ResetTenantUserPasswordModal
-                tenant={tenant}
+            <ResetUserPasswordModal
+                formFor={(userId) =>
+                    TenantUserController.resetPassword.form([tenant.id, userId])
+                }
                 user={resettingUser}
                 open={resetOpen}
                 onOpenChange={setResetOpen}

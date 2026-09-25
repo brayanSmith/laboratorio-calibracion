@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Hash;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
-    $this->user = User::factory()->create([
-        'tenant_id' => $this->tenant->id,
+    $this->user = User::factory()->forTenant($this->tenant)->create([
         'password' => 'Temporal#2026x',
         'must_change_password' => true,
     ]);
@@ -81,7 +80,7 @@ test('la nueva contrasena debe ser distinta de la temporal y estar confirmada', 
 });
 
 test('un usuario sin contrasena temporal no ve la pantalla de cambio obligatorio', function () {
-    $user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+    $user = User::factory()->forTenant($this->tenant)->create();
 
     $this->actingAs($user)->get(route('password-change.edit'))->assertRedirect(route('dashboard'));
     $this->actingAs($user)->get(route('equipos.index'))->assertOk();

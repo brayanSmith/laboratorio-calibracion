@@ -24,6 +24,8 @@ class EquipoController extends Controller
      */
     public function index(Request $request): Response
     {
+        Gate::authorize('viewAny', Equipo::class);
+
         $equipos = Equipo::query()
             ->where('tenant_id', $request->user()->tenant_id)
             ->with([

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\TenantPermission;
 use App\Models\Equipo;
 use App\Models\User;
 
@@ -12,7 +13,7 @@ class EquipoPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->can(TenantPermission::EquiposVer->value);
     }
 
     /**
@@ -20,7 +21,8 @@ class EquipoPolicy
      */
     public function view(User $user, Equipo $equipo): bool
     {
-        return $user->tenant_id === $equipo->tenant_id;
+        return $user->tenant_id === $equipo->tenant_id
+            && $user->can(TenantPermission::EquiposVer->value);
     }
 
     /**
@@ -28,7 +30,7 @@ class EquipoPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+        return $user->can(TenantPermission::EquiposCrear->value);
     }
 
     /**
@@ -36,7 +38,8 @@ class EquipoPolicy
      */
     public function update(User $user, Equipo $equipo): bool
     {
-        return $user->tenant_id === $equipo->tenant_id;
+        return $user->tenant_id === $equipo->tenant_id
+            && $user->can(TenantPermission::EquiposEditar->value);
     }
 
     /**
@@ -44,6 +47,7 @@ class EquipoPolicy
      */
     public function delete(User $user, Equipo $equipo): bool
     {
-        return $user->tenant_id === $equipo->tenant_id;
+        return $user->tenant_id === $equipo->tenant_id
+            && $user->can(TenantPermission::EquiposEliminar->value);
     }
 }

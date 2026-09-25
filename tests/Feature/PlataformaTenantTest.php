@@ -51,8 +51,7 @@ test('el administrador de plataforma crea el tenant con su administrador y una c
         ->and($nuevoAdmin->tenant_id)->toBe($tenant->id)
         ->and($nuevoAdmin->is_platform_admin)->toBeFalse()
         ->and($nuevoAdmin->must_change_password)->toBeTrue()
-        ->and(Hash::check('Temporal#2026x', $nuevoAdmin->password))->toBeTrue()
-        ->and($nuevoAdmin->currentTeam)->not->toBeNull();
+        ->and(Hash::check('Temporal#2026x', $nuevoAdmin->password))->toBeTrue();
 });
 
 test('crear un tenant valida nombre, slug unico y datos del administrador', function () {

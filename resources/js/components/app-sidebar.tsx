@@ -4,13 +4,14 @@ import {
     Building2,
     FolderGit2,
     LayoutGrid,
+    ShieldCheck,
+    Users,
     Wrench,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { TeamSwitcher } from '@/components/team-switcher';
 import {
     Sidebar,
     SidebarContent,
@@ -20,23 +21,23 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
 import { index as equiposIndex } from '@/routes/equipos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
+import { index as rolesIndex } from '@/routes/roles';
+import { index as usuariosIndex } from '@/routes/usuarios';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
     const page = usePage();
     const isPlatformAdmin = page.props.auth.user.is_platform_admin === true;
+    const { can } = usePermissions();
 
-    let dashboardUrl: NavItem['href'] = '/';
-
-    if (isPlatformAdmin) {
-        dashboardUrl = platformDashboard();
-    } else if (page.props.currentTeam) {
-        dashboardUrl = dashboard(page.props.currentTeam.slug);
-    }
+    const dashboardUrl: NavItem['href'] = isPlatformAdmin
+        ? platformDashboard()
+        : dashboard();
 
     const mainNavItems: NavItem[] = isPlatformAdmin
         ? [
@@ -57,11 +58,33 @@ export function AppSidebar() {
                   href: dashboardUrl,
                   icon: LayoutGrid,
               },
-              {
-                  title: 'Equipos',
-                  href: equiposIndex(),
-                  icon: Wrench,
-              },
+              ...(can('equipos.ver')
+                  ? [
+                        {
+                            title: 'Equipos',
+                            href: equiposIndex(),
+                            icon: Wrench,
+                        },
+                    ]
+                  : []),
+              ...(can('usuarios.gestionar')
+                  ? [
+                        {
+                            title: 'Usuarios',
+                            href: usuariosIndex(),
+                            icon: Users,
+                        },
+                    ]
+                  : []),
+              ...(can('roles.gestionar')
+                  ? [
+                        {
+                            title: 'Roles',
+                            href: rolesIndex(),
+                            icon: ShieldCheck,
+                        },
+                    ]
+                  : []),
           ];
 
     const footerNavItems: NavItem[] = [
@@ -89,13 +112,6 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
-                {isPlatformAdmin ? null : (
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <TeamSwitcher />
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                )}
             </SidebarHeader>
 
             <SidebarContent>

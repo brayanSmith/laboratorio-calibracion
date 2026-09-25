@@ -6,6 +6,7 @@ import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { usePermissions } from '@/hooks/use-permissions';
 import { edit, index } from '@/routes/equipos';
 import type { Equipo, EquipoFormOptions, EquipoPaginator } from '@/types';
 
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function EquiposIndex({ equipos, options }: Props) {
+    const { can } = usePermissions();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [equipoDeleting, setEquipoDeleting] = useState<Equipo | null>(null);
 
@@ -37,11 +39,13 @@ export default function EquiposIndex({ equipos, options }: Props) {
                         description="Gestiona los equipos de metrología del laboratorio"
                     />
 
-                    <CreateEquipoModal options={options}>
-                        <Button data-test="equipos-new-button">
-                            <Plus /> Nuevo equipo
-                        </Button>
-                    </CreateEquipoModal>
+                    {can('equipos.crear') ? (
+                        <CreateEquipoModal options={options}>
+                            <Button data-test="equipos-new-button">
+                                <Plus /> Nuevo equipo
+                            </Button>
+                        </CreateEquipoModal>
+                    ) : null}
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
@@ -102,28 +106,32 @@ export default function EquiposIndex({ equipos, options }: Props) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                asChild
-                                            >
-                                                <Link
-                                                    href={edit(equipo.id)}
-                                                    data-test="equipo-edit-button"
+                                            {can('equipos.editar') ? (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    asChild
                                                 >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                data-test="equipo-delete-button"
-                                                onClick={() =>
-                                                    openDeleteDialog(equipo)
-                                                }
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                                    <Link
+                                                        href={edit(equipo.id)}
+                                                        data-test="equipo-edit-button"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                            ) : null}
+                                            {can('equipos.eliminar') ? (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    data-test="equipo-delete-button"
+                                                    onClick={() =>
+                                                        openDeleteDialog(equipo)
+                                                    }
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            ) : null}
                                         </div>
                                     </td>
                                 </tr>
