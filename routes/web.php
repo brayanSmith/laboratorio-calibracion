@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
@@ -26,6 +27,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function () {
+    Route::singleton('empresa', EmpresaController::class)
+        ->creatable()
+        ->destroyable()
+        ->except(['create', 'edit']);
+
     Route::resource('equipos', EquipoController::class)->except('create');
 
     Route::resource('tipos-equipo', TipoEquipoController::class)

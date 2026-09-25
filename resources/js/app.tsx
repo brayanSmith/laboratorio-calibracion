@@ -5,11 +5,18 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { escapeHtml } from '@/lib/escape-html';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title, page) => {
+        // Inertia inserts this result as HTML, so the name must be escaped.
+        const props = page.props as { empresa?: { nombre: string } | null };
+        const brand = escapeHtml(props.empresa?.nombre ?? appName);
+
+        return title ? `${title} - ${brand}` : brand;
+    },
     layout: (name) => {
         switch (true) {
             case name === 'welcome':

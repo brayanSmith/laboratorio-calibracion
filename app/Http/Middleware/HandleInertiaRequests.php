@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Empresa;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -46,7 +48,24 @@ class HandleInertiaRequests extends Middleware
                     ? $user->getAllPermissions()->pluck('name')->sort()->values()
                     : [],
             ],
+            'empresa' => fn () => $this->brand($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * Get the name and logo the interface shows in place of the app branding.
+     *
+     * @return array{nombre: string, logo_url: string|null}|null
+     */
+    private function brand(?User $user): ?array
+    {
+        if (! $user?->tenant_id) {
+            return null;
+        }
+
+        $empresa = Empresa::query()->where('tenant_id', $user->tenant_id)->first();
+
+        return $empresa ? ['nombre' => $empresa->nombre, 'logo_url' => $empresa->logoUrl()] : null;
     }
 }

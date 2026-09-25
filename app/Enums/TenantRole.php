@@ -33,16 +33,19 @@ enum TenantRole: string
                 TenantPermission::TiposEquipoVer,
                 TenantPermission::TiposEquipoCrear,
                 TenantPermission::TiposEquipoEditar,
+                TenantPermission::EmpresaVer,
             ],
             self::Tecnico => [
                 TenantPermission::EquiposVer,
                 TenantPermission::EquiposEditar,
                 TenantPermission::TiposEquipoVer,
+                TenantPermission::EmpresaVer,
             ],
             self::Recepcion => [
                 TenantPermission::EquiposVer,
                 TenantPermission::EquiposCrear,
                 TenantPermission::TiposEquipoVer,
+                TenantPermission::EmpresaVer,
             ],
         };
     }

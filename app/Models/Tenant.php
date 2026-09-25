@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -22,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read Collection<int, User> $users
  * @property-read Collection<int, Empresa> $empresas
+ * @property-read Empresa|null $empresa
  * @property-read Collection<int, Cliente> $clientes
  * @property-read Collection<int, Area> $areas
  * @property-read Collection<int, Bahia> $bahias
@@ -98,6 +100,16 @@ class Tenant extends Model
     public function empresas(): HasMany
     {
         return $this->hasMany(Empresa::class);
+    }
+
+    /**
+     * Get the single empresa a tenant can register.
+     *
+     * @return HasOne<Empresa, $this>
+     */
+    public function empresa(): HasOne
+    {
+        return $this->hasOne(Empresa::class);
     }
 
     /**

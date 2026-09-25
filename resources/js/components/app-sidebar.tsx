@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
+    Building,
     Building2,
     FolderGit2,
     LayoutGrid,
@@ -27,6 +28,7 @@ import { dashboard } from '@/routes';
 import { index as equiposIndex } from '@/routes/equipos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
+import { show as empresaShow } from '@/routes/empresa';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
 import { index as usuariosIndex } from '@/routes/usuarios';
@@ -60,6 +62,15 @@ export function AppSidebar() {
                   href: dashboardUrl,
                   icon: LayoutGrid,
               },
+              ...(can('empresa.ver')
+                  ? [
+                        {
+                            title: 'Mi empresa',
+                            href: empresaShow(),
+                            icon: Building,
+                        },
+                    ]
+                  : []),
               ...(can('equipos.ver')
                   ? [
                         {

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -34,5 +35,19 @@ class Empresa extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the public path of the logo, independent of the host serving the app.
+     */
+    public function logoUrl(): ?string
+    {
+        if (! $this->logo) {
+            return null;
+        }
+
+        $path = parse_url(Storage::disk('public')->url($this->logo), PHP_URL_PATH);
+
+        return is_string($path) ? $path : null;
     }
 }
