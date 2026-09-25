@@ -9,6 +9,11 @@ enum TenantPermission: string
     case EquiposEditar = 'equipos.editar';
     case EquiposEliminar = 'equipos.eliminar';
 
+    case TiposEquipoVer = 'tipos-equipo.ver';
+    case TiposEquipoCrear = 'tipos-equipo.crear';
+    case TiposEquipoEditar = 'tipos-equipo.editar';
+    case TiposEquipoEliminar = 'tipos-equipo.eliminar';
+
     case RolesGestionar = 'roles.gestionar';
     case UsuariosGestionar = 'usuarios.gestionar';
 
@@ -22,6 +27,10 @@ enum TenantPermission: string
             self::EquiposCrear,
             self::EquiposEditar,
             self::EquiposEliminar => 'Equipos',
+            self::TiposEquipoVer,
+            self::TiposEquipoCrear,
+            self::TiposEquipoEditar,
+            self::TiposEquipoEliminar => 'Tipos de equipo',
             self::RolesGestionar => 'Roles',
             self::UsuariosGestionar => 'Usuarios',
         };
@@ -37,6 +46,10 @@ enum TenantPermission: string
             self::EquiposCrear => 'Crear equipos',
             self::EquiposEditar => 'Editar equipos',
             self::EquiposEliminar => 'Eliminar equipos',
+            self::TiposEquipoVer => 'Ver tipos de equipo',
+            self::TiposEquipoCrear => 'Crear tipos de equipo',
+            self::TiposEquipoEditar => 'Editar tipos de equipo',
+            self::TiposEquipoEliminar => 'Eliminar tipos de equipo',
             self::RolesGestionar => 'Gestionar roles',
             self::UsuariosGestionar => 'Gestionar usuarios',
         };

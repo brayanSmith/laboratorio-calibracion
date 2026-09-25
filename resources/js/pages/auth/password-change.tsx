@@ -73,7 +73,9 @@ export default function PasswordChange({ passwordRules }: Props) {
                                 autoComplete="new-password"
                                 placeholder="Confirmar nueva contraseña"
                             />
-                            <InputError message={errors.password_confirmation} />
+                            <InputError
+                                message={errors.password_confirmation}
+                            />
                         </div>
 
                         <Button

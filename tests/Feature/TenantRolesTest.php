@@ -119,6 +119,7 @@ test('los permisos del usuario se comparten con el frontend', function () {
             ->where('auth.permissions', [
                 TenantPermission::EquiposEditar->value,
                 TenantPermission::EquiposVer->value,
+                TenantPermission::TiposEquipoVer->value,
             ]));
 });
 

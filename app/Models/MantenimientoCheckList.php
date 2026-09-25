@@ -44,7 +44,7 @@ class MantenimientoCheckList extends Model
      */
     public function tipoEquipoCheckList(): BelongsTo
     {
-        return $this->belongsTo(TipoEquipoCheckList::class);
+        return $this->belongsTo(TipoEquipoCheckList::class)->withTrashed();
     }
 
     /**

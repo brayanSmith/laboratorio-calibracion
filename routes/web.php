@@ -7,6 +7,8 @@ use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardCo
 use App\Http\Controllers\Plataforma\TenantController;
 use App\Http\Controllers\Plataforma\TenantUserController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TipoEquipoCheckListController;
+use App\Http\Controllers\TipoEquipoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserHasActiveTenant;
@@ -25,6 +27,14 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function () {
     Route::resource('equipos', EquipoController::class)->except('create');
+
+    Route::resource('tipos-equipo', TipoEquipoController::class)
+        ->parameters(['tipos-equipo' => 'tipoEquipo'])
+        ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::post('tipos-equipo/{tipoEquipo}/checklist', [TipoEquipoCheckListController::class, 'store'])->name('tipos-equipo.checklist.store');
+    Route::put('checklist/{tipoEquipoCheckList}', [TipoEquipoCheckListController::class, 'update'])->name('checklist.update');
+    Route::delete('checklist/{tipoEquipoCheckList}', [TipoEquipoCheckListController::class, 'destroy'])->name('checklist.destroy');
 
     Route::resource('roles', RoleController::class)->except(['create', 'show']);
 

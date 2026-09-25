@@ -12,9 +12,7 @@ type Props = {
 };
 
 export default function RoleFormFields({ role, catalog, errors }: Props) {
-    const [selected, setSelected] = useState<string[]>(
-        role?.permissions ?? [],
-    );
+    const [selected, setSelected] = useState<string[]>(role?.permissions ?? []);
 
     const toggle = (permission: string, checked: boolean) => {
         setSelected((current) =>

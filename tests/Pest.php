@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Tenant;
+use App\Models\TipoEquipo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +49,13 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+function crearTipoEquipo(Tenant $tenant, string $nombre = 'Manómetro', string $tipoMantenimiento = 'A'): TipoEquipo
+{
+    return TipoEquipo::create([
+        'nombre' => $nombre,
+        'tipo_mantenimiento' => $tipoMantenimiento,
+        'tenant_id' => $tenant->id,
+    ]);
 }

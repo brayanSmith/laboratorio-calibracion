@@ -16,9 +16,7 @@ type Props = {
 export default function TenantUsers({ tenant, users }: Props) {
     const [editingUser, setEditingUser] = useState<TenantUser | null>(null);
     const [editOpen, setEditOpen] = useState(false);
-    const [resettingUser, setResettingUser] = useState<TenantUser | null>(
-        null,
-    );
+    const [resettingUser, setResettingUser] = useState<TenantUser | null>(null);
     const [resetOpen, setResetOpen] = useState(false);
 
     return (
@@ -66,7 +64,8 @@ export default function TenantUsers({ tenant, users }: Props) {
                                             }}
                                             data-test="tenant-user-edit-button"
                                         >
-                                            <Pencil className="h-4 w-4" /> Editar
+                                            <Pencil className="h-4 w-4" />{' '}
+                                            Editar
                                         </Button>
                                         <Button
                                             variant="ghost"

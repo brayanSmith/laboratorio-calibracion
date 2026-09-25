@@ -5,6 +5,7 @@ import {
     FolderGit2,
     LayoutGrid,
     ShieldCheck,
+    Tags,
     Users,
     Wrench,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ import { index as equiposIndex } from '@/routes/equipos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { index as rolesIndex } from '@/routes/roles';
+import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
 import { index as usuariosIndex } from '@/routes/usuarios';
 import type { NavItem } from '@/types';
 
@@ -64,6 +66,15 @@ export function AppSidebar() {
                             title: 'Equipos',
                             href: equiposIndex(),
                             icon: Wrench,
+                        },
+                    ]
+                  : []),
+              ...(can('tipos-equipo.ver')
+                  ? [
+                        {
+                            title: 'Tipos de equipo',
+                            href: tiposEquipoIndex(),
+                            icon: Tags,
                         },
                     ]
                   : []),

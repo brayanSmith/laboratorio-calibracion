@@ -34,8 +34,23 @@ class TipoEquipo extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * Get the equipos of this tipo de equipo.
+     *
+     * @return HasMany<Equipo, $this>
+     */
     public function equipo(): HasMany
     {
         return $this->hasMany(Equipo::class);
+    }
+
+    /**
+     * Get the check list items of this tipo de equipo.
+     *
+     * @return HasMany<TipoEquipoCheckList, $this>
+     */
+    public function tipoEquipoCheckList(): HasMany
+    {
+        return $this->hasMany(TipoEquipoCheckList::class);
     }
 }
