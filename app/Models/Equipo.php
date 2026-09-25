@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -36,6 +37,8 @@ use Illuminate\Support\Carbon;
  * @property-read Bahia $bahia
  * @property-read Cliente $cliente
  * @property-read Tenant $tenant
+ * @property-read EquipoEspecificacionTecnica|null $equipoEspecificacionTecnica
+ * @property-read EquipoProgramacion|null $equipoProgramacion
  */
 #[Fillable([
     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
@@ -105,6 +108,26 @@ class Equipo extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the especificacion tecnica of this equipo.
+     *
+     * @return HasOne<EquipoEspecificacionTecnica, $this>
+     */
+    public function equipoEspecificacionTecnica(): HasOne
+    {
+        return $this->hasOne(EquipoEspecificacionTecnica::class);
+    }
+
+    /**
+     * Get the programacion of this equipo.
+     *
+     * @return HasOne<EquipoProgramacion, $this>
+     */
+    public function equipoProgramacion(): HasOne
+    {
+        return $this->hasOne(EquipoProgramacion::class);
     }
 
     /**
