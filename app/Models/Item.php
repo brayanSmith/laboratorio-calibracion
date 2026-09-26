@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\ItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -22,7 +25,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['codigo', 'nombre', 'descripcion', 'tenant_id'])]
 class Item extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<ItemFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this item belongs to.
@@ -32,5 +36,15 @@ class Item extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the mantenimiento usages of this item.
+     *
+     * @return HasMany<ItemMantenimiento, $this>
+     */
+    public function itemsMantenimiento(): HasMany
+    {
+        return $this->hasMany(ItemMantenimiento::class);
     }
 }

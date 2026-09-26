@@ -7,6 +7,7 @@ import {
     FolderGit2,
     LayoutGrid,
     MapPin,
+    Package,
     ShieldCheck,
     Tags,
     Users,
@@ -30,6 +31,7 @@ import { dashboard } from '@/routes';
 import { index as areasIndex } from '@/routes/areas';
 import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
+import { index as itemsIndex } from '@/routes/items';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
@@ -99,6 +101,15 @@ export function AppSidebar() {
                             title: 'Fabricantes',
                             href: fabricantesIndex(),
                             icon: Factory,
+                        },
+                    ]
+                  : []),
+              ...(can('items.ver')
+                  ? [
+                        {
+                            title: 'Ítems',
+                            href: itemsIndex(),
+                            icon: Package,
                         },
                     ]
                   : []),

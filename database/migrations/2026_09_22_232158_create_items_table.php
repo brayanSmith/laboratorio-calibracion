@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('items', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo')->unique();
+            $table->string('codigo');
             $table->string('nombre');
             $table->string('descripcion')->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['tenant_id', 'codigo']);
         });
     }
 

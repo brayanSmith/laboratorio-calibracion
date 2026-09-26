@@ -39,6 +39,9 @@ enum TenantRole: string
                 TenantPermission::FabricantesVer,
                 TenantPermission::FabricantesCrear,
                 TenantPermission::FabricantesEditar,
+                TenantPermission::ItemsVer,
+                TenantPermission::ItemsCrear,
+                TenantPermission::ItemsEditar,
                 TenantPermission::EmpresaVer,
             ],
             self::Tecnico => [
@@ -47,6 +50,7 @@ enum TenantRole: string
                 TenantPermission::TiposEquipoVer,
                 TenantPermission::AreasVer,
                 TenantPermission::FabricantesVer,
+                TenantPermission::ItemsVer,
                 TenantPermission::EmpresaVer,
             ],
             self::Recepcion => [
@@ -55,6 +59,7 @@ enum TenantRole: string
                 TenantPermission::TiposEquipoVer,
                 TenantPermission::AreasVer,
                 TenantPermission::FabricantesVer,
+                TenantPermission::ItemsVer,
                 TenantPermission::EmpresaVer,
             ],
         };

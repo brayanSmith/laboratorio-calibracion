@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             AreaSeeder::class,
             TipoEquipoSeeder::class,
             TipoEquipoCheckListSeeder::class,
+            ItemSeeder::class,
         ]);
     }
 }
