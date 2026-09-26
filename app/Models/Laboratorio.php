@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\LaboratorioFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,7 +25,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'descripcion', 'direccion', 'tenant_id'])]
 class Laboratorio extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<LaboratorioFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this laboratorio belongs to.
@@ -35,8 +38,13 @@ class Laboratorio extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function laboratorio(): HasMany
+    /**
+     * Get the calibraciones done in this laboratorio.
+     *
+     * @return HasMany<Calibracion, $this>
+     */
+    public function calibracion(): HasMany
     {
-        return $this->hasMany(Laboratorio::class);
+        return $this->hasMany(Calibracion::class);
     }
 }

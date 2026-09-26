@@ -8,6 +8,7 @@ use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\FabricanteController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
 use App\Http\Controllers\Plataforma\TenantUserController;
@@ -43,6 +44,8 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('fabricantes', FabricanteController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('items', ItemController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    Route::resource('laboratorios', LaboratorioController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('empresas-terceras', EmpresaTerceroController::class)
         ->parameters(['empresas-terceras' => 'empresaTercero'])

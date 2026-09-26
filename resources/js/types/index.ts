@@ -5,6 +5,7 @@ export type * from './empresas-terceras';
 export type * from './equipos';
 export type * from './fabricantes';
 export type * from './items';
+export type * from './laboratorios';
 export type * from './navigation';
 export type * from './roles';
 export type * from './tenants';

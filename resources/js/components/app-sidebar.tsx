@@ -4,6 +4,7 @@ import {
     Building,
     Building2,
     Factory,
+    FlaskConical,
     FolderGit2,
     Handshake,
     LayoutGrid,
@@ -34,6 +35,7 @@ import { index as empresasTercerasIndex } from '@/routes/empresas-terceras';
 import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
 import { index as itemsIndex } from '@/routes/items';
+import { index as laboratoriosIndex } from '@/routes/laboratorios';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
@@ -121,6 +123,15 @@ export function AppSidebar() {
                             title: 'Empresas terceras',
                             href: empresasTercerasIndex(),
                             icon: Handshake,
+                        },
+                    ]
+                  : []),
+              ...(can('laboratorios.ver')
+                  ? [
+                        {
+                            title: 'Laboratorios',
+                            href: laboratoriosIndex(),
+                            icon: FlaskConical,
                         },
                     ]
                   : []),
