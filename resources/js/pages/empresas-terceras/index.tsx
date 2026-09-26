@@ -1,6 +1,9 @@
 import { Head } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import DataTable, {
+    createDataTableColumnHelper,
+} from '@/components/data-table';
 import CreateEmpresaTerceroModal from '@/components/empresas-terceras/create-empresa-tercero-modal';
 import DeleteEmpresaTerceroModal from '@/components/empresas-terceras/delete-empresa-tercero-modal';
 import EditEmpresaTerceroModal from '@/components/empresas-terceras/edit-empresa-tercero-modal';
@@ -14,8 +17,12 @@ type Props = {
     empresasTerceras: EmpresaTercero[];
 };
 
+const columnHelper = createDataTableColumnHelper<EmpresaTercero>();
+
 export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
     const { can } = usePermissions();
+    const canEdit = can('empresas-terceras.editar');
+    const canDelete = can('empresas-terceras.eliminar');
     const [editingEmpresaTerceroId, setEditingEmpresaTerceroId] = useState<
         number | null
     >(null);
@@ -27,6 +34,68 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
     const [deletingEmpresaTercero, setDeletingEmpresaTercero] =
         useState<EmpresaTercero | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+
+    const columns = useMemo(
+        () =>
+            columnHelper.columns([
+                columnHelper.accessor('nombre', {
+                    header: 'Nombre',
+                    cell: (info) => (
+                        <span className="font-medium">{info.getValue()}</span>
+                    ),
+                }),
+                columnHelper.accessor('nit', { header: 'NIT' }),
+                columnHelper.accessor('telefono', {
+                    header: 'Teléfono',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('email', {
+                    header: 'Correo',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('servicios_count', {
+                    header: 'Servicios',
+                }),
+                columnHelper.display({
+                    id: 'acciones',
+                    header: '',
+                    enableSorting: false,
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-2">
+                            {canEdit ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="empresa-tercero-edit-button"
+                                    onClick={() => {
+                                        setEditingEmpresaTerceroId(
+                                            row.original.id,
+                                        );
+                                        setEditOpen(true);
+                                    }}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                            {canDelete ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="empresa-tercero-delete-button"
+                                    onClick={() => {
+                                        setDeletingEmpresaTercero(row.original);
+                                        setDeleteOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                        </div>
+                    ),
+                }),
+            ]),
+        [canEdit, canDelete],
+    );
 
     return (
         <>
@@ -51,99 +120,13 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
                     ) : null}
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/50 text-left text-muted-foreground">
-                            <tr>
-                                <th className="px-4 py-3 font-medium">
-                                    Nombre
-                                </th>
-                                <th className="px-4 py-3 font-medium">NIT</th>
-                                <th className="px-4 py-3 font-medium">
-                                    Teléfono
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Correo
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Servicios
-                                </th>
-                                <th className="px-4 py-3" />
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {empresasTerceras.map((empresaTercero) => (
-                                <tr
-                                    key={empresaTercero.id}
-                                    data-test="empresa-tercero-row"
-                                >
-                                    <td className="px-4 py-3 font-medium">
-                                        {empresaTercero.nombre}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {empresaTercero.nit}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {empresaTercero.telefono ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {empresaTercero.email ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {empresaTercero.servicios_count}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {can('empresas-terceras.editar') ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    data-test="empresa-tercero-edit-button"
-                                                    onClick={() => {
-                                                        setEditingEmpresaTerceroId(
-                                                            empresaTercero.id,
-                                                        );
-                                                        setEditOpen(true);
-                                                    }}
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            ) : null}
-                                            {can(
-                                                'empresas-terceras.eliminar',
-                                            ) ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    data-test="empresa-tercero-delete-button"
-                                                    onClick={() => {
-                                                        setDeletingEmpresaTercero(
-                                                            empresaTercero,
-                                                        );
-                                                        setDeleteOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {empresasTerceras.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="px-4 py-8 text-center text-muted-foreground"
-                                    >
-                                        Aún no has registrado empresas terceras.
-                                    </td>
-                                </tr>
-                            ) : null}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    data={empresasTerceras}
+                    columns={columns}
+                    searchPlaceholder="Buscar empresa..."
+                    emptyMessage="Aún no has registrado empresas terceras."
+                    rowTestId="empresa-tercero-row"
+                />
             </div>
 
             <EditEmpresaTerceroModal

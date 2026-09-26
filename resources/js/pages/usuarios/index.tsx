@@ -1,13 +1,16 @@
 import { Head } from '@inertiajs/react';
 import { KeyRound, Pencil, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import UsuarioController from '@/actions/App/Http/Controllers/UsuarioController';
+import DataTable, {
+    createDataTableColumnHelper,
+} from '@/components/data-table';
 import Heading from '@/components/heading';
 import ResetUserPasswordModal from '@/components/reset-user-password-modal';
-import CreateUsuarioModal from '@/components/usuarios/create-usuario-modal';
-import EditUsuarioModal from '@/components/usuarios/edit-usuario-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import CreateUsuarioModal from '@/components/usuarios/create-usuario-modal';
+import EditUsuarioModal from '@/components/usuarios/edit-usuario-modal';
 import { index } from '@/routes/usuarios';
 import type { TenantRoleOption, Usuario } from '@/types';
 
@@ -16,6 +19,8 @@ type Props = {
     roles: TenantRoleOption[];
 };
 
+const columnHelper = createDataTableColumnHelper<Usuario>();
+
 export default function UsuariosIndex({ usuarios, roles }: Props) {
     const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
     const [editOpen, setEditOpen] = useState(false);
@@ -23,6 +28,71 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
         null,
     );
     const [resetOpen, setResetOpen] = useState(false);
+
+    const columns = useMemo(
+        () =>
+            columnHelper.columns([
+                columnHelper.accessor('name', {
+                    header: 'Nombre',
+                    cell: (info) => (
+                        <span className="font-medium">{info.getValue()}</span>
+                    ),
+                }),
+                columnHelper.accessor('email', { header: 'Correo' }),
+                columnHelper.accessor('role_name', {
+                    header: 'Rol',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('must_change_password', {
+                    header: 'Acceso',
+                    cell: (info) =>
+                        info.getValue() ? (
+                            <Badge variant="secondary">
+                                Pendiente de cambio de contraseña
+                            </Badge>
+                        ) : (
+                            <Badge>Activo</Badge>
+                        ),
+                }),
+                columnHelper.display({
+                    id: 'acciones',
+                    header: '',
+                    enableSorting: false,
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-2">
+                            {row.original.can_manage ? (
+                                <>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setEditingUsuario(row.original);
+                                            setEditOpen(true);
+                                        }}
+                                        data-test="usuario-edit-button"
+                                    >
+                                        <Pencil className="h-4 w-4" /> Editar
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setResettingUsuario(row.original);
+                                            setResetOpen(true);
+                                        }}
+                                        data-test="usuario-reset-button"
+                                    >
+                                        <KeyRound className="h-4 w-4" />{' '}
+                                        Regenerar contraseña
+                                    </Button>
+                                </>
+                            ) : null}
+                        </div>
+                    ),
+                }),
+            ]),
+        [],
+    );
 
     return (
         <>
@@ -45,86 +115,13 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                     </CreateUsuarioModal>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/50 text-left text-muted-foreground">
-                            <tr>
-                                <th className="px-4 py-3 font-medium">
-                                    Nombre
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Correo
-                                </th>
-                                <th className="px-4 py-3 font-medium">Rol</th>
-                                <th className="px-4 py-3 font-medium">
-                                    Acceso
-                                </th>
-                                <th className="px-4 py-3" />
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {usuarios.map((usuario) => (
-                                <tr key={usuario.id} data-test="usuario-row">
-                                    <td className="px-4 py-3 font-medium">
-                                        {usuario.name}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {usuario.email}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {usuario.role_name ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {usuario.must_change_password ? (
-                                            <Badge variant="secondary">
-                                                Pendiente de cambio de
-                                                contraseña
-                                            </Badge>
-                                        ) : (
-                                            <Badge>Activo</Badge>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {usuario.can_manage ? (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setEditingUsuario(
-                                                                usuario,
-                                                            );
-                                                            setEditOpen(true);
-                                                        }}
-                                                        data-test="usuario-edit-button"
-                                                    >
-                                                        <Pencil className="h-4 w-4" />{' '}
-                                                        Editar
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setResettingUsuario(
-                                                                usuario,
-                                                            );
-                                                            setResetOpen(true);
-                                                        }}
-                                                        data-test="usuario-reset-button"
-                                                    >
-                                                        <KeyRound className="h-4 w-4" />{' '}
-                                                        Regenerar contraseña
-                                                    </Button>
-                                                </>
-                                            ) : null}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    data={usuarios}
+                    columns={columns}
+                    searchPlaceholder="Buscar usuario..."
+                    emptyMessage="Aún no hay usuarios registrados."
+                    rowTestId="usuario-row"
+                />
             </div>
 
             <EditUsuarioModal

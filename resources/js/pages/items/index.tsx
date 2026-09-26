@@ -1,10 +1,13 @@
 import { Head } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import DataTable, {
+    createDataTableColumnHelper,
+} from '@/components/data-table';
+import Heading from '@/components/heading';
 import CreateItemModal from '@/components/items/create-item-modal';
 import DeleteItemModal from '@/components/items/delete-item-modal';
 import EditItemModal from '@/components/items/edit-item-modal';
-import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { index } from '@/routes/items';
@@ -14,13 +17,73 @@ type Props = {
     items: Item[];
 };
 
+const columnHelper = createDataTableColumnHelper<Item>();
+
 export default function ItemsIndex({ items }: Props) {
     const { can } = usePermissions();
+    const canEdit = can('items.editar');
+    const canDelete = can('items.eliminar');
     const [editingItemId, setEditingItemId] = useState<number | null>(null);
     const editingItem = items.find((item) => item.id === editingItemId) ?? null;
     const [editOpen, setEditOpen] = useState(false);
     const [deletingItem, setDeletingItem] = useState<Item | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+
+    const columns = useMemo(
+        () =>
+            columnHelper.columns([
+                columnHelper.accessor('codigo', { header: 'Código' }),
+                columnHelper.accessor('nombre', {
+                    header: 'Nombre',
+                    cell: (info) => (
+                        <span className="font-medium">{info.getValue()}</span>
+                    ),
+                }),
+                columnHelper.accessor('descripcion', {
+                    header: 'Descripción',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('usos_count', {
+                    header: 'Usos en mantenimientos',
+                }),
+                columnHelper.display({
+                    id: 'acciones',
+                    header: '',
+                    enableSorting: false,
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-2">
+                            {canEdit ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="item-edit-button"
+                                    onClick={() => {
+                                        setEditingItemId(row.original.id);
+                                        setEditOpen(true);
+                                    }}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                            {canDelete ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="item-delete-button"
+                                    onClick={() => {
+                                        setDeletingItem(row.original);
+                                        setDeleteOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                        </div>
+                    ),
+                }),
+            ]),
+        [canEdit, canDelete],
+    );
 
     return (
         <>
@@ -45,86 +108,13 @@ export default function ItemsIndex({ items }: Props) {
                     ) : null}
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/50 text-left text-muted-foreground">
-                            <tr>
-                                <th className="px-4 py-3 font-medium">
-                                    Código
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Nombre
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Descripción
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Usos en mantenimientos
-                                </th>
-                                <th className="px-4 py-3" />
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {items.map((item) => (
-                                <tr key={item.id} data-test="item-row">
-                                    <td className="px-4 py-3">{item.codigo}</td>
-                                    <td className="px-4 py-3 font-medium">
-                                        {item.nombre}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {item.descripcion ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {item.usos_count}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {can('items.editar') ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    data-test="item-edit-button"
-                                                    onClick={() => {
-                                                        setEditingItemId(
-                                                            item.id,
-                                                        );
-                                                        setEditOpen(true);
-                                                    }}
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            ) : null}
-                                            {can('items.eliminar') ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    data-test="item-delete-button"
-                                                    onClick={() => {
-                                                        setDeletingItem(item);
-                                                        setDeleteOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {items.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={5}
-                                        className="px-4 py-8 text-center text-muted-foreground"
-                                    >
-                                        Aún no has registrado ítems.
-                                    </td>
-                                </tr>
-                            ) : null}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    data={items}
+                    columns={columns}
+                    searchPlaceholder="Buscar ítem..."
+                    emptyMessage="Aún no has registrado ítems."
+                    rowTestId="item-row"
+                />
             </div>
 
             <EditItemModal

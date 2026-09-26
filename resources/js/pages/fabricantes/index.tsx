@@ -1,6 +1,9 @@
 import { Head } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import DataTable, {
+    createDataTableColumnHelper,
+} from '@/components/data-table';
 import CreateFabricanteModal from '@/components/fabricantes/create-fabricante-modal';
 import DeleteFabricanteModal from '@/components/fabricantes/delete-fabricante-modal';
 import EditFabricanteModal from '@/components/fabricantes/edit-fabricante-modal';
@@ -14,8 +17,12 @@ type Props = {
     fabricantes: Fabricante[];
 };
 
+const columnHelper = createDataTableColumnHelper<Fabricante>();
+
 export default function FabricantesIndex({ fabricantes }: Props) {
     const { can } = usePermissions();
+    const canEdit = can('fabricantes.editar');
+    const canDelete = can('fabricantes.eliminar');
     const [editingFabricanteId, setEditingFabricanteId] = useState<
         number | null
     >(null);
@@ -27,6 +34,57 @@ export default function FabricantesIndex({ fabricantes }: Props) {
     const [deletingFabricante, setDeletingFabricante] =
         useState<Fabricante | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+
+    const columns = useMemo(
+        () =>
+            columnHelper.columns([
+                columnHelper.accessor('nombre', {
+                    header: 'Nombre',
+                    cell: (info) => (
+                        <span className="font-medium">{info.getValue()}</span>
+                    ),
+                }),
+                columnHelper.accessor('equipos_count', {
+                    header: 'Equipos',
+                }),
+                columnHelper.display({
+                    id: 'acciones',
+                    header: '',
+                    enableSorting: false,
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-2">
+                            {canEdit ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="fabricante-edit-button"
+                                    onClick={() => {
+                                        setEditingFabricanteId(row.original.id);
+                                        setEditOpen(true);
+                                    }}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                            {canDelete ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="fabricante-delete-button"
+                                    onClick={() => {
+                                        setDeletingFabricante(row.original);
+                                        setDeleteOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                        </div>
+                    ),
+                }),
+            ]),
+        [canEdit, canDelete],
+    );
 
     return (
         <>
@@ -51,81 +109,13 @@ export default function FabricantesIndex({ fabricantes }: Props) {
                     ) : null}
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/50 text-left text-muted-foreground">
-                            <tr>
-                                <th className="px-4 py-3 font-medium">
-                                    Nombre
-                                </th>
-                                <th className="px-4 py-3 font-medium">
-                                    Equipos
-                                </th>
-                                <th className="px-4 py-3" />
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {fabricantes.map((fabricante) => (
-                                <tr
-                                    key={fabricante.id}
-                                    data-test="fabricante-row"
-                                >
-                                    <td className="px-4 py-3 font-medium">
-                                        {fabricante.nombre}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {fabricante.equipos_count}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {can('fabricantes.editar') ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    data-test="fabricante-edit-button"
-                                                    onClick={() => {
-                                                        setEditingFabricanteId(
-                                                            fabricante.id,
-                                                        );
-                                                        setEditOpen(true);
-                                                    }}
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            ) : null}
-                                            {can('fabricantes.eliminar') ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    data-test="fabricante-delete-button"
-                                                    onClick={() => {
-                                                        setDeletingFabricante(
-                                                            fabricante,
-                                                        );
-                                                        setDeleteOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {fabricantes.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={3}
-                                        className="px-4 py-8 text-center text-muted-foreground"
-                                    >
-                                        Aún no has registrado fabricantes.
-                                    </td>
-                                </tr>
-                            ) : null}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    data={fabricantes}
+                    columns={columns}
+                    searchPlaceholder="Buscar fabricante..."
+                    emptyMessage="Aún no has registrado fabricantes."
+                    rowTestId="fabricante-row"
+                />
             </div>
 
             <EditFabricanteModal

@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             TipoEquipoSeeder::class,
             TipoEquipoCheckListSeeder::class,
             ItemSeeder::class,
+            EmpresaTerceroSeeder::class,
         ]);
     }
 }
