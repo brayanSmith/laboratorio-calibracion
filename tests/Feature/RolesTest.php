@@ -26,7 +26,7 @@ test('el administrador ve los roles de su tenant con permisos y cantidad de usua
         ->assertInertia(fn ($page) => $page
             ->component('roles/index')
             ->has('roles', 4)
-            ->has('catalog', 5)
+            ->has('catalog', 7)
             ->where('roles.0.name', TenantRole::Administrador->value)
             ->where('roles.0.is_system', true)
             ->where('roles.0.users_count', 1));

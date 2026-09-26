@@ -19,6 +19,11 @@ enum TenantPermission: string
     case AreasEditar = 'areas.editar';
     case AreasEliminar = 'areas.eliminar';
 
+    case FabricantesVer = 'fabricantes.ver';
+    case FabricantesCrear = 'fabricantes.crear';
+    case FabricantesEditar = 'fabricantes.editar';
+    case FabricantesEliminar = 'fabricantes.eliminar';
+
     case EmpresaVer = 'empresa.ver';
     case EmpresaCrear = 'empresa.crear';
     case EmpresaEditar = 'empresa.editar';
@@ -45,6 +50,10 @@ enum TenantPermission: string
             self::AreasCrear,
             self::AreasEditar,
             self::AreasEliminar => 'Áreas',
+            self::FabricantesVer,
+            self::FabricantesCrear,
+            self::FabricantesEditar,
+            self::FabricantesEliminar => 'Fabricantes',
             self::EmpresaVer,
             self::EmpresaCrear,
             self::EmpresaEditar,
@@ -72,6 +81,10 @@ enum TenantPermission: string
             self::AreasCrear => 'Crear áreas',
             self::AreasEditar => 'Editar áreas',
             self::AreasEliminar => 'Eliminar áreas',
+            self::FabricantesVer => 'Ver fabricantes',
+            self::FabricantesCrear => 'Crear fabricantes',
+            self::FabricantesEditar => 'Editar fabricantes',
+            self::FabricantesEliminar => 'Eliminar fabricantes',
             self::EmpresaVer => 'Ver empresa',
             self::EmpresaCrear => 'Registrar empresa',
             self::EmpresaEditar => 'Editar empresa',

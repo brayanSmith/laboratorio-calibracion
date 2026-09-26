@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\FabricanteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,7 +23,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'tenant_id'])]
 class Fabricante extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<FabricanteFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this fabricante belongs to.
@@ -33,6 +36,11 @@ class Fabricante extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * Get the equipos of this fabricante.
+     *
+     * @return HasMany<Equipo, $this>
+     */
     public function equipo(): HasMany
     {
         return $this->hasMany(Equipo::class);

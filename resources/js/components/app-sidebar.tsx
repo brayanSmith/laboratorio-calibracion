@@ -3,6 +3,7 @@ import {
     BookOpen,
     Building,
     Building2,
+    Factory,
     FolderGit2,
     LayoutGrid,
     MapPin,
@@ -28,6 +29,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
 import { index as areasIndex } from '@/routes/areas';
 import { index as equiposIndex } from '@/routes/equipos';
+import { index as fabricantesIndex } from '@/routes/fabricantes';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
@@ -88,6 +90,15 @@ export function AppSidebar() {
                             title: 'Áreas',
                             href: areasIndex(),
                             icon: MapPin,
+                        },
+                    ]
+                  : []),
+              ...(can('fabricantes.ver')
+                  ? [
+                        {
+                            title: 'Fabricantes',
+                            href: fabricantesIndex(),
+                            icon: Factory,
                         },
                     ]
                   : []),
