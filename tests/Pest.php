@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Area;
 use App\Models\Tenant;
 use App\Models\TipoEquipo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,6 +57,14 @@ function crearTipoEquipo(Tenant $tenant, string $nombre = 'Manómetro', string $
     return TipoEquipo::create([
         'nombre' => $nombre,
         'tipo_mantenimiento' => $tipoMantenimiento,
+        'tenant_id' => $tenant->id,
+    ]);
+}
+
+function crearArea(Tenant $tenant, string $nombre = 'Laboratorio de presión'): Area
+{
+    return Area::create([
+        'nombre' => $nombre,
         'tenant_id' => $tenant->id,
     ]);
 }

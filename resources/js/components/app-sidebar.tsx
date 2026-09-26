@@ -5,6 +5,7 @@ import {
     Building2,
     FolderGit2,
     LayoutGrid,
+    MapPin,
     ShieldCheck,
     Tags,
     Users,
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
+import { index as areasIndex } from '@/routes/areas';
 import { index as equiposIndex } from '@/routes/equipos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
@@ -77,6 +79,15 @@ export function AppSidebar() {
                             title: 'Equipos',
                             href: equiposIndex(),
                             icon: Wrench,
+                        },
+                    ]
+                  : []),
+              ...(can('areas.ver')
+                  ? [
+                        {
+                            title: 'Áreas',
+                            href: areasIndex(),
+                            icon: MapPin,
                         },
                     ]
                   : []),

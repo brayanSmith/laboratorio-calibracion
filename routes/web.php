@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EquipoController;
@@ -33,6 +34,8 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->except(['create', 'edit']);
 
     Route::resource('equipos', EquipoController::class)->except('create');
+
+    Route::resource('areas', AreaController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('tipos-equipo', TipoEquipoController::class)
         ->parameters(['tipos-equipo' => 'tipoEquipo'])

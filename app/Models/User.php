@@ -49,6 +49,7 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsTo(Tenant::class);
     }
 
+
     /**
      * Get the attributes that should be cast.
      *

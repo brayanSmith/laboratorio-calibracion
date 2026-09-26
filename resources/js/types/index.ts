@@ -1,5 +1,6 @@
 export type * from './auth';
 export type * from './empresa';
+export type * from './areas';
 export type * from './equipos';
 export type * from './navigation';
 export type * from './roles';
