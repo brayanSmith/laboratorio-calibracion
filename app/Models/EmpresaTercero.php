@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\EmpresaTerceroFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,7 +27,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'nit', 'direccion', 'telefono', 'email', 'tenant_id'])]
 class EmpresaTercero extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<EmpresaTerceroFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this empresa tercero belongs to.
@@ -37,6 +40,11 @@ class EmpresaTercero extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * Get the servicios prestados por esta empresa tercero.
+     *
+     * @return HasMany<ServicioTercero, $this>
+     */
     public function servicioTercero(): HasMany
     {
         return $this->hasMany(ServicioTercero::class);

@@ -1,6 +1,4 @@
 import { Form } from '@inertiajs/react';
-import ItemController from '@/actions/App/Http/Controllers/ItemController';
-import ItemFormFields from '@/components/items/item-form-fields';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -11,38 +9,45 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { Item } from '@/types';
+import { destroy } from '@/routes/empresas-terceras';
+import type { EmpresaTercero } from '@/types';
 
 type Props = {
-    item: Item | null;
+    empresaTercero: EmpresaTercero | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
-export default function EditItemModal({ item, open, onOpenChange }: Props) {
-    if (!item) {
+export default function DeleteEmpresaTerceroModal({
+    empresaTercero,
+    open,
+    onOpenChange,
+}: Props) {
+    if (!empresaTercero) {
         return null;
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent>
                 <Form
-                    key={`${item.id}-${String(open)}`}
-                    {...ItemController.update.form(item.id)}
-                    className="space-y-6"
+                    key={String(open)}
+                    {...destroy.form(empresaTercero.id)}
                     onSuccess={() => onOpenChange(false)}
                 >
-                    {({ errors, processing }) => (
+                    {({ processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Editar ítem</DialogTitle>
+                                <DialogTitle>
+                                    ¿Eliminar empresa tercera?
+                                </DialogTitle>
                                 <DialogDescription>
-                                    Actualiza los datos del ítem
+                                    Esta acción eliminará la empresa tercera{' '}
+                                    <strong>"{empresaTercero.nombre}"</strong>.
+                                    Solo es posible si no tiene servicios
+                                    asociados.
                                 </DialogDescription>
                             </DialogHeader>
-
-                            <ItemFormFields item={item} errors={errors} />
 
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
@@ -52,11 +57,12 @@ export default function EditItemModal({ item, open, onOpenChange }: Props) {
                                 </DialogClose>
 
                                 <Button
+                                    variant="destructive"
                                     type="submit"
+                                    data-test="empresaTercero-delete-confirm"
                                     disabled={processing}
-                                    data-test="item-update-submit"
                                 >
-                                    Guardar cambios
+                                    Eliminar empresa tercera
                                 </Button>
                             </DialogFooter>
                         </>

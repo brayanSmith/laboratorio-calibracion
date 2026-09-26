@@ -1,9 +1,9 @@
-import { Form } from "@inertiajs/react";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
-import ItemController from "@/actions/App/Http/Controllers/ItemController";
-import ItemFormFields from "@/components/items/item-form-fields";
-import { Button } from "@/components/ui/button";
+import { Form } from '@inertiajs/react';
+import type { PropsWithChildren } from 'react';
+import { useState } from 'react';
+import ItemController from '@/actions/App/Http/Controllers/ItemController';
+import ItemFormFields from '@/components/items/item-form-fields';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogClose,
@@ -13,7 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 export default function CreateItemModal({ children }: PropsWithChildren) {
     const [open, setOpen] = useState(false);

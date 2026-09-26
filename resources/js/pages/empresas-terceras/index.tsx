@@ -1,47 +1,53 @@
 import { Head } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import CreateItemModal from '@/components/items/create-item-modal';
-import DeleteItemModal from '@/components/items/delete-item-modal';
-import EditItemModal from '@/components/items/edit-item-modal';
+import CreateEmpresaTerceroModal from '@/components/empresas-terceras/create-empresa-tercero-modal';
+import DeleteEmpresaTerceroModal from '@/components/empresas-terceras/delete-empresa-tercero-modal';
+import EditEmpresaTerceroModal from '@/components/empresas-terceras/edit-empresa-tercero-modal';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/items';
-import type { Item } from '@/types';
+import { index } from '@/routes/empresas-terceras';
+import type { EmpresaTercero } from '@/types';
 
 type Props = {
-    items: Item[];
+    empresasTerceras: EmpresaTercero[];
 };
 
-export default function ItemsIndex({ items }: Props) {
+export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
     const { can } = usePermissions();
-    const [editingItemId, setEditingItemId] = useState<number | null>(null);
-    const editingItem = items.find((item) => item.id === editingItemId) ?? null;
+    const [editingEmpresaTerceroId, setEditingEmpresaTerceroId] = useState<
+        number | null
+    >(null);
+    const editingEmpresaTercero =
+        empresasTerceras.find(
+            (empresaTercero) => empresaTercero.id === editingEmpresaTerceroId,
+        ) ?? null;
     const [editOpen, setEditOpen] = useState(false);
-    const [deletingItem, setDeletingItem] = useState<Item | null>(null);
+    const [deletingEmpresaTercero, setDeletingEmpresaTercero] =
+        useState<EmpresaTercero | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
 
     return (
         <>
-            <Head title="Ítems" />
+            <Head title="Empresas terceras" />
 
-            <h1 className="sr-only">Ítems</h1>
+            <h1 className="sr-only">Empresas terceras</h1>
 
             <div className="flex flex-col space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <Heading
                         variant="small"
-                        title="Ítems"
-                        description="Administra los ítems de consumo y repuestos de tu laboratorio"
+                        title="Empresas terceras"
+                        description="Administra las empresas externas que prestan servicios de mantenimiento o calibración"
                     />
 
-                    {can('items.crear') ? (
-                        <CreateItemModal>
-                            <Button data-test="items-new-button">
-                                <Plus /> Nuevo ítem
+                    {can('empresas-terceras.crear') ? (
+                        <CreateEmpresaTerceroModal>
+                            <Button data-test="empresas-terceras-new-button">
+                                <Plus /> Nueva empresa tercera
                             </Button>
-                        </CreateItemModal>
+                        </CreateEmpresaTerceroModal>
                     ) : null}
                 </div>
 
@@ -50,43 +56,52 @@ export default function ItemsIndex({ items }: Props) {
                         <thead className="bg-muted/50 text-left text-muted-foreground">
                             <tr>
                                 <th className="px-4 py-3 font-medium">
-                                    Código
-                                </th>
-                                <th className="px-4 py-3 font-medium">
                                     Nombre
                                 </th>
+                                <th className="px-4 py-3 font-medium">NIT</th>
                                 <th className="px-4 py-3 font-medium">
-                                    Descripción
+                                    Teléfono
                                 </th>
                                 <th className="px-4 py-3 font-medium">
-                                    Usos en mantenimientos
+                                    Correo
+                                </th>
+                                <th className="px-4 py-3 font-medium">
+                                    Servicios
                                 </th>
                                 <th className="px-4 py-3" />
                             </tr>
                         </thead>
                         <tbody className="divide-y">
-                            {items.map((item) => (
-                                <tr key={item.id} data-test="item-row">
-                                    <td className="px-4 py-3">{item.codigo}</td>
+                            {empresasTerceras.map((empresaTercero) => (
+                                <tr
+                                    key={empresaTercero.id}
+                                    data-test="empresa-tercero-row"
+                                >
                                     <td className="px-4 py-3 font-medium">
-                                        {item.nombre}
+                                        {empresaTercero.nombre}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {item.descripcion ?? '—'}
+                                        {empresaTercero.nit}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {item.usos_count}
+                                        {empresaTercero.telefono ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {empresaTercero.email ?? '—'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {empresaTercero.servicios_count}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
-                                            {can('items.editar') ? (
+                                            {can('empresas-terceras.editar') ? (
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    data-test="item-edit-button"
+                                                    data-test="empresa-tercero-edit-button"
                                                     onClick={() => {
-                                                        setEditingItemId(
-                                                            item.id,
+                                                        setEditingEmpresaTerceroId(
+                                                            empresaTercero.id,
                                                         );
                                                         setEditOpen(true);
                                                     }}
@@ -94,13 +109,17 @@ export default function ItemsIndex({ items }: Props) {
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
                                             ) : null}
-                                            {can('items.eliminar') ? (
+                                            {can(
+                                                'empresas-terceras.eliminar',
+                                            ) ? (
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    data-test="item-delete-button"
+                                                    data-test="empresa-tercero-delete-button"
                                                     onClick={() => {
-                                                        setDeletingItem(item);
+                                                        setDeletingEmpresaTercero(
+                                                            empresaTercero,
+                                                        );
                                                         setDeleteOpen(true);
                                                     }}
                                                 >
@@ -112,13 +131,13 @@ export default function ItemsIndex({ items }: Props) {
                                 </tr>
                             ))}
 
-                            {items.length === 0 ? (
+                            {empresasTerceras.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
-                                        Aún no has registrado ítems.
+                                        Aún no has registrado empresas terceras.
                                     </td>
                                 </tr>
                             ) : null}
@@ -127,13 +146,13 @@ export default function ItemsIndex({ items }: Props) {
                 </div>
             </div>
 
-            <EditItemModal
-                item={editingItem}
+            <EditEmpresaTerceroModal
+                empresaTercero={editingEmpresaTercero}
                 open={editOpen}
                 onOpenChange={setEditOpen}
             />
-            <DeleteItemModal
-                item={deletingItem}
+            <DeleteEmpresaTerceroModal
+                empresaTercero={deletingEmpresaTercero}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
             />
@@ -141,10 +160,10 @@ export default function ItemsIndex({ items }: Props) {
     );
 }
 
-ItemsIndex.layout = {
+EmpresasTercerasIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Ítems',
+            title: 'Empresas terceras',
             href: index(),
         },
     ],

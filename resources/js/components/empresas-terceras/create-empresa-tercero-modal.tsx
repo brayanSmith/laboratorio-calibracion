@@ -1,6 +1,8 @@
 import { Form } from '@inertiajs/react';
-import ItemController from '@/actions/App/Http/Controllers/ItemController';
-import ItemFormFields from '@/components/items/item-form-fields';
+import type { PropsWithChildren } from 'react';
+import { useState } from 'react';
+import EmpresaTerceroController from '@/actions/App/Http/Controllers/EmpresaTerceroController';
+import EmpresaTerceroFormFields from '@/components/empresas-terceras/empresa-tercero-form-fields';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,39 +12,35 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Item } from '@/types';
 
-type Props = {
-    item: Item | null;
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-};
-
-export default function EditItemModal({ item, open, onOpenChange }: Props) {
-    if (!item) {
-        return null;
-    }
+export default function CreateEmpresaTerceroModal({
+    children,
+}: PropsWithChildren) {
+    const [open, setOpen] = useState(false);
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="sm:max-w-xl">
                 <Form
-                    key={`${item.id}-${String(open)}`}
-                    {...ItemController.update.form(item.id)}
+                    key={String(open)}
+                    {...EmpresaTerceroController.store.form()}
                     className="space-y-6"
-                    onSuccess={() => onOpenChange(false)}
+                    onSuccess={() => setOpen(false)}
                 >
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Editar ítem</DialogTitle>
+                                <DialogTitle>Nueva empresa tercera</DialogTitle>
                                 <DialogDescription>
-                                    Actualiza los datos del ítem
+                                    Registra una empresa que presta servicios
+                                    externos
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <ItemFormFields item={item} errors={errors} />
+                            <EmpresaTerceroFormFields errors={errors} />
 
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
@@ -54,9 +52,9 @@ export default function EditItemModal({ item, open, onOpenChange }: Props) {
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    data-test="item-update-submit"
+                                    data-test="empresaTercero-create-submit"
                                 >
-                                    Guardar cambios
+                                    Guardar empresa tercera
                                 </Button>
                             </DialogFooter>
                         </>

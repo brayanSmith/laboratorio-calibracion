@@ -5,6 +5,7 @@ import {
     Building2,
     Factory,
     FolderGit2,
+    Handshake,
     LayoutGrid,
     MapPin,
     Package,
@@ -29,6 +30,7 @@ import {
 import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
 import { index as areasIndex } from '@/routes/areas';
+import { index as empresasTercerasIndex } from '@/routes/empresas-terceras';
 import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
 import { index as itemsIndex } from '@/routes/items';
@@ -110,6 +112,15 @@ export function AppSidebar() {
                             title: 'Ítems',
                             href: itemsIndex(),
                             icon: Package,
+                        },
+                    ]
+                  : []),
+              ...(can('empresas-terceras.ver')
+                  ? [
+                        {
+                            title: 'Empresas terceras',
+                            href: empresasTercerasIndex(),
+                            icon: Handshake,
                         },
                     ]
                   : []),

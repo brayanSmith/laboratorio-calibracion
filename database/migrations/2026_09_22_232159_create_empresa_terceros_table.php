@@ -14,13 +14,15 @@ return new class extends Migration
         Schema::create('empresa_terceros', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->string('nit')->unique();
+            $table->string('nit');
             $table->string('direccion')->nullable();
             $table->string('telefono')->nullable();
             $table->string('email')->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['tenant_id', 'nit']);
         });
     }
 

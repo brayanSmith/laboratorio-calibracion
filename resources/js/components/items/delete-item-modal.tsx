@@ -1,5 +1,5 @@
-import { Form } from "@inertiajs/react";
-import { Button } from "@/components/ui/button";
+import { Form } from '@inertiajs/react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogClose,
@@ -8,9 +8,9 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { destroy } from "@/routes/items";
-import type { Item } from "@/types";
+} from '@/components/ui/dialog';
+import { destroy } from '@/routes/items';
+import type { Item } from '@/types';
 
 type Props = {
     item: Item | null;
@@ -36,7 +36,7 @@ export default function DeleteItemModal({ item, open, onOpenChange }: Props) {
                             <DialogHeader>
                                 <DialogTitle>¿Eliminar ítem?</DialogTitle>
                                 <DialogDescription>
-                                    Esta acción eliminará el ítem{" "}
+                                    Esta acción eliminará el ítem{' '}
                                     <strong>"{item.nombre}"</strong>. Solo es
                                     posible si no se ha usado en mantenimientos.
                                 </DialogDescription>
