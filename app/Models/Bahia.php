@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\BahiaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,7 +25,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'area_id', 'tenant_id'])]
 class Bahia extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<BahiaFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the area this bahia belongs to.
@@ -45,8 +48,23 @@ class Bahia extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * Get the equipos located in this bahia.
+     *
+     * @return HasMany<Equipo, $this>
+     */
     public function equipo(): HasMany
     {
         return $this->hasMany(Equipo::class);
+    }
+
+    /**
+     * Get the ingresos received in this bahia.
+     *
+     * @return HasMany<Ingreso, $this>
+     */
+    public function ingreso(): HasMany
+    {
+        return $this->hasMany(Ingreso::class);
     }
 }

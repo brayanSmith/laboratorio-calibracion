@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ItemSeeder::class,
             EmpresaTerceroSeeder::class,
             LaboratorioSeeder::class,
+            ClienteSeeder::class,
         ]);
     }
 }

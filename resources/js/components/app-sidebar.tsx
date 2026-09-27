@@ -4,6 +4,8 @@ import {
     Building,
     Building2,
     ClipboardList,
+    Contact,
+    DoorOpen,
     Factory,
     FlaskConical,
     FolderGit2,
@@ -34,6 +36,8 @@ import {
 import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
 import { index as areasIndex } from '@/routes/areas';
+import { index as bahiasIndex } from '@/routes/bahias';
+import { index as clientesIndex } from '@/routes/clientes';
 import { index as empresasTercerasIndex } from '@/routes/empresas-terceras';
 import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
@@ -96,12 +100,30 @@ export function AppSidebar() {
                         },
                     ]
                   : []),
+              ...(can('clientes.ver')
+                  ? [
+                        {
+                            title: 'Clientes',
+                            href: clientesIndex(),
+                            icon: Contact,
+                        },
+                    ]
+                  : []),
               ...(can('areas.ver')
                   ? [
                         {
                             title: 'Áreas',
                             href: areasIndex(),
                             icon: MapPin,
+                        },
+                    ]
+                  : []),
+              ...(can('bahias.ver')
+                  ? [
+                        {
+                            title: 'Bahías',
+                            href: bahiasIndex(),
+                            icon: DoorOpen,
                         },
                     ]
                   : []),

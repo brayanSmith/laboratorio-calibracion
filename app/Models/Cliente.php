@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\ClienteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,7 +26,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'email', 'telefono', 'direccion', 'tenant_id'])]
 class Cliente extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<ClienteFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this cliente belongs to.
@@ -36,8 +39,33 @@ class Cliente extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * Get the equipos owned by this cliente.
+     *
+     * @return HasMany<Equipo, $this>
+     */
     public function equipo(): HasMany
     {
         return $this->hasMany(Equipo::class);
+    }
+
+    /**
+     * Get the despachos where this cliente received the equipos.
+     *
+     * @return HasMany<Despacho, $this>
+     */
+    public function despachoRecibido(): HasMany
+    {
+        return $this->hasMany(Despacho::class, 'cliente_recibe_id');
+    }
+
+    /**
+     * Get the ingresos where this cliente delivered the equipos.
+     *
+     * @return HasMany<Ingreso, $this>
+     */
+    public function ingresoEntregado(): HasMany
+    {
+        return $this->hasMany(Ingreso::class, 'cliente_entrega_id');
     }
 }

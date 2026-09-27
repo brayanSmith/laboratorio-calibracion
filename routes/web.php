@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\BahiaController;
+use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EmpresaTerceroController;
@@ -42,7 +44,11 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::resource('equipos', EquipoController::class)->except('create');
 
+    Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
+
     Route::resource('areas', AreaController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    Route::resource('bahias', BahiaController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('fabricantes', FabricanteController::class)->only(['index', 'store', 'update', 'destroy']);
 

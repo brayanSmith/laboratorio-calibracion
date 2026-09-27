@@ -4,6 +4,11 @@ namespace App\Enums;
 
 enum TenantPermission: string
 {
+    case ClientesVer = 'clientes.ver';
+    case ClientesCrear = 'clientes.crear';
+    case ClientesEditar = 'clientes.editar';
+    case ClientesEliminar = 'clientes.eliminar';
+
     case EquiposVer = 'equipos.ver';
     case EquiposCrear = 'equipos.crear';
     case EquiposEditar = 'equipos.editar';
@@ -18,6 +23,11 @@ enum TenantPermission: string
     case AreasCrear = 'areas.crear';
     case AreasEditar = 'areas.editar';
     case AreasEliminar = 'areas.eliminar';
+
+    case BahiasVer = 'bahias.ver';
+    case BahiasCrear = 'bahias.crear';
+    case BahiasEditar = 'bahias.editar';
+    case BahiasEliminar = 'bahias.eliminar';
 
     case FabricantesVer = 'fabricantes.ver';
     case FabricantesCrear = 'fabricantes.crear';
@@ -68,6 +78,10 @@ enum TenantPermission: string
     public function group(): string
     {
         return match ($this) {
+            self::ClientesVer,
+            self::ClientesCrear,
+            self::ClientesEditar,
+            self::ClientesEliminar => 'Clientes',
             self::EquiposVer,
             self::EquiposCrear,
             self::EquiposEditar,
@@ -80,6 +94,10 @@ enum TenantPermission: string
             self::AreasCrear,
             self::AreasEditar,
             self::AreasEliminar => 'Áreas',
+            self::BahiasVer,
+            self::BahiasCrear,
+            self::BahiasEditar,
+            self::BahiasEliminar => 'Bahías',
             self::FabricantesVer,
             self::FabricantesCrear,
             self::FabricantesEditar,
@@ -123,6 +141,10 @@ enum TenantPermission: string
     public function label(): string
     {
         return match ($this) {
+            self::ClientesVer => 'Ver clientes',
+            self::ClientesCrear => 'Crear clientes',
+            self::ClientesEditar => 'Editar clientes',
+            self::ClientesEliminar => 'Eliminar clientes',
             self::EquiposVer => 'Ver equipos',
             self::EquiposCrear => 'Crear equipos',
             self::EquiposEditar => 'Editar equipos',
@@ -135,6 +157,10 @@ enum TenantPermission: string
             self::AreasCrear => 'Crear áreas',
             self::AreasEditar => 'Editar áreas',
             self::AreasEliminar => 'Eliminar áreas',
+            self::BahiasVer => 'Ver bahías',
+            self::BahiasCrear => 'Crear bahías',
+            self::BahiasEditar => 'Editar bahías',
+            self::BahiasEliminar => 'Eliminar bahías',
             self::FabricantesVer => 'Ver fabricantes',
             self::FabricantesCrear => 'Crear fabricantes',
             self::FabricantesEditar => 'Editar fabricantes',
