@@ -125,7 +125,10 @@ test('los permisos del usuario se comparten con el frontend', function () {
                 TenantPermission::FabricantesVer->value,
                 TenantPermission::ItemsVer->value,
                 TenantPermission::LaboratoriosVer->value,
+                TenantPermission::ProcedimientosCalibracionVer->value,
                 TenantPermission::TiposEquipoVer->value,
+                TenantPermission::TiposMagnitudVer->value,
+                TenantPermission::UnidadesMedidaVer->value,
             ]));
 });
 

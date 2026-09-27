@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\ProcedimientoCalibracionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -20,7 +23,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'tenant_id'])]
 class ProcedimientoCalibracion extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<ProcedimientoCalibracionFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this procedimiento belongs to.
@@ -30,5 +34,15 @@ class ProcedimientoCalibracion extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the calibraciones that use this procedimiento.
+     *
+     * @return HasMany<Calibracion, $this>
+     */
+    public function calibracion(): HasMany
+    {
+        return $this->hasMany(Calibracion::class, 'procedimiento_id');
     }
 }

@@ -39,6 +39,21 @@ enum TenantPermission: string
     case LaboratoriosEditar = 'laboratorios.editar';
     case LaboratoriosEliminar = 'laboratorios.eliminar';
 
+    case ProcedimientosCalibracionVer = 'procedimientos-calibracion.ver';
+    case ProcedimientosCalibracionCrear = 'procedimientos-calibracion.crear';
+    case ProcedimientosCalibracionEditar = 'procedimientos-calibracion.editar';
+    case ProcedimientosCalibracionEliminar = 'procedimientos-calibracion.eliminar';
+
+    case TiposMagnitudVer = 'tipos-magnitud.ver';
+    case TiposMagnitudCrear = 'tipos-magnitud.crear';
+    case TiposMagnitudEditar = 'tipos-magnitud.editar';
+    case TiposMagnitudEliminar = 'tipos-magnitud.eliminar';
+
+    case UnidadesMedidaVer = 'unidades-medida.ver';
+    case UnidadesMedidaCrear = 'unidades-medida.crear';
+    case UnidadesMedidaEditar = 'unidades-medida.editar';
+    case UnidadesMedidaEliminar = 'unidades-medida.eliminar';
+
     case EmpresaVer = 'empresa.ver';
     case EmpresaCrear = 'empresa.crear';
     case EmpresaEditar = 'empresa.editar';
@@ -81,6 +96,18 @@ enum TenantPermission: string
             self::LaboratoriosCrear,
             self::LaboratoriosEditar,
             self::LaboratoriosEliminar => 'Laboratorios',
+            self::ProcedimientosCalibracionVer,
+            self::ProcedimientosCalibracionCrear,
+            self::ProcedimientosCalibracionEditar,
+            self::ProcedimientosCalibracionEliminar => 'Procedimientos de calibración',
+            self::TiposMagnitudVer,
+            self::TiposMagnitudCrear,
+            self::TiposMagnitudEditar,
+            self::TiposMagnitudEliminar => 'Tipos de magnitud',
+            self::UnidadesMedidaVer,
+            self::UnidadesMedidaCrear,
+            self::UnidadesMedidaEditar,
+            self::UnidadesMedidaEliminar => 'Unidades de medida',
             self::EmpresaVer,
             self::EmpresaCrear,
             self::EmpresaEditar,
@@ -124,6 +151,18 @@ enum TenantPermission: string
             self::LaboratoriosCrear => 'Crear laboratorios',
             self::LaboratoriosEditar => 'Editar laboratorios',
             self::LaboratoriosEliminar => 'Eliminar laboratorios',
+            self::ProcedimientosCalibracionVer => 'Ver procedimientos de calibración',
+            self::ProcedimientosCalibracionCrear => 'Crear procedimientos de calibración',
+            self::ProcedimientosCalibracionEditar => 'Editar procedimientos de calibración',
+            self::ProcedimientosCalibracionEliminar => 'Eliminar procedimientos de calibración',
+            self::TiposMagnitudVer => 'Ver tipos de magnitud',
+            self::TiposMagnitudCrear => 'Crear tipos de magnitud',
+            self::TiposMagnitudEditar => 'Editar tipos de magnitud',
+            self::TiposMagnitudEliminar => 'Eliminar tipos de magnitud',
+            self::UnidadesMedidaVer => 'Ver unidades de medida',
+            self::UnidadesMedidaCrear => 'Crear unidades de medida',
+            self::UnidadesMedidaEditar => 'Editar unidades de medida',
+            self::UnidadesMedidaEliminar => 'Eliminar unidades de medida',
             self::EmpresaVer => 'Ver empresa',
             self::EmpresaCrear => 'Registrar empresa',
             self::EmpresaEditar => 'Editar empresa',

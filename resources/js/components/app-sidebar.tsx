@@ -3,6 +3,7 @@ import {
     BookOpen,
     Building,
     Building2,
+    ClipboardList,
     Factory,
     FlaskConical,
     FolderGit2,
@@ -10,7 +11,9 @@ import {
     LayoutGrid,
     MapPin,
     Package,
+    Ruler,
     ShieldCheck,
+    Sigma,
     Tags,
     Users,
     Wrench,
@@ -39,8 +42,11 @@ import { index as laboratoriosIndex } from '@/routes/laboratorios';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
+import { index as procedimientosCalibracionIndex } from '@/routes/procedimientos-calibracion';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
+import { index as tiposMagnitudIndex } from '@/routes/tipos-magnitud';
+import { index as unidadesMedidaIndex } from '@/routes/unidades-medida';
 import { index as usuariosIndex } from '@/routes/usuarios';
 import type { NavItem } from '@/types';
 
@@ -141,6 +147,33 @@ export function AppSidebar() {
                             title: 'Tipos de equipo',
                             href: tiposEquipoIndex(),
                             icon: Tags,
+                        },
+                    ]
+                  : []),
+              ...(can('procedimientos-calibracion.ver')
+                  ? [
+                        {
+                            title: 'Procedimientos de calibración',
+                            href: procedimientosCalibracionIndex(),
+                            icon: ClipboardList,
+                        },
+                    ]
+                  : []),
+              ...(can('tipos-magnitud.ver')
+                  ? [
+                        {
+                            title: 'Tipos de magnitud',
+                            href: tiposMagnitudIndex(),
+                            icon: Sigma,
+                        },
+                    ]
+                  : []),
+              ...(can('unidades-medida.ver')
+                  ? [
+                        {
+                            title: 'Unidades de medida',
+                            href: unidadesMedidaIndex(),
+                            icon: Ruler,
                         },
                     ]
                   : []),
