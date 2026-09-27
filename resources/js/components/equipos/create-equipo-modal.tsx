@@ -2,7 +2,11 @@ import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
 import EquipoController from '@/actions/App/Http/Controllers/EquipoController';
+import EquipoDocumentosFields from '@/components/equipos/equipo-documentos-fields';
+import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFormFields from '@/components/equipos/equipo-form-fields';
+import EquipoProgramacionesFields from '@/components/equipos/equipo-programaciones-fields';
+import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -14,6 +18,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import type { EquipoFormOptions } from '@/types';
 
 type Props = PropsWithChildren<{
@@ -46,6 +51,42 @@ export default function CreateEquipoModal({ options, children }: Props) {
                                 options={options}
                                 errors={errors}
                             />
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Especificación técnica"
+                                    description="Opcional: puedes completarla ahora o después"
+                                />
+                                <EquipoEspecificacionTecnicaFields
+                                    options={options}
+                                    errors={errors}
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Programación de servicio"
+                                    description="Opcional: agrega una o varias (mantenimiento, calibración, etc.)"
+                                />
+                                <EquipoProgramacionesFields errors={errors} />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Documentos"
+                                    description="Opcional: adjunta manuales o fichas técnicas"
+                                />
+                                <EquipoDocumentosFields errors={errors} />
+                            </div>
 
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>

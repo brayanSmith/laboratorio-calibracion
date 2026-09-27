@@ -4,9 +4,12 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\BahiaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentoEquipoController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EmpresaTerceroController;
 use App\Http\Controllers\EquipoController;
+use App\Http\Controllers\EquipoEspecificacionTecnicaController;
+use App\Http\Controllers\EquipoProgramacionController;
 use App\Http\Controllers\FabricanteController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\ItemController;
@@ -43,6 +46,12 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->except(['create', 'edit']);
 
     Route::resource('equipos', EquipoController::class)->except('create');
+
+    Route::post('equipos/{equipo}/especificacion-tecnica', [EquipoEspecificacionTecnicaController::class, 'store'])->name('equipos.especificacion-tecnica.store');
+    Route::post('equipos/{equipo}/programaciones', [EquipoProgramacionController::class, 'store'])->name('equipos.programaciones.store');
+    Route::delete('programaciones/{equipoProgramacion}', [EquipoProgramacionController::class, 'destroy'])->name('programaciones.destroy');
+    Route::post('equipos/{equipo}/documentos', [DocumentoEquipoController::class, 'store'])->name('equipos.documentos.store');
+    Route::delete('documentos/{documentoEquipo}', [DocumentoEquipoController::class, 'destroy'])->name('documentos.destroy');
 
     Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
 

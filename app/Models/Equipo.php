@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -38,7 +40,7 @@ use Illuminate\Support\Carbon;
  * @property-read Cliente $cliente
  * @property-read Tenant $tenant
  * @property-read EquipoEspecificacionTecnica|null $equipoEspecificacionTecnica
- * @property-read EquipoProgramacion|null $equipoProgramacion
+ * @property-read Collection<int, EquipoProgramacion> $equipoProgramaciones
  */
 #[Fillable([
     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
@@ -121,13 +123,25 @@ class Equipo extends Model
     }
 
     /**
-     * Get the programacion of this equipo.
+     * Get the programaciones de servicio of this equipo.
      *
-     * @return HasOne<EquipoProgramacion, $this>
+     * An equipo can have more than one (e.g. one for mantenimiento and another for calibración).
+     *
+     * @return HasMany<EquipoProgramacion, $this>
      */
-    public function equipoProgramacion(): HasOne
+    public function equipoProgramaciones(): HasMany
     {
-        return $this->hasOne(EquipoProgramacion::class);
+        return $this->hasMany(EquipoProgramacion::class);
+    }
+
+    /**
+     * Get the documentos of this equipo.
+     *
+     * @return HasMany<DocumentoEquipo, $this>
+     */
+    public function equipoDocumentos(): HasMany
+    {
+        return $this->hasMany(DocumentoEquipo::class);
     }
 
     /**

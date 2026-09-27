@@ -2,9 +2,13 @@ import { Form, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import EquipoController from '@/actions/App/Http/Controllers/EquipoController';
 import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
+import EquipoDocumentosSection from '@/components/equipos/equipo-documentos-section';
+import EquipoEspecificacionTecnicaSection from '@/components/equipos/equipo-especificacion-tecnica-section';
 import EquipoFormFields from '@/components/equipos/equipo-form-fields';
+import EquipoProgramacionSection from '@/components/equipos/equipo-programacion-section';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { edit, index } from '@/routes/equipos';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
@@ -67,6 +71,21 @@ export default function EquiposEdit({ equipo, options }: Props) {
                         </>
                     )}
                 </Form>
+
+                <Separator />
+
+                <EquipoEspecificacionTecnicaSection
+                    equipo={equipo}
+                    options={options}
+                />
+
+                <Separator />
+
+                <EquipoProgramacionSection equipo={equipo} />
+
+                <Separator />
+
+                <EquipoDocumentosSection equipo={equipo} />
             </div>
 
             <DeleteEquipoModal

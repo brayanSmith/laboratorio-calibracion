@@ -15,13 +15,13 @@ beforeEach(function () {
     $this->admin = User::factory()->forTenant($this->tenant)->create();
 });
 
-function crearEquipoDeTipo(TipoEquipo $tipoEquipo): Equipo
+function crearEquipoDeTipo(TipoEquipo $tipoEquipo, string $codigo = 'EQ-0001'): Equipo
 {
     $tenantId = $tipoEquipo->tenant_id;
     $area = Area::create(['nombre' => 'Área 1', 'tenant_id' => $tenantId]);
 
     return Equipo::create([
-        'codigo' => 'EQ-0001',
+        'codigo' => $codigo,
         'tipo_equipo_id' => $tipoEquipo->id,
         'tipo_tecnologia' => 'DIGITAL',
         'modelo' => 'Modelo X',
