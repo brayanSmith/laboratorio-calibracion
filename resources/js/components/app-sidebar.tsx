@@ -52,7 +52,7 @@ import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
 import { index as tiposMagnitudIndex } from '@/routes/tipos-magnitud';
 import { index as unidadesMedidaIndex } from '@/routes/unidades-medida';
 import { index as usuariosIndex } from '@/routes/usuarios';
-import type { NavItem } from '@/types';
+import type { NavGroup, NavItem } from '@/types';
 
 export function AppSidebar() {
     const page = usePage();
@@ -63,160 +63,183 @@ export function AppSidebar() {
         ? platformDashboard()
         : dashboard();
 
-    const mainNavItems: NavItem[] = isPlatformAdmin
+    const mainNavGroups: NavGroup[] = isPlatformAdmin
         ? [
               {
-                  title: 'Dashboard',
-                  href: dashboardUrl,
-                  icon: LayoutGrid,
-              },
-              {
-                  title: 'Tenants',
-                  href: tenantsIndex(),
-                  icon: Building2,
+                  items: [
+                      {
+                          title: 'Dashboard',
+                          href: dashboardUrl,
+                          icon: LayoutGrid,
+                      },
+                      {
+                          title: 'Tenants',
+                          href: tenantsIndex(),
+                          icon: Building2,
+                      },
+                  ],
               },
           ]
         : [
               {
-                  title: 'Dashboard',
-                  href: dashboardUrl,
-                  icon: LayoutGrid,
+                  items: [
+                      {
+                          title: 'Dashboard',
+                          href: dashboardUrl,
+                          icon: LayoutGrid,
+                      },
+                      ...(can('empresa.ver')
+                          ? [
+                                {
+                                    title: 'Mi empresa',
+                                    href: empresaShow(),
+                                    icon: Building,
+                                },
+                            ]
+                          : []),
+                  ],
               },
-              ...(can('empresa.ver')
-                  ? [
-                        {
-                            title: 'Mi empresa',
-                            href: empresaShow(),
-                            icon: Building,
-                        },
-                    ]
-                  : []),
-              ...(can('equipos.ver')
-                  ? [
-                        {
-                            title: 'Equipos',
-                            href: equiposIndex(),
-                            icon: Wrench,
-                        },
-                    ]
-                  : []),
-              ...(can('clientes.ver')
-                  ? [
-                        {
-                            title: 'Clientes',
-                            href: clientesIndex(),
-                            icon: Contact,
-                        },
-                    ]
-                  : []),
-              ...(can('areas.ver')
-                  ? [
-                        {
-                            title: 'Áreas',
-                            href: areasIndex(),
-                            icon: MapPin,
-                        },
-                    ]
-                  : []),
-              ...(can('bahias.ver')
-                  ? [
-                        {
-                            title: 'Bahías',
-                            href: bahiasIndex(),
-                            icon: DoorOpen,
-                        },
-                    ]
-                  : []),
-              ...(can('fabricantes.ver')
-                  ? [
-                        {
-                            title: 'Fabricantes',
-                            href: fabricantesIndex(),
-                            icon: Factory,
-                        },
-                    ]
-                  : []),
-              ...(can('items.ver')
-                  ? [
-                        {
-                            title: 'Ítems',
-                            href: itemsIndex(),
-                            icon: Package,
-                        },
-                    ]
-                  : []),
-              ...(can('empresas-terceras.ver')
-                  ? [
-                        {
-                            title: 'Empresas terceras',
-                            href: empresasTercerasIndex(),
-                            icon: Handshake,
-                        },
-                    ]
-                  : []),
-              ...(can('laboratorios.ver')
-                  ? [
-                        {
-                            title: 'Laboratorios',
-                            href: laboratoriosIndex(),
-                            icon: FlaskConical,
-                        },
-                    ]
-                  : []),
-              ...(can('tipos-equipo.ver')
-                  ? [
-                        {
-                            title: 'Tipos de equipo',
-                            href: tiposEquipoIndex(),
-                            icon: Tags,
-                        },
-                    ]
-                  : []),
-              ...(can('procedimientos-calibracion.ver')
-                  ? [
-                        {
-                            title: 'Procedimientos de calibración',
-                            href: procedimientosCalibracionIndex(),
-                            icon: ClipboardList,
-                        },
-                    ]
-                  : []),
-              ...(can('tipos-magnitud.ver')
-                  ? [
-                        {
-                            title: 'Tipos de magnitud',
-                            href: tiposMagnitudIndex(),
-                            icon: Sigma,
-                        },
-                    ]
-                  : []),
-              ...(can('unidades-medida.ver')
-                  ? [
-                        {
-                            title: 'Unidades de medida',
-                            href: unidadesMedidaIndex(),
-                            icon: Ruler,
-                        },
-                    ]
-                  : []),
-              ...(can('usuarios.gestionar')
-                  ? [
-                        {
-                            title: 'Usuarios',
-                            href: usuariosIndex(),
-                            icon: Users,
-                        },
-                    ]
-                  : []),
-              ...(can('roles.gestionar')
-                  ? [
-                        {
-                            title: 'Roles',
-                            href: rolesIndex(),
-                            icon: ShieldCheck,
-                        },
-                    ]
-                  : []),
+              {
+                  title: 'Operación',
+                  items: [
+                      ...(can('equipos.ver')
+                          ? [
+                                {
+                                    title: 'Equipos',
+                                    href: equiposIndex(),
+                                    icon: Wrench,
+                                },
+                            ]
+                          : []),
+                      ...(can('clientes.ver')
+                          ? [
+                                {
+                                    title: 'Clientes',
+                                    href: clientesIndex(),
+                                    icon: Contact,
+                                },
+                            ]
+                          : []),
+                      ...(can('areas.ver')
+                          ? [
+                                {
+                                    title: 'Áreas',
+                                    href: areasIndex(),
+                                    icon: MapPin,
+                                },
+                            ]
+                          : []),
+                      ...(can('bahias.ver')
+                          ? [
+                                {
+                                    title: 'Bahías',
+                                    href: bahiasIndex(),
+                                    icon: DoorOpen,
+                                },
+                            ]
+                          : []),
+                      ...(can('laboratorios.ver')
+                          ? [
+                                {
+                                    title: 'Laboratorios',
+                                    href: laboratoriosIndex(),
+                                    icon: FlaskConical,
+                                },
+                            ]
+                          : []),
+                      ...(can('empresas-terceras.ver')
+                          ? [
+                                {
+                                    title: 'Empresas terceras',
+                                    href: empresasTercerasIndex(),
+                                    icon: Handshake,
+                                },
+                            ]
+                          : []),
+                  ],
+              },
+              {
+                  title: 'Catálogos',
+                  items: [
+                      ...(can('fabricantes.ver')
+                          ? [
+                                {
+                                    title: 'Fabricantes',
+                                    href: fabricantesIndex(),
+                                    icon: Factory,
+                                },
+                            ]
+                          : []),
+                      ...(can('items.ver')
+                          ? [
+                                {
+                                    title: 'Ítems',
+                                    href: itemsIndex(),
+                                    icon: Package,
+                                },
+                            ]
+                          : []),
+                      ...(can('tipos-equipo.ver')
+                          ? [
+                                {
+                                    title: 'Tipos de equipo',
+                                    href: tiposEquipoIndex(),
+                                    icon: Tags,
+                                },
+                            ]
+                          : []),
+                      ...(can('procedimientos-calibracion.ver')
+                          ? [
+                                {
+                                    title: 'Procedimientos de calibración',
+                                    href: procedimientosCalibracionIndex(),
+                                    icon: ClipboardList,
+                                },
+                            ]
+                          : []),
+                      ...(can('tipos-magnitud.ver')
+                          ? [
+                                {
+                                    title: 'Tipos de magnitud',
+                                    href: tiposMagnitudIndex(),
+                                    icon: Sigma,
+                                },
+                            ]
+                          : []),
+                      ...(can('unidades-medida.ver')
+                          ? [
+                                {
+                                    title: 'Unidades de medida',
+                                    href: unidadesMedidaIndex(),
+                                    icon: Ruler,
+                                },
+                            ]
+                          : []),
+                  ],
+              },
+              {
+                  title: 'Administración',
+                  items: [
+                      ...(can('usuarios.gestionar')
+                          ? [
+                                {
+                                    title: 'Usuarios',
+                                    href: usuariosIndex(),
+                                    icon: Users,
+                                },
+                            ]
+                          : []),
+                      ...(can('roles.gestionar')
+                          ? [
+                                {
+                                    title: 'Roles',
+                                    href: rolesIndex(),
+                                    icon: ShieldCheck,
+                                },
+                            ]
+                          : []),
+                  ],
+              },
           ];
 
     const footerNavItems: NavItem[] = [
@@ -247,7 +270,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain groups={mainNavGroups} />
             </SidebarContent>
 
             <SidebarFooter>
