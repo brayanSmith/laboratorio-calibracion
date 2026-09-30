@@ -1,14 +1,9 @@
+import { useState } from 'react';
+import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
 type Props = {
@@ -17,6 +12,11 @@ type Props = {
     errors: Partial<Record<string, string>>;
     variant?: 'create' | 'edit';
 };
+
+const OPCIONES_TECNOLOGIA = [
+    { id: 'ANALOGICO', label: 'Analógico' },
+    { id: 'DIGITAL', label: 'Digital' },
+];
 
 /**
  * Datos generales del equipo. The caller is responsible for its own
@@ -29,6 +29,17 @@ export default function EquipoFormFields({
     variant = 'edit',
 }: Props) {
     const isCreate = variant === 'create';
+
+    const [tipoEquipoId, setTipoEquipoId] = useState(
+        equipo?.tipo_equipo_id?.toString(),
+    );
+    const [tipoTecnologia, setTipoTecnologia] = useState(
+        equipo?.tipo_tecnologia,
+    );
+    const [fabricanteId, setFabricanteId] = useState(
+        equipo?.fabricante_id?.toString(),
+    );
+    const [clienteId, setClienteId] = useState(equipo?.cliente_id?.toString());
 
     return (
         <div className="grid gap-6 sm:grid-cols-2">
@@ -46,41 +57,33 @@ export default function EquipoFormFields({
 
             <div className="grid gap-2">
                 <Label htmlFor="tipo_equipo_id">Tipo de equipo</Label>
-                <Select
+                <Combobox
+                    id="tipo_equipo_id"
                     name="tipo_equipo_id"
-                    defaultValue={equipo?.tipo_equipo_id?.toString()}
-                >
-                    <SelectTrigger id="tipo_equipo_id" className="w-full">
-                        <SelectValue placeholder="Selecciona un tipo de equipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.tipoEquipos.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    value={tipoEquipoId}
+                    onValueChange={setTipoEquipoId}
+                    options={options.tipoEquipos.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder="Selecciona un tipo de equipo"
+                    searchPlaceholder="Buscar tipo de equipo..."
+                />
                 <InputError message={errors.tipo_equipo_id} />
             </div>
 
             <div className="grid gap-2">
                 <Label htmlFor="tipo_tecnologia">Tipo de tecnología</Label>
-                <Select
+                <Combobox
+                    id="tipo_tecnologia"
                     name="tipo_tecnologia"
-                    defaultValue={equipo?.tipo_tecnologia}
-                >
-                    <SelectTrigger id="tipo_tecnologia" className="w-full">
-                        <SelectValue placeholder="Selecciona una tecnología" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ANALOGICO">Analógico</SelectItem>
-                        <SelectItem value="DIGITAL">Digital</SelectItem>
-                    </SelectContent>
-                </Select>
+                    value={tipoTecnologia}
+                    onValueChange={(value) =>
+                        setTipoTecnologia(value as Equipo['tipo_tecnologia'])
+                    }
+                    options={OPCIONES_TECNOLOGIA}
+                    placeholder="Selecciona una tecnología"
+                />
                 <InputError message={errors.tipo_tecnologia} />
             </div>
 
@@ -97,24 +100,18 @@ export default function EquipoFormFields({
 
             <div className="grid gap-2">
                 <Label htmlFor="fabricante_id">Fabricante</Label>
-                <Select
+                <Combobox
+                    id="fabricante_id"
                     name="fabricante_id"
-                    defaultValue={equipo?.fabricante_id?.toString()}
-                >
-                    <SelectTrigger id="fabricante_id" className="w-full">
-                        <SelectValue placeholder="Selecciona un fabricante" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.fabricantes.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    value={fabricanteId}
+                    onValueChange={setFabricanteId}
+                    options={options.fabricantes.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder="Selecciona un fabricante"
+                    searchPlaceholder="Buscar fabricante..."
+                />
                 <InputError message={errors.fabricante_id} />
             </div>
 
@@ -150,24 +147,18 @@ export default function EquipoFormFields({
 
             <div className="grid gap-2">
                 <Label htmlFor="cliente_id">Cliente</Label>
-                <Select
+                <Combobox
+                    id="cliente_id"
                     name="cliente_id"
-                    defaultValue={equipo?.cliente_id?.toString()}
-                >
-                    <SelectTrigger id="cliente_id" className="w-full">
-                        <SelectValue placeholder="Selecciona un cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.clientes.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    value={clienteId}
+                    onValueChange={setClienteId}
+                    options={options.clientes.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder="Selecciona un cliente"
+                    searchPlaceholder="Buscar cliente..."
+                />
                 <InputError message={errors.cliente_id} />
             </div>
 

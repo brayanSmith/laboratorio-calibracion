@@ -1,13 +1,7 @@
 import { useState } from 'react';
+import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
 type Props = {
@@ -42,56 +36,40 @@ export default function EquipoUbicacionFields({
         <div className="grid gap-6 sm:grid-cols-2">
             <div className="grid gap-2">
                 <Label htmlFor="area_id">Área</Label>
-                <Select
+                <Combobox
+                    id="area_id"
                     name="area_id"
                     value={areaId}
                     onValueChange={handleAreaChange}
-                >
-                    <SelectTrigger id="area_id" className="w-full">
-                        <SelectValue placeholder="Selecciona un área" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.areas.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    options={options.areas.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder="Selecciona un área"
+                    searchPlaceholder="Buscar área..."
+                />
                 <InputError message={errors.area_id} />
             </div>
 
             <div className="grid gap-2">
                 <Label htmlFor="bahia_id">Bahía</Label>
-                <Select
+                <Combobox
+                    id="bahia_id"
                     name="bahia_id"
                     value={bahiaId}
                     onValueChange={setBahiaId}
                     disabled={!areaId}
-                >
-                    <SelectTrigger id="bahia_id" className="w-full">
-                        <SelectValue
-                            placeholder={
-                                areaId
-                                    ? 'Selecciona una bahía'
-                                    : 'Selecciona primero un área'
-                            }
-                        />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {bahiasDelArea.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    options={bahiasDelArea.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder={
+                        areaId
+                            ? 'Selecciona una bahía'
+                            : 'Selecciona primero un área'
+                    }
+                    searchPlaceholder="Buscar bahía..."
+                />
                 <InputError message={errors.bahia_id} />
             </div>
         </div>

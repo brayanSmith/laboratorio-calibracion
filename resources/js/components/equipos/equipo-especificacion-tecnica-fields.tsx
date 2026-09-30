@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -99,6 +100,10 @@ export default function EquipoEspecificacionTecnicaFields({
             : `±${precisionNumero}`
         : '';
 
+    const [tipoMagnitudId, setTipoMagnitudId] = useState(
+        especificacion?.tipo_magnitud_id?.toString(),
+    );
+
     const [unidadMedidaId, setUnidadMedidaId] = useState(
         especificacion?.unidad_medida_id?.toString(),
     );
@@ -134,48 +139,35 @@ export default function EquipoEspecificacionTecnicaFields({
         <div className="grid gap-6 sm:grid-cols-2">
             <div className="grid gap-2">
                 <Label htmlFor="tipo_magnitud_id">Tipo de magnitud</Label>
-                <Select
+                <Combobox
+                    id="tipo_magnitud_id"
                     name="tipo_magnitud_id"
-                    defaultValue={especificacion?.tipo_magnitud_id.toString()}
-                >
-                    <SelectTrigger id="tipo_magnitud_id" className="w-full">
-                        <SelectValue placeholder="Selecciona un tipo de magnitud" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.tiposMagnitud.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    value={tipoMagnitudId}
+                    onValueChange={setTipoMagnitudId}
+                    options={options.tiposMagnitud.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder="Selecciona un tipo de magnitud"
+                    searchPlaceholder="Buscar tipo de magnitud..."
+                />
                 <InputError message={errors.tipo_magnitud_id} />
             </div>
 
             <div className="grid gap-2">
                 <Label htmlFor="unidad_medida_id">Unidad de medida</Label>
-                <Select
+                <Combobox
+                    id="unidad_medida_id"
                     name="unidad_medida_id"
                     value={unidadMedidaId}
                     onValueChange={setUnidadMedidaId}
-                >
-                    <SelectTrigger id="unidad_medida_id" className="w-full">
-                        <SelectValue placeholder="Selecciona una unidad de medida" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {options.unidadesMedida.map((option) => (
-                            <SelectItem
-                                key={option.id}
-                                value={option.id.toString()}
-                            >
-                                {option.nombre} ({option.simbolo})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    options={options.unidadesMedida.map((option) => ({
+                        id: option.id,
+                        label: `${option.nombre} (${option.simbolo})`,
+                    }))}
+                    placeholder="Selecciona una unidad de medida"
+                    searchPlaceholder="Buscar unidad de medida..."
+                />
                 <InputError message={errors.unidad_medida_id} />
             </div>
 
