@@ -33,7 +33,7 @@ export default function EquipoFichaTecnicaFields({ equipo, errors }: Props) {
                     id="numero_activo"
                     name="numero_activo"
                     defaultValue={equipo?.ficha_tecnica?.numero_activo}
-                    required
+                    
                 />
                 <InputError message={errors.numero_activo} />
             </div>

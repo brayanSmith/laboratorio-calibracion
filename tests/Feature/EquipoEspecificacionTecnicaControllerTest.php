@@ -61,6 +61,25 @@ test('rechaza un alcance de indicacion que no termina con el simbolo de la unida
         ->assertSessionHasErrors('alcance_indicacion');
 });
 
+test('acepta un alcance de indicacion en texto libre que termina con el simbolo de la unidad de medida', function () {
+    $unidadMedida = UnidadMedida::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->post(
+            route('equipos.especificacion-tecnica.store', $this->equipo),
+            datosEspecificacionTecnica($this->tenant, [
+                'unidad_medida_id' => $unidadMedida->id,
+                'alcance_indicacion' => '0 a 100'.$unidadMedida->simbolo,
+                'resolucion' => '0.01'.$unidadMedida->simbolo,
+            ]),
+        )
+        ->assertSessionHasNoErrors();
+
+    $especificacion = EquipoEspecificacionTecnica::where('equipo_id', $this->equipo->id)->firstOrFail();
+
+    expect($especificacion->alcance_indicacion)->toBe('0 a 100'.$unidadMedida->simbolo);
+});
+
 test('acepta la precision como porcentaje concatenado al final', function () {
     $this->actingAs($this->admin)
         ->post(

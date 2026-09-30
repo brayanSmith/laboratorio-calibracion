@@ -111,16 +111,16 @@ export default function EquipoEspecificacionTecnicaFields({
         (option) => option.id.toString() === unidadMedidaId,
     );
 
-    const [alcanceIndicacionNumero, setAlcanceIndicacionNumero] = useState(() =>
+    const [alcanceIndicacionTexto, setAlcanceIndicacionTexto] = useState(() =>
         parseValorConSimbolo(
             especificacion?.alcance_indicacion,
             unidadSeleccionada?.simbolo,
         ),
     );
 
-    // El símbolo de la unidad de medida elegida se concatena al final ("100mm").
-    const alcanceIndicacionValor = alcanceIndicacionNumero
-        ? `${alcanceIndicacionNumero}${unidadSeleccionada?.simbolo ?? ''}`
+    // El símbolo de la unidad de medida elegida se concatena al final ("0 a 100mm").
+    const alcanceIndicacionValor = alcanceIndicacionTexto
+        ? `${alcanceIndicacionTexto}${unidadSeleccionada?.simbolo ?? ''}`
         : '';
 
     const [resolucionNumero, setResolucionNumero] = useState(() =>
@@ -172,17 +172,16 @@ export default function EquipoEspecificacionTecnicaFields({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="alcance_indicacion_numero">
+                <Label htmlFor="alcance_indicacion_texto">
                     Alcance de indicación
                 </Label>
                 <div className="flex items-center gap-2">
                     <Input
-                        id="alcance_indicacion_numero"
-                        type="number"
-                        step="0.01"
-                        value={alcanceIndicacionNumero}
+                        id="alcance_indicacion_texto"
+                        type="text"
+                        value={alcanceIndicacionTexto}
                         onChange={(event) =>
-                            setAlcanceIndicacionNumero(event.target.value)
+                            setAlcanceIndicacionTexto(event.target.value)
                         }
                         required={required}
                         className="flex-1"

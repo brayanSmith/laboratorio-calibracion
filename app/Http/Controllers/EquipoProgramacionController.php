@@ -20,6 +20,12 @@ class EquipoProgramacionController extends Controller
     {
         $equipo->equipoProgramaciones()->create([
             ...$request->validated(),
+            'tipo_servicio' => implode(',', $request->validated('tipo_servicio')),
+            'fecha_proximo_servicio' => EquipoProgramacion::calcularFechaProximoServicio(
+                $request->validated('fecha_ultimo_servicio'),
+                $request->validated('intervalo_servicio'),
+                $request->validated('intervalo_unidad'),
+            ),
             'tenant_id' => $equipo->tenant_id,
         ]);
 

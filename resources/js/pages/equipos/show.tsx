@@ -1,14 +1,16 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
+import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { edit, index, show } from '@/routes/equipos';
-import type { Equipo } from '@/types';
+import { index, show } from '@/routes/equipos';
+import type { Equipo, EquipoFormOptions } from '@/types';
 
 type Props = {
     equipo: Equipo;
+    options: EquipoFormOptions;
 };
 
 function Field({ label, value }: { label: string; value: ReactNode }) {
@@ -20,7 +22,7 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
     );
 }
 
-export default function EquiposShow({ equipo }: Props) {
+export default function EquiposShow({ equipo, options }: Props) {
     return (
         <>
             <Head title={`Equipo ${equipo.codigo}`} />
@@ -35,11 +37,11 @@ export default function EquiposShow({ equipo }: Props) {
                         description={equipo.modelo}
                     />
 
-                    <Button asChild data-test="equipo-edit-button">
-                        <Link href={edit(equipo.id)}>
+                    <EditEquipoModal equipo={equipo} options={options}>
+                        <Button data-test="equipo-edit-button">
                             <Pencil /> Editar
-                        </Link>
-                    </Button>
+                        </Button>
+                    </EditEquipoModal>
                 </div>
 
                 <div className="grid gap-6 rounded-lg border p-6 sm:grid-cols-2">

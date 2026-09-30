@@ -46,7 +46,8 @@ class StoreEquipoEspecificacionTecnicaRequest extends FormRequest
     }
 
     /**
-     * Validate that alcance_indicacion is a number followed by the símbolo of the selected unidad de medida.
+     * Validate that alcance_indicacion ends with the símbolo of the selected unidad de medida
+     * (e.g. "0 a 100mm"). Unlike precisión/resolución, admite texto libre antes del símbolo.
      */
     private function alcanceIndicacionConSimbolo(): Closure
     {
@@ -60,8 +61,8 @@ class StoreEquipoEspecificacionTecnicaRequest extends FormRequest
 
             $simbolo = preg_quote($unidad->simbolo, '/');
 
-            if (! preg_match("/^\d+(\.\d{1,2})?{$simbolo}$/u", (string) $value)) {
-                $fail("El alcance de indicación debe ser un número seguido del símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
+            if (! preg_match("/^.+{$simbolo}$/u", (string) $value)) {
+                $fail("El alcance de indicación debe terminar con el símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
             }
         };
     }

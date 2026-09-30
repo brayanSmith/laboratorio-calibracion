@@ -74,13 +74,11 @@ class StoreEquipoRequest extends FormRequest
 
             // Programaciones de servicio: opcionales, cualquier cantidad (un equipo puede tener varias).
             'programaciones' => ['nullable', 'array'],
-            'programaciones.*.tipo_servicio' => ['required', Rule::in(['MANTENIMIENTO', 'CALIBRACION'])],
+            'programaciones.*.tipo_servicio' => ['required', 'array', 'min:1'],
+            'programaciones.*.tipo_servicio.*' => [Rule::in(['MANTENIMIENTO', 'CALIBRACION'])],
             'programaciones.*.intervalo_servicio' => ['nullable', 'numeric'],
-            'programaciones.*.fecha_apertura_historial_servicio' => ['nullable', 'date'],
+            'programaciones.*.intervalo_unidad' => ['required_with:programaciones.*.intervalo_servicio', Rule::in(['DIAS', 'SEMANAS', 'MESES'])],
             'programaciones.*.fecha_ultimo_servicio' => ['nullable', 'date'],
-            'programaciones.*.fecha_proximo_servicio' => ['nullable', 'date'],
-            'programaciones.*.dias_plazo_vencimiento' => ['required', 'numeric'],
-            'programaciones.*.estado_vencimiento' => ['required', Rule::in(['AL_DIA', 'PROXIMO_A_VENCER', 'VENCIDO'])],
 
             // Documentos: opcionales, cualquier cantidad, cada uno con su propio nombre y archivo.
             'documentos' => ['nullable', 'array'],
@@ -114,18 +112,16 @@ class StoreEquipoRequest extends FormRequest
             'resolucion' => 'resolución',
             'programaciones.*.tipo_servicio' => 'tipo de servicio',
             'programaciones.*.intervalo_servicio' => 'intervalo de servicio',
-            'programaciones.*.fecha_apertura_historial_servicio' => 'fecha de apertura del historial',
+            'programaciones.*.intervalo_unidad' => 'unidad del intervalo',
             'programaciones.*.fecha_ultimo_servicio' => 'fecha del último servicio',
-            'programaciones.*.fecha_proximo_servicio' => 'fecha del próximo servicio',
-            'programaciones.*.dias_plazo_vencimiento' => 'días de plazo de vencimiento',
-            'programaciones.*.estado_vencimiento' => 'estado de vencimiento',
             'documentos.*.nombre' => 'nombre del documento',
             'documentos.*.archivo' => 'archivo del documento',
         ];
     }
 
     /**
-     * Validate that alcance_indicacion is a number followed by the símbolo of the selected unidad de medida.
+     * Validate that alcance_indicacion ends with the símbolo of the selected unidad de medida
+     * (e.g. "0 a 100mm"). Unlike precisión/resolución, admite texto libre antes del símbolo.
      */
     private function alcanceIndicacionConSimbolo(): Closure
     {
@@ -139,8 +135,8 @@ class StoreEquipoRequest extends FormRequest
 
             $simbolo = preg_quote($unidad->simbolo, '/');
 
-            if (! preg_match("/^\d+(\.\d{1,2})?{$simbolo}$/u", (string) $value)) {
-                $fail("El alcance de indicación debe ser un número seguido del símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
+            if (! preg_match("/^.+{$simbolo}$/u", (string) $value)) {
+                $fail("El alcance de indicación debe terminar con el símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
             }
         };
     }

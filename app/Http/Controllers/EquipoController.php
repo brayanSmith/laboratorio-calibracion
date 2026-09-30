@@ -9,6 +9,7 @@ use App\Models\Bahia;
 use App\Models\Cliente;
 use App\Models\DocumentoEquipo;
 use App\Models\Equipo;
+use App\Models\EquipoProgramacion;
 use App\Models\Fabricante;
 use App\Models\TipoEquipo;
 use App\Models\TipoMagnitud;
@@ -19,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,10 +41,14 @@ class EquipoController extends Controller
                 'area:id,nombre',
                 'bahia:id,nombre',
                 'cliente:id,nombre',
+                'equipoEspecificacionTecnica',
+                'equipoProgramaciones' => fn ($query) => $query->latest(),
             ])
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
+        $equipos = $equipos->through(fn (Equipo $equipo) => $this->conDocumentos($equipo));
 
         return Inertia::render('equipos/index', [
             'equipos' => $equipos,
@@ -81,6 +87,12 @@ class EquipoController extends Controller
             foreach ($request->validated('programaciones', []) as $programacion) {
                 $equipo->equipoProgramaciones()->create([
                     ...$programacion,
+                    'tipo_servicio' => implode(',', $programacion['tipo_servicio']),
+                    'fecha_proximo_servicio' => EquipoProgramacion::calcularFechaProximoServicio(
+                        $programacion['fecha_ultimo_servicio'] ?? null,
+                        $programacion['intervalo_servicio'] ?? null,
+                        $programacion['intervalo_unidad'] ?? null,
+                    ),
                     'tenant_id' => $tenantId,
                 ]);
             }
@@ -98,7 +110,7 @@ class EquipoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipo creado.')]);
 
-        return to_route('equipos.edit', $equipo);
+        return to_route('equipos.index');
     }
 
     /**
@@ -114,63 +126,77 @@ class EquipoController extends Controller
             'area:id,nombre',
             'bahia:id,nombre',
             'cliente:id,nombre',
-        ]);
-
-        return Inertia::render('equipos/show', [
-            'equipo' => $equipo,
-        ]);
-    }
-
-    /**
-     * Show the form for editing the specified equipo.
-     */
-    public function edit(Request $request, Equipo $equipo): Response
-    {
-        Gate::authorize('update', $equipo);
-
-        $equipo->load([
-            'tipoEquipo:id,nombre',
-            'fabricante:id,nombre',
-            'area:id,nombre',
-            'bahia:id,nombre',
-            'cliente:id,nombre',
             'equipoEspecificacionTecnica',
             'equipoProgramaciones' => fn ($query) => $query->latest(),
         ]);
 
-        $documentos = $equipo->equipoDocumentos()
-            ->latest()
-            ->get()
-            ->map(fn (DocumentoEquipo $documento) => [
-                'id' => $documento->id,
-                'nombre' => $documento->nombre,
-                'archivo_url' => $documento->archivoUrl(),
-            ]);
-
-        return Inertia::render('equipos/edit', [
-            'equipo' => [
-                ...$equipo->toArray(),
-                'equipo_documentos' => $documentos,
-            ],
+        return Inertia::render('equipos/show', [
+            'equipo' => $this->conDocumentos($equipo),
             'options' => $this->formOptions($equipo->tenant_id),
         ]);
     }
 
     /**
-     * Update the specified equipo.
+     * Update the specified equipo, along with its especificación técnica,
+     * programaciones de servicio and documentos, all in a single submit.
      */
     public function update(UpdateEquipoRequest $request, Equipo $equipo): RedirectResponse
     {
-        $equipo->update([
-            ...$request->safe()->except([
-                'pais_procedencia', 'numero_activo', 'proveedor', 'costo_usd', 'fecha_adquisicion',
-            ]),
-            'ficha_tecnica' => $this->fichaTecnica($request),
-        ]);
+        DB::transaction(function () use ($request, $equipo): void {
+            $equipo->update([
+                ...$request->safe()->only([
+                    'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
+                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'notas', 'activo',
+                    'patron_referencia', 'concatenar_codigo_nombre', 'requiere_programacion', 'cliente_id',
+                ]),
+                'ficha_tecnica' => $this->fichaTecnica($request),
+            ]);
+
+            if ($request->filled('tipo_magnitud_id')) {
+                $equipo->equipoEspecificacionTecnica()->updateOrCreate([], [
+                    ...$request->safe()->only([
+                        'tipo_magnitud_id', 'unidad_medida_id', 'alcance_indicacion', 'precision', 'resolucion',
+                    ]),
+                    'tenant_id' => $equipo->tenant_id,
+                ]);
+            } else {
+                $equipo->equipoEspecificacionTecnica()->delete();
+            }
+
+            EquipoProgramacion::whereIn('id', $request->validated('programaciones_eliminar', []))->delete();
+
+            foreach ($request->validated('programaciones', []) as $programacion) {
+                $equipo->equipoProgramaciones()->create([
+                    ...$programacion,
+                    'tipo_servicio' => implode(',', $programacion['tipo_servicio']),
+                    'fecha_proximo_servicio' => EquipoProgramacion::calcularFechaProximoServicio(
+                        $programacion['fecha_ultimo_servicio'] ?? null,
+                        $programacion['intervalo_servicio'] ?? null,
+                        $programacion['intervalo_unidad'] ?? null,
+                    ),
+                    'tenant_id' => $equipo->tenant_id,
+                ]);
+            }
+
+            $documentosEliminar = DocumentoEquipo::whereIn('id', $request->validated('documentos_eliminar', []))->get();
+
+            foreach ($documentosEliminar as $documento) {
+                Storage::disk('public')->delete($documento->archivo);
+                $documento->delete();
+            }
+
+            foreach ($request->validated('documentos', []) as $documento) {
+                $equipo->equipoDocumentos()->create([
+                    'nombre' => $documento['nombre'],
+                    'archivo' => $documento['archivo']->store("documentos/{$equipo->tenant_id}/{$equipo->id}", 'public'),
+                    'tenant_id' => $equipo->tenant_id,
+                ]);
+            }
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipo actualizado.')]);
 
-        return to_route('equipos.edit', $equipo);
+        return back();
     }
 
     /**
@@ -185,6 +211,28 @@ class EquipoController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipo eliminado.')]);
 
         return to_route('equipos.index');
+    }
+
+    /**
+     * Serialize the equipo along with its documentos (each including their archivo_url).
+     *
+     * @return array<string, mixed>
+     */
+    private function conDocumentos(Equipo $equipo): array
+    {
+        $documentos = $equipo->equipoDocumentos()
+            ->latest()
+            ->get()
+            ->map(fn (DocumentoEquipo $documento) => [
+                'id' => $documento->id,
+                'nombre' => $documento->nombre,
+                'archivo_url' => $documento->archivoUrl(),
+            ]);
+
+        return [
+            ...$equipo->toArray(),
+            'equipo_documentos' => $documentos,
+        ];
     }
 
     /**

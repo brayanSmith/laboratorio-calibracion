@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -8,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { EquipoProgramacion } from '@/types';
+import type { EquipoProgramacion, IntervaloUnidad } from '@/types';
 
 type Props = {
     programacion?: EquipoProgramacion | null;
@@ -26,6 +28,38 @@ function toDateInputValue(value: string | null | undefined): string {
     return value ? value.slice(0, 10) : '';
 }
 
+/**
+ * Preview only: mirrors EquipoProgramacion::calcularFechaProximoServicio() on the
+ * backend, which is what actually computes and stores the value on submit.
+ */
+function calcularFechaProximoServicio(
+    fechaUltimoServicio: string,
+    intervalo: string,
+    unidad: IntervaloUnidad | undefined,
+): string | null {
+    const numero = Number(intervalo);
+
+    if (!fechaUltimoServicio || !numero || !unidad) {
+        return null;
+    }
+
+    const fecha = new Date(`${fechaUltimoServicio}T00:00:00`);
+
+    if (Number.isNaN(fecha.getTime())) {
+        return null;
+    }
+
+    if (unidad === 'DIAS') {
+        fecha.setDate(fecha.getDate() + numero);
+    } else if (unidad === 'SEMANAS') {
+        fecha.setDate(fecha.getDate() + numero * 7);
+    } else {
+        fecha.setMonth(fecha.getMonth() + numero);
+    }
+
+    return fecha.toISOString().slice(0, 10);
+}
+
 export const tiposServicio = [
     { value: 'MANTENIMIENTO', label: 'Mantenimiento' },
     { value: 'CALIBRACION', label: 'Calibración' },
@@ -37,111 +71,116 @@ export const estadosVencimiento = [
     { value: 'VENCIDO', label: 'Vencido' },
 ];
 
+export const unidadesIntervalo = [
+    { value: 'DIAS', label: 'Días' },
+    { value: 'SEMANAS', label: 'Semanas' },
+    { value: 'MESES', label: 'Meses' },
+];
+
 export default function EquipoProgramacionFields({
     programacion,
     errors,
     fieldName = (key) => key,
     fieldError = (key) => errors[key],
 }: Props) {
+    const tiposSeleccionados = programacion?.tipo_servicio?.split(',') ?? [];
+
+    const [intervaloServicio, setIntervaloServicio] = useState(
+        programacion?.intervalo_servicio ?? '',
+    );
+    const [intervaloUnidad, setIntervaloUnidad] = useState<
+        IntervaloUnidad | undefined
+    >(programacion?.intervalo_unidad ?? undefined);
+    const [fechaUltimoServicio, setFechaUltimoServicio] = useState(
+        toDateInputValue(programacion?.fecha_ultimo_servicio),
+    );
+
+    const fechaProximoServicio = calcularFechaProximoServicio(
+        fechaUltimoServicio,
+        intervaloServicio,
+        intervaloUnidad,
+    );
+
     return (
         <div className="grid gap-6 sm:grid-cols-2">
-            <div className="grid gap-2">
-                <Label htmlFor={fieldName('tipo_servicio')}>
-                    Tipo de servicio
-                </Label>
-                <Select
-                    name={fieldName('tipo_servicio')}
-                    defaultValue={programacion?.tipo_servicio}
-                >
-                    <SelectTrigger
-                        id={fieldName('tipo_servicio')}
-                        className="w-full"
-                    >
-                        <SelectValue placeholder="Selecciona un tipo de servicio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {tiposServicio.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            <div className="grid gap-2 sm:col-span-2">
+                <Label>Tipo de servicio</Label>
+                <div className="flex flex-wrap gap-4">
+                    {tiposServicio.map((option) => {
+                        const inputId = `${fieldName('tipo_servicio')}-${option.value}`;
+
+                        return (
+                            <div
+                                key={option.value}
+                                className="flex items-center gap-2"
+                            >
+                                <Checkbox
+                                    id={inputId}
+                                    name={`${fieldName('tipo_servicio')}[]`}
+                                    value={option.value}
+                                    defaultChecked={tiposSeleccionados.includes(
+                                        option.value,
+                                    )}
+                                />
+                                <Label
+                                    htmlFor={inputId}
+                                    className="text-sm font-normal"
+                                >
+                                    {option.label}
+                                </Label>
+                            </div>
+                        );
+                    })}
+                </div>
                 <InputError message={fieldError('tipo_servicio')} />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={fieldName('estado_vencimiento')}>
-                    Estado de vencimiento
-                </Label>
-                <Select
-                    name={fieldName('estado_vencimiento')}
-                    defaultValue={programacion?.estado_vencimiento}
-                >
-                    <SelectTrigger
-                        id={fieldName('estado_vencimiento')}
-                        className="w-full"
-                    >
-                        <SelectValue placeholder="Selecciona un estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {estadosVencimiento.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <InputError message={fieldError('estado_vencimiento')} />
-            </div>
-
-            <div className="grid gap-2">
                 <Label htmlFor={fieldName('intervalo_servicio')}>
-                    Intervalo de servicio (días)
+                    Intervalo de servicio
                 </Label>
                 <Input
                     id={fieldName('intervalo_servicio')}
                     name={fieldName('intervalo_servicio')}
                     type="number"
                     step="0.01"
-                    defaultValue={programacion?.intervalo_servicio ?? ''}
+                    value={intervaloServicio}
+                    onChange={(event) =>
+                        setIntervaloServicio(event.target.value)
+                    }
                 />
                 <InputError message={fieldError('intervalo_servicio')} />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={fieldName('dias_plazo_vencimiento')}>
-                    Días de plazo de vencimiento
+                <Label htmlFor={fieldName('intervalo_unidad')}>
+                    Unidad del intervalo
                 </Label>
-                <Input
-                    id={fieldName('dias_plazo_vencimiento')}
-                    name={fieldName('dias_plazo_vencimiento')}
-                    type="number"
-                    step="0.01"
-                    defaultValue={programacion?.dias_plazo_vencimiento}
-                    required
-                />
-                <InputError message={fieldError('dias_plazo_vencimiento')} />
+                <Select
+                    name={fieldName('intervalo_unidad')}
+                    value={intervaloUnidad}
+                    onValueChange={(value) =>
+                        setIntervaloUnidad(value as IntervaloUnidad)
+                    }
+                >
+                    <SelectTrigger
+                        id={fieldName('intervalo_unidad')}
+                        className="w-full"
+                    >
+                        <SelectValue placeholder="Selecciona una unidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {unidadesIntervalo.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <InputError message={fieldError('intervalo_unidad')} />
             </div>
 
-            <div className="grid gap-2">
-                <Label htmlFor={fieldName('fecha_apertura_historial_servicio')}>
-                    Apertura del historial
-                </Label>
-                <Input
-                    id={fieldName('fecha_apertura_historial_servicio')}
-                    name={fieldName('fecha_apertura_historial_servicio')}
-                    type="date"
-                    defaultValue={toDateInputValue(
-                        programacion?.fecha_apertura_historial_servicio,
-                    )}
-                />
-                <InputError
-                    message={fieldError('fecha_apertura_historial_servicio')}
-                />
-            </div>
-
-            <div className="grid gap-2">
+            <div className="grid gap-2 sm:col-span-2">
                 <Label htmlFor={fieldName('fecha_ultimo_servicio')}>
                     Fecha del último servicio
                 </Label>
@@ -149,26 +188,20 @@ export default function EquipoProgramacionFields({
                     id={fieldName('fecha_ultimo_servicio')}
                     name={fieldName('fecha_ultimo_servicio')}
                     type="date"
-                    defaultValue={toDateInputValue(
-                        programacion?.fecha_ultimo_servicio,
-                    )}
+                    value={fechaUltimoServicio}
+                    onChange={(event) =>
+                        setFechaUltimoServicio(event.target.value)
+                    }
                 />
                 <InputError message={fieldError('fecha_ultimo_servicio')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={fieldName('fecha_proximo_servicio')}>
-                    Fecha del próximo servicio
-                </Label>
-                <Input
-                    id={fieldName('fecha_proximo_servicio')}
-                    name={fieldName('fecha_proximo_servicio')}
-                    type="date"
-                    defaultValue={toDateInputValue(
-                        programacion?.fecha_proximo_servicio,
-                    )}
-                />
-                <InputError message={fieldError('fecha_proximo_servicio')} />
+                {fechaProximoServicio ? (
+                    <p
+                        className="text-sm text-muted-foreground"
+                        data-test="fecha-proximo-servicio-preview"
+                    >
+                        Próximo servicio: {fechaProximoServicio}
+                    </p>
+                ) : null}
             </div>
         </div>
     );

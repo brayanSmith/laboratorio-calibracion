@@ -25,13 +25,11 @@ class StoreEquipoProgramacionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo_servicio' => ['required', Rule::in(['MANTENIMIENTO', 'CALIBRACION'])],
+            'tipo_servicio' => ['required', 'array', 'min:1'],
+            'tipo_servicio.*' => [Rule::in(['MANTENIMIENTO', 'CALIBRACION'])],
             'intervalo_servicio' => ['nullable', 'numeric'],
-            'fecha_apertura_historial_servicio' => ['nullable', 'date'],
+            'intervalo_unidad' => ['required_with:intervalo_servicio', Rule::in(['DIAS', 'SEMANAS', 'MESES'])],
             'fecha_ultimo_servicio' => ['nullable', 'date'],
-            'fecha_proximo_servicio' => ['nullable', 'date'],
-            'dias_plazo_vencimiento' => ['required', 'numeric'],
-            'estado_vencimiento' => ['required', Rule::in(['AL_DIA', 'PROXIMO_A_VENCER', 'VENCIDO'])],
         ];
     }
 
@@ -45,11 +43,8 @@ class StoreEquipoProgramacionRequest extends FormRequest
         return [
             'tipo_servicio' => 'tipo de servicio',
             'intervalo_servicio' => 'intervalo de servicio',
-            'fecha_apertura_historial_servicio' => 'fecha de apertura del historial',
+            'intervalo_unidad' => 'unidad del intervalo',
             'fecha_ultimo_servicio' => 'fecha del último servicio',
-            'fecha_proximo_servicio' => 'fecha del próximo servicio',
-            'dias_plazo_vencimiento' => 'días de plazo de vencimiento',
-            'estado_vencimiento' => 'estado de vencimiento',
         ];
     }
 }

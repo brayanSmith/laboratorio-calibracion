@@ -24,15 +24,19 @@ export type EquipoEspecificacionTecnica = {
 
 export type TipoServicio = 'MANTENIMIENTO' | 'CALIBRACION';
 export type EstadoVencimiento = 'AL_DIA' | 'PROXIMO_A_VENCER' | 'VENCIDO';
+export type IntervaloUnidad = 'DIAS' | 'SEMANAS' | 'MESES';
 
 export type EquipoProgramacion = {
     id: number;
-    tipo_servicio: TipoServicio;
+    /** CSV de uno o varios TipoServicio, ej: "MANTENIMIENTO,CALIBRACION". */
+    tipo_servicio: string;
     intervalo_servicio: string | null;
-    fecha_apertura_historial_servicio: string | null;
+    intervalo_unidad: IntervaloUnidad | null;
     fecha_ultimo_servicio: string | null;
+    /** Calculada: fecha_ultimo_servicio + intervalo_servicio. */
     fecha_proximo_servicio: string | null;
     dias_plazo_vencimiento: string;
+    /** Calculado a partir de fecha_proximo_servicio y dias_plazo_vencimiento. */
     estado_vencimiento: EstadoVencimiento;
 };
 

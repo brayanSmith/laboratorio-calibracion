@@ -45,7 +45,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->destroyable()
         ->except(['create', 'edit']);
 
-    Route::resource('equipos', EquipoController::class)->except('create');
+    Route::resource('equipos', EquipoController::class)->except(['create', 'edit']);
 
     Route::post('equipos/{equipo}/especificacion-tecnica', [EquipoEspecificacionTecnicaController::class, 'store'])->name('equipos.especificacion-tecnica.store');
     Route::post('equipos/{equipo}/programaciones', [EquipoProgramacionController::class, 'store'])->name('equipos.programaciones.store');

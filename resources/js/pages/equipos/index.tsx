@@ -3,11 +3,12 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import CreateEquipoModal from '@/components/equipos/create-equipo-modal';
 import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
+import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { edit, index } from '@/routes/equipos';
+import { index } from '@/routes/equipos';
 import type { Equipo, EquipoFormOptions, EquipoPaginator } from '@/types';
 
 type Props = {
@@ -107,18 +108,18 @@ export default function EquiposIndex({ equipos, options }: Props) {
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
                                             {can('equipos.editar') ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    asChild
+                                                <EditEquipoModal
+                                                    equipo={equipo}
+                                                    options={options}
                                                 >
-                                                    <Link
-                                                        href={edit(equipo.id)}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         data-test="equipo-edit-button"
                                                     >
                                                         <Pencil className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
+                                                    </Button>
+                                                </EditEquipoModal>
                                             ) : null}
                                             {can('equipos.eliminar') ? (
                                                 <Button

@@ -120,6 +120,129 @@ test('actualiza la ficha tecnica del equipo', function () {
         ->and($fichaTecnica['costo_usd'])->toBe(999.99);
 });
 
+test('actualiza el equipo junto con su especificacion tecnica, programaciones y documentos en la misma peticion', function () {
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant));
+    $equipo = Equipo::firstOrFail();
+
+    $tipoMagnitud = TipoMagnitud::factory()->for($this->tenant)->create();
+    $unidadMedida = UnidadMedida::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, [
+            'codigo' => $equipo->codigo,
+            'tipo_equipo_id' => $equipo->tipo_equipo_id,
+            'fabricante_id' => $equipo->fabricante_id,
+            'area_id' => $equipo->area_id,
+            'bahia_id' => $equipo->bahia_id,
+            'cliente_id' => $equipo->cliente_id,
+            'tipo_magnitud_id' => $tipoMagnitud->id,
+            'unidad_medida_id' => $unidadMedida->id,
+            'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+            'precision' => '±0.1',
+            'resolucion' => '0.01'.$unidadMedida->simbolo,
+            'programaciones' => [
+                ['tipo_servicio' => ['MANTENIMIENTO']],
+            ],
+            'documentos' => [
+                ['nombre' => 'Manual', 'archivo' => UploadedFile::fake()->create('manual.pdf', 10, 'application/pdf')],
+            ],
+        ]))
+        ->assertRedirect();
+
+    $especificacion = EquipoEspecificacionTecnica::where('equipo_id', $equipo->id)->firstOrFail();
+    expect($especificacion->tipo_magnitud_id)->toBe($tipoMagnitud->id);
+
+    expect(EquipoProgramacion::where('equipo_id', $equipo->id)->count())->toBe(1);
+
+    $documento = DocumentoEquipo::where('equipo_id', $equipo->id)->firstOrFail();
+    expect($documento->nombre)->toBe('Manual');
+    Storage::disk('public')->assertExists($documento->archivo);
+});
+
+test('elimina la especificacion tecnica del equipo cuando se guarda sin tipo de magnitud', function () {
+    $tipoMagnitud = TipoMagnitud::factory()->for($this->tenant)->create();
+    $unidadMedida = UnidadMedida::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant, [
+        'tipo_magnitud_id' => $tipoMagnitud->id,
+        'unidad_medida_id' => $unidadMedida->id,
+        'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+        'precision' => '±0.1',
+        'resolucion' => '0.01'.$unidadMedida->simbolo,
+    ]));
+    $equipo = Equipo::firstOrFail();
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, [
+            'codigo' => $equipo->codigo,
+            'tipo_equipo_id' => $equipo->tipo_equipo_id,
+            'fabricante_id' => $equipo->fabricante_id,
+            'area_id' => $equipo->area_id,
+            'bahia_id' => $equipo->bahia_id,
+            'cliente_id' => $equipo->cliente_id,
+        ]))
+        ->assertRedirect();
+
+    expect(EquipoEspecificacionTecnica::where('equipo_id', $equipo->id)->exists())->toBeFalse();
+});
+
+test('elimina las programaciones y documentos marcados al actualizar el equipo', function () {
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant, [
+        'programaciones' => [
+            ['tipo_servicio' => ['MANTENIMIENTO']],
+        ],
+        'documentos' => [
+            ['nombre' => 'Manual', 'archivo' => UploadedFile::fake()->create('manual.pdf', 10, 'application/pdf')],
+        ],
+    ]));
+    $equipo = Equipo::firstOrFail();
+    $programacion = EquipoProgramacion::where('equipo_id', $equipo->id)->firstOrFail();
+    $documento = DocumentoEquipo::where('equipo_id', $equipo->id)->firstOrFail();
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, [
+            'codigo' => $equipo->codigo,
+            'tipo_equipo_id' => $equipo->tipo_equipo_id,
+            'fabricante_id' => $equipo->fabricante_id,
+            'area_id' => $equipo->area_id,
+            'bahia_id' => $equipo->bahia_id,
+            'cliente_id' => $equipo->cliente_id,
+            'programaciones_eliminar' => [$programacion->id],
+            'documentos_eliminar' => [$documento->id],
+        ]))
+        ->assertRedirect();
+
+    expect(EquipoProgramacion::find($programacion->id))->toBeNull()
+        ->and(DocumentoEquipo::find($documento->id))->toBeNull();
+    Storage::disk('public')->assertMissing($documento->archivo);
+});
+
+test('rechaza eliminar una programacion o documento de otro equipo al actualizar', function () {
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant));
+    $equipo = Equipo::firstOrFail();
+
+    $ajeno = crearEquipoDeTipo(crearTipoEquipo(Tenant::factory()->create()), 'EQ-9999');
+    $programacionAjena = EquipoProgramacion::create([
+        'equipo_id' => $ajeno->id,
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'tenant_id' => $ajeno->tenant_id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, [
+            'codigo' => $equipo->codigo,
+            'tipo_equipo_id' => $equipo->tipo_equipo_id,
+            'fabricante_id' => $equipo->fabricante_id,
+            'area_id' => $equipo->area_id,
+            'bahia_id' => $equipo->bahia_id,
+            'cliente_id' => $equipo->cliente_id,
+            'programaciones_eliminar' => [$programacionAjena->id],
+        ]))
+        ->assertSessionHasErrors('programaciones_eliminar.0');
+
+    expect(EquipoProgramacion::find($programacionAjena->id))->not->toBeNull();
+});
+
 test('crea un equipo junto con su especificacion tecnica en la misma peticion', function () {
     $tipoMagnitud = TipoMagnitud::factory()->for($this->tenant)->create();
     $unidadMedida = UnidadMedida::factory()->for($this->tenant)->create();
@@ -162,15 +285,11 @@ test('crea un equipo junto con varias programaciones de servicio en la misma pet
         ->post(route('equipos.store'), datosEquipoBase($this->tenant, [
             'programaciones' => [
                 [
-                    'tipo_servicio' => 'MANTENIMIENTO',
-                    'dias_plazo_vencimiento' => 30,
-                    'estado_vencimiento' => 'AL_DIA',
+                    'tipo_servicio' => ['MANTENIMIENTO'],
                     'fecha_ultimo_servicio' => '2026-01-10',
                 ],
                 [
-                    'tipo_servicio' => 'CALIBRACION',
-                    'dias_plazo_vencimiento' => 90,
-                    'estado_vencimiento' => 'PROXIMO_A_VENCER',
+                    'tipo_servicio' => ['CALIBRACION'],
                 ],
             ],
         ]))
@@ -185,14 +304,31 @@ test('crea un equipo junto con varias programaciones de servicio en la misma pet
         ->and($programaciones->first()->tenant_id)->toBe($this->tenant->id);
 });
 
+test('una programacion puede tener varios tipos de servicio a la vez al crear el equipo', function () {
+    $this->actingAs($this->admin)
+        ->post(route('equipos.store'), datosEquipoBase($this->tenant, [
+            'programaciones' => [
+                [
+                    'tipo_servicio' => ['MANTENIMIENTO', 'CALIBRACION'],
+                ],
+            ],
+        ]))
+        ->assertRedirect();
+
+    $equipo = Equipo::firstOrFail();
+    $programacion = EquipoProgramacion::where('equipo_id', $equipo->id)->firstOrFail();
+
+    expect($programacion->tipo_servicio)->toBe('MANTENIMIENTO,CALIBRACION');
+});
+
 test('rechaza una programacion incompleta al crear el equipo', function () {
     $this->actingAs($this->admin)
         ->post(route('equipos.store'), datosEquipoBase($this->tenant, [
             'programaciones' => [
-                ['tipo_servicio' => 'MANTENIMIENTO'],
+                ['tipo_servicio' => ['MANTENIMIENTO'], 'intervalo_servicio' => 30],
             ],
         ]))
-        ->assertSessionHasErrors(['programaciones.0.dias_plazo_vencimiento', 'programaciones.0.estado_vencimiento']);
+        ->assertSessionHasErrors('programaciones.0.intervalo_unidad');
 
     expect(Equipo::count())->toBe(0);
 });
