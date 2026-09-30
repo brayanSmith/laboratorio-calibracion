@@ -57,6 +57,29 @@ class UpdateEquipoRequest extends FormRequest
             'concatenar_codigo_nombre' => ['nullable', 'string', 'max:255'],
             'requiere_programacion' => ['boolean'],
             'cliente_id' => ['required', Rule::exists('clientes', 'id')->where('tenant_id', $tenantId)],
+
+            // Ficha técnica: se guarda en la columna JSON ficha_tecnica del equipo.
+            'pais_procedencia' => ['required', 'string', 'max:255'],
+            'numero_activo' => ['required', 'string', 'max:255'],
+            'proveedor' => ['required', 'string', 'max:255'],
+            'costo_usd' => ['required', 'numeric', 'min:0'],
+            'fecha_adquisicion' => ['required', 'date'],
+        ];
+    }
+
+    /**
+     * Get custom attribute names for validation messages.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'pais_procedencia' => 'país de procedencia',
+            'numero_activo' => 'número de activo',
+            'proveedor' => 'proveedor',
+            'costo_usd' => 'costo en USD',
+            'fecha_adquisicion' => 'fecha de adquisición',
         ];
     }
 }

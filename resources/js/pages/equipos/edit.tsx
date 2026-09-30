@@ -4,8 +4,11 @@ import EquipoController from '@/actions/App/Http/Controllers/EquipoController';
 import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
 import EquipoDocumentosSection from '@/components/equipos/equipo-documentos-section';
 import EquipoEspecificacionTecnicaSection from '@/components/equipos/equipo-especificacion-tecnica-section';
+import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
 import EquipoFormFields from '@/components/equipos/equipo-form-fields';
+import EquipoInformacionAdicionalFields from '@/components/equipos/equipo-informacion-adicional-fields';
 import EquipoProgramacionSection from '@/components/equipos/equipo-programacion-section';
+import EquipoUbicacionFields from '@/components/equipos/equipo-ubicacion-fields';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -55,6 +58,49 @@ export default function EquiposEdit({ equipo, options }: Props) {
                                 options={options}
                                 errors={errors}
                             />
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Ficha técnica"
+                                    description="Datos de adquisición del equipo"
+                                />
+                                <EquipoFichaTecnicaFields
+                                    equipo={equipo}
+                                    errors={errors}
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Ubicación"
+                                    description="Dónde se encuentra físicamente el equipo"
+                                />
+                                <EquipoUbicacionFields
+                                    equipo={equipo}
+                                    options={options}
+                                    errors={errors}
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Información adicional"
+                                    description="Notas y si es un patrón de referencia"
+                                />
+                                <EquipoInformacionAdicionalFields
+                                    equipo={equipo}
+                                    errors={errors}
+                                />
+                            </div>
 
                             <div className="flex items-center gap-4">
                                 <Button

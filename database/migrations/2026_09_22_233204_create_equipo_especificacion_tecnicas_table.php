@@ -16,9 +16,9 @@ return new class extends Migration
             $table->foreignId('equipo_id')->constrained('equipos')->onDelete('cascade');
             $table->foreignId('tipo_magnitud_id')->constrained('tipo_magnituds')->onDelete('cascade');
             $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->onDelete('cascade');
-            $table->decimal('alcance_indicacion', 10, 2); // Para reducir espacio
-            $table->decimal('precision', 10, 2); // para reducir espacio
-            $table->decimal('resolucion', 10, 2); // para reducir espacio
+            $table->string('alcance_indicacion'); // Ej: "100mm", el símbolo de la unidad de medida
+            $table->string('precision'); // Ej: "±0.5" o "0.5%"
+            $table->string('resolucion'); // Ej: "0.01mm", el símbolo de la unidad de medida
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

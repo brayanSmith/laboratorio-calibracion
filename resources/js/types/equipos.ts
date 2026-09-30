@@ -5,6 +5,14 @@ export type EquipoOption = {
     nombre: string;
 };
 
+export type EquipoUnidadMedidaOption = EquipoOption & {
+    simbolo: string;
+};
+
+export type EquipoBahiaOption = EquipoOption & {
+    area_id: number;
+};
+
 export type EquipoEspecificacionTecnica = {
     id: number;
     tipo_magnitud_id: number;
@@ -34,6 +42,14 @@ export type DocumentoEquipoItem = {
     archivo_url: string;
 };
 
+export type EquipoFichaTecnica = {
+    pais_procedencia: string;
+    numero_activo: string;
+    proveedor: string;
+    costo_usd: number;
+    fecha_adquisicion: string;
+};
+
 export type Equipo = {
     id: number;
     codigo: string;
@@ -51,6 +67,7 @@ export type Equipo = {
     concatenar_codigo_nombre: string | null;
     requiere_programacion: boolean;
     cliente_id: number;
+    ficha_tecnica: EquipoFichaTecnica | null;
     tipo_equipo?: EquipoOption;
     fabricante?: EquipoOption;
     area?: EquipoOption;
@@ -65,10 +82,10 @@ export type EquipoFormOptions = {
     tipoEquipos: EquipoOption[];
     fabricantes: EquipoOption[];
     areas: EquipoOption[];
-    bahias: EquipoOption[];
+    bahias: EquipoBahiaOption[];
     clientes: EquipoOption[];
     tiposMagnitud: EquipoOption[];
-    unidadesMedida: EquipoOption[];
+    unidadesMedida: EquipoUnidadMedidaOption[];
 };
 
 export type EquipoPaginator = {

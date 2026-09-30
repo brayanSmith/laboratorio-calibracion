@@ -22,9 +22,9 @@ function registrarEspecificacionConUnidadMedida(UnidadMedida $unidadMedida): Equ
         'equipo_id' => 1,
         'tipo_magnitud_id' => 1,
         'unidad_medida_id' => $unidadMedida->id,
-        'alcance_indicacion' => 100,
-        'precision' => 0.1,
-        'resolucion' => 0.01,
+        'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+        'precision' => '±0.1',
+        'resolucion' => '0.01'.$unidadMedida->simbolo,
         'tenant_id' => $unidadMedida->tenant_id,
     ]);
 }

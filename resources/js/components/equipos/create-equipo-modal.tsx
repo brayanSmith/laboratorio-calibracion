@@ -4,8 +4,11 @@ import { useState } from 'react';
 import EquipoController from '@/actions/App/Http/Controllers/EquipoController';
 import EquipoDocumentosFields from '@/components/equipos/equipo-documentos-fields';
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
+import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
 import EquipoFormFields from '@/components/equipos/equipo-form-fields';
+import EquipoInformacionAdicionalFields from '@/components/equipos/equipo-informacion-adicional-fields';
 import EquipoProgramacionesFields from '@/components/equipos/equipo-programaciones-fields';
+import EquipoUbicacionFields from '@/components/equipos/equipo-ubicacion-fields';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,10 +53,37 @@ export default function CreateEquipoModal({ options, children }: Props) {
                             <EquipoFormFields
                                 options={options}
                                 errors={errors}
+                                variant="create"
                             />
 
                             <Separator />
 
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Ficha técnica"
+                                    description="Datos de adquisición del equipo"
+                                />
+                                <EquipoFichaTecnicaFields errors={errors} />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Ubicación"
+                                    description="Dónde se encuentra físicamente el equipo"
+                                />
+                                <EquipoUbicacionFields
+                                    options={options}
+                                    errors={errors}
+                                />
+                            </div>
+
+                            <Separator />
+
+                            
                             <div className="space-y-4">
                                 <Heading
                                     variant="small"
@@ -75,6 +105,19 @@ export default function CreateEquipoModal({ options, children }: Props) {
                                     description="Opcional: agrega una o varias (mantenimiento, calibración, etc.)"
                                 />
                                 <EquipoProgramacionesFields errors={errors} />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <Heading
+                                    variant="small"
+                                    title="Información adicional"
+                                    description="Notas y si es un patrón de referencia"
+                                />
+                                <EquipoInformacionAdicionalFields
+                                    errors={errors}
+                                />
                             </div>
 
                             <Separator />

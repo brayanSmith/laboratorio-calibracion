@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Equipos;
 
 use App\Models\Equipo;
+use App\Models\UnidadMedida;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -56,12 +58,19 @@ class StoreEquipoRequest extends FormRequest
             'requiere_programacion' => ['boolean'],
             'cliente_id' => ['required', Rule::exists('clientes', 'id')->where('tenant_id', $tenantId)],
 
+            // Ficha técnica: se guarda en la columna JSON ficha_tecnica del equipo.
+            'pais_procedencia' => ['required', 'string', 'max:255'],
+            'numero_activo' => ['required', 'string', 'max:255'],
+            'proveedor' => ['required', 'string', 'max:255'],
+            'costo_usd' => ['required', 'numeric', 'min:0'],
+            'fecha_adquisicion' => ['required', 'date'],
+
             // Especificación técnica: opcional, pero si se llena un campo se exigen todos.
             'tipo_magnitud_id' => ['nullable', Rule::exists('tipo_magnituds', 'id')->where('tenant_id', $tenantId)],
             'unidad_medida_id' => ['required_with:tipo_magnitud_id', Rule::exists('unidad_medidas', 'id')->where('tenant_id', $tenantId)],
-            'alcance_indicacion' => ['required_with:tipo_magnitud_id', 'numeric'],
-            'precision' => ['required_with:tipo_magnitud_id', 'numeric'],
-            'resolucion' => ['required_with:tipo_magnitud_id', 'numeric'],
+            'alcance_indicacion' => ['required_with:tipo_magnitud_id', 'string', 'max:50', $this->alcanceIndicacionConSimbolo()],
+            'precision' => ['required_with:tipo_magnitud_id', 'string', 'max:20', 'regex:/^(±\d+(\.\d{1,2})?|\d+(\.\d{1,2})?%)$/u'],
+            'resolucion' => ['required_with:tipo_magnitud_id', 'string', 'max:50', $this->resolucionConSimbolo()],
 
             // Programaciones de servicio: opcionales, cualquier cantidad (un equipo puede tener varias).
             'programaciones' => ['nullable', 'array'],
@@ -93,6 +102,11 @@ class StoreEquipoRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'pais_procedencia' => 'país de procedencia',
+            'numero_activo' => 'número de activo',
+            'proveedor' => 'proveedor',
+            'costo_usd' => 'costo en USD',
+            'fecha_adquisicion' => 'fecha de adquisición',
             'tipo_magnitud_id' => 'tipo de magnitud',
             'unidad_medida_id' => 'unidad de medida',
             'alcance_indicacion' => 'alcance de indicación',
@@ -108,5 +122,47 @@ class StoreEquipoRequest extends FormRequest
             'documentos.*.nombre' => 'nombre del documento',
             'documentos.*.archivo' => 'archivo del documento',
         ];
+    }
+
+    /**
+     * Validate that alcance_indicacion is a number followed by the símbolo of the selected unidad de medida.
+     */
+    private function alcanceIndicacionConSimbolo(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $unidad = UnidadMedida::find($this->input('unidad_medida_id'));
+
+            if (! $unidad) {
+                // Otra regla ya reporta el error de unidad de medida.
+                return;
+            }
+
+            $simbolo = preg_quote($unidad->simbolo, '/');
+
+            if (! preg_match("/^\d+(\.\d{1,2})?{$simbolo}$/u", (string) $value)) {
+                $fail("El alcance de indicación debe ser un número seguido del símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
+            }
+        };
+    }
+
+    /**
+     * Validate that resolucion is a number followed by the símbolo of the selected unidad de medida.
+     */
+    private function resolucionConSimbolo(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $unidad = UnidadMedida::find($this->input('unidad_medida_id'));
+
+            if (! $unidad) {
+                // Otra regla ya reporta el error de unidad de medida.
+                return;
+            }
+
+            $simbolo = preg_quote($unidad->simbolo, '/');
+
+            if (! preg_match("/^\d+(\.\d{1,2})?{$simbolo}$/u", (string) $value)) {
+                $fail("La resolución debe ser un número seguido del símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
+            }
+        };
     }
 }

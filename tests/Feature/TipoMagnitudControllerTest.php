@@ -20,9 +20,9 @@ function registrarEspecificacionConTipoMagnitud(TipoMagnitud $tipoMagnitud): Equ
         'equipo_id' => 1,
         'tipo_magnitud_id' => $tipoMagnitud->id,
         'unidad_medida_id' => 1,
-        'alcance_indicacion' => 100,
-        'precision' => 0.1,
-        'resolucion' => 0.01,
+        'alcance_indicacion' => '100mm',
+        'precision' => '±0.1',
+        'resolucion' => '0.01mm',
         'tenant_id' => $tipoMagnitud->tenant_id,
     ]);
 }

@@ -69,18 +69,4 @@ class EquipoEspecificacionTecnica extends Model
     {
         return $this->belongsTo(Tenant::class);
     }
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'alcance_indicacion' => 'decimal:2',
-            'precision' => 'decimal:2',
-            'resolucion' => 'decimal:2',
-        ];
-    }
 }

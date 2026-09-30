@@ -14,6 +14,7 @@ use App\Models\TipoEquipo;
 use App\Models\TipoMagnitud;
 use App\Models\UnidadMedida;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,7 @@ class EquipoController extends Controller
                     'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'notas', 'activo',
                     'patron_referencia', 'concatenar_codigo_nombre', 'requiere_programacion', 'cliente_id',
                 ]),
+                'ficha_tecnica' => $this->fichaTecnica($request),
                 'tenant_id' => $tenantId,
             ]);
 
@@ -159,7 +161,12 @@ class EquipoController extends Controller
      */
     public function update(UpdateEquipoRequest $request, Equipo $equipo): RedirectResponse
     {
-        $equipo->update($request->validated());
+        $equipo->update([
+            ...$request->safe()->except([
+                'pais_procedencia', 'numero_activo', 'proveedor', 'costo_usd', 'fecha_adquisicion',
+            ]),
+            'ficha_tecnica' => $this->fichaTecnica($request),
+        ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipo actualizado.')]);
 
@@ -181,6 +188,22 @@ class EquipoController extends Controller
     }
 
     /**
+     * Build the ficha_tecnica JSON payload from the request's validated data.
+     *
+     * @return array{pais_procedencia: string, numero_activo: string, proveedor: string, costo_usd: float, fecha_adquisicion: string}
+     */
+    private function fichaTecnica(FormRequest $request): array
+    {
+        return [
+            'pais_procedencia' => $request->validated('pais_procedencia'),
+            'numero_activo' => $request->validated('numero_activo'),
+            'proveedor' => $request->validated('proveedor'),
+            'costo_usd' => (float) $request->validated('costo_usd'),
+            'fecha_adquisicion' => $request->validated('fecha_adquisicion'),
+        ];
+    }
+
+    /**
      * Get the select options for the equipo form, scoped to the given tenant.
      *
      * @return array{
@@ -199,10 +222,10 @@ class EquipoController extends Controller
             'tipoEquipos' => TipoEquipo::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'fabricantes' => Fabricante::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'area_id']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tiposMagnitud' => TipoMagnitud::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'unidadesMedida' => UnidadMedida::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'unidadesMedida' => UnidadMedida::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'simbolo']),
         ];
     }
 }

@@ -30,6 +30,8 @@ class DatabaseSeeder extends Seeder
             EmpresaTerceroSeeder::class,
             LaboratorioSeeder::class,
             ClienteSeeder::class,
+            TipoMagnitudSeeder::class,
+            UnidadMedidaSeeder::class,
         ]);
     }
 }
