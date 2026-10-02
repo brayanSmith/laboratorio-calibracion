@@ -77,6 +77,28 @@ export const unidadesIntervalo = [
     { value: 'MESES', label: 'Meses' },
 ];
 
+export const estadosProgramacion = [
+    { value: 'PENDIENTE', label: 'Pendiente' },
+    { value: 'AGENDADO', label: 'Agendado' },
+    { value: 'CANCELADO', label: 'Cancelado' },
+];
+
+export const motivosNoIngreso = [
+    {
+        value: 'USUARIO_NO_UBICADO',
+        label: 'Usuario no se encuentra en la ubicación',
+    },
+    {
+        value: 'SUPERVISOR_AUTORIZA',
+        label: 'Supervisor autoriza seguir utilizando el equipo',
+    },
+    {
+        value: 'EQUIPO_NO_UBICADO',
+        label: 'El equipo no ha sido ubicado por el usuario',
+    },
+    { value: 'OTRO', label: 'Otro' },
+];
+
 export default function EquipoProgramacionFields({
     programacion,
     errors,

@@ -13,6 +13,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $equipo_id
  * @property string $tipo_servicio
+ * @property string $tipo_mantenimiento PREVENTIVO o CORRECTIVO
+ * @property string|null $falla_detectada Solo cuando tipo_mantenimiento es CORRECTIVO
  * @property string|null $intervalo_servicio
  * @property string|null $intervalo_unidad
  * @property Carbon|null $fecha_apertura_historial_servicio
@@ -20,16 +22,26 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $fecha_proximo_servicio
  * @property string $dias_plazo_vencimiento
  * @property-read string $estado_vencimiento Calculado a partir de fecha_proximo_servicio y dias_plazo_vencimiento
+ * @property int|null $ingreso_id
+ * @property string $estado_programacion PENDIENTE, AGENDADO o CANCELADO
+ * @property string|null $motivo_no_ingreso Solo cuando estado_programacion es CANCELADO
+ * @property string|null $observacion_no_ingreso Detalle libre, obligatorio solo si motivo_no_ingreso es OTRO
+ * @property bool $re_agendar Solo tiene sentido junto con motivo_no_ingreso
+ * @property array<string, mixed>|null $datos_re_agendamiento Fecha del próximo agendamiento, si re_agendar es true
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Equipo $equipo
+ * @property-read Ingreso|null $ingreso
  * @property-read Tenant $tenant
  */
 #[Fillable([
-    'equipo_id', 'tipo_servicio', 'intervalo_servicio', 'intervalo_unidad', 'fecha_apertura_historial_servicio',
-    'fecha_ultimo_servicio', 'fecha_proximo_servicio', 'dias_plazo_vencimiento', 'tenant_id',
+    'equipo_id', 'tipo_servicio', 'tipo_mantenimiento', 'falla_detectada',
+    'intervalo_servicio', 'intervalo_unidad', 'fecha_apertura_historial_servicio',
+    'fecha_ultimo_servicio', 'fecha_proximo_servicio', 'dias_plazo_vencimiento',
+    'ingreso_id', 'estado_programacion', 'motivo_no_ingreso', 'observacion_no_ingreso',
+    're_agendar', 'datos_re_agendamiento', 'tenant_id',
 ])]
 class EquipoProgramacion extends Model
 {
@@ -38,7 +50,7 @@ class EquipoProgramacion extends Model
     /**
      * The accessors to append to the model's array/JSON form.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $appends = ['estado_vencimiento'];
 
@@ -50,6 +62,16 @@ class EquipoProgramacion extends Model
     public function equipo(): BelongsTo
     {
         return $this->belongsTo(Equipo::class);
+    }
+
+    /**
+     * Get the ingreso that brought this programacion in for service, if any.
+     *
+     * @return BelongsTo<Ingreso, $this>
+     */
+    public function ingreso(): BelongsTo
+    {
+        return $this->belongsTo(Ingreso::class);
     }
 
     /**
@@ -121,6 +143,8 @@ class EquipoProgramacion extends Model
             'fecha_ultimo_servicio' => 'date',
             'fecha_proximo_servicio' => 'date',
             'dias_plazo_vencimiento' => 'decimal:2',
+            're_agendar' => 'boolean',
+            'datos_re_agendamiento' => 'array',
         ];
     }
 }

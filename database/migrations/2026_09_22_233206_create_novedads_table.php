@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('novedads', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->enum('categoria',['INGRESO','MANTENIMIENTO','CALIBRACION','SALIDA']);
+            $table->enum('categoria', ['INGRESO', 'MANTENIMIENTO', 'CALIBRACION', 'SALIDA']);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

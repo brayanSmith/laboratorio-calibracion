@@ -11,6 +11,7 @@ import {
     LayoutGrid,
     MapPin,
     Package,
+    PackageCheck,
     Ruler,
     ShieldCheck,
     Sigma,
@@ -38,6 +39,7 @@ import { index as clientesIndex } from '@/routes/clientes';
 import { index as empresasTercerasIndex } from '@/routes/empresas-terceras';
 import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
+import { index as ingresosIndex } from '@/routes/ingresos';
 import { index as itemsIndex } from '@/routes/items';
 import { index as laboratoriosIndex } from '@/routes/laboratorios';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
@@ -105,6 +107,15 @@ export function AppSidebar() {
                                     title: 'Equipos',
                                     href: equiposIndex(),
                                     icon: Wrench,
+                                },
+                            ]
+                          : []),
+                      ...(can('ingresos.ver')
+                          ? [
+                                {
+                                    title: 'Ingresos',
+                                    href: ingresosIndex(),
+                                    icon: PackageCheck,
                                 },
                             ]
                           : []),

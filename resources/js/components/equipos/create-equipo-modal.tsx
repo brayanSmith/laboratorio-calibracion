@@ -83,7 +83,6 @@ export default function CreateEquipoModal({ options, children }: Props) {
 
                             <Separator />
 
-                            
                             <div className="space-y-4">
                                 <Heading
                                     variant="small"

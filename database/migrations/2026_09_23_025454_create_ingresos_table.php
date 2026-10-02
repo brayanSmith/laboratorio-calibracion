@@ -16,11 +16,14 @@ return new class extends Migration
             $table->foreignId('bahia_id')->constrained('bahias')->onDelete('cascade');
             $table->date('desde'); // campo de filtro
             $table->date('hasta'); // campo de filtro
-            $table->foreignId('tecnico_recibe_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('cliente_entrega_id')->constrained('clientes')->onDelete('cascade');
+            // Nullable: al crear el ingreso solo se sabe la bahía y el rango de fechas;
+            // el técnico y el cliente se completan después, al editar el ingreso.
+            $table->foreignId('tecnico_recibe_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('cliente_entrega_id')->nullable()->constrained('clientes')->onDelete('cascade');
             $table->string('firma_cliente_entrega')->nullable();
-            $table->boolean('ingreso_exitoso')->default(true);
-            $table->text('novedad')->nullable();
+            $table->enum('estado_ingreso', ['PENDIENTE', 'INGRESADO', 'CANCELADO'])->default('PENDIENTE');
+            $table->text('novedad')->nullable(); // Notas generales cuando el ingreso queda aprobado
+            $table->text('motivo_cancelacion')->nullable(); // Solo cuando estado_ingreso es CANCELADO
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

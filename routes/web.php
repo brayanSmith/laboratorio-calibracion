@@ -12,6 +12,7 @@ use App\Http\Controllers\EquipoEspecificacionTecnicaController;
 use App\Http\Controllers\EquipoProgramacionController;
 use App\Http\Controllers\FabricanteController;
 use App\Http\Controllers\ForcePasswordChangeController;
+use App\Http\Controllers\IngresoController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
@@ -48,10 +49,15 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('equipos', EquipoController::class)->except(['create', 'edit']);
 
     Route::post('equipos/{equipo}/especificacion-tecnica', [EquipoEspecificacionTecnicaController::class, 'store'])->name('equipos.especificacion-tecnica.store');
+    Route::get('equipo-programaciones/buscar', [EquipoProgramacionController::class, 'buscar'])->name('equipo-programaciones.buscar');
+    Route::get('equipo-programaciones/equipos-disponibles', [EquipoProgramacionController::class, 'equiposDisponibles'])->name('equipo-programaciones.equipos-disponibles');
     Route::post('equipos/{equipo}/programaciones', [EquipoProgramacionController::class, 'store'])->name('equipos.programaciones.store');
     Route::delete('programaciones/{equipoProgramacion}', [EquipoProgramacionController::class, 'destroy'])->name('programaciones.destroy');
     Route::post('equipos/{equipo}/documentos', [DocumentoEquipoController::class, 'store'])->name('equipos.documentos.store');
     Route::delete('documentos/{documentoEquipo}', [DocumentoEquipoController::class, 'destroy'])->name('documentos.destroy');
+
+    Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');
 
     Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
 
