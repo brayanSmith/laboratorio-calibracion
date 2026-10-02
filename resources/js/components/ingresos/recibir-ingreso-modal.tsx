@@ -2,6 +2,7 @@ import { Form } from '@inertiajs/react';
 import { useState } from 'react';
 import { actualizarEstado } from '@/actions/App/Http/Controllers/IngresoController';
 import Combobox from '@/components/combobox';
+import FirmaCanvas from '@/components/firma-canvas';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { estadosIngreso } from '@/lib/estados-ingreso';
@@ -53,14 +55,6 @@ export default function RecibirIngresoModal({
     open,
     onOpenChange,
 }: Props) {
-    const [estadoIngreso, setEstadoIngreso] = useState<EstadoIngreso>(
-        ingreso?.estado_ingreso ?? 'PENDIENTE',
-    );
-    const [tecnicoId, setTecnicoId] = useState<string | undefined>(undefined);
-    const [clienteId, setClienteId] = useState<string | undefined>(undefined);
-    const aprobado = estadoIngreso === 'INGRESADO';
-    const cancelado = estadoIngreso === 'CANCELADO';
-
     if (!ingreso) {
         return null;
     }
@@ -68,117 +62,163 @@ export default function RecibirIngresoModal({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg">
-                <Form
+                <RecibirIngresoFormulario
                     key={`${ingreso.id}-${String(open)}`}
-                    {...actualizarEstado.form(ingreso.id)}
-                    className="space-y-6"
+                    ingreso={ingreso}
+                    tecnicos={tecnicos}
+                    clientes={clientes}
                     onSuccess={() => onOpenChange(false)}
-                >
-                    {({ errors, processing }) => (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle>Recibir equipos</DialogTitle>
-                                <DialogDescription>
-                                    Define el estado del ingreso y completa lo
-                                    que corresponda
-                                </DialogDescription>
-                            </DialogHeader>
+                />
+            </DialogContent>
+        </Dialog>
+    );
+}
 
-                            <div className="grid gap-2">
-                                <Label>Estado del ingreso</Label>
-                                <ToggleGroup
-                                    type="single"
-                                    variant="outline"
-                                    value={estadoIngreso}
-                                    onValueChange={(valor) => {
-                                        if (valor) {
-                                            setEstadoIngreso(
-                                                valor as EstadoIngreso,
-                                            );
-                                        }
-                                    }}
-                                    className="w-full"
+type FormularioProps = {
+    ingreso: Ingreso;
+    tecnicos: IngresoOption[];
+    clientes: IngresoOption[];
+    onSuccess: () => void;
+};
+
+/**
+ * Montado de nuevo (por la key en RecibirIngresoModal) cada vez que cambia el ingreso
+ * o se vuelve a abrir el modal, para que su estado local arranque siempre desde los
+ * datos actuales de ese ingreso.
+ */
+function RecibirIngresoFormulario({
+    ingreso,
+    tecnicos,
+    clientes,
+    onSuccess,
+}: FormularioProps) {
+    const [estadoIngreso, setEstadoIngreso] = useState<EstadoIngreso>(
+        ingreso.estado_ingreso,
+    );
+    const [tecnicoId, setTecnicoId] = useState(
+        ingreso.tecnico_recibe_id?.toString(),
+    );
+    const [clienteId, setClienteId] = useState(
+        ingreso.cliente_entrega_id?.toString(),
+    );
+    const aprobado = estadoIngreso === 'INGRESADO';
+    const cancelado = estadoIngreso === 'CANCELADO';
+
+    return (
+        <Form
+            {...actualizarEstado.form(ingreso.id)}
+            className="space-y-6"
+            onSuccess={onSuccess}
+        >
+            {({ errors, processing }) => (
+                <>
+                    <DialogHeader>
+                        <DialogTitle>Recibir equipos</DialogTitle>
+                        <DialogDescription>
+                            Define el estado del ingreso y completa lo que
+                            corresponda
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-2">
+                        <Label>Estado del ingreso</Label>
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={estadoIngreso}
+                            onValueChange={(valor) => {
+                                if (valor) {
+                                    setEstadoIngreso(valor as EstadoIngreso);
+                                }
+                            }}
+                            className="w-full"
+                        >
+                            {estadosIngreso.map((opcion) => (
+                                <ToggleGroupItem
+                                    key={opcion.value}
+                                    value={opcion.value}
+                                    className={`flex-1 ${colorToggleEstadoIngreso[opcion.value as EstadoIngreso]}`}
                                 >
-                                    {estadosIngreso.map((opcion) => (
-                                        <ToggleGroupItem
-                                            key={opcion.value}
-                                            value={opcion.value}
-                                            className={`flex-1 ${colorToggleEstadoIngreso[opcion.value as EstadoIngreso]}`}
-                                        >
-                                            {opcion.label}
-                                        </ToggleGroupItem>
-                                    ))}
-                                </ToggleGroup>
-                                <input
-                                    type="hidden"
-                                    name="estado_ingreso"
-                                    value={estadoIngreso}
+                                    {opcion.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                        <input
+                            type="hidden"
+                            name="estado_ingreso"
+                            value={estadoIngreso}
+                        />
+                        <InputError message={errors.estado_ingreso} />
+                    </div>
+
+                    {aprobado ? (
+                        <div className="grid gap-6 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="tecnico_recibe_id">
+                                    Técnico que recibe
+                                </Label>
+                                <Combobox
+                                    id="tecnico_recibe_id"
+                                    name="tecnico_recibe_id"
+                                    value={tecnicoId}
+                                    onValueChange={setTecnicoId}
+                                    options={toComboboxOptions(tecnicos)}
+                                    placeholder="Selecciona un técnico"
+                                    searchPlaceholder="Buscar técnico..."
                                 />
-                                <InputError message={errors.estado_ingreso} />
+                                <InputError
+                                    message={errors.tecnico_recibe_id}
+                                />
                             </div>
 
-                            {aprobado ? (
-                                <div className="grid gap-6 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="tecnico_recibe_id">
-                                            Técnico que recibe
-                                        </Label>
-                                        <Combobox
-                                            id="tecnico_recibe_id"
-                                            name="tecnico_recibe_id"
-                                            value={
-                                                tecnicoId ??
-                                                ingreso.tecnico_recibe_id?.toString()
-                                            }
-                                            onValueChange={setTecnicoId}
-                                            options={toComboboxOptions(
-                                                tecnicos,
-                                            )}
-                                            placeholder="Selecciona un técnico"
-                                            searchPlaceholder="Buscar técnico..."
-                                        />
-                                        <InputError
-                                            message={errors.tecnico_recibe_id}
-                                        />
-                                    </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="cliente_entrega_id">
+                                    Cliente que entrega
+                                </Label>
+                                <Combobox
+                                    id="cliente_entrega_id"
+                                    name="cliente_entrega_id"
+                                    value={clienteId}
+                                    onValueChange={setClienteId}
+                                    options={toComboboxOptions(clientes)}
+                                    placeholder="Selecciona un cliente"
+                                    searchPlaceholder="Buscar cliente..."
+                                />
+                                <InputError
+                                    message={errors.cliente_entrega_id}
+                                />
+                            </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="cliente_entrega_id">
-                                            Cliente que entrega
-                                        </Label>
-                                        <Combobox
-                                            id="cliente_entrega_id"
-                                            name="cliente_entrega_id"
-                                            value={
-                                                clienteId ??
-                                                ingreso.cliente_entrega_id?.toString()
-                                            }
-                                            onValueChange={setClienteId}
-                                            options={toComboboxOptions(
-                                                clientes,
-                                            )}
-                                            placeholder="Selecciona un cliente"
-                                            searchPlaceholder="Buscar cliente..."
-                                        />
-                                        <InputError
-                                            message={errors.cliente_entrega_id}
-                                        />
-                                    </div>
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label>Firma del cliente</Label>
 
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="firma_cliente_entrega">
-                                            Firma del cliente
-                                        </Label>
+                                {ingreso.firma_url ? (
+                                    <img
+                                        src={ingreso.firma_url}
+                                        alt="Firma actual del cliente"
+                                        className="h-16 w-fit rounded-md border bg-white object-contain p-1"
+                                        data-test="firma-preview"
+                                    />
+                                ) : null}
 
-                                        {ingreso.firma_url ? (
-                                            <img
-                                                src={ingreso.firma_url}
-                                                alt="Firma actual del cliente"
-                                                className="h-16 w-fit rounded-md border bg-white object-contain p-1"
-                                                data-test="firma-preview"
-                                            />
-                                        ) : null}
+                                <Tabs defaultValue="dibujar">
+                                    <TabsList>
+                                        <TabsTrigger value="dibujar">
+                                            Dibujar firma
+                                        </TabsTrigger>
+                                        <TabsTrigger value="subir">
+                                            Subir imagen
+                                        </TabsTrigger>
+                                    </TabsList>
 
+                                    <TabsContent value="dibujar">
+                                        <FirmaCanvas name="firma_cliente_entrega" />
+                                    </TabsContent>
+
+                                    <TabsContent
+                                        value="subir"
+                                        className="space-y-2"
+                                    >
                                         <Input
                                             id="firma_cliente_entrega"
                                             name="firma_cliente_entrega"
@@ -192,78 +232,70 @@ export default function RecibirIngresoModal({
                                                 ? ' Si eliges una nueva, reemplaza a la actual.'
                                                 : ''}
                                         </p>
-                                        <InputError
-                                            message={
-                                                errors.firma_cliente_entrega
-                                            }
+                                    </TabsContent>
+                                </Tabs>
+                                <InputError
+                                    message={errors.firma_cliente_entrega}
+                                />
+
+                                {ingreso.firma_url ? (
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id="eliminar_firma"
+                                            name="eliminar_firma"
                                         />
-
-                                        {ingreso.firma_url ? (
-                                            <div className="flex items-center gap-3">
-                                                <Checkbox
-                                                    id="eliminar_firma"
-                                                    name="eliminar_firma"
-                                                />
-                                                <Label htmlFor="eliminar_firma">
-                                                    Quitar firma actual
-                                                </Label>
-                                            </div>
-                                        ) : null}
-                                    </div>
-
-                                    <div className="grid gap-2 sm:col-span-2">
-                                        <Label htmlFor="novedad">
-                                            Novedad (opcional)
+                                        <Label htmlFor="eliminar_firma">
+                                            Quitar firma actual
                                         </Label>
-                                        <Textarea
-                                            id="novedad"
-                                            name="novedad"
-                                            defaultValue={ingreso.novedad ?? ''}
-                                            placeholder="Describe cualquier novedad del ingreso"
-                                        />
-                                        <InputError message={errors.novedad} />
                                     </div>
-                                </div>
-                            ) : null}
+                                ) : null}
+                            </div>
 
-                            {cancelado ? (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="motivo_cancelacion">
-                                        Motivo de cancelación
-                                    </Label>
-                                    <Textarea
-                                        id="motivo_cancelacion"
-                                        name="motivo_cancelacion"
-                                        defaultValue={
-                                            ingreso.motivo_cancelacion ?? ''
-                                        }
-                                        placeholder="Explica por qué se cancela el ingreso"
-                                    />
-                                    <InputError
-                                        message={errors.motivo_cancelacion}
-                                    />
-                                </div>
-                            ) : null}
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="novedad">
+                                    Novedad (opcional)
+                                </Label>
+                                <Textarea
+                                    id="novedad"
+                                    name="novedad"
+                                    defaultValue={ingreso.novedad ?? ''}
+                                    placeholder="Describe cualquier novedad del ingreso"
+                                />
+                                <InputError message={errors.novedad} />
+                            </div>
+                        </div>
+                    ) : null}
 
-                            <DialogFooter className="gap-2">
-                                <DialogClose asChild>
-                                    <Button variant="secondary">
-                                        Cancelar
-                                    </Button>
-                                </DialogClose>
+                    {cancelado ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="motivo_cancelacion">
+                                Motivo de cancelación
+                            </Label>
+                            <Textarea
+                                id="motivo_cancelacion"
+                                name="motivo_cancelacion"
+                                defaultValue={ingreso.motivo_cancelacion ?? ''}
+                                placeholder="Explica por qué se cancela el ingreso"
+                            />
+                            <InputError message={errors.motivo_cancelacion} />
+                        </div>
+                    ) : null}
 
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    data-test="ingreso-recibir-submit"
-                                >
-                                    Guardar
-                                </Button>
-                            </DialogFooter>
-                        </>
-                    )}
-                </Form>
-            </DialogContent>
-        </Dialog>
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cancelar</Button>
+                        </DialogClose>
+
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            data-test="ingreso-recibir-submit"
+                        >
+                            Guardar
+                        </Button>
+                    </DialogFooter>
+                </>
+            )}
+        </Form>
     );
 }
