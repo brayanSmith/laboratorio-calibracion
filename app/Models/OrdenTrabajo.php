@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,17 +12,10 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $codigo
- * @property int|null $ingreso_id
  * @property int|null $despacho_id
- * @property int $equipo_id
+ * @property int $equipo_programacion_id
  * @property Carbon $fecha_programada_orden_trabajo
- * @property Carbon $fecha_vencimiento
- * @property string $dias_plazo_vencimiento
- * @property string $estado_vencimiento
  * @property string $estado
- * @property bool $equipo_ingresado
- * @property int $novedad_ingreso_id
- * @property bool $requiere_calibracion
  * @property bool $mantenimiento_asignado_tercero
  * @property bool $calibracion_asignado_tercero
  * @property bool $orden_trabajo_programada
@@ -29,32 +23,21 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property-read Ingreso|null $ingreso
  * @property-read Despacho|null $despacho
- * @property-read Equipo $equipo
- * @property-read Novedad $novedadIngreso
+ * @property-read EquipoProgramacion $equipoProgramacion
  * @property-read Tenant $tenant
+ * @property-read string $estadoVencimiento Proviene de equipoProgramacion: no se duplica aquí
+ * @property-read bool $requiereCalibracion Se deriva del tipo_servicio de la programación
  */
 #[Fillable([
-    'codigo', 'ingreso_id', 'despacho_id', 'equipo_id', 'fecha_programada_orden_trabajo',
-    'fecha_vencimiento', 'dias_plazo_vencimiento', 'estado_vencimiento', 'estado',
-    'equipo_ingresado', 'novedad_ingreso_id', 'requiere_calibracion',
+    'codigo', 'despacho_id', 'equipo_programacion_id',
+    'fecha_programada_orden_trabajo', 'estado',
     'mantenimiento_asignado_tercero', 'calibracion_asignado_tercero',
     'orden_trabajo_programada', 'tenant_id',
 ])]
 class OrdenTrabajo extends Model
 {
     use SoftDeletes;
-
-    /**
-     * Get the ingreso that originated this orden de trabajo.
-     *
-     * @return BelongsTo<Ingreso, $this>
-     */
-    public function ingreso(): BelongsTo
-    {
-        return $this->belongsTo(Ingreso::class);
-    }
 
     /**
      * Get the despacho that closed this orden de trabajo.
@@ -67,23 +50,15 @@ class OrdenTrabajo extends Model
     }
 
     /**
-     * Get the equipo this orden de trabajo is for.
+     * Get the programacion de servicio that originated this orden de trabajo. El equipo,
+     * el ingreso y si el equipo llegó o no se consultan a través de ella (ej.
+     * $ordenTrabajo->equipoProgramacion->equipo, ->ingreso, o estado_programacion).
      *
-     * @return BelongsTo<Equipo, $this>
+     * @return BelongsTo<EquipoProgramacion, $this>
      */
-    public function equipo(): BelongsTo
+    public function equipoProgramacion(): BelongsTo
     {
-        return $this->belongsTo(Equipo::class);
-    }
-
-    /**
-     * Get the novedad registered at ingreso.
-     *
-     * @return BelongsTo<Novedad, $this>
-     */
-    public function novedadIngreso(): BelongsTo
-    {
-        return $this->belongsTo(Novedad::class, 'novedad_ingreso_id');
+        return $this->belongsTo(EquipoProgramacion::class);
     }
 
     /**
@@ -97,6 +72,32 @@ class OrdenTrabajo extends Model
     }
 
     /**
+     * El vencimiento de esta orden es el mismo de la programación que la originó: no se
+     * guarda por separado, se lee de ahí para que no se puedan desincronizar.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function estadoVencimiento(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => $this->equipoProgramacion->estado_vencimiento,
+        );
+    }
+
+    /**
+     * Si la programación que originó esta orden incluye CALIBRACION en su tipo_servicio
+     * (CSV): no se guarda por separado, se lee de ahí para que no se puedan desincronizar.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function requiereCalibracion(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => in_array('CALIBRACION', explode(',', $this->equipoProgramacion->tipo_servicio), true),
+        );
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -105,10 +106,6 @@ class OrdenTrabajo extends Model
     {
         return [
             'fecha_programada_orden_trabajo' => 'date',
-            'fecha_vencimiento' => 'date',
-            'dias_plazo_vencimiento' => 'decimal:2',
-            'equipo_ingresado' => 'boolean',
-            'requiere_calibracion' => 'boolean',
             'mantenimiento_asignado_tercero' => 'boolean',
             'calibracion_asignado_tercero' => 'boolean',
             'orden_trabajo_programada' => 'boolean',

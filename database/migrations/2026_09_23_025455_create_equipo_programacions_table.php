@@ -28,11 +28,18 @@ return new class extends Migration
             // Nullable: una programación existe desde que se registra el equipo, antes de
             // que cualquier ingreso la traiga a mantenimiento o calibración.
             $table->foreignId('ingreso_id')->nullable()->constrained('ingresos')->nullOnDelete();
+
+            $table->boolean('agendar')->default(true);
+            // Si el equipo efectivamente llegó al recibir el ingreso (ver "Recibir
+            // equipos"). Por defecto true: se espera que todo lo agendado se reciba.
+            $table->boolean('ingresado')->default(true);
+
             $table->enum('estado_programacion', ['PENDIENTE', 'AGENDADO', 'CANCELADO'])->default('PENDIENTE');
-            // Solo cuando estado_programacion es CANCELADO. "OTRO" se detalla en observacion_no_ingreso.
-            $table->enum('motivo_no_ingreso', ['USUARIO_NO_UBICADO', 'SUPERVISOR_AUTORIZA', 'EQUIPO_NO_UBICADO', 'OTRO'])->nullable();
-            $table->text('observacion_no_ingreso')->nullable(); // Detalle libre, obligatorio solo si motivo_no_ingreso es OTRO
-            $table->boolean('re_agendar')->default(false); // Solo tiene sentido junto con motivo_no_ingreso
+            // Solo cuando estado_programacion es CANCELADO. Catálogo configurable por tenant
+            // (categoria INGRESO), en vez de una lista fija.
+            $table->foreignId('novedad_ingreso_id')->nullable()->constrained('novedads')->nullOnDelete();
+            $table->text('observacion_no_ingreso')->nullable(); // Detalle adicional opcional
+            $table->boolean('re_agendar')->default(false); // Solo tiene sentido junto con novedad_ingreso_id
             $table->json('datos_re_agendamiento')->nullable(); // Fecha del próximo agendamiento, si re_agendar es true
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();

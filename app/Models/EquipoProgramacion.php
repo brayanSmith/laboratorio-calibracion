@@ -23,10 +23,12 @@ use Illuminate\Support\Carbon;
  * @property string $dias_plazo_vencimiento
  * @property-read string $estado_vencimiento Calculado a partir de fecha_proximo_servicio y dias_plazo_vencimiento
  * @property int|null $ingreso_id
+ * @property bool $agendar Si la persona decide agendar este equipo al revisarlo en el ingreso
+ * @property bool $ingresado Si el equipo efectivamente llegó, al recibir el ingreso
  * @property string $estado_programacion PENDIENTE, AGENDADO o CANCELADO
- * @property string|null $motivo_no_ingreso Solo cuando estado_programacion es CANCELADO
- * @property string|null $observacion_no_ingreso Detalle libre, obligatorio solo si motivo_no_ingreso es OTRO
- * @property bool $re_agendar Solo tiene sentido junto con motivo_no_ingreso
+ * @property int|null $novedad_ingreso_id Solo cuando estado_programacion es CANCELADO
+ * @property string|null $observacion_no_ingreso Detalle adicional opcional
+ * @property bool $re_agendar Solo tiene sentido junto con novedad_ingreso_id
  * @property array<string, mixed>|null $datos_re_agendamiento Fecha del próximo agendamiento, si re_agendar es true
  * @property int $tenant_id
  * @property Carbon|null $created_at
@@ -34,13 +36,14 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read Equipo $equipo
  * @property-read Ingreso|null $ingreso
+ * @property-read Novedad|null $novedadIngreso
  * @property-read Tenant $tenant
  */
 #[Fillable([
     'equipo_id', 'tipo_servicio', 'tipo_mantenimiento', 'falla_detectada',
     'intervalo_servicio', 'intervalo_unidad', 'fecha_apertura_historial_servicio',
     'fecha_ultimo_servicio', 'fecha_proximo_servicio', 'dias_plazo_vencimiento',
-    'ingreso_id', 'estado_programacion', 'motivo_no_ingreso', 'observacion_no_ingreso',
+    'ingreso_id', 'agendar', 'ingresado', 'estado_programacion', 'novedad_ingreso_id', 'observacion_no_ingreso',
     're_agendar', 'datos_re_agendamiento', 'tenant_id',
 ])]
 class EquipoProgramacion extends Model
@@ -72,6 +75,16 @@ class EquipoProgramacion extends Model
     public function ingreso(): BelongsTo
     {
         return $this->belongsTo(Ingreso::class);
+    }
+
+    /**
+     * Get the novedad explaining why the equipo did not come in, if cancelled.
+     *
+     * @return BelongsTo<Novedad, $this>
+     */
+    public function novedadIngreso(): BelongsTo
+    {
+        return $this->belongsTo(Novedad::class, 'novedad_ingreso_id');
     }
 
     /**
@@ -143,6 +156,8 @@ class EquipoProgramacion extends Model
             'fecha_ultimo_servicio' => 'date',
             'fecha_proximo_servicio' => 'date',
             'dias_plazo_vencimiento' => 'decimal:2',
+            'agendar' => 'boolean',
+            'ingresado' => 'boolean',
             're_agendar' => 'boolean',
             'datos_re_agendamiento' => 'array',
         ];

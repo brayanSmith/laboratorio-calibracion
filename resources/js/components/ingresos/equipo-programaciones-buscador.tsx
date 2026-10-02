@@ -1,39 +1,24 @@
 import { useHttp } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import Combobox from '@/components/combobox';
 import {
-    estadosProgramacion,
+    AgregarEquipoCorrectivo,
+    type CorrectivoPendiente,
+    CorrectivoPendienteItem,
+} from '@/components/ingresos/agregar-equipo-correctivo';
+import {
     estadosVencimiento,
-    motivosNoIngreso,
     tiposServicio,
 } from '@/components/equipos/equipo-programacion-fields';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import TogglePerilla3 from '@/components/toggle-perilla-3';
 import { usePermissions } from '@/hooks/use-permissions';
-import {
-    buscar,
-    equiposDisponibles as equiposDisponiblesRoute,
-} from '@/routes/equipo-programaciones';
+import { buscar } from '@/routes/equipo-programaciones';
 import type {
-    EquipoDisponibleItem,
     EquipoProgramacionBusquedaItem,
-    EstadoProgramacion,
     EstadoVencimiento,
-    MotivoNoIngreso,
 } from '@/types';
 
 type Props = {
@@ -71,33 +56,6 @@ const colorBadgeVencimiento: Record<EstadoVencimiento, string> = {
     VENCIDO: '!border-transparent !bg-red-500 !text-white',
 };
 
-/** Agendado en verde, pendiente en amarillo, cancelado en rojo. */
-const colorEstadoProgramacion: Record<EstadoProgramacion, string> = {
-    PENDIENTE: 'bg-amber-500',
-    AGENDADO: 'bg-emerald-500',
-    CANCELADO: 'bg-red-500',
-};
-
-/** Agendado en verde, pendiente en amarillo, cancelado en rojo. */
-const colorBadgeEstadoProgramacion: Record<EstadoProgramacion, string> = {
-    PENDIENTE: '!border-transparent !bg-amber-500 !text-white',
-    AGENDADO: '!border-transparent !bg-emerald-500 !text-white',
-    CANCELADO: '!border-transparent !bg-red-500 !text-white',
-};
-
-const colorTextoEstadoProgramacion: Record<EstadoProgramacion, string> = {
-    PENDIENTE: 'text-amber-700 dark:text-amber-400',
-    AGENDADO: 'text-emerald-700 dark:text-emerald-400',
-    CANCELADO: 'text-red-700 dark:text-red-400',
-};
-
-/** Tiñe toda la tarjeta: agendado en verde tenue, cancelado en rojo tenue. */
-const fondoTenueEstadoProgramacion: Record<EstadoProgramacion, string> = {
-    PENDIENTE: '',
-    AGENDADO: 'bg-emerald-50 dark:bg-emerald-950/20',
-    CANCELADO: 'bg-red-50 dark:bg-red-950/20',
-};
-
 type ResultadoProps = {
     item: EquipoProgramacionBusquedaItem;
     puedeEditar: boolean;
@@ -106,498 +64,75 @@ type ResultadoProps = {
 
 /**
  * Una fila de equipo (preventivo encontrado por el buscador, o correctivo ya agendado).
- * El estado se edita localmente; mientras haya cambios sin guardar, la fila escribe
- * inputs ocultos (programaciones_actualizadas[id][...]) que viajan junto con el resto
- * del formulario del ingreso cuando se pulsa "Guardar ingreso" / "Guardar cambios". No
+ * Para los preventivos, "agendar" se edita localmente y escribe un input oculto
+ * (programaciones_actualizadas[id][agendar]) que viaja junto con el resto del
+ * formulario del ingreso cuando se pulsa "Guardar ingreso" / "Guardar cambios". No
  * hace ninguna petición propia: todo se guarda en una sola petición, junto al ingreso.
  */
 function ProgramacionResultado({ item, puedeEditar, errors }: ResultadoProps) {
-    const [estado, setEstado] = useState<EstadoProgramacion>(
-        item.estado_programacion,
-    );
-    const [motivo, setMotivo] = useState<MotivoNoIngreso | ''>(
-        item.motivo_no_ingreso ?? '',
-    );
-    const [observacion, setObservacion] = useState(
-        item.observacion_no_ingreso ?? '',
-    );
-    const [reAgendar, setReAgendar] = useState(item.re_agendar);
-    const [fechaAgendamiento, setFechaAgendamiento] = useState(
-        item.datos_re_agendamiento?.fecha_proximo_agendamiento ?? '',
-    );
-    // Si ya llegó cancelado (de una búsqueda anterior), arranca compacto; si recién
-    // se cancela en esta sesión, arranca expandido para poder llenar los datos.
-    const [expandido, setExpandido] = useState(
-        item.estado_programacion !== 'CANCELADO',
-    );
+    const [agendar, setAgendar] = useState(item.agendar);
 
-    const cancelado = estado === 'CANCELADO';
-    const esOtroMotivo = motivo === 'OTRO';
-    const motivoLabel = motivosNoIngreso.find(
-        (option) => option.value === motivo,
-    )?.label;
-    const resumenCancelacion = [
-        motivoLabel ?? 'Sin motivo seleccionado',
-        esOtroMotivo && observacion ? observacion : null,
-        reAgendar
-            ? fechaAgendamiento
-                ? `Re-agenda: ${fechaAgendamiento}`
-                : 'Por re-agendar'
-            : null,
-    ]
-        .filter(Boolean)
-        .join(' · ');
-    const cambios =
-        estado !== item.estado_programacion ||
-        (cancelado &&
-            (motivo !== (item.motivo_no_ingreso ?? '') ||
-                (esOtroMotivo &&
-                    observacion !== (item.observacion_no_ingreso ?? '')) ||
-                reAgendar !== item.re_agendar ||
-                (reAgendar &&
-                    fechaAgendamiento !==
-                        (item.datos_re_agendamiento
-                            ?.fecha_proximo_agendamiento ?? ''))));
-
+    const esPreventivo = item.tipo_mantenimiento === 'PREVENTIVO';
     const prefijo = `programaciones_actualizadas.${item.id}`;
 
     return (
         <li
-            className={`space-y-3 px-3 py-2 ${fondoTenueEstadoProgramacion[estado]}`}
+            className="space-y-3 px-3 py-2"
             data-test="programacion-busqueda-item"
         >
             <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                    <span className="text-sm font-medium">
-                        {item.equipo.codigo} · {item.equipo.modelo}
-                    </span>
-                    <p className="text-xs text-muted-foreground">
-                        {tiposServicioLabel(item.tipo_servicio)}
-                        {item.equipo.cliente
-                            ? ` · ${item.equipo.cliente.nombre}`
-                            : ''}
-                        {item.fecha_proximo_servicio
-                            ? ` · Próximo servicio: ${item.fecha_proximo_servicio.slice(0, 10)}`
-                            : item.falla_detectada
-                              ? ` · Falla: ${item.falla_detectada}`
-                              : ''}
-                    </p>
-                </div>
-
-                {/* El estado de vencimiento y el control de estado van juntos, a la
-                    derecha, para no alargar la tarjeta con un bloque aparte abajo. */}
-                <div className="flex flex-col items-end gap-1">
-                    {item.fecha_proximo_servicio ? (
-                        <Badge
-                            className={
-                                colorBadgeVencimiento[item.estado_vencimiento]
+                <div className="flex items-start gap-2">
+                    {puedeEditar && esPreventivo ? (
+                        <Checkbox
+                            checked={agendar}
+                            onCheckedChange={(checked) =>
+                                setAgendar(checked === true)
                             }
-                        >
-                            {estadoVencimientoLabel(item.estado_vencimiento)}
-                        </Badge>
+                            aria-label="Agendar este equipo"
+                            className="mt-1"
+                            data-test="agendar-checkbox"
+                        />
                     ) : null}
 
-                    {puedeEditar ? (
-                        <>
-                            <span
-                                className={`text-xs font-medium ${colorTextoEstadoProgramacion[estado]}`}
-                            >
-                                {
-                                    estadosProgramacion.find(
-                                        (option) => option.value === estado,
-                                    )?.label
-                                }
-                            </span>
-
-                            <TogglePerilla3
-                                value={estado}
-                                opciones={estadosProgramacion}
-                                colorPerilla={colorEstadoProgramacion}
-                                ariaLabel="Estado de la programación"
-                                onSeleccionar={(valor) => {
-                                    const nuevoEstado =
-                                        valor as EstadoProgramacion;
-
-                                    setEstado(nuevoEstado);
-
-                                    // Al pasar recién a Cancelado, se abre para
-                                    // pedir el motivo; de resto no se toca.
-                                    if (
-                                        nuevoEstado === 'CANCELADO' &&
-                                        estado !== 'CANCELADO'
-                                    ) {
-                                        setExpandido(true);
-                                    }
-                                }}
-                            />
-
-                            <InputError
-                                message={
-                                    errors[`${prefijo}.estado_programacion`]
-                                }
-                            />
-                        </>
-                    ) : null}
+                    <div className="space-y-1">
+                        <span className="text-sm font-medium">
+                            {item.equipo.codigo} · {item.equipo.modelo}
+                        </span>
+                        <p className="text-xs text-muted-foreground">
+                            {tiposServicioLabel(item.tipo_servicio)}
+                            {item.equipo.cliente
+                                ? ` · ${item.equipo.cliente.nombre}`
+                                : ''}
+                            {item.fecha_proximo_servicio
+                                ? ` · Próximo servicio: ${item.fecha_proximo_servicio.slice(0, 10)}`
+                                : item.falla_detectada
+                                  ? ` · Falla: ${item.falla_detectada}`
+                                  : ''}
+                        </p>
+                    </div>
                 </div>
+
+                {item.fecha_proximo_servicio ? (
+                    <Badge
+                        className={
+                            colorBadgeVencimiento[item.estado_vencimiento]
+                        }
+                    >
+                        {estadoVencimientoLabel(item.estado_vencimiento)}
+                    </Badge>
+                ) : null}
             </div>
 
-            {puedeEditar && cancelado && !expandido ? (
-                <button
-                    type="button"
-                    onClick={() => setExpandido(true)}
-                    className="flex w-full items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-left"
-                    data-test="cancelacion-resumen"
-                >
-                    <p className="truncate text-xs text-muted-foreground">
-                        {resumenCancelacion}
-                    </p>
-                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                </button>
-            ) : null}
-
-            {puedeEditar && cancelado && expandido ? (
-                <div className="space-y-3 rounded-md bg-muted/40 p-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground">
-                            Detalle de la cancelación
-                        </span>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => setExpandido(false)}
-                            aria-label="Compactar detalle de cancelación"
-                            data-test="cancelacion-comprimir"
-                        >
-                            <ChevronUp className="h-3.5 w-3.5" />
-                        </Button>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label
-                            htmlFor={`motivo-no-ingreso-${item.id}`}
-                            className="text-xs"
-                        >
-                            Motivo de no ingreso
-                        </Label>
-                        <Select
-                            value={motivo}
-                            onValueChange={(value) =>
-                                setMotivo(value as MotivoNoIngreso)
-                            }
-                        >
-                            <SelectTrigger
-                                id={`motivo-no-ingreso-${item.id}`}
-                                size="sm"
-                                className="w-full"
-                            >
-                                <SelectValue placeholder="Selecciona un motivo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {motivosNoIngreso.map((option) => (
-                                    <SelectItem
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError
-                            message={errors[`${prefijo}.motivo_no_ingreso`]}
-                        />
-                    </div>
-
-                    {esOtroMotivo ? (
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={`observacion-no-ingreso-${item.id}`}
-                                className="text-xs"
-                            >
-                                Observación
-                            </Label>
-                            <Textarea
-                                id={`observacion-no-ingreso-${item.id}`}
-                                value={observacion}
-                                onChange={(event) =>
-                                    setObservacion(event.target.value)
-                                }
-                                placeholder="Detalla el motivo de la cancelación"
-                                rows={2}
-                            />
-                            <InputError
-                                message={
-                                    errors[`${prefijo}.observacion_no_ingreso`]
-                                }
-                            />
-                        </div>
-                    ) : null}
-
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id={`re-agendar-${item.id}`}
-                            checked={reAgendar}
-                            onCheckedChange={(checked) =>
-                                setReAgendar(checked === true)
-                            }
-                        />
-                        <Label
-                            htmlFor={`re-agendar-${item.id}`}
-                            className="text-xs font-normal"
-                        >
-                            Re-agendar
-                        </Label>
-                    </div>
-
-                    {reAgendar ? (
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={`fecha-agendamiento-${item.id}`}
-                                className="text-xs"
-                            >
-                                Fecha del próximo agendamiento
-                            </Label>
-                            <Input
-                                id={`fecha-agendamiento-${item.id}`}
-                                type="date"
-                                value={fechaAgendamiento}
-                                onChange={(event) =>
-                                    setFechaAgendamiento(event.target.value)
-                                }
-                                className="w-48"
-                            />
-                            <InputError
-                                message={
-                                    errors[
-                                        `${prefijo}.datos_re_agendamiento.fecha_proximo_agendamiento`
-                                    ]
-                                }
-                            />
-                        </div>
-                    ) : null}
-                </div>
-            ) : null}
-
-            {cambios ? (
+            {puedeEditar && esPreventivo ? (
                 <>
                     <input
                         type="hidden"
-                        name={`programaciones_actualizadas[${item.id}][estado_programacion]`}
-                        value={estado}
+                        name={`programaciones_actualizadas[${item.id}][agendar]`}
+                        value={agendar ? '1' : '0'}
                     />
-                    <input
-                        type="hidden"
-                        name={`programaciones_actualizadas[${item.id}][motivo_no_ingreso]`}
-                        value={cancelado ? motivo : ''}
-                    />
-                    <input
-                        type="hidden"
-                        name={`programaciones_actualizadas[${item.id}][observacion_no_ingreso]`}
-                        value={cancelado && esOtroMotivo ? observacion : ''}
-                    />
-                    <input
-                        type="hidden"
-                        name={`programaciones_actualizadas[${item.id}][re_agendar]`}
-                        value={cancelado && reAgendar ? '1' : '0'}
-                    />
-                    {cancelado && reAgendar ? (
-                        <input
-                            type="hidden"
-                            name={`programaciones_actualizadas[${item.id}][datos_re_agendamiento][fecha_proximo_agendamiento]`}
-                            value={fechaAgendamiento}
-                        />
-                    ) : null}
+                    <InputError message={errors[`${prefijo}.agendar`]} />
                 </>
             ) : null}
-        </li>
-    );
-}
-
-type CorrectivoPendiente = {
-    tempId: string;
-    equipoId: string;
-    equipoLabel: string;
-    fallaDetectada: string;
-};
-
-type AgregarEquipoCorrectivoProps = {
-    bahiaId: string;
-    onAgregar: (pendiente: Omit<CorrectivoPendiente, 'tempId'>) => void;
-    onCancelar: () => void;
-};
-
-/**
- * Formulario para anotar, localmente, un equipo que falló "de la nada" (no tenía
- * servicio programado) en la bahía del ingreso. No llama al servidor: solo junta el
- * equipo y la falla detectada en la lista de pendientes, que se guarda junto con el
- * resto del ingreso al pulsar "Guardar ingreso" / "Guardar cambios".
- */
-function AgregarEquipoCorrectivo({
-    bahiaId,
-    onAgregar,
-    onCancelar,
-}: AgregarEquipoCorrectivoProps) {
-    const [equipoId, setEquipoId] = useState('');
-    const [fallaDetectada, setFallaDetectada] = useState('');
-    const { get: cargarEquipos, response: equipos } = useHttp<
-        { bahia_id: string },
-        EquipoDisponibleItem[]
-    >();
-
-    useEffect(() => {
-        void cargarEquipos(
-            equiposDisponiblesRoute({ query: { bahia_id: bahiaId } }).url,
-        );
-        // Solo se vuelve a cargar si cambia la bahía del ingreso.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [bahiaId]);
-
-    const equipoSeleccionado = (equipos ?? []).find(
-        (equipo) => equipo.id.toString() === equipoId,
-    );
-
-    const handleAgregar = () => {
-        if (!equipoSeleccionado || !fallaDetectada) {
-            return;
-        }
-
-        onAgregar({
-            equipoId,
-            equipoLabel: `${equipoSeleccionado.codigo} · ${equipoSeleccionado.modelo}`,
-            fallaDetectada,
-        });
-        setEquipoId('');
-        setFallaDetectada('');
-    };
-
-    return (
-        <div
-            className="space-y-3 rounded-md border bg-muted/30 p-3"
-            data-test="agregar-equipo-correctivo-form"
-        >
-            <div className="grid gap-2">
-                <Label htmlFor="equipo-correctivo">Equipo</Label>
-                <Combobox
-                    id="equipo-correctivo"
-                    value={equipoId}
-                    onValueChange={setEquipoId}
-                    options={(equipos ?? []).map((equipo) => ({
-                        id: equipo.id,
-                        label: `${equipo.codigo} · ${equipo.modelo}`,
-                    }))}
-                    placeholder="Selecciona un equipo"
-                    searchPlaceholder="Buscar equipo..."
-                    emptyMessage="Sin equipos en esta bahía."
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor="falla-detectada">Falla detectada</Label>
-                <Textarea
-                    id="falla-detectada"
-                    value={fallaDetectada}
-                    onChange={(event) => setFallaDetectada(event.target.value)}
-                    placeholder="Describe la falla detectada en el equipo"
-                    rows={2}
-                />
-            </div>
-
-            <div className="flex justify-end gap-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onCancelar}
-                >
-                    Cancelar
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleAgregar}
-                    disabled={!equipoId || !fallaDetectada}
-                    data-test="agregar-equipo-correctivo-guardar"
-                >
-                    Agregar
-                </Button>
-            </div>
-        </div>
-    );
-}
-
-type CorrectivoPendienteItemProps = {
-    pendiente: CorrectivoPendiente;
-    index: number;
-    onQuitar: () => void;
-    errors: Partial<Record<string, string>>;
-};
-
-/**
- * Una fila "por guardar": un equipo correctivo que el usuario anotó en esta sesión,
- * pero que todavía no existe en el servidor. Escribe sus propios inputs ocultos
- * (programaciones_correctivas[index][...]) para que viajen junto con el ingreso.
- */
-function CorrectivoPendienteItem({
-    pendiente,
-    index,
-    onQuitar,
-    errors,
-}: CorrectivoPendienteItemProps) {
-    const prefijo = `programaciones_correctivas.${index}`;
-
-    return (
-        <li
-            className="flex items-start justify-between gap-3 px-3 py-2"
-            data-test="correctivo-pendiente-item"
-        >
-            <div className="space-y-1">
-                <span className="text-sm font-medium">
-                    {pendiente.equipoLabel}
-                </span>
-                <p className="text-xs text-muted-foreground">
-                    {pendiente.fallaDetectada}
-                </p>
-                <InputError
-                    message={
-                        errors[`${prefijo}.equipo_id`] ??
-                        errors[`${prefijo}.falla_detectada`]
-                    }
-                />
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-                <Badge className={colorBadgeEstadoProgramacion.AGENDADO}>
-                    {
-                        estadosProgramacion.find(
-                            (option) => option.value === 'AGENDADO',
-                        )?.label
-                    }
-                </Badge>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={onQuitar}
-                    aria-label="Quitar equipo"
-                    data-test="correctivo-pendiente-quitar"
-                >
-                    <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-            </div>
-
-            <input
-                type="hidden"
-                name={`programaciones_correctivas[${index}][equipo_id]`}
-                value={pendiente.equipoId}
-            />
-            <input
-                type="hidden"
-                name={`programaciones_correctivas[${index}][falla_detectada]`}
-                value={pendiente.fallaDetectada}
-            />
         </li>
     );
 }
@@ -605,8 +140,8 @@ function CorrectivoPendienteItem({
 /**
  * Vista previa de los equipos cuya próxima programación de servicio cae dentro del
  * Desde/Hasta/Bahía que se lleven en el formulario del ingreso (o ya enlazados a este
- * ingreso, al editar). Cada fila permite cambiar el estado de su programación, y se
- * puede agregar equipos correctivos aparte; nada de esto llama al servidor por su
+ * ingreso, al editar). Cada fila de un preventivo permite marcar si se agenda o no, y
+ * se puede agregar equipos correctivos aparte; nada de esto llama al servidor por su
  * cuenta: todo viaja en la misma petición que el ingreso, al guardar, mediante inputs
  * ocultos (ver ProgramacionResultado y CorrectivoPendienteItem).
  */
@@ -751,6 +286,7 @@ export default function EquipoProgramacionesBuscador({
                                 key={pendiente.tempId}
                                 pendiente={pendiente}
                                 index={index}
+                                campo="programaciones_correctivas"
                                 errors={errors}
                                 onQuitar={() =>
                                     setCorrectivosPendientes((actuales) =>

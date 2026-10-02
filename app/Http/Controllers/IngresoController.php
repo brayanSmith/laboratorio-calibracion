@@ -10,6 +10,7 @@ use App\Models\Cliente;
 use App\Models\Equipo;
 use App\Models\EquipoProgramacion;
 use App\Models\Ingreso;
+use App\Models\Novedad;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,7 +65,9 @@ class IngresoController extends Controller
                     'fecha_proximo_servicio' => $programacion->fecha_proximo_servicio?->toDateString(),
                     'estado_vencimiento' => $programacion->estado_vencimiento,
                     'estado_programacion' => $programacion->estado_programacion,
-                    'motivo_no_ingreso' => $programacion->motivo_no_ingreso,
+                    'agendar' => $programacion->agendar,
+                    'ingresado' => $programacion->ingresado,
+                    'novedad_ingreso_id' => $programacion->novedad_ingreso_id,
                     'observacion_no_ingreso' => $programacion->observacion_no_ingreso,
                     're_agendar' => $programacion->re_agendar,
                     'datos_re_agendamiento' => $programacion->datos_re_agendamiento,
@@ -82,6 +85,7 @@ class IngresoController extends Controller
             'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 
@@ -123,13 +127,13 @@ class IngresoController extends Controller
     }
 
     /**
-     * Update the estado of the ingreso: recibir equipos (queda INGRESADO, con técnico,
-     * cliente, firma y novedad), cancelarlo (queda CANCELADO, con su motivo), o
-     * devolverlo a PENDIENTE.
+     * Update the estado of the ingreso: recibir equipos (queda RECIBIDO, con técnico,
+     * cliente, firma, novedad y el ingresado de cada equipo programado), cancelarlo
+     * (queda CANCELADO, con su motivo), o devolverlo a PENDIENTE.
      */
     public function actualizarEstado(UpdateEstadoIngresoRequest $request, Ingreso $ingreso): RedirectResponse
     {
-        $data = $request->safe()->except(['firma_cliente_entrega', 'eliminar_firma']);
+        $data = $request->safe()->except(['firma_cliente_entrega', 'eliminar_firma', 'equipos_recibidos']);
 
         if ($request->hasFile('firma_cliente_entrega')) {
             $this->deleteFirma($ingreso);
@@ -139,7 +143,11 @@ class IngresoController extends Controller
             $data['firma_cliente_entrega'] = null;
         }
 
-        $ingreso->update($data);
+        DB::transaction(function () use ($request, $ingreso, $data) {
+            $ingreso->update($data);
+
+            $this->guardarEquiposRecibidos($request, $ingreso);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Estado del ingreso actualizado.')]);
 
@@ -191,7 +199,9 @@ class IngresoController extends Controller
             ->where('tipo_mantenimiento', 'PREVENTIVO')
             ->update([
                 'estado_programacion' => 'PENDIENTE',
-                'motivo_no_ingreso' => null,
+                'agendar' => true,
+                'ingresado' => true,
+                'novedad_ingreso_id' => null,
                 'observacion_no_ingreso' => null,
                 're_agendar' => false,
                 'datos_re_agendamiento' => null,
@@ -201,47 +211,85 @@ class IngresoController extends Controller
 
     /**
      * Apply the pending equipo-programacion changes gathered by the ingreso form's
-     * buscador, linking every affected record to this ingreso in the same transaction
-     * as the ingreso itself, so later editing can find them by ingreso_id.
+     * buscador, linking to this ingreso every preventivo marcado con agendar = true, y
+     * liberando (sin enlazar) los que quedaron con agendar = false, para que sigan
+     * disponibles en una búsqueda futura.
      */
     private function guardarCambiosDeEquipos(StoreIngresoRequest|UpdateIngresoRequest $request, Ingreso $ingreso, int $tenantId): void
     {
         foreach ($request->validated('programaciones_actualizadas', []) as $cambio) {
-            $cancelado = $cambio['estado_programacion'] === 'CANCELADO';
-            $motivo = $cancelado ? ($cambio['motivo_no_ingreso'] ?? null) : null;
-            $reAgendar = $cancelado && ($cambio['re_agendar'] ?? false);
+            $agendar = $cambio['agendar'] ?? true;
 
             EquipoProgramacion::query()
                 ->where('id', $cambio['id'])
                 ->where('tenant_id', $tenantId)
                 ->update([
-                    'estado_programacion' => $cambio['estado_programacion'],
-                    'motivo_no_ingreso' => $motivo,
-                    'observacion_no_ingreso' => $motivo === 'OTRO' ? ($cambio['observacion_no_ingreso'] ?? null) : null,
-                    're_agendar' => $reAgendar,
-                    'datos_re_agendamiento' => $reAgendar ? $cambio['datos_re_agendamiento'] : null,
-                    'ingreso_id' => $ingreso->id,
+                    'estado_programacion' => $agendar ? 'AGENDADO' : 'PENDIENTE',
+                    'agendar' => $agendar,
+                    'ingreso_id' => $agendar ? $ingreso->id : null,
                 ]);
         }
 
         foreach ($request->validated('programaciones_correctivas', []) as $correctivo) {
-            $equipo = Equipo::with('tipoEquipo:id,tipo_mantenimiento')
-                ->where('id', $correctivo['equipo_id'])
-                ->firstOrFail();
-
-            $tipoServicio = $equipo->tipoEquipo->tipo_mantenimiento === 'A'
-                ? ['MANTENIMIENTO', 'CALIBRACION']
-                : ['MANTENIMIENTO'];
-
-            $equipo->equipoProgramaciones()->create([
-                'tipo_servicio' => implode(',', $tipoServicio),
-                'tipo_mantenimiento' => 'CORRECTIVO',
-                'falla_detectada' => $correctivo['falla_detectada'],
-                'estado_programacion' => 'AGENDADO',
-                'ingreso_id' => $ingreso->id,
-                'tenant_id' => $tenantId,
-            ]);
+            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $tenantId);
         }
+    }
+
+    /**
+     * Apply the "ingresado" decision gathered by "Recibir equipos" for each equipo
+     * programado ya enlazado a este ingreso, y crea los equipos correctivos anotados
+     * de último momento (ver AgregarEquipoCorrectivo). Si ingresado es false, se trata
+     * como un cancelado: guarda la novedad y, si corresponde, el re-agendamiento.
+     */
+    private function guardarEquiposRecibidos(UpdateEstadoIngresoRequest $request, Ingreso $ingreso): void
+    {
+        foreach ($request->validated('equipos_recibidos', []) as $recibido) {
+            $ingresado = $recibido['ingresado'] ?? true;
+            $reAgendar = ! $ingresado && ($recibido['re_agendar'] ?? false);
+
+            EquipoProgramacion::query()
+                ->where('id', $recibido['id'])
+                ->where('tenant_id', $ingreso->tenant_id)
+                ->update([
+                    'ingresado' => $ingresado,
+                    'estado_programacion' => $ingresado ? 'AGENDADO' : 'CANCELADO',
+                    'novedad_ingreso_id' => $ingresado ? null : ($recibido['novedad_ingreso_id'] ?? null),
+                    'observacion_no_ingreso' => $ingresado ? null : ($recibido['observacion_no_ingreso'] ?? null),
+                    're_agendar' => $reAgendar,
+                    'datos_re_agendamiento' => $reAgendar ? $recibido['datos_re_agendamiento'] : null,
+                ]);
+        }
+
+        foreach ($request->validated('equipos_correctivos_recibidos', []) as $correctivo) {
+            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $ingreso->tenant_id);
+        }
+    }
+
+    /**
+     * Create a correctivo equipo-programacion (sin servicio programado, detectado al
+     * vuelo) already linked and agendado for the given ingreso.
+     *
+     * @param  array<string, mixed>  $correctivo
+     */
+    private function crearProgramacionCorrectiva(array $correctivo, Ingreso $ingreso, int $tenantId): void
+    {
+        $equipo = Equipo::with('tipoEquipo:id,tipo_mantenimiento')
+            ->where('id', $correctivo['equipo_id'])
+            ->firstOrFail();
+
+        $tipoServicio = $equipo->tipoEquipo->tipo_mantenimiento === 'A'
+            ? ['MANTENIMIENTO', 'CALIBRACION']
+            : ['MANTENIMIENTO'];
+
+        $equipo->equipoProgramaciones()->create([
+            'tipo_servicio' => implode(',', $tipoServicio),
+            'tipo_mantenimiento' => 'CORRECTIVO',
+            'falla_detectada' => $correctivo['falla_detectada'],
+            'estado_programacion' => 'AGENDADO',
+            'ingresado' => true,
+            'ingreso_id' => $ingreso->id,
+            'tenant_id' => $tenantId,
+        ]);
     }
 
     /**

@@ -33,7 +33,7 @@ class IngresoFactory extends Factory
                 'tenant_id' => Bahia::find($attributes['bahia_id'])->tenant_id,
             ])->id,
             'firma_cliente_entrega' => null,
-            'estado_ingreso' => 'INGRESADO',
+            'estado_ingreso' => 'RECIBIDO',
             'novedad' => null,
             'tenant_id' => fn (array $attributes) => Bahia::find($attributes['bahia_id'])->tenant_id,
         ];

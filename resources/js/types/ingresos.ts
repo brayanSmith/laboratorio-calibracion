@@ -1,6 +1,6 @@
 import type { EquipoProgramacionBusquedaItem } from './equipos';
 
-export type EstadoIngreso = 'PENDIENTE' | 'INGRESADO' | 'CANCELADO';
+export type EstadoIngreso = 'PENDIENTE' | 'RECIBIDO' | 'CANCELADO';
 
 export type Ingreso = {
     id: number;
@@ -33,4 +33,6 @@ export type IngresoOptions = {
     bahias: IngresoOption[];
     tecnicos: IngresoOption[];
     clientes: IngresoOption[];
+    /** Catálogo de Novedad (categoría INGRESO), para el motivo cuando se cancela un equipo. */
+    novedadesIngreso: IngresoOption[];
 };

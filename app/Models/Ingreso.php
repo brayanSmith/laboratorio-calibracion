@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int|null $tecnico_recibe_id Nulo hasta que se edita el ingreso
  * @property int|null $cliente_entrega_id Nulo hasta que se edita el ingreso
  * @property string|null $firma_cliente_entrega
- * @property string $estado_ingreso PENDIENTE, INGRESADO o CANCELADO
+ * @property string $estado_ingreso PENDIENTE, RECIBIDO o CANCELADO
  * @property string|null $novedad Notas generales cuando el ingreso queda aprobado
  * @property string|null $motivo_cancelacion Solo cuando estado_ingreso es CANCELADO
  * @property int $tenant_id
@@ -56,13 +57,19 @@ class Ingreso extends Model
     }
 
     /**
-     * Get the ordenes de trabajo originated by this ingreso.
+     * Get the ordenes de trabajo originated by this ingreso, through the equipo
+     * programaciones it brought in (orden_trabajos no longer has its own ingreso_id).
      *
-     * @return HasMany<OrdenTrabajo, $this>
+     * @return HasManyThrough<OrdenTrabajo, EquipoProgramacion, $this>
      */
-    public function ordenesTrabajo(): HasMany
+    public function ordenesTrabajo(): HasManyThrough
     {
-        return $this->hasMany(OrdenTrabajo::class);
+        return $this->hasManyThrough(
+            OrdenTrabajo::class,
+            EquipoProgramacion::class,
+            'ingreso_id',
+            'equipo_programacion_id',
+        );
     }
 
     /**

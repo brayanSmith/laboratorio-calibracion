@@ -27,11 +27,6 @@ export type EstadoVencimiento = 'AL_DIA' | 'PROXIMO_A_VENCER' | 'VENCIDO';
 export type IntervaloUnidad = 'DIAS' | 'SEMANAS' | 'MESES';
 export type EstadoProgramacion = 'PENDIENTE' | 'AGENDADO' | 'CANCELADO';
 export type TipoMantenimientoProgramacion = 'PREVENTIVO' | 'CORRECTIVO';
-export type MotivoNoIngreso =
-    | 'USUARIO_NO_UBICADO'
-    | 'SUPERVISOR_AUTORIZA'
-    | 'EQUIPO_NO_UBICADO'
-    | 'OTRO';
 
 export type DatosReAgendamiento = {
     fecha_proximo_agendamiento: string;
@@ -68,7 +63,12 @@ export type EquipoProgramacionBusquedaItem = {
     fecha_proximo_servicio: string | null;
     estado_vencimiento: EstadoVencimiento;
     estado_programacion: EstadoProgramacion;
-    motivo_no_ingreso: MotivoNoIngreso | null;
+    /** Si la persona decide agendar este equipo al revisarlo en el ingreso. */
+    agendar: boolean;
+    /** Si el equipo efectivamente llegó, al recibir el ingreso. */
+    ingresado: boolean;
+    /** FK al catálogo de Novedad (categoría INGRESO). */
+    novedad_ingreso_id: number | null;
     observacion_no_ingreso: string | null;
     re_agendar: boolean;
     datos_re_agendamiento: DatosReAgendamiento | null;

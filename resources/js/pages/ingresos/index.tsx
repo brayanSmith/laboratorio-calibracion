@@ -27,11 +27,17 @@ export default function IngresosIndex({
     bahias,
     tecnicos,
     clientes,
+    novedadesIngreso,
 }: Props) {
     const { can } = usePermissions();
     const canEdit = can('ingresos.editar');
     const canDelete = can('ingresos.eliminar');
-    const options: IngresoOptions = { bahias, tecnicos, clientes };
+    const options: IngresoOptions = {
+        bahias,
+        tecnicos,
+        clientes,
+        novedadesIngreso,
+    };
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         ingresos.find((ingreso) => ingreso.id === editingId) ?? null;
@@ -175,6 +181,7 @@ export default function IngresosIndex({
                 ingreso={recibiendo}
                 tecnicos={tecnicos}
                 clientes={clientes}
+                novedadesIngreso={novedadesIngreso}
                 open={recibirOpen}
                 onOpenChange={setRecibirOpen}
             />

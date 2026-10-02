@@ -5,6 +5,7 @@ use App\Models\Bahia;
 use App\Models\Cliente;
 use App\Models\EquipoProgramacion;
 use App\Models\Ingreso;
+use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
 use App\Models\Tenant;
 use App\Models\User;
@@ -122,7 +123,7 @@ test('elimina un ingreso con borrado suave y borra su firma', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
-        'estado_ingreso' => 'INGRESADO',
+        'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
         'cliente_entrega_id' => $this->cliente->id,
         'firma_cliente_entrega' => UploadedFile::fake()->image('a.png'),
@@ -140,10 +141,11 @@ test('elimina un ingreso con borrado suave y borra su firma', function () {
 
 test('al eliminar un ingreso, libera sus programaciones preventivas para una nueva busqueda', function () {
     $equipo = crearEquipoParaBusqueda($this->bahia);
+    $novedad = Novedad::create(['nombre' => 'Otro', 'categoria' => 'INGRESO', 'tenant_id' => $this->tenant->id]);
     $programacion = crearProgramacion($equipo, [
         'fecha_proximo_servicio' => '2026-09-03',
         'estado_programacion' => 'CANCELADO',
-        'motivo_no_ingreso' => 'OTRO',
+        'novedad_ingreso_id' => $novedad->id,
         'observacion_no_ingreso' => 'El cliente no trajo el equipo',
         're_agendar' => true,
         'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-11-01'],
@@ -158,7 +160,7 @@ test('al eliminar un ingreso, libera sus programaciones preventivas para una nue
     expect($programacion->fresh())
         ->ingreso_id->toBeNull()
         ->estado_programacion->toBe('PENDIENTE')
-        ->motivo_no_ingreso->toBeNull()
+        ->novedad_ingreso_id->toBeNull()
         ->observacion_no_ingreso->toBeNull()
         ->re_agendar->toBeFalse()
         ->datos_re_agendamiento->toBeNull();
@@ -219,7 +221,7 @@ test('agenda un equipo correctivo al crear el ingreso y lo enlaza con su ingreso
         ->estado_programacion->toBe('AGENDADO');
 });
 
-test('actualiza el estado de una programacion al crear el ingreso y la enlaza con su ingreso_id', function () {
+test('no enlaza una programacion marcada con agendar=false al crear el ingreso', function () {
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo);
 
@@ -229,27 +231,18 @@ test('actualiza el estado de una programacion al crear el ingreso y la enlaza co
             'desde' => '2026-09-01',
             'hasta' => '2026-09-05',
             'programaciones_actualizadas' => [
-                $programacion->id => [
-                    'estado_programacion' => 'CANCELADO',
-                    'motivo_no_ingreso' => 'SUPERVISOR_AUTORIZA',
-                    're_agendar' => '1',
-                    'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-11-01'],
-                ],
+                $programacion->id => ['agendar' => '0'],
             ],
         ])
         ->assertSessionHasNoErrors();
 
-    $ingreso = Ingreso::firstOrFail();
-
     expect($programacion->fresh())
-        ->ingreso_id->toBe($ingreso->id)
-        ->estado_programacion->toBe('CANCELADO')
-        ->motivo_no_ingreso->toBe('SUPERVISOR_AUTORIZA')
-        ->re_agendar->toBeTrue()
-        ->datos_re_agendamiento->toBe(['fecha_proximo_agendamiento' => '2026-11-01']);
+        ->ingreso_id->toBeNull()
+        ->estado_programacion->toBe('PENDIENTE')
+        ->agendar->toBeFalse();
 });
 
-test('actualiza el estado de una programacion al editar el ingreso y la enlaza con su ingreso_id', function () {
+test('agenda y enlaza una programacion marcada con agendar=true al editar el ingreso', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo);
@@ -257,14 +250,15 @@ test('actualiza el estado de una programacion al editar el ingreso y la enlaza c
     $this->actingAs($this->admin)
         ->put(route('ingresos.update', $ingreso), datosIngreso([
             'programaciones_actualizadas' => [
-                $programacion->id => ['estado_programacion' => 'AGENDADO'],
+                $programacion->id => ['agendar' => '1'],
             ],
         ]))
         ->assertSessionHasNoErrors();
 
     expect($programacion->fresh())
         ->ingreso_id->toBe($ingreso->id)
-        ->estado_programacion->toBe('AGENDADO');
+        ->estado_programacion->toBe('AGENDADO')
+        ->agendar->toBeTrue();
 });
 
 test('un usuario sin permiso de editar equipos no puede tocar programaciones al crear un ingreso', function () {
@@ -296,7 +290,7 @@ test('rechaza una programacion actualizada que no pertenece al tenant', function
             'desde' => '2026-09-01',
             'hasta' => '2026-09-05',
             'programaciones_actualizadas' => [
-                $programacionAjena->id => ['estado_programacion' => 'AGENDADO'],
+                $programacionAjena->id => ['agendar' => '1'],
             ],
         ])
         ->assertSessionHasErrors('programaciones_actualizadas.0.id');
@@ -320,20 +314,16 @@ test('rechaza un equipo correctivo que no pertenece a la bahia del ingreso', fun
 
 test('no elimina un ingreso que tiene ordenes de trabajo asociadas', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $programacion = crearProgramacion($equipo, ['ingreso_id' => $ingreso->id]);
 
     DB::statement('PRAGMA defer_foreign_keys = ON');
     DB::table('orden_trabajos')->insert([
         'codigo' => 'OT-1',
-        'ingreso_id' => $ingreso->id,
         'despacho_id' => 1,
-        'equipo_id' => 1,
+        'equipo_programacion_id' => $programacion->id,
         'fecha_programada_orden_trabajo' => '2026-09-01',
-        'fecha_vencimiento' => '2026-10-01',
-        'dias_plazo_vencimiento' => 30,
-        'estado_vencimiento' => 'AL_DIA',
         'estado' => 'INGRESADO',
-        'equipo_ingresado' => true,
-        'novedad_ingreso_id' => 1,
         'tenant_id' => $this->tenant->id,
         'created_at' => now(),
         'updated_at' => now(),
@@ -353,7 +343,7 @@ test('recibe un ingreso con tecnico, cliente y firma, quedando aprobado', functi
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), [
-            'estado_ingreso' => 'INGRESADO',
+            'estado_ingreso' => 'RECIBIDO',
             'tecnico_recibe_id' => $this->admin->id,
             'cliente_entrega_id' => $this->cliente->id,
             'firma_cliente_entrega' => UploadedFile::fake()->image('firma.png'),
@@ -363,18 +353,154 @@ test('recibe un ingreso con tecnico, cliente y firma, quedando aprobado', functi
 
     $ingreso->refresh();
 
-    expect($ingreso->estado_ingreso)->toBe('INGRESADO')
+    expect($ingreso->estado_ingreso)->toBe('RECIBIDO')
         ->and($ingreso->tecnico_recibe_id)->toBe($this->admin->id)
         ->and($ingreso->cliente_entrega_id)->toBe($this->cliente->id)
         ->and($ingreso->novedad)->toBe('Equipo con golpe leve');
     Storage::disk('public')->assertExists($ingreso->firma_cliente_entrega);
 });
 
+test('mantiene agendado un equipo programado marcado como ingresado al recibir el ingreso', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $programacion = crearProgramacion($equipo, [
+        'ingreso_id' => $ingreso->id,
+        'agendar' => true,
+        'estado_programacion' => 'AGENDADO',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_recibidos' => [
+                $programacion->id => ['ingresado' => '1'],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($programacion->fresh())
+        ->ingresado->toBeTrue()
+        ->estado_programacion->toBe('AGENDADO');
+});
+
+test('marca un equipo programado como no ingresado, dejandolo cancelado con su novedad', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $novedad = Novedad::create(['nombre' => 'Equipo no ubicado', 'categoria' => 'INGRESO', 'tenant_id' => $this->tenant->id]);
+    $programacion = crearProgramacion($equipo, [
+        'ingreso_id' => $ingreso->id,
+        'agendar' => true,
+        'estado_programacion' => 'AGENDADO',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_recibidos' => [
+                $programacion->id => [
+                    'ingresado' => '0',
+                    'novedad_ingreso_id' => $novedad->id,
+                    'observacion_no_ingreso' => 'El cliente no trajo el equipo',
+                ],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($programacion->fresh())
+        ->ingresado->toBeFalse()
+        ->estado_programacion->toBe('CANCELADO')
+        ->novedad_ingreso_id->toBe($novedad->id)
+        ->observacion_no_ingreso->toBe('El cliente no trajo el equipo');
+});
+
+test('rechaza un equipo recibido que no pertenece a este ingreso', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $programacion = crearProgramacion($equipo);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_recibidos' => [
+                $programacion->id => ['ingresado' => '1'],
+            ],
+        ])
+        ->assertSessionHasErrors('equipos_recibidos.0.id');
+});
+
+test('agenda un equipo correctivo anotado al recibir el ingreso y lo enlaza con su ingreso_id', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia, 'EQ-5001', 'A');
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_correctivos_recibidos' => [
+                ['equipo_id' => $equipo->id, 'falla_detectada' => 'El equipo no enciende'],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $programacion = EquipoProgramacion::where('equipo_id', $equipo->id)->firstOrFail();
+
+    expect($programacion)
+        ->ingreso_id->toBe($ingreso->id)
+        ->tipo_mantenimiento->toBe('CORRECTIVO')
+        ->tipo_servicio->toBe('MANTENIMIENTO,CALIBRACION')
+        ->falla_detectada->toBe('El equipo no enciende')
+        ->estado_programacion->toBe('AGENDADO')
+        ->ingresado->toBeTrue();
+});
+
+test('rechaza un equipo correctivo de otra bahia al recibir el ingreso', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $otraBahia = Bahia::factory()->for(crearArea($this->tenant))->create();
+    $equipo = crearEquipoParaBusqueda($otraBahia, 'EQ-OTRA');
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_correctivos_recibidos' => [
+                ['equipo_id' => $equipo->id, 'falla_detectada' => 'El equipo no enciende'],
+            ],
+        ])
+        ->assertSessionHasErrors('equipos_correctivos_recibidos.0.equipo_id');
+});
+
+test('un usuario sin permiso de editar equipos no puede tocar equipos al recibir un ingreso', function () {
+    $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($recepcion)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $recepcion->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_correctivos_recibidos' => [
+                ['equipo_id' => $equipo->id, 'falla_detectada' => 'El equipo no enciende'],
+            ],
+        ])
+        ->assertForbidden();
+
+    expect(EquipoProgramacion::where('equipo_id', $equipo->id)->count())->toBe(0);
+});
+
 test('exige tecnico y cliente para recibir un ingreso', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
-        ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'INGRESADO'])
+        ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'RECIBIDO'])
         ->assertSessionHasErrors(['tecnico_recibe_id', 'cliente_entrega_id']);
 });
 
@@ -384,7 +510,7 @@ test('rechaza un tecnico o cliente de otro tenant al recibir un ingreso', functi
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), [
-            'estado_ingreso' => 'INGRESADO',
+            'estado_ingreso' => 'RECIBIDO',
             'tecnico_recibe_id' => User::factory()->forTenant($otro)->create()->id,
             'cliente_entrega_id' => Cliente::factory()->create(['tenant_id' => $otro->id])->id,
         ])
@@ -396,7 +522,7 @@ test('rechaza una firma que no es una imagen al recibir un ingreso', function ()
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), [
-            'estado_ingreso' => 'INGRESADO',
+            'estado_ingreso' => 'RECIBIDO',
             'tecnico_recibe_id' => $this->admin->id,
             'cliente_entrega_id' => $this->cliente->id,
             'firma_cliente_entrega' => UploadedFile::fake()->create('firma.pdf', 10, 'application/pdf'),
@@ -408,7 +534,7 @@ test('reemplaza la firma anterior al volver a recibir un ingreso', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
-        'estado_ingreso' => 'INGRESADO',
+        'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
         'cliente_entrega_id' => $this->cliente->id,
         'firma_cliente_entrega' => UploadedFile::fake()->image('a.png'),
@@ -416,7 +542,7 @@ test('reemplaza la firma anterior al volver a recibir un ingreso', function () {
     $firmaAnterior = $ingreso->fresh()->firma_cliente_entrega;
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
-        'estado_ingreso' => 'INGRESADO',
+        'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
         'cliente_entrega_id' => $this->cliente->id,
         'firma_cliente_entrega' => UploadedFile::fake()->image('b.png'),
@@ -433,7 +559,7 @@ test('conserva la firma al recibir sin enviar una nueva y la quita si se pide', 
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
-        'estado_ingreso' => 'INGRESADO',
+        'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
         'cliente_entrega_id' => $this->cliente->id,
         'firma_cliente_entrega' => UploadedFile::fake()->image('a.png'),
@@ -441,7 +567,7 @@ test('conserva la firma al recibir sin enviar una nueva y la quita si se pide', 
     $firma = $ingreso->fresh()->firma_cliente_entrega;
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
-        'estado_ingreso' => 'INGRESADO',
+        'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
         'cliente_entrega_id' => $this->cliente->id,
     ]);
@@ -449,7 +575,7 @@ test('conserva la firma al recibir sin enviar una nueva y la quita si se pide', 
     expect($ingreso->fresh()->firma_cliente_entrega)->toBe($firma);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
-        'estado_ingreso' => 'INGRESADO',
+        'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
         'cliente_entrega_id' => $this->cliente->id,
         'eliminar_firma' => true,

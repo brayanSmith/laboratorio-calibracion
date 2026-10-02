@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('tecnico_recibe_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('cliente_entrega_id')->nullable()->constrained('clientes')->onDelete('cascade');
             $table->string('firma_cliente_entrega')->nullable();
-            $table->enum('estado_ingreso', ['PENDIENTE', 'INGRESADO', 'CANCELADO'])->default('PENDIENTE');
+            $table->enum('estado_ingreso', ['PENDIENTE', 'RECIBIDO', 'CANCELADO'])->default('PENDIENTE');
             $table->text('novedad')->nullable(); // Notas generales cuando el ingreso queda aprobado
             $table->text('motivo_cancelacion')->nullable(); // Solo cuando estado_ingreso es CANCELADO
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');

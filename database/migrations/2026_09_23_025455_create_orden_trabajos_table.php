@@ -14,17 +14,11 @@ return new class extends Migration
         Schema::create('orden_trabajos', function (Blueprint $table) {
             $table->id();
             $table->string('codigo');
-            $table->foreignId('ingreso_id')->constrained('ingresos')->onDelete('cascade')->nullable();
             $table->foreignId('despacho_id')->constrained('despachos')->onDelete('cascade')->nullable();
-            $table->foreignId('equipo_id')->constrained('equipos')->onDelete('cascade');
+            $table->foreignId('equipo_programacion_id')->constrained('equipo_programacions')->onDelete('cascade');
             $table->date('fecha_programada_orden_trabajo');
-            $table->date('fecha_vencimiento');
-            $table->decimal('dias_plazo_vencimiento');
-            $table->enum('estado_vencimiento', ['AL_DIA', 'PROXIMO_A_VENCER', 'VENCIDO']);
             $table->enum('estado', ['EN_BAHIA', 'INGRESADO', 'EN_MANTENIMIENTO', 'EN_CALIBRACION', 'FINALIZADO', 'ENTREGADO']);
-            $table->boolean('equipo_ingresado');
-            $table->foreignId('novedad_ingreso_id')->constrained('novedads')->onDelete('cascade');
-            $table->boolean('requiere_calibracion')->default(false);
+            // Se deriva del tipo_servicio de la programación (ver OrdenTrabajo::requiereCalibracion()).
             $table->boolean('mantenimiento_asignado_tercero')->default(false);
             $table->boolean('calibracion_asignado_tercero')->default(false);
             $table->boolean('orden_trabajo_programada')->default(false);

@@ -43,7 +43,7 @@ class StoreIngresoRequest extends FormRequest
             ->map(fn (array $cambio, string $id) => [
                 ...$cambio,
                 'id' => (int) $id,
-                're_agendar' => filter_var($cambio['re_agendar'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'agendar' => filter_var($cambio['agendar'] ?? true, FILTER_VALIDATE_BOOLEAN),
             ])
             ->values()
             ->all();
@@ -67,21 +67,13 @@ class StoreIngresoRequest extends FormRequest
             // El técnico, el cliente, la firma y el estado se completan después, desde
             // "Recibir equipos" o "Cancelar ingreso" (ver UpdateEstadoIngresoRequest).
 
-            // Equipos con servicio programado (preventivo) cuyo estado se tocó en el
-            // buscador del formulario, o equipos correctivos agregados ahí mismo. Se
-            // guardan junto con el ingreso, en la misma transacción, para poder
-            // enlazarlos a su ingreso_id de una vez.
+            // Equipos con servicio programado (preventivo) encontrados por el buscador
+            // del formulario, marcados con agendar = true/false, o equipos correctivos
+            // agregados ahí mismo. Se guardan junto con el ingreso, en la misma
+            // transacción, para poder enlazarlos a su ingreso_id de una vez.
             'programaciones_actualizadas' => ['array'],
             'programaciones_actualizadas.*.id' => ['required', Rule::exists('equipo_programacions', 'id')->where('tenant_id', $tenantId)],
-            'programaciones_actualizadas.*.estado_programacion' => ['required', Rule::in(['PENDIENTE', 'AGENDADO', 'CANCELADO'])],
-            'programaciones_actualizadas.*.motivo_no_ingreso' => [
-                'nullable',
-                'required_if:programaciones_actualizadas.*.estado_programacion,CANCELADO',
-                Rule::in(['USUARIO_NO_UBICADO', 'SUPERVISOR_AUTORIZA', 'EQUIPO_NO_UBICADO', 'OTRO']),
-            ],
-            'programaciones_actualizadas.*.observacion_no_ingreso' => ['nullable', 'required_if:programaciones_actualizadas.*.motivo_no_ingreso,OTRO', 'string', 'max:2000'],
-            'programaciones_actualizadas.*.re_agendar' => ['boolean'],
-            'programaciones_actualizadas.*.datos_re_agendamiento.fecha_proximo_agendamiento' => ['nullable', 'required_if:programaciones_actualizadas.*.re_agendar,true', 'date'],
+            'programaciones_actualizadas.*.agendar' => ['boolean'],
 
             'programaciones_correctivas' => ['array'],
             'programaciones_correctivas.*.equipo_id' => [
