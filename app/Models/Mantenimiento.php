@@ -13,20 +13,20 @@ use Illuminate\Support\Carbon;
  * @property int $orden_trabajo_id
  * @property string $tipo_mantenimiento
  * @property Carbon $fecha_mantenimiento
- * @property string $descripcion
- * @property string $estado_inicial_equipo
- * @property string $estado_final_equipo
- * @property string $estado_mantenimiento
+ * @property string|null $descripcion Se completa al realizar el mantenimiento
+ * @property string|null $estado_inicial_equipo Se completa al realizar el mantenimiento
+ * @property string|null $estado_final_equipo Se completa al realizar el mantenimiento
+ * @property string $estado_mantenimiento PENDIENTE por defecto
  * @property int $tecnico_id
  * @property bool $firmado
- * @property int $novedad_id
+ * @property int|null $novedad_id Se completa si surge una novedad durante el mantenimiento
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read OrdenTrabajo $ordenTrabajo
  * @property-read User $tecnico
- * @property-read Novedad $novedad
+ * @property-read Novedad|null $novedad
  * @property-read Tenant $tenant
  */
 #[Fillable([

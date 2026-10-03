@@ -15,6 +15,8 @@ use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\IngresoController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LaboratorioController;
+use App\Http\Controllers\MantenimientoController;
+use App\Http\Controllers\OrdenTrabajoController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
 use App\Http\Controllers\Plataforma\TenantUserController;
@@ -58,6 +60,12 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');
+
+    Route::get('orden-trabajos/equipos-listos', [OrdenTrabajoController::class, 'equiposListos'])->name('orden-trabajos.equipos-listos');
+    Route::post('orden-trabajos', [OrdenTrabajoController::class, 'store'])->name('orden-trabajos.store');
+
+    // Sin "create": un mantenimiento solo se origina desde "Agendar Mantenimiento".
+    Route::resource('mantenimientos', MantenimientoController::class)->only(['index', 'update', 'destroy']);
 
     Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
 

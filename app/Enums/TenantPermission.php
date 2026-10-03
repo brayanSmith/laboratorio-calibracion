@@ -19,6 +19,12 @@ enum TenantPermission: string
     case IngresosEditar = 'ingresos.editar';
     case IngresosEliminar = 'ingresos.eliminar';
 
+    // Sin "crear": un mantenimiento solo se origina desde "Agendar Mantenimiento" (ver
+    // OrdenTrabajoController), no tiene un formulario de creación propio.
+    case MantenimientosVer = 'mantenimientos.ver';
+    case MantenimientosEditar = 'mantenimientos.editar';
+    case MantenimientosEliminar = 'mantenimientos.eliminar';
+
     case TiposEquipoVer = 'tipos-equipo.ver';
     case TiposEquipoCrear = 'tipos-equipo.crear';
     case TiposEquipoEditar = 'tipos-equipo.editar';
@@ -95,6 +101,9 @@ enum TenantPermission: string
             self::IngresosCrear,
             self::IngresosEditar,
             self::IngresosEliminar => 'Ingresos',
+            self::MantenimientosVer,
+            self::MantenimientosEditar,
+            self::MantenimientosEliminar => 'Mantenimientos',
             self::TiposEquipoVer,
             self::TiposEquipoCrear,
             self::TiposEquipoEditar,
@@ -162,6 +171,9 @@ enum TenantPermission: string
             self::IngresosCrear => 'Registrar ingresos',
             self::IngresosEditar => 'Editar ingresos',
             self::IngresosEliminar => 'Eliminar ingresos',
+            self::MantenimientosVer => 'Ver mantenimientos',
+            self::MantenimientosEditar => 'Editar mantenimientos',
+            self::MantenimientosEliminar => 'Eliminar mantenimientos',
             self::TiposEquipoVer => 'Ver tipos de equipo',
             self::TiposEquipoCrear => 'Crear tipos de equipo',
             self::TiposEquipoEditar => 'Editar tipos de equipo',

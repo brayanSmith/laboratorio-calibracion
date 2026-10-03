@@ -9,6 +9,7 @@ export type * from './fabricantes';
 export type * from './ingresos';
 export type * from './items';
 export type * from './laboratorios';
+export type * from './mantenimientos';
 export type * from './navigation';
 export type * from './procedimientos-calibracion';
 export type * from './roles';

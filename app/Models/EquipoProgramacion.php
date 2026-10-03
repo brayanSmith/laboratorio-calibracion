@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -38,6 +40,7 @@ use Illuminate\Support\Carbon;
  * @property-read Ingreso|null $ingreso
  * @property-read Novedad|null $novedadIngreso
  * @property-read Tenant $tenant
+ * @property-read Collection<int, OrdenTrabajo> $ordenesTrabajo
  */
 #[Fillable([
     'equipo_id', 'tipo_servicio', 'tipo_mantenimiento', 'falla_detectada',
@@ -95,6 +98,16 @@ class EquipoProgramacion extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the ordenes de trabajo originated by this programacion, if any.
+     *
+     * @return HasMany<OrdenTrabajo, $this>
+     */
+    public function ordenesTrabajo(): HasMany
+    {
+        return $this->hasMany(OrdenTrabajo::class);
     }
 
     /**

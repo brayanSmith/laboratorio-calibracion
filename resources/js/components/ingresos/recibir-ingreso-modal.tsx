@@ -77,7 +77,7 @@ export default function RecibirIngresoModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
                 <RecibirIngresoFormulario
                     key={`${ingreso.id}-${String(open)}`}
                     ingreso={ingreso}
@@ -500,7 +500,8 @@ function EquipoRecibido({
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <span className="text-sm font-medium">
-                        {item.equipo.codigo} · {item.equipo.modelo}
+                        {item.equipo.codigo} · {item.equipo.tipo_equipo.nombre}{' '}
+                        · {item.equipo.modelo}
                     </span>
                     {item.equipo.cliente ? (
                         <p className="text-xs text-muted-foreground">

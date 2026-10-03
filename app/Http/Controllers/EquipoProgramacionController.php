@@ -34,7 +34,11 @@ class EquipoProgramacionController extends Controller
                 $request->validated('hasta'),
             ])
             ->whereHas('equipo', fn ($query) => $query->where('bahia_id', $request->validated('bahia_id')))
-            ->with('equipo:id,codigo,modelo,cliente_id', 'equipo.cliente:id,nombre')
+            ->with(
+                'equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
+                'equipo.cliente:id,nombre',
+                'equipo.tipoEquipo:id,nombre',
+            )
             ->orderBy('fecha_proximo_servicio')
             ->get();
 

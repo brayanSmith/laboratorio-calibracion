@@ -76,6 +76,7 @@ export type EquipoProgramacionBusquedaItem = {
         id: number;
         codigo: string;
         modelo: string;
+        tipo_equipo: { nombre: string };
         cliente: { nombre: string } | null;
     };
 };
@@ -85,6 +86,12 @@ export type EquipoDisponibleItem = {
     id: number;
     codigo: string;
     modelo: string;
+};
+
+/** Equipo ya recibido (ingresado) y sin orden de trabajo, para "Agendar Mantenimiento". */
+export type EquipoListoParaMantenimientoItem = {
+    id: number;
+    equipo: EquipoProgramacionBusquedaItem['equipo'];
 };
 
 export type DocumentoEquipoItem = {

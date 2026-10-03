@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property int $equipo_programacion_id
  * @property Carbon $fecha_programada_orden_trabajo
  * @property string $estado
+ * @property bool $listo_para_mantenimiento Marcado desde "Agendar Mantenimiento"
  * @property bool $mantenimiento_asignado_tercero
  * @property bool $calibracion_asignado_tercero
  * @property bool $orden_trabajo_programada
@@ -31,7 +32,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'codigo', 'despacho_id', 'equipo_programacion_id',
-    'fecha_programada_orden_trabajo', 'estado',
+    'fecha_programada_orden_trabajo', 'estado', 'listo_para_mantenimiento',
     'mantenimiento_asignado_tercero', 'calibracion_asignado_tercero',
     'orden_trabajo_programada', 'tenant_id',
 ])]
@@ -106,6 +107,7 @@ class OrdenTrabajo extends Model
     {
         return [
             'fecha_programada_orden_trabajo' => 'date',
+            'listo_para_mantenimiento' => 'boolean',
             'mantenimiento_asignado_tercero' => 'boolean',
             'calibracion_asignado_tercero' => 'boolean',
             'orden_trabajo_programada' => 'boolean',

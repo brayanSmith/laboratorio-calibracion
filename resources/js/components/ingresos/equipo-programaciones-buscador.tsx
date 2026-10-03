@@ -96,7 +96,9 @@ function ProgramacionResultado({ item, puedeEditar, errors }: ResultadoProps) {
 
                     <div className="space-y-1">
                         <span className="text-sm font-medium">
-                            {item.equipo.codigo} · {item.equipo.modelo}
+                            {item.equipo.codigo} ·{' '}
+                            {item.equipo.tipo_equipo.nombre} ·{' '}
+                            {item.equipo.modelo}
                         </span>
                         <p className="text-xs text-muted-foreground">
                             {tiposServicioLabel(item.tipo_servicio)}

@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Building,
     Building2,
+    ClipboardCheck,
     ClipboardList,
     Contact,
     DoorOpen,
@@ -42,6 +43,7 @@ import { index as fabricantesIndex } from '@/routes/fabricantes';
 import { index as ingresosIndex } from '@/routes/ingresos';
 import { index as itemsIndex } from '@/routes/items';
 import { index as laboratoriosIndex } from '@/routes/laboratorios';
+import { index as mantenimientosIndex } from '@/routes/mantenimientos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
@@ -116,6 +118,15 @@ export function AppSidebar() {
                                     title: 'Ingresos',
                                     href: ingresosIndex(),
                                     icon: PackageCheck,
+                                },
+                            ]
+                          : []),
+                      ...(can('mantenimientos.ver')
+                          ? [
+                                {
+                                    title: 'Mantenimientos',
+                                    href: mantenimientosIndex(),
+                                    icon: ClipboardCheck,
                                 },
                             ]
                           : []),

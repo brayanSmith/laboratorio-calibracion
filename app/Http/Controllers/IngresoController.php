@@ -7,6 +7,7 @@ use App\Http\Requests\Ingresos\UpdateEstadoIngresoRequest;
 use App\Http\Requests\Ingresos\UpdateIngresoRequest;
 use App\Models\Bahia;
 use App\Models\Cliente;
+use App\Models\EmpresaTercero;
 use App\Models\Equipo;
 use App\Models\EquipoProgramacion;
 use App\Models\Ingreso;
@@ -37,8 +38,9 @@ class IngresoController extends Controller
                 'bahia:id,nombre',
                 'tecnicoRecibe:id,name',
                 'clienteEntrega:id,nombre',
-                'equipoProgramacion.equipo:id,codigo,modelo,cliente_id',
+                'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
                 'equipoProgramacion.equipo.cliente:id,nombre',
+                'equipoProgramacion.equipo.tipoEquipo:id,nombre',
             ])
             ->orderByDesc('desde')
             ->orderByDesc('id')
@@ -75,6 +77,7 @@ class IngresoController extends Controller
                         'id' => $programacion->equipo->id,
                         'codigo' => $programacion->equipo->codigo,
                         'modelo' => $programacion->equipo->modelo,
+                        'tipo_equipo' => ['nombre' => $programacion->equipo->tipoEquipo->nombre],
                         'cliente' => ['nombre' => $programacion->equipo->cliente->nombre],
                     ],
                 ])->values(),
@@ -86,6 +89,7 @@ class IngresoController extends Controller
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 

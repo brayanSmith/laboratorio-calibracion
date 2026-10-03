@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { ClipboardCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Pencil, Plus, Wrench, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -9,15 +9,18 @@ import CreateIngresoModal from '@/components/ingresos/create-ingreso-modal';
 import DeleteIngresoModal from '@/components/ingresos/delete-ingreso-modal';
 import EditIngresoModal from '@/components/ingresos/edit-ingreso-modal';
 import RecibirIngresoModal from '@/components/ingresos/recibir-ingreso-modal';
+import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { colorEstadoIngreso, estadosIngreso } from '@/lib/estados-ingreso';
 import { index } from '@/routes/ingresos';
-import type { Ingreso, IngresoOptions } from '@/types';
+import type { Ingreso, IngresoOption, IngresoOptions } from '@/types';
 
 type Props = IngresoOptions & {
     ingresos: Ingreso[];
+    /** Empresas terceras a las que se les puede asignar un mantenimiento. */
+    empresasTerceras: IngresoOption[];
 };
 
 const columnHelper = createDataTableColumnHelper<Ingreso>();
@@ -28,6 +31,7 @@ export default function IngresosIndex({
     tecnicos,
     clientes,
     novedadesIngreso,
+    empresasTerceras,
 }: Props) {
     const { can } = usePermissions();
     const canEdit = can('ingresos.editar');
@@ -48,6 +52,8 @@ export default function IngresosIndex({
     const recibiendo =
         ingresos.find((ingreso) => ingreso.id === recibiendoId) ?? null;
     const [recibirOpen, setRecibirOpen] = useState(false);
+    const [agendarMantenimientoOpen, setAgendarMantenimientoOpen] =
+        useState(false);
 
     const columns = useMemo(
         () =>
@@ -153,13 +159,27 @@ export default function IngresosIndex({
                         description="Registra la recepción de equipos de tus clientes en el laboratorio"
                     />
 
-                    {can('ingresos.crear') ? (
-                        <CreateIngresoModal options={options}>
-                            <Button data-test="ingresos-new-button">
-                                <Plus /> Nuevo ingreso
+                    <div className="flex items-center gap-2">
+                        {can('equipos.editar') ? (
+                            <Button
+                                variant="outline"
+                                data-test="agendar-mantenimiento-button"
+                                onClick={() =>
+                                    setAgendarMantenimientoOpen(true)
+                                }
+                            >
+                                <Wrench /> Agendar Mantenimiento
                             </Button>
-                        </CreateIngresoModal>
-                    ) : null}
+                        ) : null}
+
+                        {can('ingresos.crear') ? (
+                            <CreateIngresoModal options={options}>
+                                <Button data-test="ingresos-new-button">
+                                    <Plus /> Nuevo ingreso
+                                </Button>
+                            </CreateIngresoModal>
+                        ) : null}
+                    </div>
                 </div>
 
                 <DataTable
@@ -189,6 +209,12 @@ export default function IngresosIndex({
                 ingreso={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            <AgendarMantenimientoModal
+                tecnicos={tecnicos}
+                empresasTerceras={empresasTerceras}
+                open={agendarMantenimientoOpen}
+                onOpenChange={setAgendarMantenimientoOpen}
             />
         </>
     );
