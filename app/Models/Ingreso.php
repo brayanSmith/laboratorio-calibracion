@@ -51,7 +51,13 @@ class Ingreso extends Model
             return null;
         }
 
-        $path = parse_url(Storage::disk('public')->url($this->firma_cliente_entrega), PHP_URL_PATH);
+        $url = Storage::disk('public')->url($this->firma_cliente_entrega);
+
+        if (config('filesystems.disks.public.driver') !== 'local') {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
 
         return is_string($path) ? $path : null;
     }

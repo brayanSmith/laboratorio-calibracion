@@ -51,8 +51,14 @@ class GaleriaMantenimiento extends Model
      */
     public function imagenUrl(): string
     {
-        $path = parse_url(Storage::disk('public')->url($this->imagen), PHP_URL_PATH);
+        $url = Storage::disk('public')->url($this->imagen);
 
-        return is_string($path) ? $path : Storage::disk('public')->url($this->imagen);
+        if (config('filesystems.disks.public.driver') !== 'local') {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+
+        return is_string($path) ? $path : $url;
     }
 }

@@ -51,8 +51,14 @@ class DocumentoEquipo extends Model
      */
     public function archivoUrl(): string
     {
-        $path = parse_url(Storage::disk('public')->url($this->archivo), PHP_URL_PATH);
+        $url = Storage::disk('public')->url($this->archivo);
 
-        return is_string($path) ? $path : Storage::disk('public')->url($this->archivo);
+        if (config('filesystems.disks.public.driver') !== 'local') {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+
+        return is_string($path) ? $path : $url;
     }
 }
