@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -7,12 +7,19 @@ import DataTable, {
 import Heading from '@/components/heading';
 import DeleteMantenimientoModal from '@/components/mantenimientos/delete-mantenimiento-modal';
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
+import GestionarMantenimientoModal from '@/components/mantenimientos/gestionar-mantenimiento-modal';
+import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mantenimiento-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { colorEstadoMantenimiento } from '@/lib/estados-mantenimiento';
 import { index } from '@/routes/mantenimientos';
 import type { Mantenimiento, MantenimientoOptions } from '@/types';
+
+/** Convierte un ISO string a Date, o null si no hay nada que convertir. */
+function toDateOrNull(value: string | null): Date | null {
+    return value ? new Date(value) : null;
+}
 
 type Props = MantenimientoOptions & {
     mantenimientos: Mantenimiento[];
@@ -36,6 +43,7 @@ export default function MantenimientosIndex({
     mantenimientos,
     tecnicos,
     novedadesMantenimiento,
+    items,
 }: Props) {
     const { can } = usePermissions();
     const canEdit = can('mantenimientos.editar');
@@ -48,6 +56,19 @@ export default function MantenimientosIndex({
     const [editOpen, setEditOpen] = useState(false);
     const [deleting, setDeleting] = useState<Mantenimiento | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [iniciandoId, setIniciandoId] = useState<number | null>(null);
+    const iniciando =
+        mantenimientos.find(
+            (mantenimiento) => mantenimiento.id === iniciandoId,
+        ) ?? null;
+    const [iniciarOpen, setIniciarOpen] = useState(false);
+    const [gestionandoId, setGestionandoId] = useState<number | null>(null);
+    const gestionando =
+        mantenimientos.find(
+            (mantenimiento) => mantenimiento.id === gestionandoId,
+        ) ?? null;
+    const [gestionarOpen, setGestionarOpen] = useState(false);
+    const [iniciadoEn, setIniciadoEn] = useState<Date | null>(null);
 
     const columns = useMemo(
         () =>
@@ -100,6 +121,38 @@ export default function MantenimientosIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
+                            {canEdit && row.original.tiempo_servicio_inicio ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="mantenimiento-continuar-button"
+                                    onClick={() => {
+                                        setGestionandoId(row.original.id);
+                                        setIniciadoEn(
+                                            toDateOrNull(
+                                                row.original
+                                                    .tiempo_servicio_inicio,
+                                            ),
+                                        );
+                                        setGestionarOpen(true);
+                                    }}
+                                >
+                                    <Play className="h-4 w-4" /> Continuar
+                                </Button>
+                            ) : null}
+                            {canEdit && !row.original.tiempo_servicio_inicio ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="mantenimiento-iniciar-button"
+                                    onClick={() => {
+                                        setIniciandoId(row.original.id);
+                                        setIniciarOpen(true);
+                                    }}
+                                >
+                                    <Play className="h-4 w-4" /> Iniciar
+                                </Button>
+                            ) : null}
                             {canEdit ? (
                                 <Button
                                     variant="ghost"
@@ -166,6 +219,23 @@ export default function MantenimientosIndex({
                 mantenimiento={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            <IniciarMantenimientoModal
+                mantenimiento={iniciando}
+                open={iniciarOpen}
+                onOpenChange={setIniciarOpen}
+                onIniciado={() => {
+                    setIniciadoEn(new Date());
+                    setGestionandoId(iniciandoId);
+                    setGestionarOpen(true);
+                }}
+            />
+            <GestionarMantenimientoModal
+                mantenimiento={gestionando}
+                items={items}
+                iniciadoEn={iniciadoEn}
+                open={gestionarOpen}
+                onOpenChange={setGestionarOpen}
             />
         </>
     );

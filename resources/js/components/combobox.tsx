@@ -90,7 +90,9 @@ export default function Combobox({
                             className,
                         )}
                     >
-                        {seleccionado?.label ?? placeholder}
+                        <span className="min-w-0 flex-1 truncate text-left">
+                            {seleccionado?.label ?? placeholder}
+                        </span>
                         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>

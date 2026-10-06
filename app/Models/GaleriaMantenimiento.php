@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -43,5 +44,15 @@ class GaleriaMantenimiento extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the public URL of the stored imagen.
+     */
+    public function imagenUrl(): string
+    {
+        $path = parse_url(Storage::disk('public')->url($this->imagen), PHP_URL_PATH);
+
+        return is_string($path) ? $path : Storage::disk('public')->url($this->imagen);
     }
 }

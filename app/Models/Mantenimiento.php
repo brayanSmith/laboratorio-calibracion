@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -28,6 +30,11 @@ use Illuminate\Support\Carbon;
  * @property-read User $tecnico
  * @property-read Novedad|null $novedad
  * @property-read Tenant $tenant
+ * @property-read Collection<int, MantenimientoCheckList> $mantenimientoCheckLists
+ * @property-read Collection<int, MantenimientoDefectoIdentificado> $defectoIdentificados
+ * @property-read Collection<int, ItemMantenimiento> $itemMantenimientos
+ * @property-read Collection<int, ComentarioMantenimiento> $comentarioMantenimientos
+ * @property-read Collection<int, GaleriaMantenimiento> $galeriaMantenimientos
  */
 #[Fillable([
     'orden_trabajo_id', 'tipo_mantenimiento', 'fecha_mantenimiento', 'descripcion',
@@ -76,6 +83,57 @@ class Mantenimiento extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the checklist items copied from the tipo de equipo when this mantenimiento
+     * was agendado (ver OrdenTrabajoController::store()).
+     *
+     * @return HasMany<MantenimientoCheckList, $this>
+     */
+    public function mantenimientoCheckLists(): HasMany
+    {
+        return $this->hasMany(MantenimientoCheckList::class);
+    }
+
+    /**
+     * Get the defectos identificados during this mantenimiento.
+     *
+     * @return HasMany<MantenimientoDefectoIdentificado, $this>
+     */
+    public function defectoIdentificados(): HasMany
+    {
+        return $this->hasMany(MantenimientoDefectoIdentificado::class);
+    }
+
+    /**
+     * Get the items (repuestos/insumos) used during this mantenimiento.
+     *
+     * @return HasMany<ItemMantenimiento, $this>
+     */
+    public function itemMantenimientos(): HasMany
+    {
+        return $this->hasMany(ItemMantenimiento::class);
+    }
+
+    /**
+     * Get the comentarios left on this mantenimiento.
+     *
+     * @return HasMany<ComentarioMantenimiento, $this>
+     */
+    public function comentarioMantenimientos(): HasMany
+    {
+        return $this->hasMany(ComentarioMantenimiento::class);
+    }
+
+    /**
+     * Get the fotos de la galería of this mantenimiento.
+     *
+     * @return HasMany<GaleriaMantenimiento, $this>
+     */
+    public function galeriaMantenimientos(): HasMany
+    {
+        return $this->hasMany(GaleriaMantenimiento::class);
     }
 
     /**

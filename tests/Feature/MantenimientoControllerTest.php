@@ -6,6 +6,7 @@ use App\Models\Mantenimiento;
 use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
 use App\Models\Tenant;
+use App\Models\TiempoServicio;
 use App\Models\User;
 
 beforeEach(function () {
@@ -106,6 +107,108 @@ test('elimina un mantenimiento con borrado suave', function () {
 
     expect(Mantenimiento::find($mantenimiento->id))->toBeNull()
         ->and(Mantenimiento::withTrashed()->find($mantenimiento->id))->not->toBeNull();
+});
+
+test('inicia un mantenimiento y abre un tiempo_servicio sin fin', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.iniciar', $mantenimiento))
+        ->assertRedirect();
+
+    $tiempoServicio = TiempoServicio::where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)->firstOrFail();
+
+    expect($tiempoServicio)
+        ->tipo_servicio->toBe('MANTENIMIENTO')
+        ->estado_tiempo->toBe('INICIO')
+        ->es_tercero->toBeFalse()
+        ->fin->toBeNull()
+        ->duracion->toBeNull();
+    expect($tiempoServicio->inicio->diffInSeconds(now()))->toBeLessThan(5);
+});
+
+test('no permite iniciar un mantenimiento de otro tenant', function () {
+    $ajeno = crearMantenimiento(Bahia::factory()->create());
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.iniciar', $ajeno))
+        ->assertForbidden();
+
+    expect(TiempoServicio::where('orden_trabajo_id', $ajeno->orden_trabajo_id)->count())->toBe(0);
+});
+
+test('un usuario sin permiso de editar mantenimientos no puede iniciarlos', function () {
+    $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($recepcion)
+        ->post(route('mantenimientos.iniciar', $mantenimiento))
+        ->assertForbidden();
+
+    expect(TiempoServicio::where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)->count())->toBe(0);
+});
+
+test('finaliza un mantenimiento, cierra el tiempo_servicio y calcula la duracion', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.iniciar', $mantenimiento));
+
+    $tiempoServicio = TiempoServicio::where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)->firstOrFail();
+    $tiempoServicio->update(['inicio' => now()->subMinutes(5)]);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), [
+            'estado_final_equipo' => 'FUERA_DE_SERVICIO',
+            'firmado' => '1',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('mantenimientos.index'));
+
+    expect($mantenimiento->refresh())
+        ->estado_final_equipo->toBe('FUERA_DE_SERVICIO')
+        ->firmado->toBeTrue()
+        ->estado_mantenimiento->toBe('FINALIZADO');
+
+    expect($tiempoServicio->refresh())
+        ->estado_tiempo->toBe('FIN')
+        ->duracion->toBe('00:05:00');
+    expect($tiempoServicio->fin)->not->toBeNull();
+});
+
+test('no permite finalizar un mantenimiento de otro tenant', function () {
+    $ajeno = crearMantenimiento(Bahia::factory()->create());
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $ajeno), [
+            'estado_final_equipo' => 'OPERATIVO',
+            'firmado' => '1',
+        ])
+        ->assertForbidden();
+
+    expect($ajeno->refresh()->estado_mantenimiento)->not->toBe('FINALIZADO');
+});
+
+test('exige el estado final del equipo al finalizar', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), [])
+        ->assertSessionHasErrors('estado_final_equipo');
+});
+
+test('un usuario sin permiso de editar mantenimientos no puede finalizarlos', function () {
+    $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($recepcion)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), [
+            'estado_final_equipo' => 'OPERATIVO',
+            'firmado' => '1',
+        ])
+        ->assertForbidden();
+
+    expect($mantenimiento->refresh()->estado_mantenimiento)->not->toBe('FINALIZADO');
 });
 
 test('no permite actualizar ni eliminar mantenimientos de otro tenant', function () {

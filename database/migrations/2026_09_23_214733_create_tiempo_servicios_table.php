@@ -16,8 +16,9 @@ return new class extends Migration
             $table->foreignId('orden_trabajo_id')->constrained('orden_trabajos')->onDelete('cascade');
             $table->enum('tipo_servicio', ['MANTENIMIENTO', 'CALIBRACION']);
             $table->dateTime('inicio');
-            $table->dateTime('fin');
-            $table->time('duracion');
+            // Nulos mientras el servicio sigue en curso (ver MantenimientoController::iniciar()).
+            $table->dateTime('fin')->nullable();
+            $table->time('duracion')->nullable();
             $table->enum('estado_tiempo', ['INICIO', 'FIN']);
             $table->boolean('es_tercero')->default(false);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');

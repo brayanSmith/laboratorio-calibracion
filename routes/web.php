@@ -3,6 +3,7 @@
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\BahiaController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\ComentarioMantenimientoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentoEquipoController;
 use App\Http\Controllers\EmpresaController;
@@ -12,10 +13,13 @@ use App\Http\Controllers\EquipoEspecificacionTecnicaController;
 use App\Http\Controllers\EquipoProgramacionController;
 use App\Http\Controllers\FabricanteController;
 use App\Http\Controllers\ForcePasswordChangeController;
+use App\Http\Controllers\GaleriaMantenimientoController;
 use App\Http\Controllers\IngresoController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\ItemMantenimientoController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MantenimientoController;
+use App\Http\Controllers\MantenimientoDefectoIdentificadoController;
 use App\Http\Controllers\OrdenTrabajoController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
@@ -66,6 +70,16 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     // Sin "create": un mantenimiento solo se origina desde "Agendar Mantenimiento".
     Route::resource('mantenimientos', MantenimientoController::class)->only(['index', 'update', 'destroy']);
+    Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
+    Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');
+
+    // Borrado individual de lo registrado en la gestión de un mantenimiento (ver
+    // GestionarMantenimientoModal): el checklist, un nuevo defecto/ítem usado/comentario/
+    // foto se guardan todos junto con el mantenimiento en MantenimientoController::update().
+    Route::delete('defectos/{defectoIdentificado}', [MantenimientoDefectoIdentificadoController::class, 'destroy'])->name('defectos.destroy');
+    Route::delete('item-mantenimientos/{itemMantenimiento}', [ItemMantenimientoController::class, 'destroy'])->name('item-mantenimientos.destroy');
+    Route::delete('comentarios/{comentarioMantenimiento}', [ComentarioMantenimientoController::class, 'destroy'])->name('comentarios.destroy');
+    Route::delete('galeria/{galeriaMantenimiento}', [GaleriaMantenimientoController::class, 'destroy'])->name('galeria.destroy');
 
     Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
 

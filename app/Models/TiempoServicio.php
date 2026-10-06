@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
  * @property int $orden_trabajo_id
  * @property string $tipo_servicio
  * @property Carbon $inicio
- * @property Carbon $fin
- * @property string $duracion
+ * @property Carbon|null $fin Nulo mientras el servicio sigue en curso
+ * @property string|null $duracion Nulo mientras el servicio sigue en curso
  * @property string $estado_tiempo
  * @property bool $es_tercero
  * @property int $tenant_id
