@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::dropIfExists('detalle_medicion_calibracions');
+
         Schema::create('detalle_medicion_calibracions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('calibracion_id')->constrained('calibracions')->onDelete('cascade');
-            $table->foreignId('detalle_medicion_alcance_id')->constrained('detalle_medicion_alcances')->onDelete('cascade');
+            $table->foreignId('detalle_medicion_alcance_id')->constrained('detalle_medicion_alcances', indexName: 'detalle_medicion_calibracions_alcance_id_foreign')->onDelete('cascade');
             $table->decimal('valor_referencia', 10, 2);
             $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->onDelete('cascade');
             $table->decimal('valor_instrumento', 10, 2);
