@@ -170,6 +170,8 @@ test('finaliza un mantenimiento, cierra el tiempo_servicio y calcula la duracion
         ->firmado->toBeTrue()
         ->estado_mantenimiento->toBe('FINALIZADO');
 
+    expect($mantenimiento->ordenTrabajo->refresh()->mantenimiento_finalizado)->toBeTrue();
+
     expect($tiempoServicio->refresh())
         ->estado_tiempo->toBe('FIN')
         ->duracion->toBe('00:05:00');

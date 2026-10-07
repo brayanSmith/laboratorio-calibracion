@@ -14,16 +14,18 @@ return new class extends Migration
         Schema::create('calibracions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('orden_trabajo_id')->constrained('orden_trabajos')->onDelete('cascade');
-            $table->foreignId('laboratorio_id')->constrained('laboratorios')->onDelete('cascade');
-            $table->foreignId('solicitante_id')->constrained('areas')->onDelete('cascade');
+            // Nulos al agendar (ver OrdenTrabajoController::storeCalibracion()); se completan
+            // cuando se realiza la calibración.
+            $table->foreignId('laboratorio_id')->nullable()->constrained('laboratorios')->onDelete('cascade');
+            $table->foreignId('solicitante_id')->nullable()->constrained('areas')->onDelete('cascade');
             $table->foreignId('tecnico_id')->constrained('users')->onDelete('cascade');
             $table->decimal('temperatura', 10, 2)->nullable();
             $table->decimal('humedad', 10, 2)->nullable();
-            $table->foreignId('procedimiento_id')->constrained('procedimiento_calibracions')->onDelete('cascade');
+            $table->foreignId('procedimiento_id')->nullable()->constrained('procedimiento_calibracions')->onDelete('cascade');
             $table->boolean('ajustes_requeridos')->default(false);
-            $table->enum('estado_calibracion', ['PENDIENTE', 'EN_PROCESO', 'FINALIZADO', 'DEVOLVER_MANTENIMIENTO']);
+            $table->enum('estado_calibracion', ['PENDIENTE', 'EN_PROCESO', 'FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])->default('PENDIENTE');
             $table->boolean('firmado')->default(false);
-            $table->foreignId('novedad_id')->constrained('novedads')->onDelete('cascade');
+            $table->foreignId('novedad_id')->nullable()->constrained('novedads')->onDelete('cascade');
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

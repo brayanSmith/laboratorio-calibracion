@@ -94,6 +94,13 @@ export type EquipoListoParaMantenimientoItem = {
     equipo: EquipoProgramacionBusquedaItem['equipo'];
 };
 
+/** Orden de trabajo con el mantenimiento finalizado, lista para "Agendar
+ * Calibraciones". */
+export type OrdenListaParaCalibracionItem = {
+    id: number;
+    equipo: EquipoProgramacionBusquedaItem['equipo'];
+};
+
 export type DocumentoEquipoItem = {
     id: number;
     nombre: string;

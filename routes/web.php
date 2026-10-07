@@ -67,6 +67,8 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::get('orden-trabajos/equipos-listos', [OrdenTrabajoController::class, 'equiposListos'])->name('orden-trabajos.equipos-listos');
     Route::post('orden-trabajos', [OrdenTrabajoController::class, 'store'])->name('orden-trabajos.store');
+    Route::get('orden-trabajos/equipos-listos-calibracion', [OrdenTrabajoController::class, 'equiposListosCalibracion'])->name('orden-trabajos.equipos-listos-calibracion');
+    Route::post('orden-trabajos/calibraciones', [OrdenTrabajoController::class, 'storeCalibracion'])->name('orden-trabajos.store-calibracion');
 
     // Sin "create": un mantenimiento solo se origina desde "Agendar Mantenimiento".
     Route::resource('mantenimientos', MantenimientoController::class)->only(['index', 'update', 'destroy']);

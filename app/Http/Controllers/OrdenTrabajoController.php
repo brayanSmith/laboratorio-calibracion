@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\OrdenesTrabajo\StoreCalibracionAgendamientoRequest;
 use App\Http\Requests\OrdenesTrabajo\StoreOrdenTrabajoRequest;
+use App\Models\Calibracion;
 use App\Models\EquipoProgramacion;
 use App\Models\Mantenimiento;
 use App\Models\MantenimientoCheckList;
@@ -116,6 +118,93 @@ class OrdenTrabajoController extends Controller
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Mantenimiento agendado.')]);
+
+        return back();
+    }
+
+    /**
+     * List ordenes de trabajo con el mantenimiento finalizado que todavía no quedan
+     * listas para calibración, para elegir cuáles agendar.
+     */
+    public function equiposListosCalibracion(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', EquipoProgramacion::class);
+
+        $tenantId = $request->user()->tenant_id;
+
+        $ordenes = OrdenTrabajo::query()
+            ->where('tenant_id', $tenantId)
+            ->where('mantenimiento_finalizado', true)
+            ->where('calibracion_finalizado', false)
+            ->where('listo_para_calibracion', false)
+            ->with(
+                'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
+                'equipoProgramacion.equipo.cliente:id,nombre',
+                'equipoProgramacion.equipo.tipoEquipo:id,nombre',
+            )
+            ->orderBy('id')
+            ->get(['id', 'equipo_programacion_id']);
+
+        return response()->json($ordenes->map(fn (OrdenTrabajo $orden) => [
+            'id' => $orden->id,
+            'equipo' => [
+                'id' => $orden->equipoProgramacion->equipo->id,
+                'codigo' => $orden->equipoProgramacion->equipo->codigo,
+                'modelo' => $orden->equipoProgramacion->equipo->modelo,
+                'tipo_equipo' => ['nombre' => $orden->equipoProgramacion->equipo->tipoEquipo->nombre],
+                'cliente' => ['nombre' => $orden->equipoProgramacion->equipo->cliente->nombre],
+            ],
+        ])->values());
+    }
+
+    /**
+     * Mark every orden de trabajo marcada con listo_para_calibracion. Si además se
+     * asignó a un tercero, crea el servicio_tercero correspondiente; si no, crea la
+     * calibración con el técnico elegido (el resto de sus datos se completan cuando se
+     * realice).
+     */
+    public function storeCalibracion(StoreCalibracionAgendamientoRequest $request): RedirectResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $ordenesListas = $request->validated('ordenes_listas', []);
+
+        $ordenes = OrdenTrabajo::query()
+            ->whereIn('id', array_column($ordenesListas, 'id'))
+            ->get()
+            ->keyBy('id');
+
+        DB::transaction(function () use ($ordenesListas, $ordenes, $tenantId) {
+            foreach ($ordenesListas as $datos) {
+                if (! $datos['listo_para_calibracion']) {
+                    continue;
+                }
+
+                $ordenTrabajo = $ordenes[$datos['id']];
+
+                $ordenTrabajo->update([
+                    'listo_para_calibracion' => true,
+                    'calibracion_asignado_tercero' => $datos['calibracion_asignado_tercero'],
+                ]);
+
+                if ($datos['calibracion_asignado_tercero']) {
+                    ServicioTercero::create([
+                        'orden_trabajo_id' => $ordenTrabajo->id,
+                        'tipo_servicio' => 'CALIBRACION',
+                        'empresa_tercero_id' => $datos['empresa_tercero_id'] ?? null,
+                        'tenant_id' => $tenantId,
+                    ]);
+                } else {
+                    Calibracion::create([
+                        'orden_trabajo_id' => $ordenTrabajo->id,
+                        'tecnico_id' => $datos['tecnico_id'] ?? null,
+                        'novedad_id' => $datos['novedad_id'] ?? null,
+                        'tenant_id' => $tenantId,
+                    ]);
+                }
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Calibración agendada.')]);
 
         return back();
     }

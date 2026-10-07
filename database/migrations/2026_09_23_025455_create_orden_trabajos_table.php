@@ -18,11 +18,15 @@ return new class extends Migration
             $table->foreignId('equipo_programacion_id')->constrained('equipo_programacions')->onDelete('cascade');
             $table->date('fecha_programada_orden_trabajo');
             $table->enum('estado', ['EN_BAHIA', 'INGRESADO', 'EN_MANTENIMIENTO', 'EN_CALIBRACION', 'FINALIZADO', 'ENTREGADO']);
-            // Marcado desde "Agendar Mantenimiento" al revisar los equipos ya recibidos.
+
             $table->boolean('listo_para_mantenimiento')->default(false);
-            // Se deriva del tipo_servicio de la programación (ver OrdenTrabajo::requiereCalibracion()).
             $table->boolean('mantenimiento_asignado_tercero')->default(false);
+            $table->boolean('mantenimiento_finalizado')->default(false);
+
+            $table->boolean('listo_para_calibracion')->default(false);
             $table->boolean('calibracion_asignado_tercero')->default(false);
+            $table->boolean('calibracion_finalizado')->default(false);
+
             $table->boolean('orden_trabajo_programada')->default(false);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();

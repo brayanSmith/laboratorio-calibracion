@@ -158,8 +158,9 @@ class MantenimientoController extends Controller
 
     /**
      * Finish the mantenimiento: guarda el estado final del equipo y si quedó firmado,
-     * marca el mantenimiento como FINALIZADO, y cierra el tiempo_servicio que estaba
-     * en curso (fin = ahora, duración calculada, estado_tiempo = FIN).
+     * marca el mantenimiento como FINALIZADO (y la orden de trabajo como
+     * mantenimiento_finalizado), y cierra el tiempo_servicio que estaba en curso (fin =
+     * ahora, duración calculada, estado_tiempo = FIN).
      */
     public function finalizar(FinalizarMantenimientoRequest $request, Mantenimiento $mantenimiento): RedirectResponse
     {
@@ -169,6 +170,8 @@ class MantenimientoController extends Controller
                 'firmado' => $request->validated('firmado'),
                 'estado_mantenimiento' => 'FINALIZADO',
             ]);
+
+            $mantenimiento->ordenTrabajo->update(['mantenimiento_finalizado' => true]);
 
             $tiempoServicio = TiempoServicio::query()
                 ->where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)

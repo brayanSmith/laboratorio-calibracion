@@ -1,5 +1,12 @@
 import { Head } from '@inertiajs/react';
-import { ClipboardCheck, Pencil, Plus, Wrench, Trash2 } from 'lucide-react';
+import {
+    ClipboardCheck,
+    Gauge,
+    Pencil,
+    Plus,
+    Wrench,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -9,6 +16,7 @@ import CreateIngresoModal from '@/components/ingresos/create-ingreso-modal';
 import DeleteIngresoModal from '@/components/ingresos/delete-ingreso-modal';
 import EditIngresoModal from '@/components/ingresos/edit-ingreso-modal';
 import RecibirIngresoModal from '@/components/ingresos/recibir-ingreso-modal';
+import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,6 +61,8 @@ export default function IngresosIndex({
         ingresos.find((ingreso) => ingreso.id === recibiendoId) ?? null;
     const [recibirOpen, setRecibirOpen] = useState(false);
     const [agendarMantenimientoOpen, setAgendarMantenimientoOpen] =
+        useState(false);
+    const [agendarCalibracionesOpen, setAgendarCalibracionesOpen] =
         useState(false);
 
     const columns = useMemo(
@@ -172,6 +182,18 @@ export default function IngresosIndex({
                             </Button>
                         ) : null}
 
+                        {can('equipos.editar') ? (
+                            <Button
+                                variant="outline"
+                                data-test="agendar-calibraciones-button"
+                                onClick={() =>
+                                    setAgendarCalibracionesOpen(true)
+                                }
+                            >
+                                <Gauge /> Agendar Calibraciones
+                            </Button>
+                        ) : null}
+
                         {can('ingresos.crear') ? (
                             <CreateIngresoModal options={options}>
                                 <Button data-test="ingresos-new-button">
@@ -215,6 +237,12 @@ export default function IngresosIndex({
                 empresasTerceras={empresasTerceras}
                 open={agendarMantenimientoOpen}
                 onOpenChange={setAgendarMantenimientoOpen}
+            />
+            <AgendarCalibracionesModal
+                tecnicos={tecnicos}
+                empresasTerceras={empresasTerceras}
+                open={agendarCalibracionesOpen}
+                onOpenChange={setAgendarCalibracionesOpen}
             />
         </>
     );

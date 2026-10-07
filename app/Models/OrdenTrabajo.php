@@ -18,7 +18,10 @@ use Illuminate\Support\Carbon;
  * @property string $estado
  * @property bool $listo_para_mantenimiento Marcado desde "Agendar Mantenimiento"
  * @property bool $mantenimiento_asignado_tercero
+ * @property bool $mantenimiento_finalizado Se marca al finalizar el mantenimiento
+ * @property bool $listo_para_calibracion
  * @property bool $calibracion_asignado_tercero
+ * @property bool $calibracion_finalizado Se marca al finalizar la calibración
  * @property bool $orden_trabajo_programada
  * @property int $tenant_id
  * @property Carbon|null $created_at
@@ -33,7 +36,8 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'codigo', 'despacho_id', 'equipo_programacion_id',
     'fecha_programada_orden_trabajo', 'estado', 'listo_para_mantenimiento',
-    'mantenimiento_asignado_tercero', 'calibracion_asignado_tercero',
+    'mantenimiento_asignado_tercero', 'mantenimiento_finalizado', 'listo_para_calibracion',
+    'calibracion_asignado_tercero', 'calibracion_finalizado',
     'orden_trabajo_programada', 'tenant_id',
 ])]
 class OrdenTrabajo extends Model
@@ -109,7 +113,10 @@ class OrdenTrabajo extends Model
             'fecha_programada_orden_trabajo' => 'date',
             'listo_para_mantenimiento' => 'boolean',
             'mantenimiento_asignado_tercero' => 'boolean',
+            'mantenimiento_finalizado' => 'boolean',
+            'listo_para_calibracion' => 'boolean',
             'calibracion_asignado_tercero' => 'boolean',
+            'calibracion_finalizado' => 'boolean',
             'orden_trabajo_programada' => 'boolean',
         ];
     }
