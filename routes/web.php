@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\BahiaController;
+use App\Http\Controllers\CalibracionController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ComentarioMantenimientoController;
 use App\Http\Controllers\DashboardController;
@@ -72,6 +73,11 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     // Sin "create": un mantenimiento solo se origina desde "Agendar Mantenimiento".
     Route::resource('mantenimientos', MantenimientoController::class)->only(['index', 'update', 'destroy']);
+
+    // Sin "create": una calibración solo se origina desde "Agendar Calibraciones".
+    Route::resource('calibraciones', CalibracionController::class)
+        ->parameters(['calibraciones' => 'calibracion'])
+        ->only(['index', 'update', 'destroy']);
     Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
     Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');
 

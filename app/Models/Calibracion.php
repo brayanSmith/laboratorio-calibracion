@@ -11,26 +11,26 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $orden_trabajo_id
- * @property int $laboratorio_id
- * @property int $solicitante_id
+ * @property int|null $laboratorio_id Se completa cuando se realiza la calibración
+ * @property int|null $solicitante_id Se completa cuando se realiza la calibración
  * @property int $tecnico_id
  * @property string|null $temperatura
  * @property string|null $humedad
- * @property int $procedimiento_id
+ * @property int|null $procedimiento_id Se completa cuando se realiza la calibración
  * @property bool $ajustes_requeridos
- * @property string $estado_calibracion
+ * @property string $estado_calibracion PENDIENTE por defecto
  * @property bool $firmado
- * @property int $novedad_id
+ * @property int|null $novedad_id Se completa si surge una novedad durante la calibración
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read OrdenTrabajo $ordenTrabajo
- * @property-read Laboratorio $laboratorio
- * @property-read Area $solicitante
+ * @property-read Laboratorio|null $laboratorio
+ * @property-read Area|null $solicitante
  * @property-read User $tecnico
- * @property-read ProcedimientoCalibracion $procedimiento
- * @property-read Novedad $novedad
+ * @property-read ProcedimientoCalibracion|null $procedimiento
+ * @property-read Novedad|null $novedad
  * @property-read Tenant $tenant
  */
 #[Fillable([

@@ -25,6 +25,12 @@ enum TenantPermission: string
     case MantenimientosEditar = 'mantenimientos.editar';
     case MantenimientosEliminar = 'mantenimientos.eliminar';
 
+    // Sin "crear": una calibración solo se origina desde "Agendar Calibraciones" (ver
+    // OrdenTrabajoController), no tiene un formulario de creación propio.
+    case CalibracionesVer = 'calibraciones.ver';
+    case CalibracionesEditar = 'calibraciones.editar';
+    case CalibracionesEliminar = 'calibraciones.eliminar';
+
     case TiposEquipoVer = 'tipos-equipo.ver';
     case TiposEquipoCrear = 'tipos-equipo.crear';
     case TiposEquipoEditar = 'tipos-equipo.editar';
@@ -104,6 +110,9 @@ enum TenantPermission: string
             self::MantenimientosVer,
             self::MantenimientosEditar,
             self::MantenimientosEliminar => 'Mantenimientos',
+            self::CalibracionesVer,
+            self::CalibracionesEditar,
+            self::CalibracionesEliminar => 'Calibraciones',
             self::TiposEquipoVer,
             self::TiposEquipoCrear,
             self::TiposEquipoEditar,
@@ -174,6 +183,9 @@ enum TenantPermission: string
             self::MantenimientosVer => 'Ver mantenimientos',
             self::MantenimientosEditar => 'Editar mantenimientos',
             self::MantenimientosEliminar => 'Eliminar mantenimientos',
+            self::CalibracionesVer => 'Ver calibraciones',
+            self::CalibracionesEditar => 'Editar calibraciones',
+            self::CalibracionesEliminar => 'Eliminar calibraciones',
             self::TiposEquipoVer => 'Ver tipos de equipo',
             self::TiposEquipoCrear => 'Crear tipos de equipo',
             self::TiposEquipoEditar => 'Editar tipos de equipo',

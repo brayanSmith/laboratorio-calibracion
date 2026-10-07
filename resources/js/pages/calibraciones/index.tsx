@@ -1,0 +1,174 @@
+import { Head } from '@inertiajs/react';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import DataTable, {
+    createDataTableColumnHelper,
+} from '@/components/data-table';
+import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
+import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
+import Heading from '@/components/heading';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { usePermissions } from '@/hooks/use-permissions';
+import { colorEstadoCalibracion } from '@/lib/estados-calibracion';
+import { index } from '@/routes/calibraciones';
+import type { Calibracion, CalibracionOptions } from '@/types';
+
+type Props = CalibracionOptions & {
+    calibraciones: Calibracion[];
+};
+
+const columnHelper = createDataTableColumnHelper<Calibracion>();
+
+const estadosCalibracionLabel: Record<string, string> = {
+    PENDIENTE: 'Pendiente',
+    EN_PROCESO: 'En proceso',
+    FINALIZADO: 'Finalizado',
+    DEVOLVER_MANTENIMIENTO: 'Devolver a mantenimiento',
+};
+
+export default function CalibracionesIndex({
+    calibraciones,
+    tecnicos,
+    laboratorios,
+    areas,
+    procedimientos,
+    novedadesCalibracion,
+}: Props) {
+    const { can } = usePermissions();
+    const canEdit = can('calibraciones.editar');
+    const canDelete = can('calibraciones.eliminar');
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const editing =
+        calibraciones.find((calibracion) => calibracion.id === editingId) ??
+        null;
+    const [editOpen, setEditOpen] = useState(false);
+    const [deleting, setDeleting] = useState<Calibracion | null>(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+
+    const columns = useMemo(
+        () =>
+            columnHelper.columns([
+                columnHelper.accessor('orden_trabajo_codigo', {
+                    header: 'Orden de trabajo',
+                }),
+                columnHelper.display({
+                    id: 'equipo',
+                    header: 'Equipo',
+                    cell: ({ row }) => (
+                        <span className="font-medium">
+                            {row.original.equipo.codigo} ·{' '}
+                            {row.original.equipo.modelo}
+                        </span>
+                    ),
+                }),
+                columnHelper.display({
+                    id: 'cliente',
+                    header: 'Cliente',
+                    cell: ({ row }) =>
+                        row.original.equipo.cliente?.nombre ?? '—',
+                }),
+                columnHelper.accessor('tecnico_nombre', { header: 'Técnico' }),
+                columnHelper.accessor('laboratorio_nombre', {
+                    header: 'Laboratorio',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('estado_calibracion', {
+                    header: 'Estado',
+                    cell: (info) => (
+                        <Badge
+                            className={colorEstadoCalibracion[info.getValue()]}
+                        >
+                            {estadosCalibracionLabel[info.getValue()] ??
+                                info.getValue()}
+                        </Badge>
+                    ),
+                }),
+                columnHelper.display({
+                    id: 'acciones',
+                    header: '',
+                    enableSorting: false,
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-2">
+                            {canEdit ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="calibracion-edit-button"
+                                    onClick={() => {
+                                        setEditingId(row.original.id);
+                                        setEditOpen(true);
+                                    }}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                            {canDelete ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    data-test="calibracion-delete-button"
+                                    onClick={() => {
+                                        setDeleting(row.original);
+                                        setDeleteOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                        </div>
+                    ),
+                }),
+            ]),
+        [canEdit, canDelete],
+    );
+
+    return (
+        <>
+            <Head title="Calibraciones" />
+
+            <h1 className="sr-only">Calibraciones</h1>
+
+            <div className="flex flex-col space-y-6 p-4">
+                <Heading
+                    variant="small"
+                    title="Calibraciones"
+                    description="Calibraciones agendadas desde Ingresos, con su técnico, estado y laboratorio"
+                />
+
+                <DataTable
+                    data={calibraciones}
+                    columns={columns}
+                    searchPlaceholder="Buscar calibración..."
+                    emptyMessage="Aún no hay calibraciones agendadas."
+                    rowTestId="calibracion-row"
+                />
+            </div>
+
+            <EditCalibracionModal
+                calibracion={editing}
+                tecnicos={tecnicos}
+                laboratorios={laboratorios}
+                areas={areas}
+                procedimientos={procedimientos}
+                novedadesCalibracion={novedadesCalibracion}
+                open={editOpen}
+                onOpenChange={setEditOpen}
+            />
+            <DeleteCalibracionModal
+                calibracion={deleting}
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+            />
+        </>
+    );
+}
+
+CalibracionesIndex.layout = {
+    breadcrumbs: [
+        {
+            title: 'Calibraciones',
+            href: index(),
+        },
+    ],
+};

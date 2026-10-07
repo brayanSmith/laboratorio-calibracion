@@ -8,6 +8,7 @@ import {
     DoorOpen,
     Factory,
     FlaskConical,
+    Gauge,
     Handshake,
     LayoutGrid,
     MapPin,
@@ -36,6 +37,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
 import { index as areasIndex } from '@/routes/areas';
 import { index as bahiasIndex } from '@/routes/bahias';
+import { index as calibracionesIndex } from '@/routes/calibraciones';
 import { index as clientesIndex } from '@/routes/clientes';
 import { index as empresasTercerasIndex } from '@/routes/empresas-terceras';
 import { index as equiposIndex } from '@/routes/equipos';
@@ -127,6 +129,15 @@ export function AppSidebar() {
                                     title: 'Mantenimientos',
                                     href: mantenimientosIndex(),
                                     icon: ClipboardCheck,
+                                },
+                            ]
+                          : []),
+                      ...(can('calibraciones.ver')
+                          ? [
+                                {
+                                    title: 'Calibraciones',
+                                    href: calibracionesIndex(),
+                                    icon: Gauge,
                                 },
                             ]
                           : []),

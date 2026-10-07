@@ -2,6 +2,7 @@ export type * from './auth';
 export type * from './empresa';
 export type * from './areas';
 export type * from './bahias';
+export type * from './calibraciones';
 export type * from './clientes';
 export type * from './empresas-terceras';
 export type * from './equipos';
