@@ -15,9 +15,12 @@ import {
     Package,
     PackageCheck,
     Ruler,
+    Scale,
     ShieldCheck,
     Sigma,
     Tags,
+    TriangleAlert,
+    Truck,
     Users,
     Wrench,
 } from 'lucide-react';
@@ -35,10 +38,12 @@ import {
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/use-permissions';
 import { dashboard } from '@/routes';
+import { index as alcancesMedicionIndex } from '@/routes/alcances-medicion';
 import { index as areasIndex } from '@/routes/areas';
 import { index as bahiasIndex } from '@/routes/bahias';
 import { index as calibracionesIndex } from '@/routes/calibraciones';
 import { index as clientesIndex } from '@/routes/clientes';
+import { index as despachosIndex } from '@/routes/despachos';
 import { index as empresasTercerasIndex } from '@/routes/empresas-terceras';
 import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
@@ -49,6 +54,7 @@ import { index as mantenimientosIndex } from '@/routes/mantenimientos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
+import { index as novedadesIndex } from '@/routes/novedades';
 import { index as procedimientosCalibracionIndex } from '@/routes/procedimientos-calibracion';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
@@ -141,6 +147,15 @@ export function AppSidebar() {
                                 },
                             ]
                           : []),
+                      ...(can('despachos.ver')
+                          ? [
+                                {
+                                    title: 'Despachos',
+                                    href: despachosIndex(),
+                                    icon: Truck,
+                                },
+                            ]
+                          : []),
                       ...(can('clientes.ver')
                           ? [
                                 {
@@ -224,6 +239,24 @@ export function AppSidebar() {
                                     title: 'Procedimientos de calibración',
                                     href: procedimientosCalibracionIndex(),
                                     icon: ClipboardList,
+                                },
+                            ]
+                          : []),
+                      ...(can('alcances-medicion.ver')
+                          ? [
+                                {
+                                    title: 'Alcances de medición',
+                                    href: alcancesMedicionIndex(),
+                                    icon: Scale,
+                                },
+                            ]
+                          : []),
+                      ...(can('novedades.ver')
+                          ? [
+                                {
+                                    title: 'Novedades',
+                                    href: novedadesIndex(),
+                                    icon: TriangleAlert,
                                 },
                             ]
                           : []),

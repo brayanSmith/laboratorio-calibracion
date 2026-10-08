@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\Area;
+use App\Models\DetalleMedicionAlcance;
 use App\Models\Tenant;
 use App\Models\TipoEquipo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /*
@@ -66,5 +68,61 @@ function crearArea(Tenant $tenant, string $nombre = 'Laboratorio de presión'): 
     return Area::create([
         'nombre' => $nombre,
         'tenant_id' => $tenant->id,
+    ]);
+}
+
+function registrarMedicionDeCalibracionSobre(DetalleMedicionAlcance $detalle): void
+{
+    DB::statement('PRAGMA defer_foreign_keys = ON');
+
+    DB::table('detalle_medicion_calibracions')->insert([
+        'calibracion_id' => 1,
+        'detalle_medicion_alcance_id' => $detalle->id,
+        'valor_referencia' => 0,
+        'unidad_medida_id' => $detalle->unidad_medida_id,
+        'valor_instrumento' => 0,
+        'error_encontrado' => 0,
+        'emp' => 0,
+        'incertidumbre' => 0,
+        'error_porcentaje' => 0,
+        'emp_porcentaje_positivo' => 0,
+        'emp_porcentaje_negativo' => 0,
+        'resultado_calibracion' => null,
+        'tenant_id' => $detalle->tenant_id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+}
+
+function registrarAlcanceIndicacion(Tenant $tenant, string $alcanceIndicacion, TipoEquipo $tipoEquipo): void
+{
+    DB::statement('PRAGMA defer_foreign_keys = ON');
+
+    $equipoId = DB::table('equipos')->insertGetId([
+        'codigo' => uniqid('EQ-'),
+        'tipo_equipo_id' => $tipoEquipo->id,
+        'tipo_tecnologia' => 'ANALOGICO',
+        'modelo' => 'M-1',
+        'fabricante_id' => 1,
+        'numero_serie' => 'S-1',
+        'area_id' => 1,
+        'bahia_id' => 1,
+        'condicion_actual' => 'Bueno',
+        'cliente_id' => 1,
+        'tenant_id' => $tenant->id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    DB::table('equipo_especificacion_tecnicas')->insert([
+        'equipo_id' => $equipoId,
+        'tipo_magnitud_id' => 1,
+        'unidad_medida_id' => 1,
+        'alcance_indicacion' => $alcanceIndicacion,
+        'precision' => '±0.5',
+        'resolucion' => '0.01mm',
+        'tenant_id' => $tenant->id,
+        'created_at' => now(),
+        'updated_at' => now(),
     ]);
 }

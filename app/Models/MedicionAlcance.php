@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\MedicionAlcanceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -22,7 +25,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['tipo_equipo_id', 'alcance_indicacion', 'tenant_id'])]
 class MedicionAlcance extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<MedicionAlcanceFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tipo de equipo this medicion de alcance belongs to.
@@ -32,6 +36,16 @@ class MedicionAlcance extends Model
     public function tipoEquipo(): BelongsTo
     {
         return $this->belongsTo(TipoEquipo::class);
+    }
+
+    /**
+     * Get the detalles of this medicion de alcance.
+     *
+     * @return HasMany<DetalleMedicionAlcance, $this>
+     */
+    public function detalleMedicionAlcance(): HasMany
+    {
+        return $this->hasMany(DetalleMedicionAlcance::class);
     }
 
     /**

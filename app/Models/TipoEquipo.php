@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\TipoEquipoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +24,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['nombre', 'tipo_mantenimiento', 'tenant_id'])]
 class TipoEquipo extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<TipoEquipoFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the tenant this tipo de equipo belongs to.
@@ -42,6 +45,16 @@ class TipoEquipo extends Model
     public function equipo(): HasMany
     {
         return $this->hasMany(Equipo::class);
+    }
+
+    /**
+     * Get the mediciones de alcance of this tipo de equipo.
+     *
+     * @return HasMany<MedicionAlcance, $this>
+     */
+    public function medicionAlcance(): HasMany
+    {
+        return $this->hasMany(MedicionAlcance::class);
     }
 
     /**

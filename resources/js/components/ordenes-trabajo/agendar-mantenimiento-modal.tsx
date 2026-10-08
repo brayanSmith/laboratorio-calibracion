@@ -6,6 +6,7 @@ import {
 } from '@/actions/App/Http/Controllers/OrdenTrabajoController';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -149,10 +150,20 @@ function EquipoListoItem({
     return (
         <li className="space-y-2 px-3 py-2" data-test="equipo-listo-item">
             <div>
-                <span className="text-sm font-medium">
-                    {item.equipo.codigo} · {item.equipo.tipo_equipo.nombre} ·{' '}
-                    {item.equipo.modelo}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                        {item.equipo.codigo} · {item.equipo.tipo_equipo.nombre}{' '}
+                        · {item.equipo.modelo}
+                    </span>
+                    {item.devolucion ? (
+                        <Badge
+                            className="!border-transparent !bg-amber-500 !text-white"
+                            data-test="equipo-devolucion-badge"
+                        >
+                            Por devolución
+                        </Badge>
+                    ) : null}
+                </div>
                 {item.equipo.cliente ? (
                     <p className="text-xs text-muted-foreground">
                         {item.equipo.cliente.nombre}

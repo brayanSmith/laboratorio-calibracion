@@ -19,14 +19,19 @@ return new class extends Migration
             $table->foreignId('detalle_medicion_alcance_id')->constrained('detalle_medicion_alcances', indexName: 'detalle_medicion_calibracions_alcance_id_foreign')->onDelete('cascade');
             $table->decimal('valor_referencia', 10, 2);
             $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->onDelete('cascade');
-            $table->decimal('valor_instrumento', 10, 2);
-            $table->decimal('error_encontrado', 10, 2);
+            // Nulos al agendar la calibración (ver OrdenTrabajoController::storeCalibracion()); se
+            // completan cuando el técnico realiza la medición real.
+            $table->decimal('valor_instrumento', 10, 2)->nullable();
+            $table->decimal('error_encontrado', 10, 2)->nullable();
             $table->decimal('emp', 10, 2);
             $table->decimal('incertidumbre', 10, 2);
-            $table->decimal('error_porcentaje', 10, 2);
-            $table->decimal('emp_porcentaje_positivo', 10, 2);
-            $table->decimal('emp_porcentaje_negativo', 10, 2);
-            $table->decimal('resultado_calibracion', 10, 2);
+            $table->decimal('error_porcentaje', 10, 2)->nullable();
+            $table->decimal('emp_porcentaje', 10, 2)->nullable();
+            $table->decimal('emp_porcentaje_positivo', 10, 2)->nullable();
+            $table->decimal('emp_porcentaje_negativo', 10, 2)->nullable();
+            // APROBADO si error_encontrado <= emp, NO_APROBADO si no (ver
+            // CalibracionController::update()).
+            $table->enum('resultado_calibracion', ['APROBADO', 'NO_APROBADO'])->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

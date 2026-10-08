@@ -18,6 +18,7 @@ function registrarCalibracionEnLaboratorio(Laboratorio $laboratorio): Calibracio
 
     return Calibracion::create([
         'orden_trabajo_id' => 1,
+        'fecha_calibracion' => now()->toDateString(),
         'laboratorio_id' => $laboratorio->id,
         'solicitante_id' => 1,
         'tecnico_id' => 1,

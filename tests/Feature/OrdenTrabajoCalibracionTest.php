@@ -3,11 +3,17 @@
 use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\Calibracion;
+use App\Models\DetalleMedicionAlcance;
+use App\Models\DetalleMedicionCalibracion;
 use App\Models\EmpresaTercero;
+use App\Models\EquipoEspecificacionTecnica;
+use App\Models\MedicionAlcance;
 use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
 use App\Models\ServicioTercero;
 use App\Models\Tenant;
+use App\Models\TipoMagnitud;
+use App\Models\UnidadMedida;
 use App\Models\User;
 
 beforeEach(function () {
@@ -95,6 +101,104 @@ test('agenda calibracion con un tecnico propio y crea la calibracion con la nove
         ->procedimiento_id->toBeNull();
 
     expect(ServicioTercero::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
+});
+
+test('agenda calibracion y crea un detalle_medicion_calibracion por cada detalle del alcance del equipo', function () {
+    $orden = crearOrdenListaParaCalibracion($this->bahia);
+    $equipo = $orden->equipoProgramacion->equipo;
+
+    EquipoEspecificacionTecnica::create([
+        'equipo_id' => $equipo->id,
+        'tipo_magnitud_id' => TipoMagnitud::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'unidad_medida_id' => UnidadMedida::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'alcance_indicacion' => '0 - 100 bar',
+        'precision' => '±0.1',
+        'resolucion' => '0.01',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $medicionAlcance = MedicionAlcance::factory()->create([
+        'tipo_equipo_id' => $equipo->tipo_equipo_id,
+        'alcance_indicacion' => '0 - 100 bar',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $detalleBajo = DetalleMedicionAlcance::factory()->for($medicionAlcance)->create([
+        'tenant_id' => $this->tenant->id,
+        'valor_instrumento' => 10,
+        'emp' => 0.5,
+        'incertidumbre' => 0.1,
+    ]);
+    $detalleAlto = DetalleMedicionAlcance::factory()->for($medicionAlcance)->create([
+        'tenant_id' => $this->tenant->id,
+        'valor_instrumento' => 50,
+        'emp' => 0.6,
+        'incertidumbre' => 0.2,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('orden-trabajos.store-calibracion'), [
+            'ordenes_listas' => [
+                $orden->id => [
+                    'listo_para_calibracion' => '1',
+                    'tecnico_id' => $this->admin->id,
+                ],
+            ],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $calibracion = Calibracion::where('orden_trabajo_id', $orden->id)->firstOrFail();
+    $detalles = DetalleMedicionCalibracion::where('calibracion_id', $calibracion->id)
+        ->orderBy('detalle_medicion_alcance_id')
+        ->get();
+
+    expect($detalles)->toHaveCount(2);
+
+    // emp_porcentaje = emp / valor_referencia = 0.50 / 10.00
+    // emp_porcentaje_negativo = emp_porcentaje - (emp_porcentaje * 2), su opuesto
+    // emp_porcentaje_positivo = -emp_porcentaje_negativo, es decir, el propio emp_porcentaje
+    expect($detalles[0])
+        ->detalle_medicion_alcance_id->toBe($detalleBajo->id)
+        ->valor_referencia->toBe('10.00')
+        ->unidad_medida_id->toBe($detalleBajo->unidad_medida_id)
+        ->emp->toBe('0.50')
+        ->incertidumbre->toBe('0.10')
+        ->emp_porcentaje->toBe('0.05')
+        ->emp_porcentaje_positivo->toBe('0.05')
+        ->emp_porcentaje_negativo->toBe('-0.05')
+        ->valor_instrumento->toBeNull()
+        ->error_encontrado->toBeNull()
+        ->error_porcentaje->toBeNull()
+        ->resultado_calibracion->toBeNull();
+
+    // emp_porcentaje = 0.60 / 50.00
+    expect($detalles[1])
+        ->detalle_medicion_alcance_id->toBe($detalleAlto->id)
+        ->valor_referencia->toBe('50.00')
+        ->emp_porcentaje->toBe('0.01')
+        ->emp_porcentaje_positivo->toBe('0.01')
+        ->emp_porcentaje_negativo->toBe('-0.01');
+});
+
+test('agenda calibracion sin crear detalles de medicion si el equipo no tiene especificacion tecnica', function () {
+    $orden = crearOrdenListaParaCalibracion($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('orden-trabajos.store-calibracion'), [
+            'ordenes_listas' => [
+                $orden->id => [
+                    'listo_para_calibracion' => '1',
+                    'tecnico_id' => $this->admin->id,
+                ],
+            ],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $calibracion = Calibracion::where('orden_trabajo_id', $orden->id)->firstOrFail();
+
+    expect(DetalleMedicionCalibracion::where('calibracion_id', $calibracion->id)->count())->toBe(0);
 });
 
 test('agenda calibracion con tecnico propio sin novedad, dejando el resto para cuando se realice', function () {

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('calibracions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('orden_trabajo_id')->constrained('orden_trabajos')->onDelete('cascade');
+            $table->date('fecha_calibracion');
             // Nulos al agendar (ver OrdenTrabajoController::storeCalibracion()); se completan
             // cuando se realiza la calibración.
             $table->foreignId('laboratorio_id')->nullable()->constrained('laboratorios')->onDelete('cascade');

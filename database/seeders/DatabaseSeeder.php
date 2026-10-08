@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ItemSeeder::class,
             EmpresaTerceroSeeder::class,
             LaboratorioSeeder::class,
+            ProcedimientoCalibracionSeeder::class,
             ClienteSeeder::class,
             TipoMagnitudSeeder::class,
             UnidadMedidaSeeder::class,

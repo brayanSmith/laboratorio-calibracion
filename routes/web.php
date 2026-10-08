@@ -6,6 +6,8 @@ use App\Http\Controllers\CalibracionController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ComentarioMantenimientoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DespachoController;
+use App\Http\Controllers\DetalleMedicionAlcanceController;
 use App\Http\Controllers\DocumentoEquipoController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EmpresaTerceroController;
@@ -21,6 +23,8 @@ use App\Http\Controllers\ItemMantenimientoController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MantenimientoController;
 use App\Http\Controllers\MantenimientoDefectoIdentificadoController;
+use App\Http\Controllers\MedicionAlcanceController;
+use App\Http\Controllers\NovedadController;
 use App\Http\Controllers\OrdenTrabajoController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
@@ -70,6 +74,8 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::post('orden-trabajos', [OrdenTrabajoController::class, 'store'])->name('orden-trabajos.store');
     Route::get('orden-trabajos/equipos-listos-calibracion', [OrdenTrabajoController::class, 'equiposListosCalibracion'])->name('orden-trabajos.equipos-listos-calibracion');
     Route::post('orden-trabajos/calibraciones', [OrdenTrabajoController::class, 'storeCalibracion'])->name('orden-trabajos.store-calibracion');
+    Route::get('orden-trabajos/despachos-listos', [OrdenTrabajoController::class, 'despachosListos'])->name('orden-trabajos.despachos-listos');
+    Route::post('orden-trabajos/despachos', [OrdenTrabajoController::class, 'storeDespacho'])->name('orden-trabajos.store-despacho');
 
     // Sin "create": un mantenimiento solo se origina desde "Agendar Mantenimiento".
     Route::resource('mantenimientos', MantenimientoController::class)->only(['index', 'update', 'destroy']);
@@ -78,8 +84,13 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('calibraciones', CalibracionController::class)
         ->parameters(['calibraciones' => 'calibracion'])
         ->only(['index', 'update', 'destroy']);
+    // Sin "create": un despacho solo se origina al finalizar una calibración.
+    Route::resource('despachos', DespachoController::class)->only(['index', 'update', 'destroy']);
+
     Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
     Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');
+    Route::post('calibraciones/{calibracion}/iniciar', [CalibracionController::class, 'iniciar'])->name('calibraciones.iniciar');
+    Route::post('calibraciones/{calibracion}/finalizar', [CalibracionController::class, 'finalizar'])->name('calibraciones.finalizar');
 
     // Borrado individual de lo registrado en la gestión de un mantenimiento (ver
     // GestionarMantenimientoModal): el checklist, un nuevo defecto/ítem usado/comentario/
@@ -115,6 +126,18 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::resource('procedimientos-calibracion', ProcedimientoCalibracionController::class)
         ->parameters(['procedimientos-calibracion' => 'procedimientoCalibracion'])
+        ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::resource('alcances-medicion', MedicionAlcanceController::class)
+        ->parameters(['alcances-medicion' => 'medicionAlcance'])
+        ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::post('alcances-medicion/{medicionAlcance}/detalles', [DetalleMedicionAlcanceController::class, 'store'])->name('alcances-medicion.detalles.store');
+    Route::put('detalles-alcance/{detalleMedicionAlcance}', [DetalleMedicionAlcanceController::class, 'update'])->name('detalles-alcance.update');
+    Route::delete('detalles-alcance/{detalleMedicionAlcance}', [DetalleMedicionAlcanceController::class, 'destroy'])->name('detalles-alcance.destroy');
+
+    Route::resource('novedades', NovedadController::class)
+        ->parameters(['novedades' => 'novedad'])
         ->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('tipos-magnitud', TipoMagnitudController::class)

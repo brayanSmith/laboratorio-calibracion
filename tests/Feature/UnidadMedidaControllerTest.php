@@ -59,7 +59,7 @@ function registrarMedicionCalibracionConUnidadMedida(UnidadMedida $unidadMedida)
         'error_porcentaje' => 0,
         'emp_porcentaje_positivo' => 1,
         'emp_porcentaje_negativo' => 1,
-        'resultado_calibracion' => 1,
+        'resultado_calibracion' => 'APROBADO',
         'tenant_id' => $unidadMedida->tenant_id,
     ]);
 }

@@ -14,14 +14,15 @@ use Illuminate\Support\Carbon;
  * @property int $detalle_medicion_alcance_id
  * @property string $valor_referencia
  * @property int $unidad_medida_id
- * @property string $valor_instrumento
- * @property string $error_encontrado
+ * @property string|null $valor_instrumento Se completa cuando se realiza la medición real
+ * @property string|null $error_encontrado Se completa cuando se realiza la medición real
  * @property string $emp
  * @property string $incertidumbre
- * @property string $error_porcentaje
- * @property string $emp_porcentaje_positivo
- * @property string $emp_porcentaje_negativo
- * @property string $resultado_calibracion
+ * @property string|null $error_porcentaje Se completa cuando se realiza la medición real
+ * @property string|null $emp_porcentaje Se completa cuando se realiza la medición real
+ * @property string|null $emp_porcentaje_positivo Se completa cuando se realiza la medición real
+ * @property string|null $emp_porcentaje_negativo Se completa cuando se realiza la medición real
+ * @property string|null $resultado_calibracion APROBADO si error_encontrado <= emp, NO_APROBADO si no; se completa cuando se realiza la medición real
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -34,7 +35,8 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'calibracion_id', 'detalle_medicion_alcance_id', 'valor_referencia', 'unidad_medida_id',
     'valor_instrumento', 'error_encontrado', 'emp', 'incertidumbre', 'error_porcentaje',
-    'emp_porcentaje_positivo', 'emp_porcentaje_negativo', 'resultado_calibracion', 'tenant_id',
+    'emp_porcentaje', 'emp_porcentaje_positivo', 'emp_porcentaje_negativo', 'resultado_calibracion',
+    'tenant_id',
 ])]
 class DetalleMedicionCalibracion extends Model
 {
@@ -94,9 +96,9 @@ class DetalleMedicionCalibracion extends Model
             'emp' => 'decimal:2',
             'incertidumbre' => 'decimal:2',
             'error_porcentaje' => 'decimal:2',
+            'emp_porcentaje' => 'decimal:2',
             'emp_porcentaje_positivo' => 'decimal:2',
             'emp_porcentaje_negativo' => 'decimal:2',
-            'resultado_calibracion' => 'decimal:2',
         ];
     }
 }

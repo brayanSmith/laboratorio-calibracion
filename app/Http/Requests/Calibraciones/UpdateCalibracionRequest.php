@@ -25,7 +25,6 @@ class UpdateCalibracionRequest extends FormRequest
     {
         $this->merge([
             'ajustes_requeridos' => $this->boolean('ajustes_requeridos'),
-            'firmado' => $this->boolean('firmado'),
         ]);
     }
 
@@ -41,6 +40,7 @@ class UpdateCalibracionRequest extends FormRequest
         $tenantId = $calibracion->tenant_id;
 
         return [
+            'fecha_calibracion' => ['required', 'date'],
             'tecnico_id' => ['required', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
             'laboratorio_id' => [
                 'nullable',
@@ -57,12 +57,16 @@ class UpdateCalibracionRequest extends FormRequest
             'temperatura' => ['nullable', 'numeric'],
             'humedad' => ['nullable', 'numeric'],
             'ajustes_requeridos' => ['boolean'],
-            'estado_calibracion' => ['required', Rule::in(['PENDIENTE', 'EN_PROCESO', 'FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])],
-            'firmado' => ['boolean'],
             'novedad_id' => [
                 'nullable',
                 Rule::exists('novedads', 'id')->where('tenant_id', $tenantId)->where('categoria', 'CALIBRACION')->whereNull('deleted_at'),
             ],
+            'detalles' => ['array'],
+            'detalles.*.id' => [
+                'required',
+                Rule::exists('detalle_medicion_calibracions', 'id')->where('calibracion_id', $calibracion->id),
+            ],
+            'detalles.*.valor_instrumento' => ['nullable', 'numeric'],
         ];
     }
 
@@ -74,13 +78,13 @@ class UpdateCalibracionRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'fecha_calibracion' => 'fecha de la calibración',
             'tecnico_id' => 'técnico',
             'laboratorio_id' => 'laboratorio',
             'solicitante_id' => 'solicitante',
             'procedimiento_id' => 'procedimiento',
             'temperatura' => 'temperatura',
             'humedad' => 'humedad',
-            'estado_calibracion' => 'estado de la calibración',
             'novedad_id' => 'novedad',
         ];
     }

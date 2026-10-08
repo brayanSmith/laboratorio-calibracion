@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('orden_trabajos', function (Blueprint $table) {
             $table->id();
             $table->string('codigo');
-            $table->foreignId('despacho_id')->nullable()->constrained('despachos')->onDelete('cascade');
             $table->foreignId('equipo_programacion_id')->constrained('equipo_programacions')->onDelete('cascade');
             $table->date('fecha_programada_orden_trabajo');
             $table->enum('estado', ['EN_BAHIA', 'INGRESADO', 'EN_MANTENIMIENTO', 'EN_CALIBRACION', 'FINALIZADO', 'ENTREGADO']);
@@ -22,6 +21,10 @@ return new class extends Migration
             $table->boolean('listo_para_mantenimiento')->default(false);
             $table->boolean('mantenimiento_asignado_tercero')->default(false);
             $table->boolean('mantenimiento_finalizado')->default(false);
+            // Se marca al crearse por una calibración devuelta a mantenimiento (ver
+            // CalibracionController::finalizar()), para identificarla en "Agendar
+            // Mantenimiento".
+            $table->boolean('devolucion')->default(false);
 
             $table->boolean('listo_para_calibracion')->default(false);
             $table->boolean('calibracion_asignado_tercero')->default(false);

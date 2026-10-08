@@ -50,6 +50,7 @@ test('lista los equipos recibidos sin orden de trabajo para agendar mantenimient
         'equipo_programacion_id' => $yaAgendado->id,
         'fecha_programada_orden_trabajo' => now()->toDateString(),
         'estado' => 'EN_BAHIA',
+        'listo_para_mantenimiento' => true,
         'tenant_id' => $this->tenant->id,
     ]);
 
@@ -58,7 +59,93 @@ test('lista los equipos recibidos sin orden de trabajo para agendar mantenimient
         ->assertOk()
         ->assertJsonCount(1)
         ->assertJsonPath('0.id', $listo->id)
+        ->assertJsonPath('0.devolucion', false)
         ->assertJsonPath('0.equipo.codigo', 'EQ-LISTO');
+});
+
+test('un equipo vuelve a aparecer si su orden de trabajo no esta agendada todavia', function () {
+    $devuelto = crearEquipoRecibido($this->bahia, 'EQ-DEVUELTO');
+
+    // La orden anterior ya se trabajó (mantenimiento y calibración finalizados) pero la
+    // calibración se devolvió a mantenimiento, lo que crea esta orden nueva sin agendar
+    // (ver CalibracionController::finalizar()).
+    OrdenTrabajo::create([
+        'codigo' => 'OT-0001',
+        'equipo_programacion_id' => $devuelto->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'FINALIZADO',
+        'listo_para_mantenimiento' => true,
+        'mantenimiento_finalizado' => true,
+        'calibracion_finalizado' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+    OrdenTrabajo::create([
+        'codigo' => 'OT-0002',
+        'equipo_programacion_id' => $devuelto->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'EN_BAHIA',
+        'devolucion' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.equipos-listos'))
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.id', $devuelto->id)
+        ->assertJsonPath('0.devolucion', true);
+});
+
+test('al agendar una orden por devolucion reutiliza esa orden en vez de crear otra', function () {
+    $devuelto = crearEquipoRecibido($this->bahia, 'EQ-DEVUELTO');
+
+    OrdenTrabajo::create([
+        'codigo' => 'OT-0001',
+        'equipo_programacion_id' => $devuelto->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'FINALIZADO',
+        'listo_para_mantenimiento' => true,
+        'mantenimiento_finalizado' => true,
+        'calibracion_finalizado' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $ordenDevolucion = OrdenTrabajo::create([
+        'codigo' => 'OT-0002',
+        'equipo_programacion_id' => $devuelto->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'EN_BAHIA',
+        'devolucion' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('orden-trabajos.store'), [
+            'equipos_listos' => [
+                $devuelto->id => [
+                    'listo_para_mantenimiento' => '1',
+                    'mantenimiento_asignado_tercero' => '0',
+                    'tecnico_id' => $this->admin->id,
+                    'novedad_id' => $this->novedadMantenimiento->id,
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    // Reutiliza la orden de la devolución (mismo id y código) en vez de crear una nueva.
+    expect(OrdenTrabajo::where('equipo_programacion_id', $devuelto->id)->count())->toBe(2);
+    expect($ordenDevolucion->refresh())
+        ->listo_para_mantenimiento->toBeTrue()
+        ->devolucion->toBeTrue()
+        ->codigo->toBe('OT-0002');
+
+    $mantenimiento = Mantenimiento::where('orden_trabajo_id', $ordenDevolucion->id)->firstOrFail();
+    expect($mantenimiento->tecnico_id)->toBe($this->admin->id);
+
+    // Ya agendada, no debe volver a aparecer en "Agendar Mantenimiento".
+    $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.equipos-listos'))
+        ->assertOk()
+        ->assertJsonCount(0);
 });
 
 test('no incluye equipos recibidos de otro tenant en la lista para agendar mantenimiento', function () {

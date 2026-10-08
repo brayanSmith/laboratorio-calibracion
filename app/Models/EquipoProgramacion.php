@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -108,6 +109,24 @@ class EquipoProgramacion extends Model
     public function ordenesTrabajo(): HasMany
     {
         return $this->hasMany(OrdenTrabajo::class);
+    }
+
+    /**
+     * Scope a query to the programaciones listas para "Agendar Mantenimiento" (ver
+     * OrdenTrabajoController::equiposListos()): ya ingresadas y sin una orden de
+     * trabajo agendada todavía (sea porque no tienen ninguna, o porque la que tienen
+     * es un placeholder de devolución pendiente de agendar).
+     *
+     * @param  Builder<EquipoProgramacion>  $query
+     */
+    public function scopeListosParaMantenimiento(Builder $query, int $tenantId): void
+    {
+        $query->where('tenant_id', $tenantId)
+            ->where('ingresado', true)
+            ->where(fn ($q) => $q
+                ->whereDoesntHave('ordenesTrabajo')
+                ->orWhereHas('ordenesTrabajo', fn ($q2) => $q2->where('listo_para_mantenimiento', false)))
+            ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'));
     }
 
     /**

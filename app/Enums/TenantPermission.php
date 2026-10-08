@@ -31,6 +31,12 @@ enum TenantPermission: string
     case CalibracionesEditar = 'calibraciones.editar';
     case CalibracionesEliminar = 'calibraciones.eliminar';
 
+    // Sin "crear": un despacho solo se origina al finalizar una calibración (ver
+    // CalibracionController::finalizar()), no tiene un formulario de creación propio.
+    case DespachosVer = 'despachos.ver';
+    case DespachosEditar = 'despachos.editar';
+    case DespachosEliminar = 'despachos.eliminar';
+
     case TiposEquipoVer = 'tipos-equipo.ver';
     case TiposEquipoCrear = 'tipos-equipo.crear';
     case TiposEquipoEditar = 'tipos-equipo.editar';
@@ -70,6 +76,16 @@ enum TenantPermission: string
     case ProcedimientosCalibracionCrear = 'procedimientos-calibracion.crear';
     case ProcedimientosCalibracionEditar = 'procedimientos-calibracion.editar';
     case ProcedimientosCalibracionEliminar = 'procedimientos-calibracion.eliminar';
+
+    case AlcancesMedicionVer = 'alcances-medicion.ver';
+    case AlcancesMedicionCrear = 'alcances-medicion.crear';
+    case AlcancesMedicionEditar = 'alcances-medicion.editar';
+    case AlcancesMedicionEliminar = 'alcances-medicion.eliminar';
+
+    case NovedadesVer = 'novedades.ver';
+    case NovedadesCrear = 'novedades.crear';
+    case NovedadesEditar = 'novedades.editar';
+    case NovedadesEliminar = 'novedades.eliminar';
 
     case TiposMagnitudVer = 'tipos-magnitud.ver';
     case TiposMagnitudCrear = 'tipos-magnitud.crear';
@@ -113,6 +129,9 @@ enum TenantPermission: string
             self::CalibracionesVer,
             self::CalibracionesEditar,
             self::CalibracionesEliminar => 'Calibraciones',
+            self::DespachosVer,
+            self::DespachosEditar,
+            self::DespachosEliminar => 'Despachos',
             self::TiposEquipoVer,
             self::TiposEquipoCrear,
             self::TiposEquipoEditar,
@@ -145,6 +164,14 @@ enum TenantPermission: string
             self::ProcedimientosCalibracionCrear,
             self::ProcedimientosCalibracionEditar,
             self::ProcedimientosCalibracionEliminar => 'Procedimientos de calibración',
+            self::AlcancesMedicionVer,
+            self::AlcancesMedicionCrear,
+            self::AlcancesMedicionEditar,
+            self::AlcancesMedicionEliminar => 'Alcances de medición',
+            self::NovedadesVer,
+            self::NovedadesCrear,
+            self::NovedadesEditar,
+            self::NovedadesEliminar => 'Novedades',
             self::TiposMagnitudVer,
             self::TiposMagnitudCrear,
             self::TiposMagnitudEditar,
@@ -186,6 +213,9 @@ enum TenantPermission: string
             self::CalibracionesVer => 'Ver calibraciones',
             self::CalibracionesEditar => 'Editar calibraciones',
             self::CalibracionesEliminar => 'Eliminar calibraciones',
+            self::DespachosVer => 'Ver despachos',
+            self::DespachosEditar => 'Editar despachos',
+            self::DespachosEliminar => 'Eliminar despachos',
             self::TiposEquipoVer => 'Ver tipos de equipo',
             self::TiposEquipoCrear => 'Crear tipos de equipo',
             self::TiposEquipoEditar => 'Editar tipos de equipo',
@@ -218,6 +248,14 @@ enum TenantPermission: string
             self::ProcedimientosCalibracionCrear => 'Crear procedimientos de calibración',
             self::ProcedimientosCalibracionEditar => 'Editar procedimientos de calibración',
             self::ProcedimientosCalibracionEliminar => 'Eliminar procedimientos de calibración',
+            self::AlcancesMedicionVer => 'Ver alcances de medición',
+            self::AlcancesMedicionCrear => 'Crear alcances de medición',
+            self::AlcancesMedicionEditar => 'Editar alcances de medición',
+            self::AlcancesMedicionEliminar => 'Eliminar alcances de medición',
+            self::NovedadesVer => 'Ver novedades',
+            self::NovedadesCrear => 'Crear novedades',
+            self::NovedadesEditar => 'Editar novedades',
+            self::NovedadesEliminar => 'Eliminar novedades',
             self::TiposMagnitudVer => 'Ver tipos de magnitud',
             self::TiposMagnitudCrear => 'Crear tipos de magnitud',
             self::TiposMagnitudEditar => 'Editar tipos de magnitud',

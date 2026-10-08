@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\DetalleMedicionAlcanceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -26,7 +29,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['medicion_alcance_id', 'unidad_medida_id', 'valor_instrumento', 'emp', 'incertidumbre', 'tenant_id'])]
 class DetalleMedicionAlcance extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<DetalleMedicionAlcanceFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * Get the medicion de alcance this detalle belongs to.
@@ -46,6 +50,16 @@ class DetalleMedicionAlcance extends Model
     public function unidadMedida(): BelongsTo
     {
         return $this->belongsTo(UnidadMedida::class);
+    }
+
+    /**
+     * Get the mediciones de calibración based on this detalle.
+     *
+     * @return HasMany<DetalleMedicionCalibracion, $this>
+     */
+    public function detalleMedicionCalibracion(): HasMany
+    {
+        return $this->hasMany(DetalleMedicionCalibracion::class);
     }
 
     /**

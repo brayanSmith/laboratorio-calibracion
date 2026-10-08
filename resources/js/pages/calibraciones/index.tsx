@@ -1,11 +1,12 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
+import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,11 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { colorEstadoCalibracion } from '@/lib/estados-calibracion';
 import { index } from '@/routes/calibraciones';
 import type { Calibracion, CalibracionOptions } from '@/types';
+
+/** Convierte un ISO string a Date, o null si no hay nada que convertir. */
+function toDateOrNull(value: string | null): Date | null {
+    return value ? new Date(value) : null;
+}
 
 type Props = CalibracionOptions & {
     calibraciones: Calibracion[];
@@ -45,6 +51,12 @@ export default function CalibracionesIndex({
     const [editOpen, setEditOpen] = useState(false);
     const [deleting, setDeleting] = useState<Calibracion | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [iniciandoId, setIniciandoId] = useState<number | null>(null);
+    const iniciando =
+        calibraciones.find((calibracion) => calibracion.id === iniciandoId) ??
+        null;
+    const [iniciarOpen, setIniciarOpen] = useState(false);
+    const [iniciadoEn, setIniciadoEn] = useState<Date | null>(null);
 
     const columns = useMemo(
         () =>
@@ -90,6 +102,38 @@ export default function CalibracionesIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
+                            {canEdit && row.original.tiempo_servicio_inicio ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="calibracion-continuar-button"
+                                    onClick={() => {
+                                        setEditingId(row.original.id);
+                                        setIniciadoEn(
+                                            toDateOrNull(
+                                                row.original
+                                                    .tiempo_servicio_inicio,
+                                            ),
+                                        );
+                                        setEditOpen(true);
+                                    }}
+                                >
+                                    <Play className="h-4 w-4" /> Continuar
+                                </Button>
+                            ) : null}
+                            {canEdit && !row.original.tiempo_servicio_inicio ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="calibracion-iniciar-button"
+                                    onClick={() => {
+                                        setIniciandoId(row.original.id);
+                                        setIniciarOpen(true);
+                                    }}
+                                >
+                                    <Play className="h-4 w-4" /> Iniciar
+                                </Button>
+                            ) : null}
                             {canEdit ? (
                                 <Button
                                     variant="ghost"
@@ -97,6 +141,12 @@ export default function CalibracionesIndex({
                                     data-test="calibracion-edit-button"
                                     onClick={() => {
                                         setEditingId(row.original.id);
+                                        setIniciadoEn(
+                                            toDateOrNull(
+                                                row.original
+                                                    .tiempo_servicio_inicio,
+                                            ),
+                                        );
                                         setEditOpen(true);
                                     }}
                                 >
@@ -152,6 +202,7 @@ export default function CalibracionesIndex({
                 areas={areas}
                 procedimientos={procedimientos}
                 novedadesCalibracion={novedadesCalibracion}
+                iniciadoEn={iniciadoEn}
                 open={editOpen}
                 onOpenChange={setEditOpen}
             />
@@ -159,6 +210,11 @@ export default function CalibracionesIndex({
                 calibracion={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            <IniciarCalibracionModal
+                calibracion={iniciando}
+                open={iniciarOpen}
+                onOpenChange={setIniciarOpen}
             />
         </>
     );

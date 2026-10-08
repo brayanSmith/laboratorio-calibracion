@@ -44,6 +44,7 @@ function registrarDespachoDeCliente(Cliente $cliente): Despacho
     return Despacho::create([
         'tecnico_entrega_id' => 1,
         'cliente_recibe_id' => $cliente->id,
+        'orden_trabajo_id' => 1,
         'novedad_id' => 1,
         'tenant_id' => $cliente->tenant_id,
     ]);

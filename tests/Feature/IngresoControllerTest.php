@@ -317,10 +317,8 @@ test('no elimina un ingreso que tiene ordenes de trabajo asociadas', function ()
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo, ['ingreso_id' => $ingreso->id]);
 
-    DB::statement('PRAGMA defer_foreign_keys = ON');
     DB::table('orden_trabajos')->insert([
         'codigo' => 'OT-1',
-        'despacho_id' => 1,
         'equipo_programacion_id' => $programacion->id,
         'fecha_programada_orden_trabajo' => '2026-09-01',
         'estado' => 'INGRESADO',

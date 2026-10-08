@@ -88,9 +88,12 @@ export type EquipoDisponibleItem = {
     modelo: string;
 };
 
-/** Equipo ya recibido (ingresado) y sin orden de trabajo, para "Agendar Mantenimiento". */
+/** Equipo ya recibido (ingresado) y sin orden de trabajo agendada, para "Agendar
+ * Mantenimiento". */
 export type EquipoListoParaMantenimientoItem = {
     id: number;
+    /** True si esta orden de trabajo nació de una calibración devuelta a mantenimiento. */
+    devolucion: boolean;
     equipo: EquipoProgramacionBusquedaItem['equipo'];
 };
 
@@ -98,6 +101,14 @@ export type EquipoListoParaMantenimientoItem = {
  * Calibraciones". */
 export type OrdenListaParaCalibracionItem = {
     id: number;
+    equipo: EquipoProgramacionBusquedaItem['equipo'];
+};
+
+/** Despacho creado al finalizar una calibración, sin técnico de entrega todavía, para
+ * "Agendar Despachos". */
+export type DespachoListoItem = {
+    id: number;
+    entrega_autorizada: boolean;
     equipo: EquipoProgramacionBusquedaItem['equipo'];
 };
 

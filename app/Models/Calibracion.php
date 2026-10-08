@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property int $orden_trabajo_id
+ * @property Carbon $fecha_calibracion
  * @property int|null $laboratorio_id Se completa cuando se realiza la calibración
  * @property int|null $solicitante_id Se completa cuando se realiza la calibración
  * @property int $tecnico_id
@@ -32,10 +35,11 @@ use Illuminate\Support\Carbon;
  * @property-read ProcedimientoCalibracion|null $procedimiento
  * @property-read Novedad|null $novedad
  * @property-read Tenant $tenant
+ * @property-read Collection<int, DetalleMedicionCalibracion> $detalleMedicionCalibracion
  */
 #[Fillable([
-    'orden_trabajo_id', 'laboratorio_id', 'solicitante_id', 'tecnico_id', 'temperatura',
-    'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion',
+    'orden_trabajo_id', 'fecha_calibracion', 'laboratorio_id', 'solicitante_id', 'tecnico_id',
+    'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion',
     'firmado', 'novedad_id', 'tenant_id',
 ])]
 class Calibracion extends Model
@@ -113,6 +117,16 @@ class Calibracion extends Model
     }
 
     /**
+     * Get the detalles de medicion of this calibracion.
+     *
+     * @return HasMany<DetalleMedicionCalibracion, $this>
+     */
+    public function detalleMedicionCalibracion(): HasMany
+    {
+        return $this->hasMany(DetalleMedicionCalibracion::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -120,6 +134,7 @@ class Calibracion extends Model
     protected function casts(): array
     {
         return [
+            'fecha_calibracion' => 'date',
             'temperatura' => 'decimal:2',
             'humedad' => 'decimal:2',
             'ajustes_requeridos' => 'boolean',
