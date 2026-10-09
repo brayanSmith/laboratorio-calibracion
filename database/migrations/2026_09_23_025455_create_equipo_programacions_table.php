@@ -41,6 +41,8 @@ return new class extends Migration
             $table->text('observacion_no_ingreso')->nullable(); // Detalle adicional opcional
             $table->boolean('re_agendar')->default(false); // Solo tiene sentido junto con novedad_ingreso_id
             $table->json('datos_re_agendamiento')->nullable(); // Fecha del próximo agendamiento, si re_agendar es true
+            $table->enum('fase_programacion', ['PENDIENTE', 'INGRESO', 'MANTENIMIENTO', 'CALIBRACION', 'DESPACHO'])->default('INGRESO');
+            $table->string('subfase_programacion')->nullable(); // Subfase de la fase_programacion, ej: "RECEPCION", "EQUIPO EN PROCESO", "EQUIPO LISTO PARA DESPACHO"
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

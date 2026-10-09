@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { actualizarEstado } from '@/actions/App/Http/Controllers/IngresoController';
 import Combobox from '@/components/combobox';
@@ -12,6 +12,11 @@ import {
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     Dialog,
     DialogClose,
@@ -469,9 +474,11 @@ type EquipoRecibidoProps = {
 
 /**
  * Una fila de equipo programado ya enlazado al ingreso, con su toggle de "ingresado".
- * Por defecto llega en true (se espera que todo lo agendado se reciba), pero si se
- * desmarca se trata como un cancelado: pide la novedad y permite registrar el
- * re-agendamiento, igual que antes se hacía desde el formulario del ingreso.
+ * Por defecto llega en true (se espera que todo lo agendado se reciba). La novedad y su
+ * observación se pueden anotar en ambos casos (ej. llegó pero sin una pieza); si está
+ * ingresado quedan ocultas detrás de un colapsable para ahorrar espacio (la mayoría no
+ * tiene novedad), mientras que si no, se muestran de una vez porque son el motivo de la
+ * cancelación. El re-agendamiento solo tiene sentido si se desmarca.
  */
 function EquipoRecibido({
     item,
@@ -485,12 +492,63 @@ function EquipoRecibido({
     const [observacion, setObservacion] = useState(
         item.observacion_no_ingreso ?? '',
     );
+    const [novedadAbierta, setNovedadAbierta] = useState(
+        Boolean(item.novedad_ingreso_id || item.observacion_no_ingreso),
+    );
     const [reAgendar, setReAgendar] = useState(item.re_agendar);
     const [fechaAgendamiento, setFechaAgendamiento] = useState(
         item.datos_re_agendamiento?.fecha_proximo_agendamiento ?? '',
     );
 
     const prefijo = `equipos_recibidos.${item.id}`;
+
+    const camposNovedad = (
+        <>
+            <div className="grid gap-2">
+                <Label
+                    htmlFor={`novedad-ingreso-${item.id}`}
+                    className="text-xs"
+                >
+                    {ingresado ? 'Novedad (opcional)' : 'Motivo de no ingreso'}
+                </Label>
+                <Combobox
+                    id={`novedad-ingreso-${item.id}`}
+                    value={novedadIngresoId}
+                    onValueChange={setNovedadIngresoId}
+                    options={novedadesIngreso.map((option) => ({
+                        id: option.id,
+                        label: option.nombre,
+                    }))}
+                    placeholder="Selecciona un motivo"
+                    searchPlaceholder="Buscar motivo..."
+                />
+                <InputError message={errors[`${prefijo}.novedad_ingreso_id`]} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label
+                    htmlFor={`observacion-no-ingreso-${item.id}`}
+                    className="text-xs"
+                >
+                    Observación (opcional)
+                </Label>
+                <Textarea
+                    id={`observacion-no-ingreso-${item.id}`}
+                    value={observacion}
+                    onChange={(event) => setObservacion(event.target.value)}
+                    placeholder={
+                        ingresado
+                            ? 'Ej. llegó sin una pieza'
+                            : 'Detalla el motivo de la cancelación'
+                    }
+                    rows={2}
+                />
+                <InputError
+                    message={errors[`${prefijo}.observacion_no_ingreso`]}
+                />
+            </div>
+        </>
+    );
 
     return (
         <li
@@ -519,53 +577,27 @@ function EquipoRecibido({
                 />
             </div>
 
-            {!ingresado ? (
+            {ingresado ? (
+                <Collapsible
+                    open={novedadAbierta}
+                    onOpenChange={setNovedadAbierta}
+                >
+                    <CollapsibleTrigger
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        data-test="novedad-ingreso-trigger"
+                    >
+                        <ChevronRight
+                            className={`h-3 w-3 transition-transform ${novedadAbierta ? 'rotate-90' : ''}`}
+                        />
+                        ¿Deseas agregar una novedad?
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-2 rounded-md bg-muted/40 p-2">
+                        {camposNovedad}
+                    </CollapsibleContent>
+                </Collapsible>
+            ) : (
                 <div className="space-y-2 rounded-md bg-muted/40 p-2">
-                    <div className="grid gap-2">
-                        <Label
-                            htmlFor={`novedad-ingreso-${item.id}`}
-                            className="text-xs"
-                        >
-                            Motivo de no ingreso
-                        </Label>
-                        <Combobox
-                            id={`novedad-ingreso-${item.id}`}
-                            value={novedadIngresoId}
-                            onValueChange={setNovedadIngresoId}
-                            options={novedadesIngreso.map((option) => ({
-                                id: option.id,
-                                label: option.nombre,
-                            }))}
-                            placeholder="Selecciona un motivo"
-                            searchPlaceholder="Buscar motivo..."
-                        />
-                        <InputError
-                            message={errors[`${prefijo}.novedad_ingreso_id`]}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label
-                            htmlFor={`observacion-no-ingreso-${item.id}`}
-                            className="text-xs"
-                        >
-                            Observación (opcional)
-                        </Label>
-                        <Textarea
-                            id={`observacion-no-ingreso-${item.id}`}
-                            value={observacion}
-                            onChange={(event) =>
-                                setObservacion(event.target.value)
-                            }
-                            placeholder="Detalla el motivo de la cancelación"
-                            rows={2}
-                        />
-                        <InputError
-                            message={
-                                errors[`${prefijo}.observacion_no_ingreso`]
-                            }
-                        />
-                    </div>
+                    {camposNovedad}
 
                     <div className="flex items-center gap-2">
                         <Checkbox
@@ -610,25 +642,25 @@ function EquipoRecibido({
                         </div>
                     ) : null}
                 </div>
-            ) : null}
+            )}
 
             <input
                 type="hidden"
                 name={`equipos_recibidos[${item.id}][ingresado]`}
                 value={ingresado ? '1' : '0'}
             />
+            <input
+                type="hidden"
+                name={`equipos_recibidos[${item.id}][novedad_ingreso_id]`}
+                value={novedadIngresoId}
+            />
+            <input
+                type="hidden"
+                name={`equipos_recibidos[${item.id}][observacion_no_ingreso]`}
+                value={observacion}
+            />
             {!ingresado ? (
                 <>
-                    <input
-                        type="hidden"
-                        name={`equipos_recibidos[${item.id}][novedad_ingreso_id]`}
-                        value={novedadIngresoId}
-                    />
-                    <input
-                        type="hidden"
-                        name={`equipos_recibidos[${item.id}][observacion_no_ingreso]`}
-                        value={observacion}
-                    />
                     <input
                         type="hidden"
                         name={`equipos_recibidos[${item.id}][re_agendar]`}

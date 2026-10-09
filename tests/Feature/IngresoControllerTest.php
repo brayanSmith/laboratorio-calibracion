@@ -218,7 +218,8 @@ test('agenda un equipo correctivo al crear el ingreso y lo enlaza con su ingreso
         ->tipo_mantenimiento->toBe('CORRECTIVO')
         ->tipo_servicio->toBe('MANTENIMIENTO,CALIBRACION')
         ->falla_detectada->toBe('El equipo no enciende')
-        ->estado_programacion->toBe('AGENDADO');
+        ->estado_programacion->toBe('AGENDADO')
+        ->subfase_programacion->toBe('Ingresado');
 });
 
 test('no enlaza una programacion marcada con agendar=false al crear el ingreso', function () {
@@ -239,7 +240,9 @@ test('no enlaza una programacion marcada con agendar=false al crear el ingreso',
     expect($programacion->fresh())
         ->ingreso_id->toBeNull()
         ->estado_programacion->toBe('PENDIENTE')
-        ->agendar->toBeFalse();
+        ->agendar->toBeFalse()
+        ->fase_programacion->toBe('PENDIENTE')
+        ->subfase_programacion->toBeNull();
 });
 
 test('agenda y enlaza una programacion marcada con agendar=true al editar el ingreso', function () {
@@ -258,7 +261,9 @@ test('agenda y enlaza una programacion marcada con agendar=true al editar el ing
     expect($programacion->fresh())
         ->ingreso_id->toBe($ingreso->id)
         ->estado_programacion->toBe('AGENDADO')
-        ->agendar->toBeTrue();
+        ->agendar->toBeTrue()
+        ->fase_programacion->toBe('INGRESO')
+        ->subfase_programacion->toBe('Ingresado');
 });
 
 test('un usuario sin permiso de editar equipos no puede tocar programaciones al crear un ingreso', function () {
@@ -383,6 +388,38 @@ test('mantiene agendado un equipo programado marcado como ingresado al recibir e
         ->estado_programacion->toBe('AGENDADO');
 });
 
+test('anota una novedad en un equipo marcado como ingresado, por ejemplo si llego incompleto', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $novedad = Novedad::create(['nombre' => 'Llegó sin una pieza', 'categoria' => 'INGRESO', 'tenant_id' => $this->tenant->id]);
+    $programacion = crearProgramacion($equipo, [
+        'ingreso_id' => $ingreso->id,
+        'agendar' => true,
+        'estado_programacion' => 'AGENDADO',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_recibidos' => [
+                $programacion->id => [
+                    'ingresado' => '1',
+                    'novedad_ingreso_id' => $novedad->id,
+                    'observacion_no_ingreso' => 'Llegó sin un cable',
+                ],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($programacion->fresh())
+        ->ingresado->toBeTrue()
+        ->estado_programacion->toBe('AGENDADO')
+        ->novedad_ingreso_id->toBe($novedad->id)
+        ->observacion_no_ingreso->toBe('Llegó sin un cable');
+});
+
 test('marca un equipo programado como no ingresado, dejandolo cancelado con su novedad', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
@@ -411,6 +448,7 @@ test('marca un equipo programado como no ingresado, dejandolo cancelado con su n
     expect($programacion->fresh())
         ->ingresado->toBeFalse()
         ->estado_programacion->toBe('CANCELADO')
+        ->subfase_programacion->toBe('Pendiente')
         ->novedad_ingreso_id->toBe($novedad->id)
         ->observacion_no_ingreso->toBe('El cliente no trajo el equipo');
 });

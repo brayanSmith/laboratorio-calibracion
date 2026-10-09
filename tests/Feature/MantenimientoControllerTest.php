@@ -2,9 +2,11 @@
 
 use App\Enums\TenantRole;
 use App\Models\Bahia;
+use App\Models\EmpresaTercero;
 use App\Models\Mantenimiento;
 use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
+use App\Models\ServicioTercero;
 use App\Models\Tenant;
 use App\Models\TiempoServicio;
 use App\Models\User;
@@ -50,6 +52,35 @@ test('lista solo los mantenimientos del tenant', function () {
             ->where('mantenimientos.0.id', $mantenimiento->id)
             ->where('mantenimientos.0.tecnico_nombre', $mantenimiento->tecnico->name)
             ->where('mantenimientos.0.equipo.codigo', $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->codigo));
+});
+
+test('lista solo los servicios de tercero de mantenimiento del tenant', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $servicio = ServicioTercero::create([
+        'orden_trabajo_id' => $mantenimiento->orden_trabajo_id,
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'empresa_tercero_id' => $empresa->id,
+        'estado_final_equipo' => 'APROBADO',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    ServicioTercero::create([
+        'orden_trabajo_id' => $mantenimiento->orden_trabajo_id,
+        'tipo_servicio' => 'CALIBRACION',
+        'empresa_tercero_id' => $empresa->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('serviciosTerceros', 1)
+            ->where('serviciosTerceros.0.id', $servicio->id)
+            ->where('serviciosTerceros.0.empresa_tercero_nombre', $empresa->nombre)
+            ->where('serviciosTerceros.0.estado_final_equipo', 'APROBADO')
+            ->where('serviciosTerceros.0.re_agendar', false));
 });
 
 test('actualiza un mantenimiento sin tocar su tipo_mantenimiento', function () {
@@ -300,4 +331,33 @@ test('un usuario de recepcion puede ver los mantenimientos pero no editarlos ni 
 test('un invitado no puede ver los mantenimientos', function () {
     $this->get(route('mantenimientos.index'))
         ->assertRedirect(route('login'));
+});
+
+test('comparte los mantenimientos pendientes en local y en tercero para el menu', function () {
+    crearMantenimiento($this->bahia, [], 'EQ-P1');
+    crearMantenimiento($this->bahia, [], 'EQ-P2');
+    crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO'], 'EQ-P3');
+    crearMantenimiento(Bahia::factory()->create(), [], 'EQ-AJENO2');
+
+    $conServicio = crearMantenimiento($this->bahia, [], 'EQ-P4');
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id]);
+    $datosServicio = [
+        'orden_trabajo_id' => $conServicio->orden_trabajo_id,
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'empresa_tercero_id' => $empresa->id,
+        'tenant_id' => $this->tenant->id,
+    ];
+    ServicioTercero::create($datosServicio);
+    ServicioTercero::create([...$datosServicio, 'estado_final_equipo' => 'APROBADO']);
+    ServicioTercero::create([...$datosServicio, 'tipo_servicio' => 'CALIBRACION']);
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('pendientes.mantenimientos.local', 3)
+            ->where('pendientes.mantenimientos.tercero', 1)
+            ->where('pendientes.calibraciones.local', 0)
+            ->where('pendientes.calibraciones.tercero', 1)
+            ->where('pendientes.despachos', 0)
+            ->where('pendientes.ingresos', 0));
 });

@@ -9,12 +9,20 @@ import DeleteMantenimientoModal from '@/components/mantenimientos/delete-manteni
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
 import GestionarMantenimientoModal from '@/components/mantenimientos/gestionar-mantenimiento-modal';
 import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mantenimiento-modal';
+import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
+import TabCountBadge from '@/components/tab-count-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
 import { colorEstadoMantenimiento } from '@/lib/estados-mantenimiento';
 import { index } from '@/routes/mantenimientos';
-import type { Mantenimiento, MantenimientoOptions } from '@/types';
+import type {
+    Mantenimiento,
+    MantenimientoOption,
+    MantenimientoOptions,
+    ServicioTerceroListado,
+} from '@/types';
 
 /** Convierte un ISO string a Date, o null si no hay nada que convertir. */
 function toDateOrNull(value: string | null): Date | null {
@@ -23,10 +31,11 @@ function toDateOrNull(value: string | null): Date | null {
 
 type Props = MantenimientoOptions & {
     mantenimientos: Mantenimiento[];
+    serviciosTerceros: ServicioTerceroListado[];
+    empresasTerceras: MantenimientoOption[];
 };
 
 const columnHelper = createDataTableColumnHelper<Mantenimiento>();
-
 const tiposMantenimientoLabel: Record<string, string> = {
     PREVENTIVO: 'Preventivo',
     CORRECTIVO: 'Correctivo',
@@ -41,6 +50,8 @@ const estadosMantenimientoLabel: Record<string, string> = {
 
 export default function MantenimientosIndex({
     mantenimientos,
+    serviciosTerceros,
+    empresasTerceras,
     tecnicos,
     novedadesMantenimiento,
     items,
@@ -199,13 +210,59 @@ export default function MantenimientosIndex({
                     description="Mantenimientos agendados desde Ingresos, con su técnico, estado y novedad"
                 />
 
-                <DataTable
-                    data={mantenimientos}
-                    columns={columns}
-                    searchPlaceholder="Buscar mantenimiento..."
-                    emptyMessage="Aún no hay mantenimientos agendados."
-                    rowTestId="mantenimiento-row"
-                />
+                <Tabs defaultValue="local">
+                    <TabsList>
+                        <TabsTrigger value="local">
+                            Local
+                            <TabCountBadge
+                                value={
+                                    mantenimientos.filter(
+                                        (mantenimiento) =>
+                                            mantenimiento.estado_mantenimiento !==
+                                            'FINALIZADO',
+                                    ).length
+                                }
+                                label="Pendientes en local"
+                                className="bg-blue-500 text-white"
+                            />
+                        </TabsTrigger>
+                        <TabsTrigger value="tercero">
+                            Tercero
+                            <TabCountBadge
+                                value={
+                                    serviciosTerceros.filter(
+                                        (servicio) =>
+                                            servicio.estado_final_equipo ===
+                                            null,
+                                    ).length
+                                }
+                                label="Pendientes en tercero"
+                                className="bg-amber-500 text-white"
+                            />
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="local">
+                        <DataTable
+                            data={mantenimientos}
+                            columns={columns}
+                            searchPlaceholder="Buscar mantenimiento..."
+                            emptyMessage="Aún no hay mantenimientos agendados."
+                            rowTestId="mantenimiento-row"
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="tercero">
+                        <ServicioTercerosTab
+                            servicios={serviciosTerceros}
+                            empresasTerceras={empresasTerceras}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                            searchPlaceholder="Buscar servicio de tercero..."
+                            emptyMessage="Aún no hay mantenimientos asignados a terceros."
+                        />
+                    </TabsContent>
+                </Tabs>
             </div>
 
             <EditMantenimientoModal

@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { normalizeText } from '@/lib/data-table';
-import type { NavGroup } from '@/types';
+import type { NavBadge, NavGroup } from '@/types';
 
 const STORAGE_KEY = 'sidebar-collapsed-groups';
 
@@ -44,6 +44,31 @@ function writeCollapsedGroups(value: Record<string, boolean>): void {
     } catch {
         // Ignore write failures (private browsing, storage disabled, etc).
     }
+}
+
+/** Contadores a la derecha de un ítem del menú; los que valen 0 no se muestran. */
+function NavItemBadges({ badges }: { badges?: NavBadge[] }) {
+    const visibles = badges?.filter((badge) => badge.value > 0) ?? [];
+
+    if (visibles.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="pointer-events-none absolute top-1.5 right-1 flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+            {visibles.map((badge) => (
+                <span
+                    key={badge.label}
+                    title={badge.label}
+                    aria-label={`${badge.label}: ${badge.value}`}
+                    className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums ${badge.className}`}
+                    data-test="nav-badge"
+                >
+                    {badge.value}
+                </span>
+            ))}
+        </div>
+    );
 }
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
@@ -126,6 +151,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
+                                        <NavItemBadges badges={item.badges} />
                                     </SidebarMenuItem>
                                 ))}
                             </SidebarMenu>
@@ -166,6 +192,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
+                                        <NavItemBadges badges={item.badges} />
                                     </SidebarMenuItem>
                                 ))}
                             </SidebarMenu>

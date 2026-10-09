@@ -31,6 +31,7 @@ use App\Http\Controllers\Plataforma\TenantController;
 use App\Http\Controllers\Plataforma\TenantUserController;
 use App\Http\Controllers\ProcedimientoCalibracionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ServicioTerceroController;
 use App\Http\Controllers\TipoEquipoCheckListController;
 use App\Http\Controllers\TipoEquipoController;
 use App\Http\Controllers\TipoMagnitudController;
@@ -86,6 +87,11 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->only(['index', 'update', 'destroy']);
     // Sin "create": un despacho solo se origina al finalizar una calibración.
     Route::resource('despachos', DespachoController::class)->only(['index', 'update', 'destroy']);
+
+    // Sin "create": un servicio de tercero solo se origina desde "Agendar Mantenimiento"/"Agendar Calibraciones".
+    Route::resource('servicio-terceros', ServicioTerceroController::class)->only(['update', 'destroy']);
+    Route::post('servicio-terceros/{servicio_tercero}/iniciar', [ServicioTerceroController::class, 'iniciar'])->name('servicio-terceros.iniciar');
+    Route::post('servicio-terceros/{servicio_tercero}/finalizar', [ServicioTerceroController::class, 'finalizar'])->name('servicio-terceros.finalizar');
 
     Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
     Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');

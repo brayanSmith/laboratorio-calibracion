@@ -102,3 +102,19 @@ export type MantenimientoOptions = {
     novedadesMantenimiento: MantenimientoOption[];
     items: MantenimientoItemOption[];
 };
+
+/** Servicio (de mantenimiento o calibración) realizado por una empresa tercera. */
+export type ServicioTerceroListado = {
+    id: number;
+    fecha: string;
+    orden_trabajo_codigo: string;
+    equipo_codigo: string;
+    equipo_modelo: string;
+    cliente_nombre: string | null;
+    empresa_tercero_id: number;
+    empresa_tercero_nombre: string;
+    pdf_url: string | null;
+    tiempo_servicio_inicio: string | null;
+    estado_final_equipo: 'APROBADO' | 'RECHAZADO' | null;
+    re_agendar: boolean;
+};

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Mantenimientos\FinalizarMantenimientoRequest;
 use App\Http\Requests\Mantenimientos\UpdateMantenimientoRequest;
 use App\Models\ComentarioMantenimiento;
+use App\Models\EmpresaTercero;
 use App\Models\GaleriaMantenimiento;
 use App\Models\Item;
 use App\Models\ItemMantenimiento;
@@ -129,6 +130,8 @@ class MantenimientoController extends Controller
 
         return Inertia::render('mantenimientos/index', [
             'mantenimientos' => $mantenimientos,
+            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'MANTENIMIENTO'),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'novedadesMantenimiento' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'MANTENIMIENTO')->orderBy('nombre')->get(['id', 'nombre']),
             'items' => Item::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'codigo', 'nombre']),

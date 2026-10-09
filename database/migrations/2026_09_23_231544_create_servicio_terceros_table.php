@@ -17,6 +17,8 @@ return new class extends Migration
             $table->enum('tipo_servicio', ['MANTENIMIENTO', 'CALIBRACION']);
             $table->foreignId('empresa_tercero_id')->constrained('empresa_terceros')->onDelete('cascade');
             $table->string('pdf_servicio')->nullable();
+            $table->enum('estado_final_equipo', ['APROBADO', 'RECHAZADO'])->nullable();
+            $table->boolean('re_agendar')->default(false);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

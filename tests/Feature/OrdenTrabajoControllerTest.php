@@ -192,6 +192,10 @@ test('agenda mantenimiento con un tecnico propio y crea el mantenimiento con la 
         ->estado_mantenimiento->toBe('PENDIENTE');
 
     expect(ServicioTercero::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
+
+    expect($programacion->refresh())
+        ->fase_programacion->toBe('MANTENIMIENTO')
+        ->subfase_programacion->toBe('Pendiente');
 });
 
 test('crea el checklist del mantenimiento copiando los items del tipo de equipo', function () {

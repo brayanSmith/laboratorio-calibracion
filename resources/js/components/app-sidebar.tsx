@@ -126,6 +126,15 @@ export function AppSidebar() {
                                     title: 'Ingresos',
                                     href: ingresosIndex(),
                                     icon: PackageCheck,
+                                    badges: [
+                                        {
+                                            label: 'Ingresos pendientes',
+                                            value:
+                                                page.props.pendientes
+                                                    ?.ingresos ?? 0,
+                                            className: 'bg-rose-500 text-white',
+                                        },
+                                    ],
                                 },
                             ]
                           : []),
@@ -135,6 +144,25 @@ export function AppSidebar() {
                                     title: 'Mantenimientos',
                                     href: mantenimientosIndex(),
                                     icon: ClipboardCheck,
+                                    badges: [
+                                        {
+                                            label: 'Pendientes en local',
+                                            value:
+                                                page.props.pendientes
+                                                    ?.mantenimientos?.local ??
+                                                0,
+                                            className: 'bg-blue-500 text-white',
+                                        },
+                                        {
+                                            label: 'Pendientes en tercero',
+                                            value:
+                                                page.props.pendientes
+                                                    ?.mantenimientos?.tercero ??
+                                                0,
+                                            className:
+                                                'bg-amber-500 text-white',
+                                        },
+                                    ],
                                 },
                             ]
                           : []),
@@ -144,6 +172,24 @@ export function AppSidebar() {
                                     title: 'Calibraciones',
                                     href: calibracionesIndex(),
                                     icon: Gauge,
+                                    badges: [
+                                        {
+                                            label: 'Pendientes en local',
+                                            value:
+                                                page.props.pendientes
+                                                    ?.calibraciones?.local ?? 0,
+                                            className: 'bg-blue-500 text-white',
+                                        },
+                                        {
+                                            label: 'Pendientes en tercero',
+                                            value:
+                                                page.props.pendientes
+                                                    ?.calibraciones?.tercero ??
+                                                0,
+                                            className:
+                                                'bg-amber-500 text-white',
+                                        },
+                                    ],
                                 },
                             ]
                           : []),
@@ -153,6 +199,16 @@ export function AppSidebar() {
                                     title: 'Despachos',
                                     href: despachosIndex(),
                                     icon: Truck,
+                                    badges: [
+                                        {
+                                            label: 'Entregas pendientes',
+                                            value:
+                                                page.props.pendientes
+                                                    ?.despachos ?? 0,
+                                            className:
+                                                'bg-emerald-500 text-white',
+                                        },
+                                    ],
                                 },
                             ]
                           : []),

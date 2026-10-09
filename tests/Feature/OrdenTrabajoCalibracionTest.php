@@ -101,6 +101,10 @@ test('agenda calibracion con un tecnico propio y crea la calibracion con la nove
         ->procedimiento_id->toBeNull();
 
     expect(ServicioTercero::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
+
+    expect($orden->equipoProgramacion->refresh())
+        ->fase_programacion->toBe('CALIBRACION')
+        ->subfase_programacion->toBe('Pendiente');
 });
 
 test('agenda calibracion y crea un detalle_medicion_calibracion por cada detalle del alcance del equipo', function () {

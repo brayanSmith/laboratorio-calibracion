@@ -56,6 +56,10 @@ test('actualiza un despacho', function () {
         ->cliente_recibe_id->toBe($this->cliente->id)
         ->entrega_recibida->toBeTrue()
         ->novedad_id->toBe($novedad->id);
+
+    expect($despacho->ordenTrabajo->equipoProgramacion->refresh())
+        ->fase_programacion->toBe('DESPACHO')
+        ->subfase_programacion->toBe('Entregado');
 });
 
 test('actualiza la firma de un despacho con una imagen', function () {

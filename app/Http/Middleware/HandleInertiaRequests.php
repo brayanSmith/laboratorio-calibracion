@@ -2,7 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\TenantPermission;
+use App\Models\Calibracion;
+use App\Models\Despacho;
 use App\Models\Empresa;
+use App\Models\Ingreso;
+use App\Models\Mantenimiento;
+use App\Models\ServicioTercero;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -49,7 +55,65 @@ class HandleInertiaRequests extends Middleware
                     : [],
             ],
             'empresa' => fn () => $this->brand($user),
+            'pendientes' => fn () => $this->pendientes($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+        ];
+    }
+
+    /**
+     * Get the trabajos que siguen pendientes (sin finalizar), para los badges del menú:
+     * ingresos por recibir, mantenimientos y calibraciones, locales (aún sin terminar) y de tercero (servicio
+     * sin estado final), y los despachos cuya entrega no se ha recibido. Cada grupo es
+     * null si el usuario no tiene permiso para verlo.
+     *
+     * @return array{
+     *     mantenimientos: array{local: int, tercero: int}|null,
+     *     calibraciones: array{local: int, tercero: int}|null,
+     *     despachos: int|null,
+     *     ingresos: int|null,
+     * }|null
+     */
+    private function pendientes(?User $user): ?array
+    {
+        if (! $user?->tenant_id) {
+            return null;
+        }
+
+        $tenantId = $user->tenant_id;
+
+        $tercerosPendientes = fn (string $tipoServicio): int => ServicioTercero::query()
+            ->where('tenant_id', $tenantId)
+            ->where('tipo_servicio', $tipoServicio)
+            ->whereNull('estado_final_equipo')
+            ->count();
+
+        return [
+            'mantenimientos' => $user->can(TenantPermission::MantenimientosVer->value) ? [
+                'local' => Mantenimiento::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('estado_mantenimiento', '!=', 'FINALIZADO')
+                    ->count(),
+                'tercero' => $tercerosPendientes('MANTENIMIENTO'),
+            ] : null,
+            'calibraciones' => $user->can(TenantPermission::CalibracionesVer->value) ? [
+                'local' => Calibracion::query()
+                    ->where('tenant_id', $tenantId)
+                    ->whereIn('estado_calibracion', ['PENDIENTE', 'EN_PROCESO'])
+                    ->count(),
+                'tercero' => $tercerosPendientes('CALIBRACION'),
+            ] : null,
+            'despachos' => $user->can(TenantPermission::DespachosVer->value)
+                ? Despacho::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('entrega_recibida', false)
+                    ->count()
+                : null,
+            'ingresos' => $user->can(TenantPermission::IngresosVer->value)
+                ? Ingreso::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('estado_ingreso', 'PENDIENTE')
+                    ->count()
+                : null,
         ];
     }
 

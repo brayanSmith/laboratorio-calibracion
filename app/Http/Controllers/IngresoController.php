@@ -265,8 +265,8 @@ class IngresoController extends Controller
                 ->update([
                     'ingresado' => $ingresado,
                     'estado_programacion' => $ingresado ? 'AGENDADO' : 'CANCELADO',
-                    'novedad_ingreso_id' => $ingresado ? null : ($recibido['novedad_ingreso_id'] ?? null),
-                    'observacion_no_ingreso' => $ingresado ? null : ($recibido['observacion_no_ingreso'] ?? null),
+                    'novedad_ingreso_id' => $recibido['novedad_ingreso_id'] ?? null,
+                    'observacion_no_ingreso' => $recibido['observacion_no_ingreso'] ?? null,
                     're_agendar' => $reAgendar,
                     'datos_re_agendamiento' => $reAgendar ? $recibido['datos_re_agendamiento'] : null,
                 ]);

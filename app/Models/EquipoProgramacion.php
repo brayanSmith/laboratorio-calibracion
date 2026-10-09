@@ -29,7 +29,7 @@ use Illuminate\Support\Carbon;
  * @property bool $agendar Si la persona decide agendar este equipo al revisarlo en el ingreso
  * @property bool $ingresado Si el equipo efectivamente llegó, al recibir el ingreso
  * @property string $estado_programacion PENDIENTE, AGENDADO o CANCELADO
- * @property int|null $novedad_ingreso_id Solo cuando estado_programacion es CANCELADO
+ * @property int|null $novedad_ingreso_id Novedad al recibir el ingreso, con o sin estado_programacion CANCELADO (ej. llegó pero incompleto)
  * @property string|null $observacion_no_ingreso Detalle adicional opcional
  * @property bool $re_agendar Solo tiene sentido junto con novedad_ingreso_id
  * @property array<string, mixed>|null $datos_re_agendamiento Fecha del próximo agendamiento, si re_agendar es true

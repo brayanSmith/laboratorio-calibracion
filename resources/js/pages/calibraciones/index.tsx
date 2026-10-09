@@ -8,12 +8,20 @@ import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracio
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
 import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
 import Heading from '@/components/heading';
+import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
+import TabCountBadge from '@/components/tab-count-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
 import { colorEstadoCalibracion } from '@/lib/estados-calibracion';
 import { index } from '@/routes/calibraciones';
-import type { Calibracion, CalibracionOptions } from '@/types';
+import type {
+    Calibracion,
+    CalibracionOption,
+    CalibracionOptions,
+    ServicioTerceroListado,
+} from '@/types';
 
 /** Convierte un ISO string a Date, o null si no hay nada que convertir. */
 function toDateOrNull(value: string | null): Date | null {
@@ -22,6 +30,8 @@ function toDateOrNull(value: string | null): Date | null {
 
 type Props = CalibracionOptions & {
     calibraciones: Calibracion[];
+    serviciosTerceros: ServicioTerceroListado[];
+    empresasTerceras: CalibracionOption[];
 };
 
 const columnHelper = createDataTableColumnHelper<Calibracion>();
@@ -35,6 +45,8 @@ const estadosCalibracionLabel: Record<string, string> = {
 
 export default function CalibracionesIndex({
     calibraciones,
+    serviciosTerceros,
+    empresasTerceras,
     tecnicos,
     laboratorios,
     areas,
@@ -186,13 +198,61 @@ export default function CalibracionesIndex({
                     description="Calibraciones agendadas desde Ingresos, con su técnico, estado y laboratorio"
                 />
 
-                <DataTable
-                    data={calibraciones}
-                    columns={columns}
-                    searchPlaceholder="Buscar calibración..."
-                    emptyMessage="Aún no hay calibraciones agendadas."
-                    rowTestId="calibracion-row"
-                />
+                <Tabs defaultValue="local">
+                    <TabsList>
+                        <TabsTrigger value="local">
+                            Local
+                            <TabCountBadge
+                                value={
+                                    calibraciones.filter(
+                                        (calibracion) =>
+                                            calibracion.estado_calibracion ===
+                                                'PENDIENTE' ||
+                                            calibracion.estado_calibracion ===
+                                                'EN_PROCESO',
+                                    ).length
+                                }
+                                label="Pendientes en local"
+                                className="bg-blue-500 text-white"
+                            />
+                        </TabsTrigger>
+                        <TabsTrigger value="tercero">
+                            Tercero
+                            <TabCountBadge
+                                value={
+                                    serviciosTerceros.filter(
+                                        (servicio) =>
+                                            servicio.estado_final_equipo ===
+                                            null,
+                                    ).length
+                                }
+                                label="Pendientes en tercero"
+                                className="bg-amber-500 text-white"
+                            />
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="local">
+                        <DataTable
+                            data={calibraciones}
+                            columns={columns}
+                            searchPlaceholder="Buscar calibración..."
+                            emptyMessage="Aún no hay calibraciones agendadas."
+                            rowTestId="calibracion-row"
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="tercero">
+                        <ServicioTercerosTab
+                            servicios={serviciosTerceros}
+                            empresasTerceras={empresasTerceras}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                            searchPlaceholder="Buscar servicio de tercero..."
+                            emptyMessage="Aún no hay calibraciones asignadas a terceros."
+                        />
+                    </TabsContent>
+                </Tabs>
             </div>
 
             <EditCalibracionModal

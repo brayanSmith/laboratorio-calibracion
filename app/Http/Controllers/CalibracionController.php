@@ -8,6 +8,7 @@ use App\Models\Area;
 use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\DetalleMedicionCalibracion;
+use App\Models\EmpresaTercero;
 use App\Models\Laboratorio;
 use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
@@ -115,6 +116,8 @@ class CalibracionController extends Controller
 
         return Inertia::render('calibraciones/index', [
             'calibraciones' => $calibraciones,
+            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'CALIBRACION'),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'laboratorios' => Laboratorio::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'direccion', 'descripcion']),

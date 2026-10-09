@@ -6,9 +6,11 @@ use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\DetalleMedicionAlcance;
 use App\Models\DetalleMedicionCalibracion;
+use App\Models\EmpresaTercero;
 use App\Models\Laboratorio;
 use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
+use App\Models\ServicioTercero;
 use App\Models\Tenant;
 use App\Models\TiempoServicio;
 use App\Models\UnidadMedida;
@@ -56,6 +58,33 @@ function crearDetalleMedicion(Calibracion $calibracion, array $overrides = []): 
         ...$overrides,
     ]);
 }
+
+test('lista solo los servicios de tercero de calibracion del tenant', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $servicio = ServicioTercero::create([
+        'orden_trabajo_id' => $calibracion->orden_trabajo_id,
+        'tipo_servicio' => 'CALIBRACION',
+        'empresa_tercero_id' => $empresa->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+    ServicioTercero::create([
+        'orden_trabajo_id' => $calibracion->orden_trabajo_id,
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'empresa_tercero_id' => $empresa->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('calibraciones.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('serviciosTerceros', 1)
+            ->where('serviciosTerceros.0.id', $servicio->id)
+            ->where('serviciosTerceros.0.empresa_tercero_nombre', $empresa->nombre)
+            ->has('empresasTerceras', 1));
+});
 
 test('lista solo las calibraciones del tenant', function () {
     $calibracion = crearCalibracion($this->bahia);
