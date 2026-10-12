@@ -15,6 +15,22 @@ type Props = {
     empresa: Empresa | null;
 };
 
+function ColorSwatch({ color }: { color: string | null }) {
+    if (!color) {
+        return <span className="text-muted-foreground">Predeterminado</span>;
+    }
+
+    return (
+        <span className="flex items-center gap-2">
+            <span
+                className="h-4 w-4 rounded border"
+                style={{ backgroundColor: color }}
+            />
+            <span className="font-mono">{color}</span>
+        </span>
+    );
+}
+
 function Field({ label, value }: { label: string; value: ReactNode }) {
     return (
         <div className="grid gap-1">
@@ -91,6 +107,18 @@ export default function EmpresaShow({ empresa }: Props) {
                                 value={empresa.direccion}
                             />
                             <Field label="Teléfono" value={empresa.telefono} />
+                            <Field
+                                label="Color del tema"
+                                value={
+                                    <ColorSwatch color={empresa.color_tema} />
+                                }
+                            />
+                            <Field
+                                label="Color de la barra de navegación"
+                                value={
+                                    <ColorSwatch color={empresa.color_nav} />
+                                }
+                            />
                         </div>
                     </div>
                 ) : (

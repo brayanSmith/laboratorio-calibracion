@@ -1,4 +1,6 @@
+import ColorField from '@/components/empresa/color-field';
 import LogoField from '@/components/empresa/logo-field';
+import { COLORES_NAV, COLORES_TEMA } from '@/lib/empresa-colors';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,6 +60,26 @@ export default function EmpresaFormFields({ empresa, errors }: Props) {
             </div>
 
             <LogoField empresa={empresa} error={errors.logo} />
+
+            <ColorField
+                id="color_tema"
+                name="color_tema"
+                label="Color del tema"
+                presets={COLORES_TEMA}
+                description="Color de los botones y acentos de la interfaz."
+                defaultValue={empresa?.color_tema}
+                error={errors.color_tema}
+            />
+
+            <ColorField
+                id="color_nav"
+                name="color_nav"
+                label="Color de la barra de navegación"
+                presets={COLORES_NAV}
+                description="Color del menú lateral."
+                defaultValue={empresa?.color_nav}
+                error={errors.color_nav}
+            />
         </div>
     );
 }

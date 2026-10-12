@@ -16,13 +16,15 @@ use Illuminate\Support\Facades\Storage;
  * @property string $direccion
  * @property string $telefono
  * @property string|null $logo
+ * @property string|null $color_tema
+ * @property string|null $color_nav
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['nit', 'nombre', 'direccion', 'telefono', 'logo', 'tenant_id'])]
+#[Fillable(['nit', 'nombre', 'direccion', 'telefono', 'logo', 'color_tema', 'color_nav', 'tenant_id'])]
 class Empresa extends Model
 {
     use SoftDeletes;

@@ -118,9 +118,9 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Get the name and logo the interface shows in place of the app branding.
+     * Get the name, logo and colors the interface shows in place of the app branding.
      *
-     * @return array{nombre: string, logo_url: string|null}|null
+     * @return array{nombre: string, logo_url: string|null, color_tema: string|null, color_nav: string|null}|null
      */
     private function brand(?User $user): ?array
     {
@@ -130,6 +130,11 @@ class HandleInertiaRequests extends Middleware
 
         $empresa = Empresa::query()->where('tenant_id', $user->tenant_id)->first();
 
-        return $empresa ? ['nombre' => $empresa->nombre, 'logo_url' => $empresa->logoUrl()] : null;
+        return $empresa ? [
+            'nombre' => $empresa->nombre,
+            'logo_url' => $empresa->logoUrl(),
+            'color_tema' => $empresa->color_tema,
+            'color_nav' => $empresa->color_nav,
+        ] : null;
     }
 }

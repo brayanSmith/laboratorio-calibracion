@@ -31,6 +31,8 @@ class EmpresaController extends Controller
                 'direccion' => $empresa->direccion,
                 'telefono' => $empresa->telefono,
                 'logo_url' => $empresa->logoUrl(),
+                'color_tema' => $empresa->color_tema,
+                'color_nav' => $empresa->color_nav,
             ] : null,
         ]);
     }
@@ -54,7 +56,7 @@ class EmpresaController extends Controller
         }
 
         $data = [
-            ...$request->safe()->only(['nit', 'nombre', 'direccion', 'telefono']),
+            ...$request->safe()->only(['nit', 'nombre', 'direccion', 'telefono', 'color_tema', 'color_nav']),
             'logo' => $request->file('logo')?->store("logos/{$tenantId}", 'public') ?: null,
         ];
 
@@ -79,7 +81,7 @@ class EmpresaController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->firstOrFail();
 
-        $data = $request->safe()->only(['nit', 'nombre', 'direccion', 'telefono']);
+        $data = $request->safe()->only(['nit', 'nombre', 'direccion', 'telefono', 'color_tema', 'color_nav']);
 
         if ($request->hasFile('logo')) {
             $this->deleteLogo($empresa);

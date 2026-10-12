@@ -30,6 +30,21 @@ class StoreEmpresaRequest extends FormRequest
             'direccion' => ['required', 'string', 'max:255'],
             'telefono' => ['required', 'string', 'max:50'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'color_tema' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'color_nav' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'color_tema.regex' => 'El color del tema debe ser un color hexadecimal, por ejemplo #1d4ed8.',
+            'color_nav.regex' => 'El color de la barra de navegación debe ser un color hexadecimal, por ejemplo #1d4ed8.',
         ];
     }
 
@@ -46,6 +61,8 @@ class StoreEmpresaRequest extends FormRequest
             'direccion' => 'dirección',
             'telefono' => 'teléfono',
             'logo' => 'logo',
+            'color_tema' => 'color del tema',
+            'color_nav' => 'color de la barra de navegación',
         ];
     }
 }

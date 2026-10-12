@@ -248,3 +248,49 @@ test('tras eliminar la empresa se puede registrar una nueva sin duplicar filas',
 test('devuelve 404 al eliminar cuando el tenant aun no tiene empresa', function () {
     $this->actingAs($this->admin)->delete(route('empresa.destroy'))->assertNotFound();
 });
+
+test('guarda los colores del tema y de la barra de navegacion al registrar la empresa', function () {
+    $this->actingAs($this->admin)
+        ->post(route('empresa.store'), datosEmpresa(['color_tema' => '#1d4ed8', 'color_nav' => '#0f172a']))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('empresa.show'));
+
+    expect(Empresa::firstOrFail())
+        ->color_tema->toBe('#1d4ed8')
+        ->color_nav->toBe('#0f172a');
+});
+
+test('actualiza los colores y los restablece al enviarlos vacios', function () {
+    $empresa = registrarEmpresa($this->tenant);
+
+    $this->actingAs($this->admin)
+        ->put(route('empresa.update'), datosEmpresa(['color_tema' => '#16a34a', 'color_nav' => '#111827']))
+        ->assertSessionHasNoErrors();
+
+    expect($empresa->fresh())->color_tema->toBe('#16a34a')->color_nav->toBe('#111827');
+
+    $this->actingAs($this->admin)
+        ->put(route('empresa.update'), datosEmpresa(['color_tema' => '', 'color_nav' => '']))
+        ->assertSessionHasNoErrors();
+
+    expect($empresa->fresh())->color_tema->toBeNull()->color_nav->toBeNull();
+});
+
+test('rechaza colores que no son hexadecimales de seis digitos', function (string $color) {
+    registrarEmpresa($this->tenant);
+
+    $this->actingAs($this->admin)
+        ->put(route('empresa.update'), datosEmpresa(['color_tema' => $color, 'color_nav' => $color]))
+        ->assertSessionHasErrors(['color_tema', 'color_nav']);
+})->with(['rojo', '#fff', '#12345g', 'rgb(0,0,0)']);
+
+test('comparte los colores de la empresa con la interfaz', function () {
+    $empresa = registrarEmpresa($this->tenant);
+    $empresa->update(['color_tema' => '#1d4ed8', 'color_nav' => '#0f172a']);
+
+    $this->actingAs($this->admin)
+        ->get(route('empresa.show'))
+        ->assertInertia(fn ($page) => $page
+            ->where('empresa.color_tema', '#1d4ed8')
+            ->where('empresa.color_nav', '#0f172a'));
+});

@@ -11,7 +11,12 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
-            empresa: { nombre: string; logo_url: string | null } | null;
+            empresa: {
+                nombre: string;
+                logo_url: string | null;
+                color_tema: string | null;
+                color_nav: string | null;
+            } | null;
             sidebarOpen: boolean;
             pendientes: {
                 mantenimientos: { local: number; tercero: number } | null;
