@@ -46,6 +46,34 @@ class Mantenimiento extends Model
     use SoftDeletes;
 
     /**
+     * Same defaults as the table, so a just-created model already carries them.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'estado_mantenimiento' => 'PENDIENTE',
+    ];
+
+    /**
+     * Registra un seguimiento de fase MANTENIMIENTO al crearse el mantenimiento o cambiar
+     * su estado, siempre que la orden de trabajo esté lista para mantenimiento.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Mantenimiento $mantenimiento): void {
+            if (! $mantenimiento->wasRecentlyCreated && ! $mantenimiento->wasChanged('estado_mantenimiento')) {
+                return;
+            }
+
+            $ordenTrabajo = $mantenimiento->ordenTrabajo;
+
+            if ($ordenTrabajo->listo_para_mantenimiento) {
+                $ordenTrabajo->equipoProgramacion->registrarSeguimiento('MANTENIMIENTO', $mantenimiento->estado_mantenimiento);
+            }
+        });
+    }
+
+    /**
      * Get the orden de trabajo this mantenimiento belongs to.
      *
      * @return BelongsTo<OrdenTrabajo, $this>

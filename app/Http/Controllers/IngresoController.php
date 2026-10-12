@@ -209,7 +209,8 @@ class IngresoController extends Controller
 
         $ingreso->equipoProgramacion()
             ->where('tipo_mantenimiento', 'PREVENTIVO')
-            ->update([
+            ->get()
+            ->each->update([
                 'estado_programacion' => 'PENDIENTE',
                 'agendar' => true,
                 'ingresado' => true,
@@ -235,7 +236,8 @@ class IngresoController extends Controller
             EquipoProgramacion::query()
                 ->where('id', $cambio['id'])
                 ->where('tenant_id', $tenantId)
-                ->update([
+                ->first()
+                ?->update([
                     'estado_programacion' => $agendar ? 'AGENDADO' : 'PENDIENTE',
                     'agendar' => $agendar,
                     'ingreso_id' => $agendar ? $ingreso->id : null,
@@ -243,7 +245,7 @@ class IngresoController extends Controller
         }
 
         foreach ($request->validated('programaciones_correctivas', []) as $correctivo) {
-            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $tenantId);
+            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $tenantId, 'AGENDADO');
         }
     }
 
@@ -262,9 +264,14 @@ class IngresoController extends Controller
             EquipoProgramacion::query()
                 ->where('id', $recibido['id'])
                 ->where('tenant_id', $ingreso->tenant_id)
-                ->update([
+                ->first()
+                ?->update([
                     'ingresado' => $ingresado,
-                    'estado_programacion' => $ingresado ? 'AGENDADO' : 'CANCELADO',
+                    'estado_programacion' => match (true) {
+                        $ingresado => 'RECIBIDO',
+                        $reAgendar => 'RE_AGENDADO',
+                        default => 'CANCELADO',
+                    },
                     'novedad_ingreso_id' => $recibido['novedad_ingreso_id'] ?? null,
                     'observacion_no_ingreso' => $recibido['observacion_no_ingreso'] ?? null,
                     're_agendar' => $reAgendar,
@@ -273,7 +280,7 @@ class IngresoController extends Controller
         }
 
         foreach ($request->validated('equipos_correctivos_recibidos', []) as $correctivo) {
-            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $ingreso->tenant_id);
+            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $ingreso->tenant_id, 'RECIBIDO');
         }
     }
 
@@ -283,7 +290,7 @@ class IngresoController extends Controller
      *
      * @param  array<string, mixed>  $correctivo
      */
-    private function crearProgramacionCorrectiva(array $correctivo, Ingreso $ingreso, int $tenantId): void
+    private function crearProgramacionCorrectiva(array $correctivo, Ingreso $ingreso, int $tenantId, string $estadoProgramacion): void
     {
         $equipo = Equipo::with('tipoEquipo:id,tipo_mantenimiento')
             ->where('id', $correctivo['equipo_id'])
@@ -297,7 +304,7 @@ class IngresoController extends Controller
             'tipo_servicio' => implode(',', $tipoServicio),
             'tipo_mantenimiento' => 'CORRECTIVO',
             'falla_detectada' => $correctivo['falla_detectada'],
-            'estado_programacion' => 'AGENDADO',
+            'estado_programacion' => $estadoProgramacion,
             'ingresado' => true,
             'ingreso_id' => $ingreso->id,
             'tenant_id' => $tenantId,

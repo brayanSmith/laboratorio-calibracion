@@ -79,6 +79,7 @@ class StoreEquipoRequest extends FormRequest
             'programaciones.*.intervalo_servicio' => ['nullable', 'numeric'],
             'programaciones.*.intervalo_unidad' => ['required_with:programaciones.*.intervalo_servicio', Rule::in(['DIAS', 'SEMANAS', 'MESES'])],
             'programaciones.*.fecha_ultimo_servicio' => ['nullable', 'date'],
+            'programaciones.*.dias_plazo_vencimiento' => ['sometimes', 'required', 'integer', 'min:0', 'max:3650'],
 
             // Documentos: opcionales, cualquier cantidad, cada uno con su propio nombre y archivo.
             'documentos' => ['nullable', 'array'],
@@ -114,6 +115,7 @@ class StoreEquipoRequest extends FormRequest
             'programaciones.*.intervalo_servicio' => 'intervalo de servicio',
             'programaciones.*.intervalo_unidad' => 'unidad del intervalo',
             'programaciones.*.fecha_ultimo_servicio' => 'fecha del último servicio',
+            'programaciones.*.dias_plazo_vencimiento' => 'días de aviso',
             'documentos.*.nombre' => 'nombre del documento',
             'documentos.*.archivo' => 'archivo del documento',
         ];

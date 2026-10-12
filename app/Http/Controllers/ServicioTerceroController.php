@@ -65,7 +65,8 @@ class ServicioTerceroController extends Controller
     /**
      * Start the servicio de tercero: opens a tiempo_servicio (es_tercero = true) with
      * estado_tiempo = INICIO y sin fin, para medir cuánto dura. Se puede volver a
-     * iniciar más adelante, así que no valida que no haya uno ya abierto.
+     * iniciar más adelante, así que no valida que no haya uno ya abierto. El servicio
+     * pasa a EN_PROCESO.
      */
     public function iniciar(ServicioTercero $servicioTercero): RedirectResponse
     {
@@ -79,6 +80,8 @@ class ServicioTerceroController extends Controller
             'es_tercero' => true,
             'tenant_id' => $servicioTercero->tenant_id,
         ]);
+
+        $servicioTercero->update(['estado_servicio' => 'EN_PROCESO']);
 
         return back();
     }
@@ -125,6 +128,7 @@ class ServicioTerceroController extends Controller
             $servicioTercero->deletePdf();
 
             $servicioTercero->update([
+                'estado_servicio' => 'FINALIZADO',
                 'estado_final_equipo' => $estadoFinal,
                 're_agendar' => $reAgendar,
                 'pdf_servicio' => $request->file('pdf_servicio')

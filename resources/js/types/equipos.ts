@@ -5,6 +5,11 @@ export type EquipoOption = {
     nombre: string;
 };
 
+export type EquipoTipoEquipoOption = EquipoOption & {
+    /** A: requiere mantenimiento y calibración. B: solo mantenimiento. */
+    tipo_mantenimiento: 'A' | 'B';
+};
+
 export type EquipoUnidadMedidaOption = EquipoOption & {
     simbolo: string;
 };
@@ -25,11 +30,26 @@ export type EquipoEspecificacionTecnica = {
 export type TipoServicio = 'MANTENIMIENTO' | 'CALIBRACION';
 export type EstadoVencimiento = 'AL_DIA' | 'PROXIMO_A_VENCER' | 'VENCIDO';
 export type IntervaloUnidad = 'DIAS' | 'SEMANAS' | 'MESES';
-export type EstadoProgramacion = 'PENDIENTE' | 'AGENDADO' | 'CANCELADO';
+export type EstadoProgramacion =
+    'PENDIENTE' | 'AGENDADO' | 'RECIBIDO' | 'CANCELADO' | 'RE_AGENDADO';
 export type TipoMantenimientoProgramacion = 'PREVENTIVO' | 'CORRECTIVO';
 
 export type DatosReAgendamiento = {
     fecha_proximo_agendamiento: string;
+};
+
+export type FaseSeguimiento =
+    'BAHIA' | 'INGRESO' | 'MANTENIMIENTO' | 'CALIBRACION' | 'DESPACHO';
+
+/** Una entrada del historial de una programación (más reciente primero). */
+export type SeguimientoProgramacion = {
+    id: number;
+    fase: FaseSeguimiento;
+    /** Estado de la fase al momento del registro, ej: EN_PROCESO. */
+    seguimiento: string | null;
+    observaciones: string | null;
+    usuario: { id: number; name: string } | null;
+    created_at: string;
 };
 
 export type EquipoProgramacion = {
@@ -47,6 +67,11 @@ export type EquipoProgramacion = {
     dias_plazo_vencimiento: string;
     /** Calculado a partir de fecha_proximo_servicio y dias_plazo_vencimiento. */
     estado_vencimiento: EstadoVencimiento;
+    estado_programacion: EstadoProgramacion;
+    /** false una vez que el equipo llegó (RECIBIDO): el servicio ya se gestionó. */
+    eliminable: boolean;
+    /** Historial de seguimiento, del más reciente al más antiguo. */
+    seguimientos?: SeguimientoProgramacion[];
 };
 
 /**
@@ -155,7 +180,7 @@ export type Equipo = {
 };
 
 export type EquipoFormOptions = {
-    tipoEquipos: EquipoOption[];
+    tipoEquipos: EquipoTipoEquipoOption[];
     fabricantes: EquipoOption[];
     areas: EquipoOption[];
     bahias: EquipoBahiaOption[];

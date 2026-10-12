@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Play, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -7,6 +7,7 @@ import DataTable, {
 import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
 import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
+import VerCalibracionModal from '@/components/calibraciones/ver-calibracion-modal';
 import Heading from '@/components/heading';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
@@ -43,6 +44,14 @@ const estadosCalibracionLabel: Record<string, string> = {
     DEVOLVER_MANTENIMIENTO: 'Devolver a mantenimiento',
 };
 
+/** Una calibración finalizada o devuelta a mantenimiento ya se realizó: no se vuelve a iniciar. */
+function terminada(calibracion: Calibracion): boolean {
+    return (
+        calibracion.estado_calibracion === 'FINALIZADO' ||
+        calibracion.estado_calibracion === 'DEVOLVER_MANTENIMIENTO'
+    );
+}
+
 export default function CalibracionesIndex({
     calibraciones,
     serviciosTerceros,
@@ -69,6 +78,11 @@ export default function CalibracionesIndex({
         null;
     const [iniciarOpen, setIniciarOpen] = useState(false);
     const [iniciadoEn, setIniciadoEn] = useState<Date | null>(null);
+    const [viendoId, setViendoId] = useState<number | null>(null);
+    const viendo =
+        calibraciones.find((calibracion) => calibracion.id === viendoId) ??
+        null;
+    const [verOpen, setVerOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -114,7 +128,22 @@ export default function CalibracionesIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            {canEdit && row.original.tiempo_servicio_inicio ? (
+                            {terminada(row.original) ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="calibracion-ver-button"
+                                    onClick={() => {
+                                        setViendoId(row.original.id);
+                                        setVerOpen(true);
+                                    }}
+                                >
+                                    <Eye className="h-4 w-4" /> Ver
+                                </Button>
+                            ) : null}
+                            {canEdit &&
+                            !terminada(row.original) &&
+                            row.original.tiempo_servicio_inicio ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -133,10 +162,12 @@ export default function CalibracionesIndex({
                                     <Play className="h-4 w-4" /> Continuar
                                 </Button>
                             ) : null}
-                            {canEdit && !row.original.tiempo_servicio_inicio ? (
+                            {canEdit &&
+                            !terminada(row.original) &&
+                            !row.original.tiempo_servicio_inicio ? (
                                 <Button
-                                    variant="outline"
                                     size="sm"
+                                    className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                     data-test="calibracion-iniciar-button"
                                     onClick={() => {
                                         setIniciandoId(row.original.id);
@@ -270,6 +301,11 @@ export default function CalibracionesIndex({
                 calibracion={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            <VerCalibracionModal
+                calibracion={viendo}
+                open={verOpen}
+                onOpenChange={setVerOpen}
             />
             <IniciarCalibracionModal
                 calibracion={iniciando}

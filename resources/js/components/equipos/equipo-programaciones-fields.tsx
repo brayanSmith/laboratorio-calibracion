@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 
 type Props = {
     errors: Partial<Record<string, string>>;
+    /** Tipos de servicio que se marcan por defecto en cada fila, según el tipo de equipo. */
+    tiposSugeridos?: string[];
 };
 
 /**
@@ -12,7 +14,10 @@ type Props = {
  * yet. Each row keeps a stable id so removing one from the middle does not
  * reset the values already typed into the others.
  */
-export default function EquipoProgramacionesFields({ errors }: Props) {
+export default function EquipoProgramacionesFields({
+    errors,
+    tiposSugeridos,
+}: Props) {
     const [rowIds, setRowIds] = useState<number[]>([]);
     const nextId = useRef(0);
 
@@ -49,6 +54,7 @@ export default function EquipoProgramacionesFields({ errors }: Props) {
                     </div>
 
                     <EquipoProgramacionFields
+                        tiposSugeridos={tiposSugeridos}
                         errors={errors}
                         fieldName={(key) => `programaciones[${index}][${key}]`}
                         fieldError={(key) =>

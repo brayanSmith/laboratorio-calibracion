@@ -4,6 +4,7 @@ use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\Cliente;
 use App\Models\Despacho;
+use App\Models\EquipoProgramacion;
 use App\Models\Novedad;
 use App\Models\Tenant;
 use App\Models\User;
@@ -55,6 +56,7 @@ test('actualiza un despacho', function () {
         ->entrega_autorizada->toBeTrue()
         ->cliente_recibe_id->toBe($this->cliente->id)
         ->entrega_recibida->toBeTrue()
+        ->estado_despacho->toBe('ENTREGADO')
         ->novedad_id->toBe($novedad->id);
 
     expect($despacho->ordenTrabajo->equipoProgramacion->refresh())
@@ -210,4 +212,111 @@ test('un usuario de recepcion puede ver los despachos pero no editarlos ni elimi
 test('un invitado no puede ver los despachos', function () {
     $this->get(route('despachos.index'))
         ->assertRedirect(route('login'));
+});
+
+test('calcula el estado del despacho a partir de entrega autorizada y entrega recibida', function (bool $autorizada, bool $recibida, string $estado) {
+    $despacho = crearDespachoListo($this->bahia, ['entrega_autorizada' => $autorizada, 'entrega_recibida' => $recibida]);
+
+    expect($despacho->refresh()->estado_despacho)->toBe($estado);
+})->with([
+    'sin autorizar' => [false, false, 'PENDIENTE'],
+    'autorizado' => [true, false, 'AUTORIZADO'],
+    'entregado' => [true, true, 'ENTREGADO'],
+]);
+
+test('registra seguimientos de la programacion al crear y autorizar un despacho', function () {
+    $despacho = crearDespachoListo($this->bahia, ['entrega_autorizada' => false]);
+    $programacion = $despacho->ordenTrabajo->equipoProgramacion;
+
+    expect($programacion->seguimientos()->where('fase', 'DESPACHO')->count())->toBe(0);
+
+    $despacho->update(['entrega_autorizada' => true]);
+    $despacho->update(['entrega_recibida' => true]);
+
+    expect($programacion->seguimientos()->where('fase', 'DESPACHO')->orderBy('id')->pluck('seguimiento')->all())
+        ->toBe(['AUTORIZADO', 'ENTREGADO']);
+});
+
+test('registra un seguimiento de bahia o ingreso segun agendar al crear la programacion', function () {
+    $agendada = crearEquipoRecibido($this->bahia, 'EQ-SEG-1');
+    $agendada->update(['agendar' => false, 'estado_programacion' => 'PENDIENTE']);
+
+    expect($agendada->seguimientos()->orderBy('id')->get())
+        ->not->toBeEmpty()
+        ->last()->fase->toBe('BAHIA')
+        ->last()->seguimiento->toBe('PENDIENTE');
+});
+
+test('al entregar un servicio preventivo con intervalo crea la siguiente programacion del equipo', function () {
+    $despacho = crearDespachoListo($this->bahia);
+    $programacion = $despacho->ordenTrabajo->equipoProgramacion;
+    $programacion->update([
+        'tipo_servicio' => 'MANTENIMIENTO,CALIBRACION',
+        'intervalo_servicio' => 3,
+        'intervalo_unidad' => 'MESES',
+        'dias_plazo_vencimiento' => 15,
+    ]);
+
+    $despacho->update(['entrega_recibida' => true]);
+
+    $siguiente = EquipoProgramacion::query()
+        ->where('equipo_id', $programacion->equipo_id)
+        ->whereKeyNot($programacion->id)
+        ->firstOrFail();
+
+    expect($siguiente)
+        ->tipo_servicio->toBe('MANTENIMIENTO,CALIBRACION')
+        ->tipo_mantenimiento->toBe('PREVENTIVO')
+        ->estado_programacion->toBe('PENDIENTE')
+        ->ingreso_id->toBeNull()
+        ->fecha_ultimo_servicio->toDateString()->toBe(now()->toDateString())
+        ->fecha_proximo_servicio->toDateString()->toBe(now()->addMonths(3)->toDateString())
+        ->and((float) $siguiente->dias_plazo_vencimiento)->toBe(15.0);
+});
+
+test('no crea otra programacion si la entrega se vuelve a marcar el mismo dia', function () {
+    $despacho = crearDespachoListo($this->bahia);
+    $programacion = $despacho->ordenTrabajo->equipoProgramacion;
+    $programacion->update(['intervalo_servicio' => 1, 'intervalo_unidad' => 'SEMANAS']);
+
+    $despacho->update(['entrega_recibida' => true]);
+    $despacho->update(['entrega_recibida' => false]);
+    $despacho->update(['entrega_recibida' => true]);
+
+    expect(EquipoProgramacion::where('equipo_id', $programacion->equipo_id)->count())->toBe(2);
+});
+
+test('no crea una siguiente programacion para un servicio correctivo ni para uno preventivo sin intervalo', function () {
+    $correctivo = crearDespachoListo($this->bahia, [], 'EQ-CORR');
+    $correctivo->ordenTrabajo->equipoProgramacion->update([
+        'tipo_mantenimiento' => 'CORRECTIVO',
+        'intervalo_servicio' => 3,
+        'intervalo_unidad' => 'MESES',
+    ]);
+    $sinIntervalo = crearDespachoListo($this->bahia, [], 'EQ-SIN');
+
+    $correctivo->update(['entrega_recibida' => true]);
+    $sinIntervalo->update(['entrega_recibida' => true]);
+
+    expect(EquipoProgramacion::count())->toBe(2);
+});
+
+test('despachar sin enviar entrega_autorizada conserva la autorizacion y el tecnico, y marca la entrega como recibida', function () {
+    $tecnico = User::factory()->forTenant($this->tenant)->create();
+    $despacho = crearDespachoListo($this->bahia, ['entrega_autorizada' => true, 'tecnico_entrega_id' => $tecnico->id]);
+
+    $this->actingAs($this->admin)
+        ->put(route('despachos.update', $despacho), [
+            'entrega_recibida' => '1',
+            'cliente_recibe_id' => $this->cliente->id,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('despachos.index'));
+
+    expect($despacho->refresh())
+        ->entrega_autorizada->toBeTrue()
+        ->tecnico_entrega_id->toBe($tecnico->id)
+        ->entrega_recibida->toBeTrue()
+        ->cliente_recibe_id->toBe($this->cliente->id)
+        ->estado_despacho->toBe('ENTREGADO');
 });

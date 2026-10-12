@@ -23,8 +23,13 @@ class UpdateDespachoRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        /** @var Despacho $despacho */
+        $despacho = $this->route('despacho');
+
         $this->merge([
-            'entrega_autorizada' => $this->boolean('entrega_autorizada'),
+            'entrega_autorizada' => $this->has('entrega_autorizada')
+                ? $this->boolean('entrega_autorizada')
+                : $despacho->entrega_autorizada,
             'entrega_recibida' => $this->boolean('entrega_recibida'),
             'eliminar_firma' => $this->boolean('eliminar_firma'),
         ]);

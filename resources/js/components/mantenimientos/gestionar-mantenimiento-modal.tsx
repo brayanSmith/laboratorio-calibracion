@@ -1,5 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
 import FinalizarMantenimientoModal from '@/components/mantenimientos/finalizar-mantenimiento-modal';
 import MantenimientoChecklist from '@/components/mantenimientos/mantenimiento-checklist';
@@ -17,6 +18,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
@@ -85,6 +87,14 @@ function GestionarMantenimientoFormulario({
     );
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
     const [finalizarOpen, setFinalizarOpen] = useState(false);
+    const [faltanRepuestos, setFaltanRepuestos] = useState(
+        mantenimiento.estado_mantenimiento === 'FALTA_REPUESTOS',
+    );
+    const estadoMantenimiento = faltanRepuestos
+        ? 'FALTA_REPUESTOS'
+        : mantenimiento.estado_mantenimiento === 'FALTA_REPUESTOS'
+          ? 'EN_PROCESO'
+          : mantenimiento.estado_mantenimiento;
 
     return (
         <>
@@ -274,7 +284,7 @@ function GestionarMantenimientoFormulario({
                         <input
                             type="hidden"
                             name="estado_mantenimiento"
-                            value={mantenimiento.estado_mantenimiento}
+                            value={estadoMantenimiento}
                         />
                         <input
                             type="hidden"
@@ -307,6 +317,25 @@ function GestionarMantenimientoFormulario({
                             errors={errors}
                         />
 
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="faltan_repuestos"
+                                checked={faltanRepuestos}
+                                onCheckedChange={(checked) =>
+                                    setFaltanRepuestos(checked === true)
+                                }
+                                data-test="faltan-repuestos-checkbox"
+                            />
+                            <Label
+                                htmlFor="faltan_repuestos"
+                                className="font-normal"
+                            >
+                                Hacen falta repuestos (no se podrá finalizar
+                                hasta que se completen)
+                            </Label>
+                        </div>
+                        <InputError message={errors.estado_mantenimiento} />
+
                         <DialogFooter className="gap-2">
                             <DialogClose asChild>
                                 <Button variant="secondary">Cerrar</Button>
@@ -314,6 +343,7 @@ function GestionarMantenimientoFormulario({
                             <Button
                                 type="button"
                                 className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
+                                disabled={faltanRepuestos}
                                 onClick={() => setFinalizarOpen(true)}
                                 data-test="abrir-finalizar-button"
                             >

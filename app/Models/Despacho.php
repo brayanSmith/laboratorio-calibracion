@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
  * @property bool $entrega_autorizada Se marca al finalizar la calibración (o el mantenimiento, si no requiere calibración)
  * @property string|null $firma_cliente_recibe
  * @property bool $entrega_recibida
+ * @property string $estado_despacho PENDIENTE, AUTORIZADO o ENTREGADO; se calcula al guardar
  * @property int|null $novedad_id Se completa si surge una novedad durante el despacho
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -33,6 +34,35 @@ use Illuminate\Support\Facades\Storage;
 class Despacho extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Keep estado_despacho derived from entrega_autorizada and entrega_recibida on
+     * every save, so it can't drift from the two flags.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Despacho $despacho): void {
+            $despacho->estado_despacho = match (true) {
+                $despacho->entrega_recibida => 'ENTREGADO',
+                $despacho->entrega_autorizada => 'AUTORIZADO',
+                default => 'PENDIENTE',
+            };
+        });
+
+        static::saved(function (Despacho $despacho): void {
+            if ($despacho->entrega_recibida && $despacho->wasChanged('entrega_recibida')) {
+                $despacho->ordenTrabajo->equipoProgramacion->crearSiguienteProgramacionPreventiva(now());
+            }
+
+            if (! $despacho->entrega_autorizada) {
+                return;
+            }
+
+            if ($despacho->wasRecentlyCreated || $despacho->wasChanged(['entrega_autorizada', 'estado_despacho'])) {
+                $despacho->ordenTrabajo->equipoProgramacion->registrarSeguimiento('DESPACHO', $despacho->estado_despacho);
+            }
+        });
+    }
 
     /**
      * Get the public URL path of the cliente signature, if it has one.

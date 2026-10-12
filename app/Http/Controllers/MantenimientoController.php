@@ -141,7 +141,8 @@ class MantenimientoController extends Controller
     /**
      * Start the mantenimiento: opens a tiempo_servicio with estado_tiempo = INICIO y sin
      * fin, para medir cuánto dura. Se puede volver a iniciar más adelante (ej. tras una
-     * pausa), así que no valida que no haya uno ya abierto.
+     * pausa), así que no valida que no haya uno ya abierto. Aceptar el inicio significa
+     * que el mantenimiento se acepta, así que pasa a EN_PROCESO.
      */
     public function iniciar(Mantenimiento $mantenimiento): RedirectResponse
     {
@@ -155,6 +156,8 @@ class MantenimientoController extends Controller
             'es_tercero' => false,
             'tenant_id' => $mantenimiento->tenant_id,
         ]);
+
+        $mantenimiento->update(['estado_mantenimiento' => 'EN_PROCESO']);
 
         return back();
     }

@@ -385,7 +385,7 @@ test('mantiene agendado un equipo programado marcado como ingresado al recibir e
 
     expect($programacion->fresh())
         ->ingresado->toBeTrue()
-        ->estado_programacion->toBe('AGENDADO');
+        ->estado_programacion->toBe('RECIBIDO');
 });
 
 test('anota una novedad en un equipo marcado como ingresado, por ejemplo si llego incompleto', function () {
@@ -415,7 +415,7 @@ test('anota una novedad en un equipo marcado como ingresado, por ejemplo si lleg
 
     expect($programacion->fresh())
         ->ingresado->toBeTrue()
-        ->estado_programacion->toBe('AGENDADO')
+        ->estado_programacion->toBe('RECIBIDO')
         ->novedad_ingreso_id->toBe($novedad->id)
         ->observacion_no_ingreso->toBe('Llegó sin un cable');
 });
@@ -492,7 +492,7 @@ test('agenda un equipo correctivo anotado al recibir el ingreso y lo enlaza con 
         ->tipo_mantenimiento->toBe('CORRECTIVO')
         ->tipo_servicio->toBe('MANTENIMIENTO,CALIBRACION')
         ->falla_detectada->toBe('El equipo no enciende')
-        ->estado_programacion->toBe('AGENDADO')
+        ->estado_programacion->toBe('RECIBIDO')
         ->ingresado->toBeTrue();
 });
 

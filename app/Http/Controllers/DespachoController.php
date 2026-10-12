@@ -51,6 +51,7 @@ class DespachoController extends Controller
                 'cliente_recibe_nombre' => $despacho->clienteRecibe?->nombre,
                 'firma_url' => $despacho->firmaUrl(),
                 'entrega_recibida' => $despacho->entrega_recibida,
+                'estado_despacho' => $despacho->estado_despacho,
                 'novedad_id' => $despacho->novedad_id,
                 'novedad_nombre' => $despacho->novedad?->nombre,
                 'equipo' => [

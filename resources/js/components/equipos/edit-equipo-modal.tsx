@@ -5,6 +5,7 @@ import EquipoDocumentosEditarFields from '@/components/equipos/equipo-documentos
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
 import EquipoFormFields from '@/components/equipos/equipo-form-fields';
+import { tiposServicioDelTipoEquipo } from '@/components/equipos/equipo-programacion-fields';
 import EquipoInformacionAdicionalFields from '@/components/equipos/equipo-informacion-adicional-fields';
 import EquipoProgramacionesEditarFields from '@/components/equipos/equipo-programaciones-editar-fields';
 import EquipoUbicacionFields from '@/components/equipos/equipo-ubicacion-fields';
@@ -31,9 +32,23 @@ type Props = PropsWithChildren<{
 
 export default function EditEquipoModal({ equipo, options, children }: Props) {
     const [open, setOpen] = useState(false);
+    const [tipoEquipoId, setTipoEquipoId] = useState<string | undefined>(
+        equipo.tipo_equipo_id.toString(),
+    );
+
+    const tiposSugeridos = tiposServicioDelTipoEquipo(
+        options.tipoEquipos.find((tipo) => tipo.id.toString() === tipoEquipoId)
+            ?.tipo_mantenimiento,
+    );
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+            open={open}
+            onOpenChange={(value) => {
+                setOpen(value);
+                setTipoEquipoId(equipo.tipo_equipo_id.toString());
+            }}
+        >
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                 <Form
@@ -73,6 +88,7 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                                 >
                                     <EquipoFormFields
                                         equipo={equipo}
+                                        onTipoEquipoChange={setTipoEquipoId}
                                         options={options}
                                         errors={errors}
                                     />
@@ -171,6 +187,7 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                                                 []
                                             }
                                             errors={errors}
+                                            tiposSugeridos={tiposSugeridos}
                                         />
                                     </div>
                                 </TabsContent>

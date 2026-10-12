@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Mantenimientos;
 
+use App\Models\Mantenimiento;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class FinalizarMantenimientoRequest extends FormRequest
 {
@@ -36,6 +39,23 @@ class FinalizarMantenimientoRequest extends FormRequest
             'estado_final_equipo' => ['required', Rule::in(['OPERATIVO', 'FUERA_DE_SERVICIO'])],
             'firmado' => ['boolean'],
         ];
+    }
+
+    /**
+     * Un mantenimiento al que le faltan repuestos no se puede finalizar.
+     *
+     * @return array<int, Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            /** @var Mantenimiento $mantenimiento */
+            $mantenimiento = $this->route('mantenimiento');
+
+            if ($mantenimiento->estado_mantenimiento === 'FALTA_REPUESTOS') {
+                $validator->errors()->add('estado_mantenimiento', __('No se puede finalizar un mantenimiento al que le faltan repuestos.'));
+            }
+        }];
     }
 
     /**

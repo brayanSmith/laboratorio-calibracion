@@ -129,7 +129,8 @@ class CalibracionController extends Controller
     /**
      * Start the calibracion: opens a tiempo_servicio with estado_tiempo = INICIO y sin
      * fin, para medir cuánto dura. Se puede volver a iniciar más adelante (ej. tras una
-     * pausa), así que no valida que no haya uno ya abierto.
+     * pausa), así que no valida que no haya uno ya abierto. Aceptar el inicio significa
+     * que la calibración se acepta, así que pasa a EN_PROCESO.
      */
     public function iniciar(Calibracion $calibracion): RedirectResponse
     {
@@ -143,6 +144,8 @@ class CalibracionController extends Controller
             'es_tercero' => false,
             'tenant_id' => $calibracion->tenant_id,
         ]);
+
+        $calibracion->update(['estado_calibracion' => 'EN_PROCESO']);
 
         return back();
     }

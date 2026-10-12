@@ -81,8 +81,9 @@ class UpdateEquipoRequest extends FormRequest
             'programaciones.*.intervalo_servicio' => ['nullable', 'numeric'],
             'programaciones.*.intervalo_unidad' => ['required_with:programaciones.*.intervalo_servicio', Rule::in(['DIAS', 'SEMANAS', 'MESES'])],
             'programaciones.*.fecha_ultimo_servicio' => ['nullable', 'date'],
+            'programaciones.*.dias_plazo_vencimiento' => ['sometimes', 'required', 'integer', 'min:0', 'max:3650'],
             'programaciones_eliminar' => ['nullable', 'array'],
-            'programaciones_eliminar.*' => [Rule::exists('equipo_programacions', 'id')->where('equipo_id', $equipo->id)],
+            'programaciones_eliminar.*' => [Rule::exists('equipo_programacions', 'id')->where('equipo_id', $equipo->id)->whereNot('estado_programacion', 'RECIBIDO')],
 
             // Documentos: opcionales, cualquier cantidad, más los que se marquen para eliminar.
             'documentos' => ['nullable', 'array'],
@@ -163,8 +164,21 @@ class UpdateEquipoRequest extends FormRequest
             'programaciones.*.intervalo_servicio' => 'intervalo de servicio',
             'programaciones.*.intervalo_unidad' => 'unidad del intervalo',
             'programaciones.*.fecha_ultimo_servicio' => 'fecha del último servicio',
+            'programaciones.*.dias_plazo_vencimiento' => 'días de aviso',
             'documentos.*.nombre' => 'nombre del documento',
             'documentos.*.archivo' => 'archivo del documento',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'programaciones_eliminar.*.exists' => 'No se puede eliminar una programación cuyo servicio ya se gestionó.',
         ];
     }
 }

@@ -170,6 +170,8 @@ Route::prefix('plataforma')
 
         Route::resource('tenants', TenantController::class)->except('create');
 
+        Route::post('tenants/{tenant}/users', [TenantUserController::class, 'store'])->name('tenants.users.store');
+
         Route::scopeBindings()->group(function () {
             Route::put('tenants/{tenant}/users/{user}', [TenantUserController::class, 'update'])->name('tenants.users.update');
             Route::put('tenants/{tenant}/users/{user}/password', [TenantUserController::class, 'resetPassword'])->name('tenants.users.password');

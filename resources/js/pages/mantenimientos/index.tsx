@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Play, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -9,6 +9,7 @@ import DeleteMantenimientoModal from '@/components/mantenimientos/delete-manteni
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
 import GestionarMantenimientoModal from '@/components/mantenimientos/gestionar-mantenimiento-modal';
 import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mantenimiento-modal';
+import VerMantenimientoModal from '@/components/mantenimientos/ver-mantenimiento-modal';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,11 @@ export default function MantenimientosIndex({
         ) ?? null;
     const [gestionarOpen, setGestionarOpen] = useState(false);
     const [iniciadoEn, setIniciadoEn] = useState<Date | null>(null);
+    const [viendoId, setViendoId] = useState<number | null>(null);
+    const viendo =
+        mantenimientos.find((mantenimiento) => mantenimiento.id === viendoId) ??
+        null;
+    const [verOpen, setVerOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -132,7 +138,24 @@ export default function MantenimientosIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            {canEdit && row.original.tiempo_servicio_inicio ? (
+                            {row.original.estado_mantenimiento ===
+                            'FINALIZADO' ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="mantenimiento-ver-button"
+                                    onClick={() => {
+                                        setViendoId(row.original.id);
+                                        setVerOpen(true);
+                                    }}
+                                >
+                                    <Eye className="h-4 w-4" /> Ver
+                                </Button>
+                            ) : null}
+                            {canEdit &&
+                            row.original.estado_mantenimiento !==
+                                'FINALIZADO' &&
+                            row.original.tiempo_servicio_inicio ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -151,10 +174,13 @@ export default function MantenimientosIndex({
                                     <Play className="h-4 w-4" /> Continuar
                                 </Button>
                             ) : null}
-                            {canEdit && !row.original.tiempo_servicio_inicio ? (
+                            {canEdit &&
+                            row.original.estado_mantenimiento !==
+                                'FINALIZADO' &&
+                            !row.original.tiempo_servicio_inicio ? (
                                 <Button
-                                    variant="outline"
                                     size="sm"
+                                    className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                     data-test="mantenimiento-iniciar-button"
                                     onClick={() => {
                                         setIniciandoId(row.original.id);
@@ -286,6 +312,11 @@ export default function MantenimientosIndex({
                     setGestionandoId(iniciandoId);
                     setGestionarOpen(true);
                 }}
+            />
+            <VerMantenimientoModal
+                mantenimiento={viendo}
+                open={verOpen}
+                onOpenChange={setVerOpen}
             />
             <GestionarMantenimientoModal
                 mantenimiento={gestionando}

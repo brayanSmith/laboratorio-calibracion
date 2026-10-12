@@ -380,3 +380,58 @@ test('rechaza un tipo de magnitud de otro tenant al crear el equipo', function (
 
     expect(Equipo::count())->toBe(0);
 });
+
+test('el listado de equipos incluye el historial de seguimiento de cada programacion, del mas reciente al mas antiguo', function () {
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant));
+
+    $programacion = Equipo::firstOrFail()->equipoProgramaciones()->create([
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $programacion->registrarSeguimiento('MANTENIMIENTO', 'EN_PROCESO');
+
+    $this->actingAs($this->admin)
+        ->get(route('equipos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('equipos/index')
+            ->where('equipos.data.0.equipo_programaciones.0.seguimientos.0.fase', 'MANTENIMIENTO')
+            ->where('equipos.data.0.equipo_programaciones.0.seguimientos.0.seguimiento', 'EN_PROCESO')
+            ->where('equipos.data.0.equipo_programaciones.0.seguimientos.0.usuario.name', $this->admin->name));
+});
+
+test('rechaza eliminar una programacion cuyo servicio ya se gestiono', function () {
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant));
+    $equipo = Equipo::firstOrFail();
+    $gestionada = $equipo->equipoProgramaciones()->create([
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'estado_programacion' => 'RECIBIDO',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, [
+            'codigo' => $equipo->codigo,
+            'tipo_equipo_id' => $equipo->tipo_equipo_id,
+            'fabricante_id' => $equipo->fabricante_id,
+            'area_id' => $equipo->area_id,
+            'bahia_id' => $equipo->bahia_id,
+            'cliente_id' => $equipo->cliente_id,
+            'programaciones_eliminar' => [$gestionada->id],
+        ]))
+        ->assertSessionHasErrors('programaciones_eliminar.0');
+
+    expect(EquipoProgramacion::find($gestionada->id))->not->toBeNull();
+});
+
+test('las opciones del formulario incluyen el tipo de mantenimiento de cada tipo de equipo', function () {
+    $tipo = crearTipoEquipo($this->tenant);
+
+    $this->actingAs($this->admin)
+        ->get(route('equipos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('equipos/index')
+            ->where('options.tipoEquipos.0.id', $tipo->id)
+            ->where('options.tipoEquipos.0.tipo_mantenimiento', $tipo->tipo_mantenimiento));
+});

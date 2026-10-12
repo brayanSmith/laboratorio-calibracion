@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,11 @@ import type { EquipoProgramacion, IntervaloUnidad } from '@/types';
 
 type Props = {
     programacion?: EquipoProgramacion | null;
+    /**
+     * Tipos de servicio que se marcan por defecto en una programación nueva, según el tipo
+     * de equipo (ver tiposServicioDelTipoEquipo()). Se vuelven a aplicar si cambian.
+     */
+    tiposSugeridos?: string[];
     errors: Partial<Record<string, string>>;
     /** Turns a plain field key into the actual input `name`, e.g. for a repeated row. */
     fieldName?: (key: string) => string;
@@ -60,6 +65,19 @@ function calcularFechaProximoServicio(
     return fecha.toISOString().slice(0, 10);
 }
 
+/**
+ * Tipo A de mantenimiento: se le hace mantenimiento y calibración. Tipo B: solo mantenimiento.
+ */
+export function tiposServicioDelTipoEquipo(
+    tipoMantenimiento: 'A' | 'B' | undefined,
+): string[] {
+    if (tipoMantenimiento === 'A') {
+        return ['MANTENIMIENTO', 'CALIBRACION'];
+    }
+
+    return tipoMantenimiento === 'B' ? ['MANTENIMIENTO'] : [];
+}
+
 export const tiposServicio = [
     { value: 'MANTENIMIENTO', label: 'Mantenimiento' },
     { value: 'CALIBRACION', label: 'Calibración' },
@@ -80,16 +98,31 @@ export const unidadesIntervalo = [
 export const estadosProgramacion = [
     { value: 'PENDIENTE', label: 'Pendiente' },
     { value: 'AGENDADO', label: 'Agendado' },
+    { value: 'RECIBIDO', label: 'Recibido' },
     { value: 'CANCELADO', label: 'Cancelado' },
+    { value: 'RE_AGENDADO', label: 'Re-agendado' },
 ];
 
 export default function EquipoProgramacionFields({
     programacion,
+    tiposSugeridos,
     errors,
     fieldName = (key) => key,
     fieldError = (key) => errors[key],
 }: Props) {
-    const tiposSeleccionados = programacion?.tipo_servicio?.split(',') ?? [];
+    const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>(
+        programacion?.tipo_servicio?.split(',') ?? tiposSugeridos ?? [],
+    );
+
+    const clavesSugeridas = (tiposSugeridos ?? []).join(',');
+
+    useEffect(() => {
+        if (!programacion) {
+            setTiposSeleccionados(
+                clavesSugeridas ? clavesSugeridas.split(',') : [],
+            );
+        }
+    }, [clavesSugeridas, programacion]);
 
     const [intervaloServicio, setIntervaloServicio] = useState(
         programacion?.intervalo_servicio ?? '',
@@ -124,9 +157,19 @@ export default function EquipoProgramacionFields({
                                     id={inputId}
                                     name={`${fieldName('tipo_servicio')}[]`}
                                     value={option.value}
-                                    defaultChecked={tiposSeleccionados.includes(
+                                    checked={tiposSeleccionados.includes(
                                         option.value,
                                     )}
+                                    onCheckedChange={(checked) =>
+                                        setTiposSeleccionados((actuales) =>
+                                            checked === true
+                                                ? [...actuales, option.value]
+                                                : actuales.filter(
+                                                      (tipo) =>
+                                                          tipo !== option.value,
+                                                  ),
+                                        )
+                                    }
                                 />
                                 <Label
                                     htmlFor={inputId}
@@ -184,6 +227,29 @@ export default function EquipoProgramacionFields({
                     </SelectContent>
                 </Select>
                 <InputError message={fieldError('intervalo_unidad')} />
+            </div>
+
+            <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor={fieldName('dias_plazo_vencimiento')}>
+                    Días de aviso antes del vencimiento
+                </Label>
+                <Input
+                    id={fieldName('dias_plazo_vencimiento')}
+                    name={fieldName('dias_plazo_vencimiento')}
+                    type="number"
+                    min={0}
+                    step={1}
+                    defaultValue={Math.round(
+                        Number(programacion?.dias_plazo_vencimiento ?? 30),
+                    )}
+                    required
+                />
+                <p className="text-xs text-muted-foreground">
+                    Cuántos días antes de la fecha del próximo servicio se marca
+                    como "Próximo a vencer", para tener tiempo de programarlo
+                    según el equipo.
+                </p>
+                <InputError message={fieldError('dias_plazo_vencimiento')} />
             </div>
 
             <div className="grid gap-2 sm:col-span-2">

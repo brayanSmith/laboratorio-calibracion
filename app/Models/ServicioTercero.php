@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string $tipo_servicio
  * @property int $empresa_tercero_id
  * @property string|null $pdf_servicio
+ * @property string $estado_servicio PENDIENTE al agendarse, EN_PROCESO al iniciarse y FINALIZADO al finalizarse
  * @property string|null $estado_final_equipo
  * @property bool $re_agendar
  * @property int $tenant_id
@@ -25,10 +26,43 @@ use Illuminate\Support\Facades\Storage;
  * @property-read EmpresaTercero $empresaTercero
  * @property-read Tenant $tenant
  */
-#[Fillable(['orden_trabajo_id', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
+#[Fillable(['orden_trabajo_id', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
 class ServicioTercero extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Same defaults as the table, so a just-created model already carries them.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'estado_servicio' => 'PENDIENTE',
+    ];
+
+    /**
+     * Registra un seguimiento (fase MANTENIMIENTO o CALIBRACION, según tipo_servicio) al
+     * crearse el servicio o cambiar su estado, siempre que la orden de trabajo esté lista
+     * para esa fase.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (ServicioTercero $servicio): void {
+            if (! $servicio->wasRecentlyCreated && ! $servicio->wasChanged('estado_servicio')) {
+                return;
+            }
+
+            $ordenTrabajo = $servicio->ordenTrabajo;
+
+            $listo = $servicio->tipo_servicio === 'CALIBRACION'
+                ? $ordenTrabajo->listo_para_calibracion
+                : $ordenTrabajo->listo_para_mantenimiento;
+
+            if ($listo) {
+                $ordenTrabajo->equipoProgramacion->registrarSeguimiento($servicio->tipo_servicio, $servicio->estado_servicio);
+            }
+        });
+    }
 
     /**
      * Get the attributes that should be cast.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Plataforma;
 
 use App\Actions\Tenants\SetupTenantRoles;
 use App\Actions\Usuarios\CreateTenantUser;
+use App\Enums\TenantRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenants\StoreTenantRequest;
 use App\Http\Requests\Tenants\UpdateTenantRequest;
@@ -89,6 +90,7 @@ class TenantController extends Controller
                 ->where('is_platform_admin', false)
                 ->orderBy('name')
                 ->get(['id', 'name', 'email', 'must_change_password']),
+            'roles' => array_column(TenantRole::cases(), 'value'),
         ]);
     }
 

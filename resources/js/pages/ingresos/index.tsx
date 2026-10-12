@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import {
     ClipboardCheck,
+    Eye,
     Gauge,
     Pencil,
     Plus,
@@ -17,6 +18,7 @@ import CreateIngresoModal from '@/components/ingresos/create-ingreso-modal';
 import DeleteIngresoModal from '@/components/ingresos/delete-ingreso-modal';
 import EditIngresoModal from '@/components/ingresos/edit-ingreso-modal';
 import RecibirIngresoModal from '@/components/ingresos/recibir-ingreso-modal';
+import VerIngresoModal from '@/components/ingresos/ver-ingreso-modal';
 import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
@@ -85,6 +87,9 @@ export default function IngresosIndex({
     const recibiendo =
         ingresos.find((ingreso) => ingreso.id === recibiendoId) ?? null;
     const [recibirOpen, setRecibirOpen] = useState(false);
+    const [viendoId, setViendoId] = useState<number | null>(null);
+    const viendo = ingresos.find((ingreso) => ingreso.id === viendoId) ?? null;
+    const [verOpen, setVerOpen] = useState(false);
     const [agendarMantenimientoOpen, setAgendarMantenimientoOpen] =
         useState(false);
     const [agendarCalibracionesOpen, setAgendarCalibracionesOpen] =
@@ -134,10 +139,22 @@ export default function IngresosIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            {canEdit ? (
+                            {row.original.estado_ingreso === 'RECIBIDO' ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    data-test="ingreso-ver-detalle-button"
+                                    onClick={() => {
+                                        setViendoId(row.original.id);
+                                        setVerOpen(true);
+                                    }}
+                                >
+                                    <Eye className="h-4 w-4" /> Ver detalle
+                                </Button>
+                            ) : canEdit ? (
+                                <Button
+                                    size="sm"
+                                    className="!border-transparent !bg-amber-500 !text-amber-950 hover:!bg-amber-600"
                                     data-test="ingreso-recibir-button"
                                     onClick={() => {
                                         setRecibiendoId(row.original.id);
@@ -275,6 +292,12 @@ export default function IngresosIndex({
                 novedadesIngreso={novedadesIngreso}
                 open={recibirOpen}
                 onOpenChange={setRecibirOpen}
+            />
+            <VerIngresoModal
+                ingreso={viendo}
+                novedadesIngreso={novedadesIngreso}
+                open={verOpen}
+                onOpenChange={setVerOpen}
             />
             <DeleteIngresoModal
                 ingreso={deleting}

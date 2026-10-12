@@ -130,3 +130,47 @@ test('un usuario que no es administrador de plataforma no puede gestionar usuari
         ->put(route('plataforma.tenants.users.update', [$this->tenant, $this->user]), ['name' => 'X', 'email' => 'x@x.test'])
         ->assertForbidden();
 });
+
+test('el administrador de plataforma puede crear un usuario del tenant con un rol', function () {
+    $this->actingAs($this->platformAdmin)
+        ->post(route('plataforma.tenants.users.store', $this->tenant), [
+            'name' => 'Luis Gomez',
+            'email' => 'luis@lab.test',
+            'role' => 'Técnico',
+            'password' => 'Temporal-2026!x',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $nuevo = User::where('email', 'luis@lab.test')->firstOrFail();
+
+    expect($nuevo->tenant_id)->toBe($this->tenant->id)
+        ->and($nuevo->must_change_password)->toBeTrue()
+        ->and($nuevo->is_platform_admin)->toBeFalse();
+
+    setPermissionsTeamId($this->tenant->id);
+
+    expect($nuevo->fresh()->hasRole('Técnico'))->toBeTrue();
+});
+
+test('rechaza crear un usuario con un rol inexistente o un correo repetido', function () {
+    $this->actingAs($this->platformAdmin)
+        ->post(route('plataforma.tenants.users.store', $this->tenant), [
+            'name' => 'Luis Gomez',
+            'email' => $this->user->email,
+            'role' => 'Inventado',
+            'password' => 'Temporal-2026!x',
+        ])
+        ->assertSessionHasErrors(['email', 'role']);
+});
+
+test('un usuario que no es administrador de plataforma no puede crear usuarios del tenant', function () {
+    $this->actingAs($this->user)
+        ->post(route('plataforma.tenants.users.store', $this->tenant), [
+            'name' => 'Luis Gomez',
+            'email' => 'luis@lab.test',
+            'role' => 'Técnico',
+            'password' => 'Temporal-2026!x',
+        ])
+        ->assertForbidden();
+});

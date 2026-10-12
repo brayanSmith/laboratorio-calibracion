@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -25,10 +26,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $fecha_proximo_servicio
  * @property string $dias_plazo_vencimiento
  * @property-read string $estado_vencimiento Calculado a partir de fecha_proximo_servicio y dias_plazo_vencimiento
+ * @property-read bool $eliminable false una vez que el equipo llegó (RECIBIDO): el servicio ya se gestionó
  * @property int|null $ingreso_id
  * @property bool $agendar Si la persona decide agendar este equipo al revisarlo en el ingreso
  * @property bool $ingresado Si el equipo efectivamente llegó, al recibir el ingreso
- * @property string $estado_programacion PENDIENTE, AGENDADO o CANCELADO
+ * @property string $estado_programacion PENDIENTE, AGENDADO, RECIBIDO, CANCELADO o RE_AGENDADO
  * @property int|null $novedad_ingreso_id Novedad al recibir el ingreso, con o sin estado_programacion CANCELADO (ej. llegó pero incompleto)
  * @property string|null $observacion_no_ingreso Detalle adicional opcional
  * @property bool $re_agendar Solo tiene sentido junto con novedad_ingreso_id
@@ -42,6 +44,7 @@ use Illuminate\Support\Carbon;
  * @property-read Novedad|null $novedadIngreso
  * @property-read Tenant $tenant
  * @property-read Collection<int, OrdenTrabajo> $ordenesTrabajo
+ * @property-read Collection<int, SeguimientoProgramacionEquipo> $seguimientos
  */
 #[Fillable([
     'equipo_id', 'tipo_servicio', 'tipo_mantenimiento', 'falla_detectada',
@@ -55,11 +58,40 @@ class EquipoProgramacion extends Model
     use SoftDeletes;
 
     /**
+     * Same defaults as the table, so a just-created model already carries them
+     * (the seguimiento registered on creation depends on agendar and estado_programacion).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'agendar' => true,
+        'estado_programacion' => 'PENDIENTE',
+    ];
+
+    /**
+     * Registra un seguimiento cada vez que la programación se crea o cambia su agendar o
+     * estado_programacion: fase BAHIA si no está agendada, INGRESO si lo está.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (EquipoProgramacion $programacion): void {
+            if (! $programacion->wasRecentlyCreated && ! $programacion->wasChanged(['agendar', 'estado_programacion'])) {
+                return;
+            }
+
+            $programacion->registrarSeguimiento(
+                $programacion->agendar ? 'INGRESO' : 'BAHIA',
+                $programacion->estado_programacion,
+            );
+        });
+    }
+
+    /**
      * The accessors to append to the model's array/JSON form.
      *
      * @var list<string>
      */
-    protected $appends = ['estado_vencimiento'];
+    protected $appends = ['estado_vencimiento', 'eliminable'];
 
     /**
      * Get the equipo this programacion belongs to.
@@ -89,6 +121,30 @@ class EquipoProgramacion extends Model
     public function novedadIngreso(): BelongsTo
     {
         return $this->belongsTo(Novedad::class, 'novedad_ingreso_id');
+    }
+
+    /**
+     * Get the seguimientos (historial por fase) of this programacion.
+     *
+     * @return HasMany<SeguimientoProgramacionEquipo, $this>
+     */
+    public function seguimientos(): HasMany
+    {
+        return $this->hasMany(SeguimientoProgramacionEquipo::class, 'programacion_equipo_id');
+    }
+
+    /**
+     * Add a seguimiento row for the given fase, attributed to the authenticated user.
+     */
+    public function registrarSeguimiento(string $fase, ?string $seguimiento, ?string $observaciones = null): SeguimientoProgramacionEquipo
+    {
+        return $this->seguimientos()->create([
+            'fase' => $fase,
+            'seguimiento' => $seguimiento,
+            'observaciones' => $observaciones,
+            'usuario_id' => auth()->id(),
+            'tenant_id' => $this->tenant_id,
+        ]);
     }
 
     /**
@@ -127,6 +183,46 @@ class EquipoProgramacion extends Model
                 ->whereDoesntHave('ordenesTrabajo')
                 ->orWhereHas('ordenesTrabajo', fn ($q2) => $q2->where('listo_para_mantenimiento', false)))
             ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'));
+    }
+
+    /**
+     * Cuando un servicio preventivo con intervalo se entrega al cliente, crea la siguiente
+     * programación del mismo equipo: mismo tipo de servicio e intervalo, con la fecha de
+     * entrega como último servicio y la próxima calculada a partir de ella. Las correctivas
+     * y las preventivas sin intervalo no se repiten. No crea otra si ya existe una con la
+     * misma fecha de último servicio (ej. si se desmarca y vuelve a marcar la entrega).
+     */
+    public function crearSiguienteProgramacionPreventiva(CarbonInterface $fechaEntrega): ?EquipoProgramacion
+    {
+        if ($this->tipo_mantenimiento !== 'PREVENTIVO' || ! $this->intervalo_servicio || ! $this->intervalo_unidad) {
+            return null;
+        }
+
+        $fechaUltimoServicio = $fechaEntrega->toDateString();
+
+        $yaExiste = static::query()
+            ->where('equipo_id', $this->equipo_id)
+            ->where('tipo_servicio', $this->tipo_servicio)
+            ->where('tipo_mantenimiento', 'PREVENTIVO')
+            ->whereDate('fecha_ultimo_servicio', $fechaUltimoServicio)
+            ->exists();
+
+        if ($yaExiste) {
+            return null;
+        }
+
+        return static::create([
+            'equipo_id' => $this->equipo_id,
+            'tipo_servicio' => $this->tipo_servicio,
+            'tipo_mantenimiento' => 'PREVENTIVO',
+            'intervalo_servicio' => $this->intervalo_servicio,
+            'intervalo_unidad' => $this->intervalo_unidad,
+            'fecha_apertura_historial_servicio' => $this->fecha_apertura_historial_servicio?->toDateString(),
+            'fecha_ultimo_servicio' => $fechaUltimoServicio,
+            'fecha_proximo_servicio' => static::calcularFechaProximoServicio($fechaUltimoServicio, $this->intervalo_servicio, $this->intervalo_unidad),
+            'dias_plazo_vencimiento' => $this->dias_plazo_vencimiento,
+            'tenant_id' => $this->tenant_id,
+        ]);
     }
 
     /**
@@ -172,6 +268,19 @@ class EquipoProgramacion extends Model
                     default => 'AL_DIA',
                 };
             },
+        );
+    }
+
+    /**
+     * Una programación cuyo equipo ya llegó (RECIBIDO) ya se gestionó o se está gestionando,
+     * así que ya no se puede eliminar: forma parte del historial del equipo.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function eliminable(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->estado_programacion !== 'RECIBIDO',
         );
     }
 

@@ -200,3 +200,44 @@ test('no permite operar un servicio de tercero de otro tenant', function () {
         ->assertForbidden();
     $this->actingAs($this->admin)->delete(route('servicio-terceros.destroy', $ajeno))->assertForbidden();
 });
+
+test('el servicio de tercero pasa de PENDIENTE a EN_PROCESO a FINALIZADO y registra cada paso en el seguimiento', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $servicio->ordenTrabajo->update(['listo_para_mantenimiento' => true]);
+
+    expect($servicio->refresh()->estado_servicio)->toBe('PENDIENTE');
+
+    $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
+    expect($servicio->refresh()->estado_servicio)->toBe('EN_PROCESO');
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()])
+        ->assertRedirect();
+    expect($servicio->refresh()->estado_servicio)->toBe('FINALIZADO');
+
+    $seguimientos = $servicio->ordenTrabajo->equipoProgramacion->seguimientos()
+        ->where('fase', 'MANTENIMIENTO')->orderBy('id')->pluck('seguimiento')->all();
+
+    expect($seguimientos)->toBe(['EN_PROCESO', 'FINALIZADO']);
+});
+
+test('registra un seguimiento PENDIENTE al agendar un servicio de tercero de calibracion', function () {
+    $programacion = crearEquipoRecibido($this->bahia, 'EQ-7002');
+    $ordenTrabajo = OrdenTrabajo::create([
+        'codigo' => 'OT-'.random_int(1000, 9999),
+        'equipo_programacion_id' => $programacion->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'EN_BAHIA',
+        'listo_para_calibracion' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    ServicioTercero::create([
+        'orden_trabajo_id' => $ordenTrabajo->id,
+        'tipo_servicio' => 'CALIBRACION',
+        'empresa_tercero_id' => EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    expect($programacion->seguimientos()->where('fase', 'CALIBRACION')->pluck('seguimiento')->all())->toBe(['PENDIENTE']);
+});

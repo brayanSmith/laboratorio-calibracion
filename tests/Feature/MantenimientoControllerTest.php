@@ -361,3 +361,53 @@ test('comparte los mantenimientos pendientes en local y en tercero para el menu'
             ->where('pendientes.despachos', 0)
             ->where('pendientes.ingresos', 0));
 });
+
+test('registra un seguimiento de mantenimiento con el estado inicial PENDIENTE al crear el mantenimiento', function () {
+    $programacion = crearEquipoRecibido($this->bahia, 'EQ-SEG-MANT');
+    $ordenTrabajo = OrdenTrabajo::create([
+        'codigo' => 'OT-'.random_int(1000, 9999),
+        'equipo_programacion_id' => $programacion->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'EN_BAHIA',
+        'listo_para_mantenimiento' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    Mantenimiento::create([
+        'orden_trabajo_id' => $ordenTrabajo->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => now()->toDateString(),
+        'tecnico_id' => $this->admin->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    expect($programacion->seguimientos()->where('fase', 'MANTENIMIENTO')->pluck('seguimiento')->all())
+        ->toBe(['PENDIENTE']);
+});
+
+test('al iniciar un mantenimiento su estado pasa a EN_PROCESO', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    expect($mantenimiento->estado_mantenimiento)->toBe('PENDIENTE');
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.iniciar', $mantenimiento))
+        ->assertRedirect();
+
+    expect($mantenimiento->refresh()->estado_mantenimiento)->toBe('EN_PROCESO');
+});
+
+test('no permite finalizar un mantenimiento al que le faltan repuestos', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FALTA_REPUESTOS']);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), [
+            'estado_final_equipo' => 'OPERATIVO',
+            'firmado' => '1',
+        ])
+        ->assertSessionHasErrors('estado_mantenimiento');
+
+    expect($mantenimiento->refresh())
+        ->estado_mantenimiento->toBe('FALTA_REPUESTOS')
+        ->and($mantenimiento->ordenTrabajo->refresh()->mantenimiento_finalizado)->toBeFalse();
+});

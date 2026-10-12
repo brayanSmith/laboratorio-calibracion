@@ -23,11 +23,14 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            UserSeeder::class,
             AreaSeeder::class,
+            BahiaSeeder::class,
             TipoEquipoSeeder::class,
             TipoEquipoCheckListSeeder::class,
             ItemSeeder::class,
             EmpresaTerceroSeeder::class,
+            FabricanteSeeder::class,
             LaboratorioSeeder::class,
             ProcedimientoCalibracionSeeder::class,
             ClienteSeeder::class,

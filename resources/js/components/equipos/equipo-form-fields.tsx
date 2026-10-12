@@ -11,6 +11,8 @@ type Props = {
     options: EquipoFormOptions;
     errors: Partial<Record<string, string>>;
     variant?: 'create' | 'edit';
+    /** Avisa al padre cuando cambia el tipo de equipo (id como texto). */
+    onTipoEquipoChange?: (tipoEquipoId: string | undefined) => void;
 };
 
 const OPCIONES_TECNOLOGIA = [
@@ -27,6 +29,7 @@ export default function EquipoFormFields({
     options,
     errors,
     variant = 'edit',
+    onTipoEquipoChange,
 }: Props) {
     const isCreate = variant === 'create';
 
@@ -61,7 +64,10 @@ export default function EquipoFormFields({
                     id="tipo_equipo_id"
                     name="tipo_equipo_id"
                     value={tipoEquipoId}
-                    onValueChange={setTipoEquipoId}
+                    onValueChange={(value) => {
+                        setTipoEquipoId(value);
+                        onTipoEquipoChange?.(value);
+                    }}
                     options={options.tipoEquipos.map((option) => ({
                         id: option.id,
                         label: option.nombre,

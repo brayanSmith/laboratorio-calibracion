@@ -34,15 +34,16 @@ return new class extends Migration
             // equipos"). Por defecto true: se espera que todo lo agendado se reciba.
             $table->boolean('ingresado')->default(true);
 
-            $table->enum('estado_programacion', ['PENDIENTE', 'AGENDADO', 'CANCELADO'])->default('PENDIENTE');
-            // Solo cuando estado_programacion es CANCELADO. Catálogo configurable por tenant
+            // PENDIENTE: agendar = false. AGENDADO: agendar = true e ingresado = false.
+            // RECIBIDO: ingresado = true. CANCELADO: agendar = true e ingresado = false tras
+            // recibir el ingreso. RE_AGENDADO: re_agendar = true e ingresado = false.
+            $table->enum('estado_programacion', ['PENDIENTE', 'AGENDADO', 'RECIBIDO', 'CANCELADO', 'RE_AGENDADO'])->default('PENDIENTE');
+            // Solo cuando estado_programacion es CANCELADO o RE_AGENDADO. Catálogo configurable por tenant
             // (categoria INGRESO), en vez de una lista fija.
             $table->foreignId('novedad_ingreso_id')->nullable()->constrained('novedads')->nullOnDelete();
             $table->text('observacion_no_ingreso')->nullable(); // Detalle adicional opcional
             $table->boolean('re_agendar')->default(false); // Solo tiene sentido junto con novedad_ingreso_id
             $table->json('datos_re_agendamiento')->nullable(); // Fecha del próximo agendamiento, si re_agendar es true
-            $table->enum('fase_programacion', ['PENDIENTE', 'INGRESO', 'MANTENIMIENTO', 'CALIBRACION', 'DESPACHO'])->default('INGRESO');
-            $table->string('subfase_programacion')->nullable(); // Subfase de la fase_programacion, ej: "RECEPCION", "EQUIPO EN PROCESO", "EQUIPO LISTO PARA DESPACHO"
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

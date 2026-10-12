@@ -42,7 +42,9 @@ class EquipoController extends Controller
                 'bahia:id,nombre',
                 'cliente:id,nombre',
                 'equipoEspecificacionTecnica',
-                'equipoProgramaciones' => fn ($query) => $query->latest(),
+                'equipoProgramaciones' => fn ($query) => $query->latest()->with([
+                    'seguimientos' => fn ($seguimientos) => $seguimientos->with('usuario:id,name')->latest('id'),
+                ]),
             ])
             ->latest()
             ->paginate(15)
@@ -127,7 +129,9 @@ class EquipoController extends Controller
             'bahia:id,nombre',
             'cliente:id,nombre',
             'equipoEspecificacionTecnica',
-            'equipoProgramaciones' => fn ($query) => $query->latest(),
+            'equipoProgramaciones' => fn ($query) => $query->latest()->with([
+                'seguimientos' => fn ($seguimientos) => $seguimientos->with('usuario:id,name')->latest('id'),
+            ]),
         ]);
 
         return Inertia::render('equipos/show', [
@@ -267,7 +271,7 @@ class EquipoController extends Controller
     private function formOptions(int $tenantId): array
     {
         return [
-            'tipoEquipos' => TipoEquipo::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'tipoEquipos' => TipoEquipo::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'tipo_mantenimiento']),
             'fabricantes' => Fabricante::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'area_id']),

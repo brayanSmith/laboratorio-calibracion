@@ -30,6 +30,7 @@ class StoreEquipoProgramacionRequest extends FormRequest
             'intervalo_servicio' => ['nullable', 'numeric'],
             'intervalo_unidad' => ['required_with:intervalo_servicio', Rule::in(['DIAS', 'SEMANAS', 'MESES'])],
             'fecha_ultimo_servicio' => ['nullable', 'date'],
+            'dias_plazo_vencimiento' => ['sometimes', 'required', 'integer', 'min:0', 'max:3650'],
         ];
     }
 
@@ -45,6 +46,7 @@ class StoreEquipoProgramacionRequest extends FormRequest
             'intervalo_servicio' => 'intervalo de servicio',
             'intervalo_unidad' => 'unidad del intervalo',
             'fecha_ultimo_servicio' => 'fecha del último servicio',
+            'dias_plazo_vencimiento' => 'días de aviso',
         ];
     }
 }

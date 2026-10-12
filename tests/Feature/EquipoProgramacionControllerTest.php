@@ -463,3 +463,37 @@ test('un usuario sin permiso de ver equipos no puede listar equipos disponibles'
         ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_id' => $bahia->id]))
         ->assertForbidden();
 });
+
+test('no permite eliminar una programacion cuyo servicio ya se gestiono', function () {
+    $this->actingAs($this->admin)->post(route('equipos.programaciones.store', $this->equipo), datosProgramacion());
+    $programacion = EquipoProgramacion::where('equipo_id', $this->equipo->id)->firstOrFail();
+    $programacion->update(['estado_programacion' => 'RECIBIDO']);
+
+    $this->actingAs($this->admin)
+        ->delete(route('programaciones.destroy', $programacion))
+        ->assertForbidden();
+
+    expect(EquipoProgramacion::find($programacion->id))->not->toBeNull()
+        ->and($programacion->refresh()->eliminable)->toBeFalse();
+});
+
+test('guarda los dias de aviso de la programacion', function () {
+    $this->actingAs($this->admin)
+        ->post(route('equipos.programaciones.store', $this->equipo), datosProgramacion([
+            'fecha_ultimo_servicio' => now()->subDays(80)->toDateString(),
+            'intervalo_servicio' => 3,
+            'intervalo_unidad' => 'MESES',
+            'dias_plazo_vencimiento' => 60,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $programacion = EquipoProgramacion::where('equipo_id', $this->equipo->id)->firstOrFail();
+
+    expect((int) $programacion->dias_plazo_vencimiento)->toBe(60);
+});
+
+test('rechaza dias de aviso negativos o no numericos', function () {
+    $this->actingAs($this->admin)
+        ->post(route('equipos.programaciones.store', $this->equipo), datosProgramacion(['dias_plazo_vencimiento' => -5]))
+        ->assertSessionHasErrors('dias_plazo_vencimiento');
+});

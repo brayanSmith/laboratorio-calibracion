@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('entrega_autorizada')->default(false);
             $table->string('firma_cliente_recibe')->nullable();
             $table->boolean('entrega_recibida')->default(false);
+            $table->enum('estado_despacho', ['PENDIENTE', 'AUTORIZADO', 'ENTREGADO'])->default('PENDIENTE');
             $table->foreignId('novedad_id')->nullable()->constrained('novedads')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

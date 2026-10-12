@@ -15,6 +15,7 @@ export type Despacho = {
     cliente_recibe_nombre: string | null;
     firma_url: string | null;
     entrega_recibida: boolean;
+    estado_despacho: 'PENDIENTE' | 'AUTORIZADO' | 'ENTREGADO';
     novedad_id: number | null;
     novedad_nombre: string | null;
     equipo: {

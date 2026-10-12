@@ -12,9 +12,10 @@ import type { Tenant, TenantUser } from '@/types';
 type Props = {
     tenant: Tenant;
     users: TenantUser[];
+    roles: string[];
 };
 
-export default function TenantsEdit({ tenant, users }: Props) {
+export default function TenantsEdit({ tenant, users, roles }: Props) {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     return (
@@ -67,7 +68,7 @@ export default function TenantsEdit({ tenant, users }: Props) {
             </div>
 
             <div className="max-w-3xl border-t p-4 pt-6">
-                <TenantUsers tenant={tenant} users={users} />
+                <TenantUsers tenant={tenant} users={users} roles={roles} />
             </div>
 
             <DeleteTenantModal

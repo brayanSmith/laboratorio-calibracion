@@ -47,6 +47,34 @@ class Calibracion extends Model
     use SoftDeletes;
 
     /**
+     * Same defaults as the table, so a just-created model already carries them.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'estado_calibracion' => 'PENDIENTE',
+    ];
+
+    /**
+     * Registra un seguimiento de fase CALIBRACION al crearse la calibración o cambiar
+     * su estado, siempre que la orden de trabajo esté lista para calibración.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Calibracion $calibracion): void {
+            if (! $calibracion->wasRecentlyCreated && ! $calibracion->wasChanged('estado_calibracion')) {
+                return;
+            }
+
+            $ordenTrabajo = $calibracion->ordenTrabajo;
+
+            if ($ordenTrabajo->listo_para_calibracion) {
+                $ordenTrabajo->equipoProgramacion->registrarSeguimiento('CALIBRACION', $calibracion->estado_calibracion);
+            }
+        });
+    }
+
+    /**
      * Get the orden de trabajo this calibracion belongs to.
      *
      * @return BelongsTo<OrdenTrabajo, $this>

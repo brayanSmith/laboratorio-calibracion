@@ -6,6 +6,7 @@ import EquipoDocumentosFields from '@/components/equipos/equipo-documentos-field
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
 import EquipoFormFields from '@/components/equipos/equipo-form-fields';
+import { tiposServicioDelTipoEquipo } from '@/components/equipos/equipo-programacion-fields';
 import EquipoInformacionAdicionalFields from '@/components/equipos/equipo-informacion-adicional-fields';
 import EquipoProgramacionesFields from '@/components/equipos/equipo-programaciones-fields';
 import EquipoUbicacionFields from '@/components/equipos/equipo-ubicacion-fields';
@@ -30,9 +31,21 @@ type Props = PropsWithChildren<{
 
 export default function CreateEquipoModal({ options, children }: Props) {
     const [open, setOpen] = useState(false);
+    const [tipoEquipoId, setTipoEquipoId] = useState<string | undefined>();
+
+    const tiposSugeridos = tiposServicioDelTipoEquipo(
+        options.tipoEquipos.find((tipo) => tipo.id.toString() === tipoEquipoId)
+            ?.tipo_mantenimiento,
+    );
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+            open={open}
+            onOpenChange={(value) => {
+                setOpen(value);
+                setTipoEquipoId(undefined);
+            }}
+        >
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
                 <Form
@@ -54,6 +67,7 @@ export default function CreateEquipoModal({ options, children }: Props) {
                                 options={options}
                                 errors={errors}
                                 variant="create"
+                                onTipoEquipoChange={setTipoEquipoId}
                             />
 
                             <Separator />
@@ -103,7 +117,10 @@ export default function CreateEquipoModal({ options, children }: Props) {
                                     title="Programación de servicio"
                                     description="Opcional: agrega una o varias (mantenimiento, calibración, etc.)"
                                 />
-                                <EquipoProgramacionesFields errors={errors} />
+                                <EquipoProgramacionesFields
+                                    errors={errors}
+                                    tiposSugeridos={tiposSugeridos}
+                                />
                             </div>
 
                             <Separator />

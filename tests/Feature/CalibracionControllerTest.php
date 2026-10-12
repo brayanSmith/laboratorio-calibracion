@@ -515,3 +515,15 @@ test('un invitado no puede ver las calibraciones', function () {
     $this->get(route('calibraciones.index'))
         ->assertRedirect(route('login'));
 });
+
+test('al iniciar una calibracion su estado pasa a EN_PROCESO', function () {
+    $calibracion = crearCalibracion($this->bahia);
+
+    expect($calibracion->estado_calibracion)->toBe('PENDIENTE');
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.iniciar', $calibracion))
+        ->assertRedirect();
+
+    expect($calibracion->refresh()->estado_calibracion)->toBe('EN_PROCESO');
+});

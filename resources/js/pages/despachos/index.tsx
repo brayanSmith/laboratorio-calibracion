@@ -1,11 +1,13 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import DeleteDespachoModal from '@/components/despachos/delete-despacho-modal';
+import DespacharDespachoModal from '@/components/despachos/despachar-despacho-modal';
 import EditDespachoModal from '@/components/despachos/edit-despacho-modal';
+import VerDespachoModal from '@/components/despachos/ver-despacho-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +36,14 @@ export default function DespachosIndex({
     const [editOpen, setEditOpen] = useState(false);
     const [deleting, setDeleting] = useState<Despacho | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [despachandoId, setDespachandoId] = useState<number | null>(null);
+    const despachando =
+        despachos.find((despacho) => despacho.id === despachandoId) ?? null;
+    const [despacharOpen, setDespacharOpen] = useState(false);
+    const [viendoId, setViendoId] = useState<number | null>(null);
+    const viendo =
+        despachos.find((despacho) => despacho.id === viendoId) ?? null;
+    const [verOpen, setVerOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -98,6 +108,35 @@ export default function DespachosIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
+                            {row.original.entrega_recibida ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="despacho-ver-button"
+                                    onClick={() => {
+                                        setViendoId(row.original.id);
+                                        setVerOpen(true);
+                                    }}
+                                >
+                                    <Eye className="h-4 w-4" /> Ver
+                                </Button>
+                            ) : null}
+                            {canEdit &&
+                            row.original.entrega_autorizada &&
+                            !row.original.entrega_recibida ? (
+                                <Button
+                                    size="sm"
+                                    className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
+                                    data-test="despacho-despachar-button"
+                                    onClick={() => {
+                                        setDespachandoId(row.original.id);
+                                        setDespacharOpen(true);
+                                    }}
+                                >
+                                    <PackageCheck className="h-4 w-4" />{' '}
+                                    Despachar
+                                </Button>
+                            ) : null}
                             {canEdit ? (
                                 <Button
                                     variant="ghost"
@@ -160,6 +199,18 @@ export default function DespachosIndex({
                 novedadesDespacho={novedadesDespacho}
                 open={editOpen}
                 onOpenChange={setEditOpen}
+            />
+            <VerDespachoModal
+                despacho={viendo}
+                open={verOpen}
+                onOpenChange={setVerOpen}
+            />
+            <DespacharDespachoModal
+                despacho={despachando}
+                clientes={clientes}
+                novedadesDespacho={novedadesDespacho}
+                open={despacharOpen}
+                onOpenChange={setDespacharOpen}
             />
             <DeleteDespachoModal
                 despacho={deleting}

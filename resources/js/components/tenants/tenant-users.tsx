@@ -1,6 +1,7 @@
-import { KeyRound, Pencil } from 'lucide-react';
+import { KeyRound, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import CreateTenantUserModal from '@/components/tenants/create-tenant-user-modal';
 import EditTenantUserModal from '@/components/tenants/edit-tenant-user-modal';
 import TenantUserController from '@/actions/App/Http/Controllers/Plataforma/TenantUserController';
 import ResetUserPasswordModal from '@/components/reset-user-password-modal';
@@ -11,9 +12,10 @@ import type { Tenant, TenantUser } from '@/types';
 type Props = {
     tenant: Tenant;
     users: TenantUser[];
+    roles: string[];
 };
 
-export default function TenantUsers({ tenant, users }: Props) {
+export default function TenantUsers({ tenant, users, roles }: Props) {
     const [editingUser, setEditingUser] = useState<TenantUser | null>(null);
     const [editOpen, setEditOpen] = useState(false);
     const [resettingUser, setResettingUser] = useState<TenantUser | null>(null);
@@ -21,11 +23,19 @@ export default function TenantUsers({ tenant, users }: Props) {
 
     return (
         <div className="space-y-4">
-            <Heading
-                variant="small"
-                title="Usuarios del tenant"
-                description="Corrige el correo de un usuario o regenera su contraseña temporal"
-            />
+            <div className="flex items-center justify-between gap-4">
+                <Heading
+                    variant="small"
+                    title="Usuarios del tenant"
+                    description="Crea usuarios, corrige un correo o regenera una contraseña temporal"
+                />
+
+                <CreateTenantUserModal tenant={tenant} roles={roles}>
+                    <Button size="sm" data-test="tenant-user-new-button">
+                        <Plus /> Nuevo usuario
+                    </Button>
+                </CreateTenantUserModal>
+            </div>
 
             <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-sm">

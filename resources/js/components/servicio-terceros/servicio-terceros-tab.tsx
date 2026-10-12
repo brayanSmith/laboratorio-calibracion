@@ -1,4 +1,4 @@
-import { CheckCircle2, Pencil, Play, Trash2 } from 'lucide-react';
+import { CheckCircle2, Eye, Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -8,6 +8,7 @@ import FinalizarServicioTerceroModal from '@/components/servicio-terceros/finali
 import IniciarServicioTerceroModal from '@/components/servicio-terceros/iniciar-servicio-tercero-modal';
 import ServicioTerceroModal from '@/components/servicio-terceros/servicio-tercero-modal';
 import TiempoTranscurrido from '@/components/servicio-terceros/tiempo-transcurrido';
+import VerServicioTerceroModal from '@/components/servicio-terceros/ver-servicio-tercero-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MantenimientoOption, ServicioTerceroListado } from '@/types';
@@ -48,6 +49,10 @@ export default function ServicioTercerosTab({
     const finalizando =
         servicios.find((servicio) => servicio.id === finalizandoId) ?? null;
     const [finalizarOpen, setFinalizarOpen] = useState(false);
+    const [viendoId, setViendoId] = useState<number | null>(null);
+    const viendo =
+        servicios.find((servicio) => servicio.id === viendoId) ?? null;
+    const [verOpen, setVerOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -122,10 +127,23 @@ export default function ServicioTercerosTab({
 
                         return (
                             <div className="flex items-center justify-end gap-2">
-                                {canEdit && !finalizado && !iniciado ? (
+                                {finalizado ? (
                                     <Button
                                         variant="outline"
                                         size="sm"
+                                        data-test="servicio-tercero-ver-button"
+                                        onClick={() => {
+                                            setViendoId(servicio.id);
+                                            setVerOpen(true);
+                                        }}
+                                    >
+                                        <Eye className="h-4 w-4" /> Ver
+                                    </Button>
+                                ) : null}
+                                {canEdit && !finalizado && !iniciado ? (
+                                    <Button
+                                        size="sm"
+                                        className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                         data-test="servicio-tercero-iniciar-button"
                                         onClick={() => {
                                             setIniciandoId(servicio.id);
@@ -137,8 +155,8 @@ export default function ServicioTercerosTab({
                                 ) : null}
                                 {canEdit && !finalizado && iniciado ? (
                                     <Button
-                                        variant="outline"
                                         size="sm"
+                                        className="!border-transparent !bg-blue-500 !text-white hover:!bg-blue-600"
                                         data-test="servicio-tercero-finalizar-button"
                                         onClick={() => {
                                             setFinalizandoId(servicio.id);
@@ -209,6 +227,11 @@ export default function ServicioTercerosTab({
                 servicio={iniciando}
                 open={iniciarOpen}
                 onOpenChange={setIniciarOpen}
+            />
+            <VerServicioTerceroModal
+                servicio={viendo}
+                open={verOpen}
+                onOpenChange={setVerOpen}
             />
             <FinalizarServicioTerceroModal
                 servicio={finalizando}

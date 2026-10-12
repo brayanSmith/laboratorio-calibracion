@@ -6,8 +6,13 @@ import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
 import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
+import { estadosVencimiento } from '@/components/equipos/equipo-programacion-fields';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
+import {
+    BADGE_VENCIMIENTO,
+    vencimientoDelEquipo,
+} from '@/lib/vencimiento-programacion';
 import { index } from '@/routes/equipos';
 import type { Equipo, EquipoFormOptions, EquipoPaginator } from '@/types';
 
@@ -15,6 +20,32 @@ type Props = {
     equipos: EquipoPaginator;
     options: EquipoFormOptions;
 };
+
+/** Vencimiento más urgente entre las programaciones por atender del equipo. */
+function VencimientoEquipo({ equipo }: { equipo: Equipo }) {
+    const vencimiento = vencimientoDelEquipo(equipo.equipo_programaciones);
+
+    if (!vencimiento) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    const etiqueta =
+        estadosVencimiento.find((option) => option.value === vencimiento.estado)
+            ?.label ?? vencimiento.estado;
+
+    return (
+        <div className="space-y-1">
+            <Badge className={BADGE_VENCIMIENTO[vencimiento.estado]}>
+                {etiqueta}
+            </Badge>
+            {vencimiento.fecha ? (
+                <p className="text-xs text-muted-foreground">
+                    Próximo servicio: {vencimiento.fecha}
+                </p>
+            ) : null}
+        </div>
+    );
+}
 
 export default function EquiposIndex({ equipos, options }: Props) {
     const { can } = usePermissions();
@@ -69,6 +100,9 @@ export default function EquiposIndex({ equipos, options }: Props) {
                                     Cliente
                                 </th>
                                 <th className="px-4 py-3 font-medium">
+                                    Vencimiento
+                                </th>
+                                <th className="px-4 py-3 font-medium">
                                     Estado
                                 </th>
                                 <th className="px-4 py-3" />
@@ -91,6 +125,12 @@ export default function EquiposIndex({ equipos, options }: Props) {
                                     </td>
                                     <td className="px-4 py-3">
                                         {equipo.cliente?.nombre ?? '—'}
+                                    </td>
+                                    <td
+                                        className="px-4 py-3"
+                                        data-test="equipo-vencimiento"
+                                    >
+                                        <VencimientoEquipo equipo={equipo} />
                                     </td>
                                     <td className="px-4 py-3">
                                         <Badge
@@ -141,7 +181,7 @@ export default function EquiposIndex({ equipos, options }: Props) {
                             {equipos.data.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
                                         Aún no has registrado equipos.
