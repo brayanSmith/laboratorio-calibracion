@@ -1,7 +1,16 @@
 import { Head, Link } from '@inertiajs/react';
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import {
+    FilaFiltrosServidor,
+    LimpiarFiltrosServidor,
+} from '@/components/filas-filtro-servidor';
+import type { ColumnaFiltro } from '@/components/filas-filtro-servidor';
 import Heading from '@/components/heading';
+import ThRedimensionable from '@/components/th-redimensionable';
+import { ColgroupAnchos } from '@/components/column-resize-handle';
+import { useResizableTable } from '@/hooks/use-resizable-table';
+import { cn } from '@/lib/utils';
 import CreateTenantModal from '@/components/tenants/create-tenant-modal';
 import DeleteTenantModal from '@/components/tenants/delete-tenant-modal';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +20,29 @@ import type { Tenant, TenantPaginator } from '@/types';
 
 type Props = {
     tenants: TenantPaginator;
+    /** Filtros por columna que el servidor aplicó a la lista. */
+    filtros: Record<string, string>;
 };
 
-export default function TenantsIndex({ tenants }: Props) {
+const CLAVES_COLUMNAS = ['nombre', 'slug', 'usuarios', 'activo', 'acciones'];
+
+const COLUMNAS_FILTRO: ColumnaFiltro[] = [
+    { clave: 'nombre', etiqueta: 'Nombre' },
+    { clave: 'slug', etiqueta: 'Slug' },
+    { clave: 'usuarios', etiqueta: 'Usuarios' },
+    {
+        clave: 'activo',
+        etiqueta: 'Estado',
+        opciones: [
+            { value: '1', label: 'Activo' },
+            { value: '0', label: 'Inactivo' },
+        ],
+    },
+    null,
+];
+
+export default function TenantsIndex({ tenants, filtros }: Props) {
+    const redimension = useResizableTable(CLAVES_COLUMNAS);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [tenantDeleting, setTenantDeleting] = useState<Tenant | null>(null);
 
@@ -43,22 +72,55 @@ export default function TenantsIndex({ tenants }: Props) {
                     </CreateTenantModal>
                 </div>
 
+                <LimpiarFiltrosServidor valores={filtros} url={index().url} />
+
                 <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
+                    <table
+                        ref={redimension.tablaRef}
+                        style={redimension.estiloTabla}
+                        className={cn(
+                            'w-full text-sm',
+                            redimension.anchos &&
+                                '[&_td]:break-words [&_th]:break-words',
+                        )}
+                    >
+                        <ColgroupAnchos
+                            claves={CLAVES_COLUMNAS}
+                            anchos={redimension.anchos}
+                        />
                         <thead className="bg-muted/50 text-left text-muted-foreground">
                             <tr>
-                                <th className="px-4 py-3 font-medium">
+                                <ThRedimensionable
+                                    clave="nombre"
+                                    redimension={redimension}
+                                >
                                     Nombre
-                                </th>
-                                <th className="px-4 py-3 font-medium">Slug</th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="slug"
+                                    redimension={redimension}
+                                >
+                                    Slug
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="usuarios"
+                                    redimension={redimension}
+                                >
                                     Usuarios
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="activo"
+                                    redimension={redimension}
+                                >
                                     Estado
-                                </th>
+                                </ThRedimensionable>
                                 <th className="px-4 py-3" />
                             </tr>
+                            <FilaFiltrosServidor
+                                columnas={COLUMNAS_FILTRO}
+                                valores={filtros}
+                                url={index().url}
+                            />
                         </thead>
                         <tbody className="divide-y">
                             {tenants.data.map((tenant) => (
@@ -130,7 +192,9 @@ export default function TenantsIndex({ tenants }: Props) {
                                         colSpan={5}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
-                                        Aún no hay tenants registrados.
+                                        {Object.keys(filtros).length > 0
+                                            ? 'No se encontraron tenants con esos filtros.'
+                                            : 'Aún no hay tenants registrados.'}
                                     </td>
                                 </tr>
                             ) : null}

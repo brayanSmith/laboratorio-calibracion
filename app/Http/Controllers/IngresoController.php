@@ -7,13 +7,10 @@ use App\Http\Requests\Ingresos\UpdateEstadoIngresoRequest;
 use App\Http\Requests\Ingresos\UpdateIngresoRequest;
 use App\Models\Bahia;
 use App\Models\Cliente;
-use App\Models\Despacho;
-use App\Models\EmpresaTercero;
 use App\Models\Equipo;
 use App\Models\EquipoProgramacion;
 use App\Models\Ingreso;
 use App\Models\Novedad;
-use App\Models\OrdenTrabajo;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,13 +88,6 @@ class IngresoController extends Controller
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
-            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-
-            // Para el globito de conteo en los botones "Agendar ..." (ver
-            // OrdenTrabajoController::equiposListos()/equiposListosCalibracion()/despachosListos()).
-            'equiposListosCount' => EquipoProgramacion::query()->listosParaMantenimiento($tenantId)->count(),
-            'equiposListosCalibracionCount' => OrdenTrabajo::query()->listosParaCalibracion($tenantId)->count(),
-            'despachosListosCount' => Despacho::query()->listosParaAgendar($tenantId)->count(),
         ]);
     }
 

@@ -467,3 +467,44 @@ test('un invitado no puede agendar mantenimiento', function () {
     $this->post(route('orden-trabajos.store'), ['equipos_listos' => []])
         ->assertRedirect(route('login'));
 });
+
+test('comparte con todas las paginas cuantos mantenimientos, calibraciones y despachos estan listos para agendar', function () {
+    crearEquipoRecibido($this->bahia, 'EQ-LISTO-1');
+    crearEquipoRecibido($this->bahia, 'EQ-LISTO-2');
+
+    $this->actingAs($this->admin)
+        ->get(route('ingresos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('porAgendar.mantenimiento', 2)
+            ->where('porAgendar.calibracion', 0)
+            ->where('porAgendar.despachos', 0));
+});
+
+test('quien no puede editar equipos no recibe los contadores para agendar', function () {
+    crearEquipoRecibido($this->bahia, 'EQ-LISTO');
+    $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+
+    $this->actingAs($recepcion)
+        ->get(route('ingresos.index'))
+        ->assertInertia(fn ($page) => $page->where('porAgendar', null));
+});
+
+test('lista los tecnicos y las empresas terceras del tenant para las modales de agendar', function () {
+    $tecnico = User::factory()->forTenant($this->tenant)->create(['name' => 'Ana Técnica']);
+    $ajeno = User::factory()->forTenant(Tenant::factory()->create())->create(['name' => 'Persona Ajena']);
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id, 'nombre' => 'Servicios SAC']);
+    EmpresaTercero::factory()->create(['tenant_id' => Tenant::factory()->create()->id, 'nombre' => 'Empresa Ajena']);
+
+    $respuesta = $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.opciones-agendar'))
+        ->assertOk();
+
+    expect(collect($respuesta->json('tecnicos'))->pluck('nombre'))->toContain('Ana Técnica')->not->toContain('Persona Ajena')
+        ->and($respuesta->json('empresasTerceras'))->toBe([['id' => $empresa->id, 'nombre' => 'Servicios SAC']]);
+});
+
+test('un usuario sin permiso no puede pedir las opciones para agendar', function () {
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($sinRol)->getJson(route('orden-trabajos.opciones-agendar'))->assertForbidden();
+});

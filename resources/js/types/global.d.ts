@@ -24,6 +24,12 @@ declare module '@inertiajs/core' {
                 despachos: number | null;
                 ingresos: number | null;
             } | null;
+            /** Cuántos equipos y despachos están listos para agendar (null si no puede agendar). */
+            porAgendar: {
+                mantenimiento: number;
+                calibracion: number;
+                despachos: number;
+            } | null;
             [key: string]: unknown;
         };
     }

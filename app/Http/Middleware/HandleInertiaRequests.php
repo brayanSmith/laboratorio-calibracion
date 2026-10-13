@@ -6,8 +6,10 @@ use App\Enums\TenantPermission;
 use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\Empresa;
+use App\Models\EquipoProgramacion;
 use App\Models\Ingreso;
 use App\Models\Mantenimiento;
+use App\Models\OrdenTrabajo;
 use App\Models\ServicioTercero;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -56,6 +58,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'empresa' => fn () => $this->brand($user),
             'pendientes' => fn () => $this->pendientes($user),
+            'porAgendar' => fn () => $this->porAgendar($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -114,6 +117,28 @@ class HandleInertiaRequests extends Middleware
                     ->where('estado_ingreso', 'PENDIENTE')
                     ->count()
                 : null,
+        ];
+    }
+
+    /**
+     * Cuántos mantenimientos, calibraciones y despachos están listos para agendarse, para
+     * los atajos del menú superior (ver OrdenTrabajoController::equiposListos(),
+     * equiposListosCalibracion() y despachosListos()). Null si el usuario no puede agendar.
+     *
+     * @return array{mantenimiento: int, calibracion: int, despachos: int}|null
+     */
+    private function porAgendar(?User $user): ?array
+    {
+        if (! $user?->tenant_id || ! $user->can(TenantPermission::EquiposEditar->value)) {
+            return null;
+        }
+
+        $tenantId = $user->tenant_id;
+
+        return [
+            'mantenimiento' => EquipoProgramacion::query()->listosParaMantenimiento($tenantId)->count(),
+            'calibracion' => OrdenTrabajo::query()->listosParaCalibracion($tenantId)->count(),
+            'despachos' => Despacho::query()->listosParaAgendar($tenantId)->count(),
         ];
     }
 

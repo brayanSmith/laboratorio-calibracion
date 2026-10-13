@@ -1,14 +1,5 @@
 import { Head } from '@inertiajs/react';
-import {
-    ClipboardCheck,
-    Eye,
-    Gauge,
-    Pencil,
-    Plus,
-    Truck,
-    Wrench,
-    Trash2,
-} from 'lucide-react';
+import { ClipboardCheck, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -19,9 +10,6 @@ import DeleteIngresoModal from '@/components/ingresos/delete-ingreso-modal';
 import EditIngresoModal from '@/components/ingresos/edit-ingreso-modal';
 import RecibirIngresoModal from '@/components/ingresos/recibir-ingreso-modal';
 import VerIngresoModal from '@/components/ingresos/ver-ingreso-modal';
-import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
-import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
-import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -31,31 +19,9 @@ import type { Ingreso, IngresoOption, IngresoOptions } from '@/types';
 
 type Props = IngresoOptions & {
     ingresos: Ingreso[];
-    /** Empresas terceras a las que se les puede asignar un mantenimiento. */
-    empresasTerceras: IngresoOption[];
-    /** Cuántos equipos/despachos hay listos para cada "Agendar ...", para el globito de los botones. */
-    equiposListosCount: number;
-    equiposListosCalibracionCount: number;
-    despachosListosCount: number;
 };
 
 const columnHelper = createDataTableColumnHelper<Ingreso>();
-
-/** Globito con el conteo sobre un botón, oculto si no hay nada pendiente. */
-function ConteoBubble({ count }: { count: number }) {
-    if (count === 0) {
-        return null;
-    }
-
-    return (
-        <span
-            className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-medium text-white"
-            data-test="agendar-conteo-bubble"
-        >
-            {count}
-        </span>
-    );
-}
 
 export default function IngresosIndex({
     ingresos,
@@ -63,10 +29,6 @@ export default function IngresosIndex({
     tecnicos,
     clientes,
     novedadesIngreso,
-    empresasTerceras,
-    equiposListosCount,
-    equiposListosCalibracionCount,
-    despachosListosCount,
 }: Props) {
     const { can } = usePermissions();
     const canEdit = can('ingresos.editar');
@@ -90,11 +52,6 @@ export default function IngresosIndex({
     const [viendoId, setViendoId] = useState<number | null>(null);
     const viendo = ingresos.find((ingreso) => ingreso.id === viendoId) ?? null;
     const [verOpen, setVerOpen] = useState(false);
-    const [agendarMantenimientoOpen, setAgendarMantenimientoOpen] =
-        useState(false);
-    const [agendarCalibracionesOpen, setAgendarCalibracionesOpen] =
-        useState(false);
-    const [agendarDespachosOpen, setAgendarDespachosOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -214,53 +171,6 @@ export default function IngresosIndex({
                     />
 
                     <div className="flex items-center gap-2">
-                        {can('equipos.editar') ? (
-                            <div className="relative">
-                                <Button
-                                    variant="outline"
-                                    data-test="agendar-mantenimiento-button"
-                                    onClick={() =>
-                                        setAgendarMantenimientoOpen(true)
-                                    }
-                                >
-                                    <Wrench /> Agendar Mantenimiento
-                                </Button>
-                                <ConteoBubble count={equiposListosCount} />
-                            </div>
-                        ) : null}
-
-                        {can('equipos.editar') ? (
-                            <div className="relative">
-                                <Button
-                                    variant="outline"
-                                    data-test="agendar-calibraciones-button"
-                                    onClick={() =>
-                                        setAgendarCalibracionesOpen(true)
-                                    }
-                                >
-                                    <Gauge /> Agendar Calibraciones
-                                </Button>
-                                <ConteoBubble
-                                    count={equiposListosCalibracionCount}
-                                />
-                            </div>
-                        ) : null}
-
-                        {can('equipos.editar') ? (
-                            <div className="relative">
-                                <Button
-                                    variant="outline"
-                                    data-test="agendar-despachos-button"
-                                    onClick={() =>
-                                        setAgendarDespachosOpen(true)
-                                    }
-                                >
-                                    <Truck /> Agendar Despachos
-                                </Button>
-                                <ConteoBubble count={despachosListosCount} />
-                            </div>
-                        ) : null}
-
                         {can('ingresos.crear') ? (
                             <CreateIngresoModal options={options}>
                                 <Button data-test="ingresos-new-button">
@@ -304,23 +214,6 @@ export default function IngresosIndex({
                 ingreso={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
-            />
-            <AgendarMantenimientoModal
-                tecnicos={tecnicos}
-                empresasTerceras={empresasTerceras}
-                open={agendarMantenimientoOpen}
-                onOpenChange={setAgendarMantenimientoOpen}
-            />
-            <AgendarCalibracionesModal
-                tecnicos={tecnicos}
-                empresasTerceras={empresasTerceras}
-                open={agendarCalibracionesOpen}
-                onOpenChange={setAgendarCalibracionesOpen}
-            />
-            <AgendarDespachosModal
-                tecnicos={tecnicos}
-                open={agendarDespachosOpen}
-                onOpenChange={setAgendarDespachosOpen}
             />
         </>
     );

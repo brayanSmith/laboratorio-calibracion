@@ -10,8 +10,13 @@ import {
     FilterX,
     Search,
 } from 'lucide-react';
+import ColumnResizeHandle, {
+    ColgroupAnchos,
+} from '@/components/column-resize-handle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useResizableTable } from '@/hooks/use-resizable-table';
+import { cn } from '@/lib/utils';
 import { dataTableFeatures, withColumnFilters } from '@/lib/data-table';
 import type { DataTableFeatures } from '@/lib/data-table';
 
@@ -61,6 +66,12 @@ export default function DataTable<TData extends RowData>({
         initialState: { pagination: { pageIndex: 0, pageSize } },
     });
 
+    const clavesColumnas = table
+        .getLeafHeaders()
+        .map((header) => header.column.id);
+    const { tablaRef, anchos, estiloTabla, iniciarRedimension, restablecer } =
+        useResizableTable(clavesColumnas);
+
     const rows = table.getRowModel().rows;
     const totalRows = table.getPrePaginatedRowModel().rows.length;
     const { pageIndex } = table.state.pagination;
@@ -105,7 +116,15 @@ export default function DataTable<TData extends RowData>({
             </div>
 
             <div className="overflow-x-auto rounded-lg border">
-                <table className="w-full text-sm">
+                <table
+                    ref={tablaRef}
+                    style={estiloTabla}
+                    className={cn(
+                        'w-full text-sm',
+                        anchos && '[&_td]:break-words [&_th]:break-words',
+                    )}
+                >
+                    <ColgroupAnchos claves={clavesColumnas} anchos={anchos} />
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
@@ -116,7 +135,7 @@ export default function DataTable<TData extends RowData>({
                                     return (
                                         <th
                                             key={header.id}
-                                            className="px-4 py-3 font-medium"
+                                            className="relative px-4 py-3 font-medium"
                                             aria-sort={
                                                 sorted === 'asc'
                                                     ? 'ascending'
@@ -145,6 +164,15 @@ export default function DataTable<TData extends RowData>({
                                             ) : (
                                                 <table.FlexRender
                                                     header={header}
+                                                />
+                                            )}
+                                            {header.isPlaceholder ? null : (
+                                                <ColumnResizeHandle
+                                                    label={header.column.id}
+                                                    onPointerDown={iniciarRedimension(
+                                                        header.column.id,
+                                                    )}
+                                                    onDoubleClick={restablecer}
                                                 />
                                             )}
                                         </th>

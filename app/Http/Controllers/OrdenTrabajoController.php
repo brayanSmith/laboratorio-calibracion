@@ -8,12 +8,14 @@ use App\Http\Requests\OrdenesTrabajo\StoreOrdenTrabajoRequest;
 use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\DetalleMedicionCalibracion;
+use App\Models\EmpresaTercero;
 use App\Models\EquipoProgramacion;
 use App\Models\Mantenimiento;
 use App\Models\MantenimientoCheckList;
 use App\Models\MedicionAlcance;
 use App\Models\OrdenTrabajo;
 use App\Models\ServicioTercero;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +25,22 @@ use Inertia\Inertia;
 
 class OrdenTrabajoController extends Controller
 {
+    /**
+     * List the técnicos and empresas terceras that the "Agendar ..." dialogs offer, so
+     * they can be opened from any page without every page having to carry them.
+     */
+    public function opcionesAgendar(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', EquipoProgramacion::class);
+
+        $tenantId = $request->user()->tenant_id;
+
+        return response()->json([
+            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+        ]);
+    }
+
     /**
      * List equipos ya recibidos (ingresado en su ingreso) que todavía no tienen una
      * orden de trabajo agendada para mantenimiento, para elegir cuáles quedan listos. Un

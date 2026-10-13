@@ -5,6 +5,15 @@ import CreateEquipoModal from '@/components/equipos/create-equipo-modal';
 import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
 import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import Heading from '@/components/heading';
+import ThRedimensionable from '@/components/th-redimensionable';
+import { ColgroupAnchos } from '@/components/column-resize-handle';
+import { useResizableTable } from '@/hooks/use-resizable-table';
+import { cn } from '@/lib/utils';
+import {
+    FilaFiltrosServidor,
+    LimpiarFiltrosServidor,
+} from '@/components/filas-filtro-servidor';
+import type { ColumnaFiltro } from '@/components/filas-filtro-servidor';
 import { Badge } from '@/components/ui/badge';
 import { estadosVencimiento } from '@/components/equipos/equipo-programacion-fields';
 import { Button } from '@/components/ui/button';
@@ -19,7 +28,45 @@ import type { Equipo, EquipoFormOptions, EquipoPaginator } from '@/types';
 type Props = {
     equipos: EquipoPaginator;
     options: EquipoFormOptions;
+    /** Filtros por columna que el servidor aplicó a la lista. */
+    filtros: Record<string, string>;
 };
+
+const CLAVES_COLUMNAS = [
+    'codigo',
+    'modelo',
+    'tipo_equipo',
+    'fabricante',
+    'cliente',
+    'vencimiento',
+    'activo',
+    'acciones',
+];
+
+const COLUMNAS_FILTRO: ColumnaFiltro[] = [
+    { clave: 'codigo', etiqueta: 'Código' },
+    { clave: 'modelo', etiqueta: 'Modelo' },
+    { clave: 'tipo_equipo', etiqueta: 'Tipo de equipo' },
+    { clave: 'fabricante', etiqueta: 'Fabricante' },
+    { clave: 'cliente', etiqueta: 'Cliente' },
+    {
+        clave: 'vencimiento',
+        etiqueta: 'Vencimiento',
+        opciones: [
+            ...estadosVencimiento,
+            { value: 'NINGUNO', label: 'Sin programación pendiente' },
+        ],
+    },
+    {
+        clave: 'activo',
+        etiqueta: 'Estado',
+        opciones: [
+            { value: '1', label: 'Activo' },
+            { value: '0', label: 'Inactivo' },
+        ],
+    },
+    null,
+];
 
 /** Vencimiento más urgente entre las programaciones por atender del equipo. */
 function VencimientoEquipo({ equipo }: { equipo: Equipo }) {
@@ -47,7 +94,8 @@ function VencimientoEquipo({ equipo }: { equipo: Equipo }) {
     );
 }
 
-export default function EquiposIndex({ equipos, options }: Props) {
+export default function EquiposIndex({ equipos, options, filtros }: Props) {
+    const redimension = useResizableTable(CLAVES_COLUMNAS);
     const { can } = usePermissions();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [equipoDeleting, setEquipoDeleting] = useState<Equipo | null>(null);
@@ -80,33 +128,73 @@ export default function EquiposIndex({ equipos, options }: Props) {
                     ) : null}
                 </div>
 
+                <LimpiarFiltrosServidor valores={filtros} url={index().url} />
+
                 <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
+                    <table
+                        ref={redimension.tablaRef}
+                        style={redimension.estiloTabla}
+                        className={cn(
+                            'w-full text-sm',
+                            redimension.anchos &&
+                                '[&_td]:break-words [&_th]:break-words',
+                        )}
+                    >
+                        <ColgroupAnchos
+                            claves={CLAVES_COLUMNAS}
+                            anchos={redimension.anchos}
+                        />
                         <thead className="bg-muted/50 text-left text-muted-foreground">
                             <tr>
-                                <th className="px-4 py-3 font-medium">
+                                <ThRedimensionable
+                                    clave="codigo"
+                                    redimension={redimension}
+                                >
                                     Código
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="modelo"
+                                    redimension={redimension}
+                                >
                                     Modelo
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="tipo_equipo"
+                                    redimension={redimension}
+                                >
                                     Tipo de equipo
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="fabricante"
+                                    redimension={redimension}
+                                >
                                     Fabricante
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="cliente"
+                                    redimension={redimension}
+                                >
                                     Cliente
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="vencimiento"
+                                    redimension={redimension}
+                                >
                                     Vencimiento
-                                </th>
-                                <th className="px-4 py-3 font-medium">
+                                </ThRedimensionable>
+                                <ThRedimensionable
+                                    clave="activo"
+                                    redimension={redimension}
+                                >
                                     Estado
-                                </th>
+                                </ThRedimensionable>
                                 <th className="px-4 py-3" />
                             </tr>
+                            <FilaFiltrosServidor
+                                columnas={COLUMNAS_FILTRO}
+                                valores={filtros}
+                                url={index().url}
+                            />
                         </thead>
                         <tbody className="divide-y">
                             {equipos.data.map((equipo) => (
@@ -184,7 +272,9 @@ export default function EquiposIndex({ equipos, options }: Props) {
                                         colSpan={8}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
-                                        Aún no has registrado equipos.
+                                        {Object.keys(filtros).length > 0
+                                            ? 'No se encontraron equipos con esos filtros.'
+                                            : 'Aún no has registrado equipos.'}
                                     </td>
                                 </tr>
                             ) : null}

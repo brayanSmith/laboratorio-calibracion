@@ -71,6 +71,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');
 
+    Route::get('orden-trabajos/opciones-agendar', [OrdenTrabajoController::class, 'opcionesAgendar'])->name('orden-trabajos.opciones-agendar');
     Route::get('orden-trabajos/equipos-listos', [OrdenTrabajoController::class, 'equiposListos'])->name('orden-trabajos.equipos-listos');
     Route::post('orden-trabajos', [OrdenTrabajoController::class, 'store'])->name('orden-trabajos.store');
     Route::get('orden-trabajos/equipos-listos-calibracion', [OrdenTrabajoController::class, 'equiposListosCalibracion'])->name('orden-trabajos.equipos-listos-calibracion');
