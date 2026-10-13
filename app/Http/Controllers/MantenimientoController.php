@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Mantenimientos\GenerarInformeMantenimiento;
 use App\Http\Requests\Mantenimientos\FinalizarMantenimientoRequest;
 use App\Http\Requests\Mantenimientos\UpdateMantenimientoRequest;
 use App\Models\ComentarioMantenimiento;
@@ -20,8 +21,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class MantenimientoController extends Controller
 {
@@ -166,9 +170,11 @@ class MantenimientoController extends Controller
      * Finish the mantenimiento: guarda el estado final del equipo y si quedó firmado,
      * marca el mantenimiento como FINALIZADO (y la orden de trabajo como
      * mantenimiento_finalizado), y cierra el tiempo_servicio que estaba en curso (fin =
-     * ahora, duración calculada, estado_tiempo = FIN).
+     * ahora, duración calculada, estado_tiempo = FIN). Después genera y guarda el informe
+     * PDF; si eso falla, el mantenimiento igual queda finalizado y el informe se genera
+     * la primera vez que se pida (ver informe()).
      */
-    public function finalizar(FinalizarMantenimientoRequest $request, Mantenimiento $mantenimiento): RedirectResponse
+    public function finalizar(FinalizarMantenimientoRequest $request, Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): RedirectResponse
     {
         DB::transaction(function () use ($request, $mantenimiento): void {
             $mantenimiento->update([
@@ -199,9 +205,39 @@ class MantenimientoController extends Controller
             }
         });
 
+        try {
+            $generarInforme->handle($mantenimiento);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Mantenimiento finalizado.')]);
 
         return to_route('mantenimientos.index');
+    }
+
+    /**
+     * Show the PDF report of a finished mantenimiento in the browser, ready to print or
+     * save. It is generated when the mantenimiento is finished; if that copy is missing
+     * it is generated again here.
+     */
+    public function informe(Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): StreamedResponse
+    {
+        Gate::authorize('viewAny', Mantenimiento::class);
+
+        abort_unless(
+            $mantenimiento->tenant_id === auth()->user()->tenant_id
+                && $mantenimiento->estado_mantenimiento === 'FINALIZADO',
+            404,
+        );
+
+        $disco = Storage::disk('public');
+
+        $ruta = $mantenimiento->pdf_informe && $disco->exists($mantenimiento->pdf_informe)
+            ? $mantenimiento->pdf_informe
+            : $generarInforme->handle($mantenimiento);
+
+        return $disco->response($ruta, 'informe-mantenimiento-'.$mantenimiento->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     /**

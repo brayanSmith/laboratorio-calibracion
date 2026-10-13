@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Printer, XCircle } from 'lucide-react';
+import { informe } from '@/actions/App/Http/Controllers/MantenimientoController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -280,7 +281,19 @@ export default function VerMantenimientoModal({
                     </Seccion>
                 ) : null}
 
-                <DialogFooter>
+                <DialogFooter className="gap-2">
+                    {mantenimiento.estado_mantenimiento === 'FINALIZADO' ? (
+                        <Button variant="outline" asChild>
+                            <a
+                                href={informe.url(mantenimiento.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                data-test="descargar-informe-button"
+                            >
+                                <Printer className="h-4 w-4" /> Imprimir PDF
+                            </a>
+                        </Button>
+                    ) : null}
                     <DialogClose asChild>
                         <Button type="button" variant="secondary">
                             Cerrar

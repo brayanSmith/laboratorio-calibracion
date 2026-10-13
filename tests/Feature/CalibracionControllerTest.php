@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Calibraciones\GraficoErrorCalibracion;
 use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\Calibracion;
@@ -15,8 +16,11 @@ use App\Models\Tenant;
 use App\Models\TiempoServicio;
 use App\Models\UnidadMedida;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    Storage::fake('public');
+
     $this->tenant = Tenant::factory()->create();
     $this->admin = User::factory()->forTenant($this->tenant)->create();
     $this->bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
@@ -526,4 +530,91 @@ test('al iniciar una calibracion su estado pasa a EN_PROCESO', function () {
         ->assertRedirect();
 
     expect($calibracion->refresh()->estado_calibracion)->toBe('EN_PROCESO');
+});
+
+/** Calibración con dos puntos de medición ya medidos y aprobados. */
+function crearCalibracionMedida(Bahia $bahia, array $overrides = []): Calibracion
+{
+    $calibracion = crearCalibracion($bahia, $overrides);
+
+    foreach ([[5, 1.2, 2.0, -2.0], [10, 0.4, 2.0, -2.0]] as [$referencia, $error, $empPositivo, $empNegativo]) {
+        crearDetalleMedicion($calibracion, [
+            'valor_referencia' => $referencia,
+            'valor_instrumento' => $referencia - 0.1,
+            'error_encontrado' => 0.1,
+            'error_porcentaje' => $error,
+            'emp_porcentaje_positivo' => $empPositivo,
+            'emp_porcentaje_negativo' => $empNegativo,
+            'resultado_calibracion' => 'APROBADO',
+        ]);
+    }
+
+    return $calibracion->refresh();
+}
+
+test('al finalizar una calibracion se genera y guarda su certificado PDF', function () {
+    $calibracion = crearCalibracionMedida($this->bahia);
+
+    $this->actingAs($this->admin)->post(route('calibraciones.iniciar', $calibracion));
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    $ruta = $calibracion->refresh()->pdf_certificado;
+
+    expect($ruta)->toBe("certificados/calibraciones/{$this->tenant->id}/calibracion-{$calibracion->id}.pdf");
+    Storage::disk('public')->assertExists($ruta);
+    expect(Storage::disk('public')->get($ruta))->toStartWith('%PDF');
+});
+
+test('una calibracion devuelta a mantenimiento no genera certificado', function () {
+    $calibracion = crearCalibracionMedida($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'DEVOLVER_MANTENIMIENTO'])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->pdf_certificado)->toBeNull();
+});
+
+test('muestra el certificado de una calibracion finalizada y lo regenera si falta el archivo', function () {
+    $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO', 'pdf_certificado' => 'certificados/inexistente.pdf']);
+
+    $this->actingAs($this->admin)
+        ->get(route('calibraciones.certificado', $calibracion))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename=certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf');
+
+    Storage::disk('public')->assertExists($calibracion->refresh()->pdf_certificado);
+    expect($calibracion->pdf_certificado)->not->toBe('certificados/inexistente.pdf');
+});
+
+test('no permite ver el certificado de una calibracion sin finalizar ni de otro tenant', function () {
+    $sinFinalizar = crearCalibracion($this->bahia);
+    $ajena = crearCalibracion(Bahia::factory()->create(), ['estado_calibracion' => 'FINALIZADO'], 'EQ-AJENA');
+
+    $this->actingAs($this->admin)->get(route('calibraciones.certificado', $sinFinalizar))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('calibraciones.certificado', $ajena))->assertNotFound();
+});
+
+test('un usuario sin permiso de ver calibraciones no puede ver el certificado', function () {
+    $calibracion = crearCalibracion($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($sinRol)->get(route('calibraciones.certificado', $calibracion))->assertForbidden();
+});
+
+test('el grafico de error dibuja los puntos medidos y no se genera sin mediciones', function () {
+    $sinMediciones = crearCalibracion($this->bahia, [], 'EQ-SIN-MED');
+    $medida = crearCalibracionMedida($this->bahia);
+    $grafico = app(GraficoErrorCalibracion::class);
+
+    expect($grafico->handle($sinMediciones->load('detalleMedicionCalibracion')))->toBeNull();
+
+    $svg = $grafico->handle($medida->load('detalleMedicionCalibracion'));
+
+    expect($svg)->toStartWith('<svg')
+        ->and(substr_count($svg, '<circle'))->toBe(2)
+        ->and(substr_count($svg, '<polyline'))->toBe(3);
 });

@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $estado_calibracion PENDIENTE por defecto
  * @property bool $firmado
  * @property int|null $novedad_id Se completa si surge una novedad durante la calibración
+ * @property string|null $pdf_certificado Ruta del certificado PDF, generado al finalizar la calibración
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -40,7 +41,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'orden_trabajo_id', 'fecha_calibracion', 'laboratorio_id', 'solicitante_id', 'tecnico_id',
     'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion',
-    'firmado', 'novedad_id', 'tenant_id',
+    'firmado', 'novedad_id', 'pdf_certificado', 'tenant_id',
 ])]
 class Calibracion extends Model
 {

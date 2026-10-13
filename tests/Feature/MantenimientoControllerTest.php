@@ -10,8 +10,12 @@ use App\Models\ServicioTercero;
 use App\Models\Tenant;
 use App\Models\TiempoServicio;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    Storage::fake('public');
+
     $this->tenant = Tenant::factory()->create();
     $this->admin = User::factory()->forTenant($this->tenant)->create();
     $this->bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
@@ -410,4 +414,67 @@ test('no permite finalizar un mantenimiento al que le faltan repuestos', functio
     expect($mantenimiento->refresh())
         ->estado_mantenimiento->toBe('FALTA_REPUESTOS')
         ->and($mantenimiento->ordenTrabajo->refresh()->mantenimiento_finalizado)->toBeFalse();
+});
+
+test('al finalizar un mantenimiento se genera y guarda su informe PDF', function () {
+    Storage::fake('public');
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'OPERATIVO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    $ruta = $mantenimiento->refresh()->pdf_informe;
+
+    expect($ruta)->toBe("informes/mantenimientos/{$this->tenant->id}/mantenimiento-{$mantenimiento->id}.pdf");
+    Storage::disk('public')->assertExists($ruta);
+    expect(Storage::disk('public')->get($ruta))->toStartWith('%PDF');
+});
+
+test('el informe PDF incluye las fotos de la galeria del mantenimiento', function () {
+    Storage::fake('public');
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    Storage::disk('public')->put('mantenimientos/foto.png', UploadedFile::fake()->image('foto.png', 40, 40)->getContent());
+    $mantenimiento->galeriaMantenimientos()->create([
+        'imagen' => 'mantenimientos/foto.png',
+        'descripcion' => 'Antes del servicio',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.informe', $mantenimiento))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+});
+
+test('muestra el informe de un mantenimiento finalizado y lo regenera si falta el archivo', function () {
+    Storage::fake('public');
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO', 'pdf_informe' => 'informes/inexistente.pdf']);
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.informe', $mantenimiento))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename=informe-mantenimiento-'.$mantenimiento->ordenTrabajo->codigo.'.pdf');
+
+    Storage::disk('public')->assertExists($mantenimiento->refresh()->pdf_informe);
+    expect($mantenimiento->pdf_informe)->not->toBe('informes/inexistente.pdf');
+});
+
+test('no permite descargar el informe de un mantenimiento sin finalizar ni de otro tenant', function () {
+    Storage::fake('public');
+    $sinFinalizar = crearMantenimiento($this->bahia);
+    $ajeno = crearMantenimiento(Bahia::factory()->create(), ['estado_mantenimiento' => 'FINALIZADO'], 'EQ-AJENO');
+
+    $this->actingAs($this->admin)->get(route('mantenimientos.informe', $sinFinalizar))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('mantenimientos.informe', $ajeno))->assertNotFound();
+});
+
+test('un usuario sin permiso de ver mantenimientos no puede descargar el informe', function () {
+    Storage::fake('public');
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($sinRol)->get(route('mantenimientos.informe', $mantenimiento))->assertForbidden();
 });

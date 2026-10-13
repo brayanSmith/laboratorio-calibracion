@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Eye, Pencil, Play, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -7,6 +7,7 @@ import DataTable, {
 import Heading from '@/components/heading';
 import DeleteMantenimientoModal from '@/components/mantenimientos/delete-mantenimiento-modal';
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
+import { informe } from '@/actions/App/Http/Controllers/MantenimientoController';
 import GestionarMantenimientoModal from '@/components/mantenimientos/gestionar-mantenimiento-modal';
 import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mantenimiento-modal';
 import VerMantenimientoModal from '@/components/mantenimientos/ver-mantenimiento-modal';
@@ -150,6 +151,19 @@ export default function MantenimientosIndex({
                                     }}
                                 >
                                     <Eye className="h-4 w-4" /> Ver
+                                </Button>
+                            ) : null}
+                            {row.original.estado_mantenimiento ===
+                            'FINALIZADO' ? (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a
+                                        href={informe.url(row.original.id)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        data-test="mantenimiento-imprimir-button"
+                                    >
+                                        <Printer className="h-4 w-4" /> PDF
+                                    </a>
                                 </Button>
                             ) : null}
                             {canEdit &&

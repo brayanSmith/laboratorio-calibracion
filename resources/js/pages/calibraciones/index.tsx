@@ -1,9 +1,10 @@
 import { Head } from '@inertiajs/react';
-import { Eye, Pencil, Play, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
+import { certificado } from '@/actions/App/Http/Controllers/CalibracionController';
 import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
 import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
@@ -139,6 +140,19 @@ export default function CalibracionesIndex({
                                     }}
                                 >
                                     <Eye className="h-4 w-4" /> Ver
+                                </Button>
+                            ) : null}
+                            {row.original.estado_calibracion ===
+                            'FINALIZADO' ? (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a
+                                        href={certificado.url(row.original.id)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        data-test="calibracion-imprimir-button"
+                                    >
+                                        <Printer className="h-4 w-4" /> PDF
+                                    </a>
                                 </Button>
                             ) : null}
                             {canEdit &&

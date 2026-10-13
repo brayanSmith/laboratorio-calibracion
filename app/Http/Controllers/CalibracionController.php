@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Calibraciones\GenerarCertificadoCalibracion;
 use App\Http\Requests\Calibraciones\FinalizarCalibracionRequest;
 use App\Http\Requests\Calibraciones\UpdateCalibracionRequest;
 use App\Models\Area;
@@ -19,8 +20,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class CalibracionController extends Controller
 {
@@ -219,9 +223,11 @@ class CalibracionController extends Controller
      * Despachos" (ver OrdenTrabajoController::despachosListos()), donde se marca si la
      * entrega queda autorizada y quién la entrega. Cierra el tiempo_servicio que estaba
      * en curso (fin = ahora, duración calculada, estado_tiempo = FIN) sin importar el
-     * estado elegido.
+     * estado elegido. Si quedó finalizada, después genera y guarda el certificado PDF; si
+     * eso falla, la calibración igual queda finalizada y el certificado se genera la
+     * primera vez que se pida (ver certificado()).
      */
-    public function finalizar(FinalizarCalibracionRequest $request, Calibracion $calibracion): RedirectResponse
+    public function finalizar(FinalizarCalibracionRequest $request, Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): RedirectResponse
     {
         DB::transaction(function () use ($request, $calibracion): void {
             $estadoCalibracion = $request->validated('estado_calibracion');
@@ -273,9 +279,41 @@ class CalibracionController extends Controller
             }
         });
 
+        if ($calibracion->estado_calibracion === 'FINALIZADO') {
+            try {
+                $generarCertificado->handle($calibracion);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Calibración finalizada.')]);
 
         return to_route('calibraciones.index');
+    }
+
+    /**
+     * Show the PDF certificate of a finished calibracion in the browser, ready to print or
+     * save. It is generated when the calibracion is finished; if that copy is missing it is
+     * generated again here.
+     */
+    public function certificado(Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): StreamedResponse
+    {
+        Gate::authorize('viewAny', Calibracion::class);
+
+        abort_unless(
+            $calibracion->tenant_id === auth()->user()->tenant_id
+                && $calibracion->estado_calibracion === 'FINALIZADO',
+            404,
+        );
+
+        $disco = Storage::disk('public');
+
+        $ruta = $calibracion->pdf_certificado && $disco->exists($calibracion->pdf_certificado)
+            ? $calibracion->pdf_certificado
+            : $generarCertificado->handle($calibracion);
+
+        return $disco->response($ruta, 'certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     /**

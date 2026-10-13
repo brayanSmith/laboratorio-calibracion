@@ -27,6 +27,7 @@ return new class extends Migration
             $table->enum('estado_calibracion', ['PENDIENTE', 'EN_PROCESO', 'FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])->default('PENDIENTE');
             $table->boolean('firmado')->default(false);
             $table->foreignId('novedad_id')->nullable()->constrained('novedads')->onDelete('cascade');
+            $table->string('pdf_certificado')->nullable(); // Certificado PDF generado al finalizar
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

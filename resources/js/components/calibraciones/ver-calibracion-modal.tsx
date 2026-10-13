@@ -1,4 +1,6 @@
+import { Printer } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { certificado } from '@/actions/App/Http/Controllers/CalibracionController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -203,7 +205,20 @@ export default function VerCalibracionModal({
                     )}
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="gap-2">
+                    {calibracion.estado_calibracion === 'FINALIZADO' ? (
+                        <Button variant="outline" asChild>
+                            <a
+                                href={certificado.url(calibracion.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                data-test="imprimir-certificado-button"
+                            >
+                                <Printer className="h-4 w-4" /> Imprimir
+                                certificado
+                            </a>
+                        </Button>
+                    ) : null}
                     <DialogClose asChild>
                         <Button type="button" variant="secondary">
                             Cerrar

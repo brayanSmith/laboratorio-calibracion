@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property int $tecnico_id
  * @property bool $firmado
  * @property int|null $novedad_id Se completa si surge una novedad durante el mantenimiento
+ * @property string|null $pdf_informe Ruta del informe PDF, generado al finalizar el mantenimiento
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -39,7 +40,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'orden_trabajo_id', 'tipo_mantenimiento', 'fecha_mantenimiento', 'descripcion',
     'estado_inicial_equipo', 'estado_final_equipo', 'estado_mantenimiento',
-    'tecnico_id', 'firmado', 'novedad_id', 'tenant_id',
+    'tecnico_id', 'firmado', 'novedad_id', 'pdf_informe', 'tenant_id',
 ])]
 class Mantenimiento extends Model
 {

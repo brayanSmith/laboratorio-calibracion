@@ -95,8 +95,10 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
     Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');
+    Route::get('mantenimientos/{mantenimiento}/informe', [MantenimientoController::class, 'informe'])->name('mantenimientos.informe');
     Route::post('calibraciones/{calibracion}/iniciar', [CalibracionController::class, 'iniciar'])->name('calibraciones.iniciar');
     Route::post('calibraciones/{calibracion}/finalizar', [CalibracionController::class, 'finalizar'])->name('calibraciones.finalizar');
+    Route::get('calibraciones/{calibracion}/certificado', [CalibracionController::class, 'certificado'])->name('calibraciones.certificado');
 
     // Borrado individual de lo registrado en la gestión de un mantenimiento (ver
     // GestionarMantenimientoModal): el checklist, un nuevo defecto/ítem usado/comentario/

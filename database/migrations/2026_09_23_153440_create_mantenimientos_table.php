@@ -23,6 +23,7 @@ return new class extends Migration
             $table->foreignId('tecnico_id')->constrained('users')->onDelete('cascade');
             $table->boolean('firmado')->default(false);
             $table->foreignId('novedad_id')->nullable()->constrained('novedads')->onDelete('cascade');
+            $table->string('pdf_informe')->nullable(); // Informe PDF generado al finalizar
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

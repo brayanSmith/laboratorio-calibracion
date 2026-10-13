@@ -140,4 +140,29 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* El scroll del menú lateral toma el color del texto del menú (que sigue al color
+       de la barra de navegación de la empresa), en lugar del gris del navegador. */
+    [data-slot='sidebar-content'] {
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--sidebar-foreground) 40%, transparent)
+            transparent;
+    }
+
+    [data-slot='sidebar-content']::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    [data-slot='sidebar-content']::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    [data-slot='sidebar-content']::-webkit-scrollbar-thumb {
+        border-radius: 9999px;
+        background-color: color-mix(
+            in srgb,
+            var(--sidebar-foreground) 40%,
+            transparent
+        );
+    }
 }
