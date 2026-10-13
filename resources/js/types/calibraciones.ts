@@ -63,6 +63,8 @@ export type Calibracion = {
     procedimiento_nombre: string | null;
     ajustes_requeridos: boolean;
     estado_calibracion: EstadoCalibracion;
+    /** true = Aprobado, false = No aprobado; se define al finalizar. */
+    resultado_calibracion: boolean | null;
     firmado: boolean;
     novedad_id: number | null;
     novedad_nombre: string | null;

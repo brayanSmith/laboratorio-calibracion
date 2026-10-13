@@ -2,7 +2,7 @@
     $azul = '#005aa7';
     $numero = fn ($valor) => $valor === null ? '—' : number_format((float) $valor, 2, ',', '');
     $fecha = fn ($valor) => $valor ? \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y') : '—';
-    $conforme = $resultado === 'CONFORME';
+    $conforme = $resultado === 'APROBADO';
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -22,6 +22,7 @@
         .emision td { padding: 12px 0 8px; }
         .derecha { text-align: right; }
         .muted { color: #6b7280; }
+        .chip { padding: 2px 7px; font-weight: bold; font-size: 8.5px; }
         .badge { padding: 2px 10px; font-weight: bold; font-size: 9px; color: #ffffff; }
         .tarjeta { border: 1px solid #c9ccd1; }
         .tarjeta .titulo { background: #ececec; padding: 7px 10px; font-weight: bold; font-size: 10px; border-bottom: 1px solid #c9ccd1; }
@@ -126,7 +127,7 @@
     <h3>Resultados de medición:</h3>
     <table class="tabla">
         <thead>
-            <tr><th>Valor Referencia</th><th>Unidad</th><th>Valor Instrumento</th><th>Error Encontrado</th><th>EMP</th><th>Incertidumbre</th></tr>
+            <tr><th>Valor Referencia</th><th>Unidad</th><th>Valor Instrumento</th><th>Error Encontrado</th><th>EMP</th><th>Incertidumbre</th><th>Resultado</th></tr>
         </thead>
         <tbody>
             @forelse ($detalles as $detalle)
@@ -137,9 +138,17 @@
                     <td>{{ $numero($detalle->error_encontrado) }}</td>
                     <td>{{ $numero($detalle->emp) }}</td>
                     <td>{{ $numero($detalle->incertidumbre) }}</td>
+                    <td>
+                        @if ($detalle->resultado_calibracion)
+                            @php $aprobado = $detalle->resultado_calibracion === 'APROBADO'; @endphp
+                            <span class="chip" style="color: {{ $aprobado ? '#1f8a4c' : '#a3271d' }}; background: {{ $aprobado ? '#d9f2e3' : '#fbdada' }};">{{ $aprobado ? 'Aprobado' : 'No aprobado' }}</span>
+                        @else
+                            —
+                        @endif
+                    </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="muted">Esta calibración no tiene resultados de medición.</td></tr>
+                <tr><td colspan="7" class="muted">Esta calibración no tiene resultados de medición.</td></tr>
             @endforelse
         </tbody>
     </table>

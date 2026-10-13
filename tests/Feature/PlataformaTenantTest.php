@@ -139,3 +139,25 @@ test('un administrador no puede eliminar su propio tenant', function () {
 
     expect($this->tenant->fresh())->not->toBeNull();
 });
+
+/** Nombres de los tenants del listado, ordenados, según los filtros enviados. */
+function tenantsListados(string $consulta = ''): array
+{
+    $respuesta = test()->actingAs(test()->admin)->get(route('plataforma.tenants.index').$consulta)->assertOk();
+
+    return collect($respuesta->viewData('page')['props']['tenants']['data'])->pluck('nombre')->sort()->values()->all();
+}
+
+test('filtra el listado de tenants por columna', function () {
+    $this->tenant->update(['nombre' => 'Laboratorio Base', 'slug' => 'base']);
+    $norte = Tenant::factory()->create(['nombre' => 'Metrologia Norte', 'slug' => 'norte', 'activo' => true]);
+    Tenant::factory()->create(['nombre' => 'Calibraciones Sur', 'slug' => 'sur', 'activo' => false]);
+    User::factory()->count(2)->create(['tenant_id' => $norte->id]);
+
+    expect(tenantsListados('?filtro[nombre]=metrologia'))->toBe(['Metrologia Norte'])
+        ->and(tenantsListados('?filtro[slug]=SUR'))->toBe(['Calibraciones Sur'])
+        ->and(tenantsListados('?filtro[activo]=0'))->toBe(['Calibraciones Sur'])
+        ->and(tenantsListados('?filtro[usuarios]=2'))->toBe(['Metrologia Norte'])
+        ->and(tenantsListados('?filtro[usuarios]=abc'))->toBe(tenantsListados())
+        ->and(tenantsListados('?filtro[nombre]=%25'))->toBe([]);
+});

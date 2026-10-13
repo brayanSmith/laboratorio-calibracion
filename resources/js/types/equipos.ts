@@ -31,7 +31,11 @@ export type TipoServicio = 'MANTENIMIENTO' | 'CALIBRACION';
 export type EstadoVencimiento = 'AL_DIA' | 'PROXIMO_A_VENCER' | 'VENCIDO';
 export type IntervaloUnidad = 'DIAS' | 'SEMANAS' | 'MESES';
 export type EstadoProgramacion =
-    'PENDIENTE' | 'AGENDADO' | 'RECIBIDO' | 'CANCELADO' | 'RE_AGENDADO';
+    | 'PENDIENTE'
+    | 'AGENDADO'
+    | 'RECIBIDO'
+    | 'CANCELADO'
+    | 'RE_AGENDADO';
 export type TipoMantenimientoProgramacion = 'PREVENTIVO' | 'CORRECTIVO';
 
 export type DatosReAgendamiento = {
@@ -39,7 +43,11 @@ export type DatosReAgendamiento = {
 };
 
 export type FaseSeguimiento =
-    'BAHIA' | 'INGRESO' | 'MANTENIMIENTO' | 'CALIBRACION' | 'DESPACHO';
+    | 'BAHIA'
+    | 'INGRESO'
+    | 'MANTENIMIENTO'
+    | 'CALIBRACION'
+    | 'DESPACHO';
 
 /** Una entrada del historial de una programación (más reciente primero). */
 export type SeguimientoProgramacion = {

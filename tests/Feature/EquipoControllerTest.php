@@ -435,3 +435,81 @@ test('las opciones del formulario incluyen el tipo de mantenimiento de cada tipo
             ->where('options.tipoEquipos.0.id', $tipo->id)
             ->where('options.tipoEquipos.0.tipo_mantenimiento', $tipo->tipo_mantenimiento));
 });
+
+/** Equipos del listado, en orden, según los filtros enviados. */
+function codigosListados(string $consulta = ''): array
+{
+    $respuesta = test()->actingAs(test()->admin)->get(route('equipos.index').$consulta)->assertOk();
+
+    return collect($respuesta->viewData('page')['props']['equipos']['data'])->pluck('codigo')->sort()->values()->all();
+}
+
+test('filtra el listado de equipos por codigo o modelo sin distinguir mayusculas', function () {
+    $bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
+    crearEquipoParaBusqueda($bahia, 'EQ-ALFA')->update(['modelo' => 'Modelo Uno']);
+    crearEquipoParaBusqueda($bahia, 'EQ-BETA')->update(['modelo' => 'Modelo Dos']);
+
+    expect(codigosListados())->toBe(['EQ-ALFA', 'EQ-BETA'])
+        ->and(codigosListados('?filtro[codigo]=alfa'))->toBe(['EQ-ALFA'])
+        ->and(codigosListados('?filtro[modelo]=DOS'))->toBe(['EQ-BETA'])
+        ->and(codigosListados('?filtro[codigo]=EQ&filtro[modelo]=uno'))->toBe(['EQ-ALFA'])
+        ->and(codigosListados('?filtro[codigo]=inexistente'))->toBe([]);
+});
+
+test('devuelve los filtros aplicados para mostrarlos en la tabla', function () {
+    $this->actingAs($this->admin)
+        ->get(route('equipos.index', ['filtro' => ['codigo' => 'alfa', 'otra' => 'x']]))
+        ->assertInertia(fn ($page) => $page->where('filtros.codigo', 'alfa')->missing('filtros.otra'));
+});
+
+test('filtra el listado de equipos por tipo, fabricante y cliente', function () {
+    $bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
+    $uno = crearEquipoParaBusqueda($bahia, 'EQ-UNO');
+    crearEquipoParaBusqueda($bahia, 'EQ-DOS');
+    $uno->fabricante->update(['nombre' => 'Mitutoyo']);
+    $uno->cliente->update(['nombre' => 'Taller Central']);
+
+    expect(codigosListados('?filtro[tipo_equipo]=eq-uno'))->toBe(['EQ-UNO'])
+        ->and(codigosListados('?filtro[fabricante]=mitu'))->toBe(['EQ-UNO'])
+        ->and(codigosListados('?filtro[cliente]=central'))->toBe(['EQ-UNO']);
+});
+
+test('filtra el listado de equipos por activo o inactivo', function () {
+    $bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
+    crearEquipoParaBusqueda($bahia, 'EQ-ACTIVO')->update(['activo' => true]);
+    crearEquipoParaBusqueda($bahia, 'EQ-INACTIVO')->update(['activo' => false]);
+
+    expect(codigosListados('?filtro[activo]=1'))->toBe(['EQ-ACTIVO'])
+        ->and(codigosListados('?filtro[activo]=0'))->toBe(['EQ-INACTIVO']);
+});
+
+test('filtra el listado de equipos por su vencimiento mas urgente', function () {
+    $bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
+    $vencido = crearEquipoParaBusqueda($bahia, 'EQ-VENCIDO');
+    $proximo = crearEquipoParaBusqueda($bahia, 'EQ-PROXIMO');
+    $alDia = crearEquipoParaBusqueda($bahia, 'EQ-AL-DIA');
+    $gestionado = crearEquipoParaBusqueda($bahia, 'EQ-GESTIONADO');
+    crearEquipoParaBusqueda($bahia, 'EQ-SIN-PROG');
+
+    crearProgramacion($vencido, ['fecha_proximo_servicio' => now()->subDays(3)->toDateString()]);
+    crearProgramacion($vencido, ['fecha_proximo_servicio' => now()->addYear()->toDateString()]);
+    crearProgramacion($proximo, ['fecha_proximo_servicio' => now()->addDays(5)->toDateString()]);
+    crearProgramacion($alDia, ['fecha_proximo_servicio' => now()->addMonths(6)->toDateString()]);
+    // Ya recibida: deja de contar para el vencimiento.
+    crearProgramacion($gestionado, ['fecha_proximo_servicio' => now()->subDays(10)->toDateString(), 'estado_programacion' => 'RECIBIDO']);
+
+    expect(codigosListados('?filtro[vencimiento]=VENCIDO'))->toBe(['EQ-VENCIDO'])
+        ->and(codigosListados('?filtro[vencimiento]=PROXIMO_A_VENCER'))->toBe(['EQ-PROXIMO'])
+        ->and(codigosListados('?filtro[vencimiento]=AL_DIA'))->toBe(['EQ-AL-DIA'])
+        ->and(codigosListados('?filtro[vencimiento]=NINGUNO'))->toBe(['EQ-GESTIONADO', 'EQ-SIN-PROG']);
+});
+
+test('los filtros del listado de equipos no interpretan comodines ni salen del tenant', function () {
+    $bahia = Bahia::factory()->for(crearArea($this->tenant))->create();
+    crearEquipoParaBusqueda($bahia, 'EQ-PROPIO');
+    crearEquipoParaBusqueda(Bahia::factory()->create(), 'EQ-AJENO');
+
+    expect(codigosListados('?filtro[codigo]=EQ'))->toBe(['EQ-PROPIO'])
+        ->and(codigosListados('?filtro[codigo]=%25'))->toBe([])
+        ->and(codigosListados('?filtro[codigo]=E_-PROPIO'))->toBe([]);
+});

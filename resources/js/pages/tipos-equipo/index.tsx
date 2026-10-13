@@ -56,6 +56,12 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                     ),
                 }),
                 columnHelper.accessor('tipo_mantenimiento', {
+                    meta: {
+                        filterOptions: [
+                            { value: 'A', label: 'A' },
+                            { value: 'B', label: 'B' },
+                        ],
+                    },
                     header: 'Tipo de mantenimiento',
                     cell: (info) => (
                         <Badge variant="secondary">

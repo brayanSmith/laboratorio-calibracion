@@ -97,23 +97,34 @@ export default function MantenimientosIndex({
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),
-                columnHelper.display({
-                    id: 'equipo',
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <span className="font-medium">
-                            {row.original.equipo.codigo} ·{' '}
-                            {row.original.equipo.modelo}
-                        </span>
-                    ),
-                }),
-                columnHelper.display({
-                    id: 'cliente',
-                    header: 'Cliente',
-                    cell: ({ row }) =>
-                        row.original.equipo.cliente?.nombre ?? '—',
-                }),
+                columnHelper.accessor(
+                    (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <span className="font-medium">
+                                {row.original.equipo.codigo} ·{' '}
+                                {row.original.equipo.modelo}
+                            </span>
+                        ),
+                    },
+                ),
+                columnHelper.accessor(
+                    (row) => row.equipo.cliente?.nombre ?? '',
+                    {
+                        id: 'cliente',
+                        header: 'Cliente',
+                        cell: ({ row }) =>
+                            row.original.equipo.cliente?.nombre ?? '—',
+                    },
+                ),
                 columnHelper.accessor('tipo_mantenimiento', {
+                    meta: {
+                        filterOptions: Object.entries(
+                            tiposMantenimientoLabel,
+                        ).map(([value, label]) => ({ value, label })),
+                    },
                     header: 'Tipo',
                     cell: (info) =>
                         tiposMantenimientoLabel[info.getValue()] ??
@@ -121,6 +132,11 @@ export default function MantenimientosIndex({
                 }),
                 columnHelper.accessor('tecnico_nombre', { header: 'Técnico' }),
                 columnHelper.accessor('estado_mantenimiento', {
+                    meta: {
+                        filterOptions: Object.entries(
+                            estadosMantenimientoLabel,
+                        ).map(([value, label]) => ({ value, label })),
+                    },
                     header: 'Estado',
                     cell: (info) => (
                         <Badge

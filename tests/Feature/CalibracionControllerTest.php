@@ -322,6 +322,7 @@ test('finaliza una calibracion, cierra el tiempo_servicio y marca la orden de tr
     $this->actingAs($this->admin)
         ->post(route('calibraciones.finalizar', $calibracion), [
             'estado_calibracion' => 'FINALIZADO',
+            'resultado_calibracion' => '1',
             'firmado' => '1',
         ])
         ->assertSessionHasNoErrors()
@@ -352,6 +353,7 @@ test('desmarca firmado cuando no se envia al finalizar', function () {
     $this->actingAs($this->admin)
         ->post(route('calibraciones.finalizar', $calibracion), [
             'estado_calibracion' => 'FINALIZADO',
+            'resultado_calibracion' => '1',
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
@@ -399,6 +401,7 @@ test('no crea una nueva orden de trabajo al finalizar una calibracion', function
     $this->actingAs($this->admin)
         ->post(route('calibraciones.finalizar', $calibracion), [
             'estado_calibracion' => 'FINALIZADO',
+            'resultado_calibracion' => '1',
         ])
         ->assertSessionHasNoErrors();
 
@@ -544,6 +547,7 @@ function crearCalibracionMedida(Bahia $bahia, array $overrides = []): Calibracio
             'valor_instrumento' => $referencia - 0.1,
             'error_encontrado' => 0.1,
             'error_porcentaje' => $error,
+            'emp_porcentaje' => $empPositivo,
             'emp_porcentaje_positivo' => $empPositivo,
             'emp_porcentaje_negativo' => $empNegativo,
             'resultado_calibracion' => 'APROBADO',
@@ -558,7 +562,7 @@ test('al finalizar una calibracion se genera y guarda su certificado PDF', funct
 
     $this->actingAs($this->admin)->post(route('calibraciones.iniciar', $calibracion));
     $this->actingAs($this->admin)
-        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO', 'firmado' => '1'])
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO', 'resultado_calibracion' => '1', 'firmado' => '1'])
         ->assertSessionHasNoErrors();
 
     $ruta = $calibracion->refresh()->pdf_certificado;
@@ -606,7 +610,7 @@ test('un usuario sin permiso de ver calibraciones no puede ver el certificado', 
     $this->actingAs($sinRol)->get(route('calibraciones.certificado', $calibracion))->assertForbidden();
 });
 
-test('el grafico de error dibuja los puntos medidos y no se genera sin mediciones', function () {
+test('el grafico dibuja las tres lineas de EMP porcentual y no se genera sin puntos', function () {
     $sinMediciones = crearCalibracion($this->bahia, [], 'EQ-SIN-MED');
     $medida = crearCalibracionMedida($this->bahia);
     $grafico = app(GraficoErrorCalibracion::class);
@@ -617,7 +621,11 @@ test('el grafico de error dibuja los puntos medidos y no se genera sin medicione
 
     expect($svg)->toStartWith('<svg')
         ->and(substr_count($svg, '<circle'))->toBe(2)
-        ->and(substr_count($svg, '<polyline'))->toBe(3);
+        ->and(substr_count($svg, '<polyline'))->toBe(3)
+        // Cuadrícula: 7 líneas horizontales y una vertical por cada punto medido.
+        ->and(substr_count($svg, 'stroke="#d1d5db"'))->toBe(7 + 2)
+        // El eje vertical muestra los valores como porcentaje.
+        ->and($svg)->toContain('%</text>');
 });
 
 test('el certificado incluye la firma del tecnico solo si la calibracion quedo firmada', function (bool $firmado, bool $apareceFirma) {
@@ -633,3 +641,82 @@ test('el certificado incluye la firma del tecnico solo si la calibracion quedo f
     'firmada' => [true, true],
     'sin firmar' => [false, false],
 ]);
+
+test('el grafico omite los puntos que todavia no tienen valor del instrumento', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    $punto = ['emp_porcentaje' => 5, 'emp_porcentaje_positivo' => 5, 'emp_porcentaje_negativo' => -5];
+    crearDetalleMedicion($calibracion, ['valor_referencia' => 10, 'valor_instrumento' => 9.8, ...$punto]);
+    crearDetalleMedicion($calibracion, ['valor_referencia' => 20, ...$punto]);
+
+    $grafico = app(GraficoErrorCalibracion::class);
+    $svg = $grafico->handle($calibracion->load('detalleMedicionCalibracion'));
+
+    // Solo el punto con valor del instrumento: cada línea queda reducida a un círculo.
+    expect($svg)->toStartWith('<svg')->and(substr_count($svg, '<circle'))->toBe(3);
+
+    $sinMedir = crearCalibracion($this->bahia, [], 'EQ-SIN-INSTR');
+    crearDetalleMedicion($sinMedir, ['valor_referencia' => 10, ...$punto]);
+
+    expect($grafico->handle($sinMedir->load('detalleMedicionCalibracion')))->toBeNull();
+});
+
+test('el grafico muestra el EMP porcentual guardado como fraccion en porcentaje', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    crearDetalleMedicion($calibracion, [
+        'valor_referencia' => 100,
+        'valor_instrumento' => 100,
+        'emp_porcentaje' => 0.05,
+        'emp_porcentaje_positivo' => 0.05,
+        'emp_porcentaje_negativo' => -0.05,
+    ]);
+
+    $svg = app(GraficoErrorCalibracion::class)->handle($calibracion->load('detalleMedicionCalibracion'));
+
+    // 0.05 se guarda como fracción (5%): el eje llega hasta ±6% (con su margen), no ±0.06%.
+    expect($svg)->toContain('>6%</text>')
+        ->and($svg)->toContain('>-6%</text>')
+        ->and($svg)->not->toContain('>0.06%</text>');
+});
+
+test('exige el resultado de la calibracion al finalizarla', function () {
+    $calibracion = crearCalibracion($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO'])
+        ->assertSessionHasErrors('resultado_calibracion');
+
+    expect($calibracion->refresh())
+        ->estado_calibracion->not->toBe('FINALIZADO')
+        ->resultado_calibracion->toBeNull();
+});
+
+test('guarda el resultado de la calibracion como aprobado o no aprobado', function (string $enviado, bool $esperado) {
+    $calibracion = crearCalibracion($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO', 'resultado_calibracion' => $enviado])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->resultado_calibracion)->toBe($esperado);
+})->with([
+    'aprobado' => ['1', true],
+    'no aprobado' => ['0', false],
+]);
+
+test('una calibracion devuelta a mantenimiento no necesita ni guarda resultado', function () {
+    $calibracion = crearCalibracion($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'DEVOLVER_MANTENIMIENTO', 'resultado_calibracion' => '1'])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->resultado_calibracion)->toBeNull();
+});
+
+test('el listado de calibraciones incluye su resultado', function () {
+    crearCalibracion($this->bahia, ['estado_calibracion' => 'FINALIZADO', 'resultado_calibracion' => false]);
+
+    $this->actingAs($this->admin)
+        ->get(route('calibraciones.index'))
+        ->assertInertia(fn ($page) => $page->where('calibraciones.0.resultado_calibracion', false));
+});

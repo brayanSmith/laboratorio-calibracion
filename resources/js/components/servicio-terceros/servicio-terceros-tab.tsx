@@ -12,6 +12,7 @@ import VerServicioTerceroModal from '@/components/servicio-terceros/ver-servicio
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MantenimientoOption, ServicioTerceroListado } from '@/types';
+import { OPCIONES_SI_NO } from '@/lib/data-table';
 
 type Props = {
     servicios: ServicioTerceroListado[];
@@ -61,17 +62,20 @@ export default function ServicioTercerosTab({
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),
-                columnHelper.display({
-                    id: 'equipo',
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <span className="font-medium">
-                            {row.original.equipo_codigo} ·{' '}
-                            {row.original.equipo_modelo}
-                        </span>
-                    ),
-                }),
-                columnHelper.display({
+                columnHelper.accessor(
+                    (row) => `${row.equipo_codigo} ${row.equipo_modelo}`,
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <span className="font-medium">
+                                {row.original.equipo_codigo} ·{' '}
+                                {row.original.equipo_modelo}
+                            </span>
+                        ),
+                    },
+                ),
+                columnHelper.accessor((row) => row.cliente_nombre ?? '', {
                     id: 'cliente',
                     header: 'Cliente',
                     cell: ({ row }) => row.original.cliente_nombre ?? '—',
@@ -80,6 +84,13 @@ export default function ServicioTercerosTab({
                     header: 'Empresa tercera',
                 }),
                 columnHelper.accessor('estado_final_equipo', {
+                    meta: {
+                        filterOptions: [
+                            { value: 'APROBADO', label: 'Aprobado' },
+                            { value: 'RECHAZADO', label: 'Rechazado' },
+                            { value: 'null', label: 'Sin finalizar' },
+                        ],
+                    },
                     header: 'Estado',
                     cell: ({ row }) => {
                         const { estado_final_equipo, tiempo_servicio_inicio } =
@@ -111,6 +122,7 @@ export default function ServicioTercerosTab({
                     },
                 }),
                 columnHelper.accessor('re_agendar', {
+                    meta: { filterOptions: OPCIONES_SI_NO },
                     header: 'Re-agendar',
                     cell: (info) => (info.getValue() ? 'Sí' : 'No'),
                 }),

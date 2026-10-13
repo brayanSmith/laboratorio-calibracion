@@ -22,7 +22,10 @@ class FinalizarCalibracionRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge(['firmado' => $this->boolean('firmado')]);
+        $this->merge([
+            'firmado' => $this->boolean('firmado'),
+            'resultado_calibracion' => $this->filled('resultado_calibracion') ? $this->boolean('resultado_calibracion') : null,
+        ]);
     }
 
     /**
@@ -35,6 +38,7 @@ class FinalizarCalibracionRequest extends FormRequest
         return [
             'estado_calibracion' => ['required', Rule::in(['FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])],
             'firmado' => ['boolean'],
+            'resultado_calibracion' => ['required_if:estado_calibracion,FINALIZADO', 'nullable', 'boolean'],
         ];
     }
 
@@ -48,6 +52,7 @@ class FinalizarCalibracionRequest extends FormRequest
         return [
             'estado_calibracion' => 'estado de la calibración',
             'firmado' => 'firmado',
+            'resultado_calibracion' => 'resultado de la calibración',
         ];
     }
 }

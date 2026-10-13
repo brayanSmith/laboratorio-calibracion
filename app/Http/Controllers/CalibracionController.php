@@ -83,6 +83,7 @@ class CalibracionController extends Controller
                 'procedimiento_nombre' => $calibracion->procedimiento?->nombre,
                 'ajustes_requeridos' => $calibracion->ajustes_requeridos,
                 'estado_calibracion' => $calibracion->estado_calibracion,
+                'resultado_calibracion' => $calibracion->resultado_calibracion,
                 'firmado' => $calibracion->firmado,
                 'novedad_id' => $calibracion->novedad_id,
                 'novedad_nombre' => $calibracion->novedad?->nombre,
@@ -234,6 +235,7 @@ class CalibracionController extends Controller
 
             $calibracion->update([
                 'estado_calibracion' => $estadoCalibracion,
+                'resultado_calibracion' => $estadoCalibracion === 'FINALIZADO' ? $request->validated('resultado_calibracion') : null,
                 'firmado' => $request->validated('firmado'),
             ]);
 

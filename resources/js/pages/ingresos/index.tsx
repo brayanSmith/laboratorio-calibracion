@@ -124,6 +124,7 @@ export default function IngresosIndex({
                         ),
                 }),
                 columnHelper.accessor('estado_ingreso', {
+                    meta: { filterOptions: estadosIngreso },
                     header: 'Estado',
                     cell: (info) => (
                         <Badge className={colorEstadoIngreso[info.getValue()]}>

@@ -25,6 +25,9 @@ return new class extends Migration
             $table->foreignId('procedimiento_id')->nullable()->constrained('procedimiento_calibracions')->onDelete('cascade');
             $table->boolean('ajustes_requeridos')->default(false);
             $table->enum('estado_calibracion', ['PENDIENTE', 'EN_PROCESO', 'FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])->default('PENDIENTE');
+            // Se define al finalizar: true = Aprobado, false = No aprobado. Nulo mientras tanto
+            // y cuando la calibración se devuelve a mantenimiento.
+            $table->boolean('resultado_calibracion')->nullable();
             $table->boolean('firmado')->default(false);
             $table->foreignId('novedad_id')->nullable()->constrained('novedads')->onDelete('cascade');
             $table->string('pdf_certificado')->nullable(); // Certificado PDF generado al finalizar

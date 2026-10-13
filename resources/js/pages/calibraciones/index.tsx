@@ -91,28 +91,39 @@ export default function CalibracionesIndex({
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),
-                columnHelper.display({
-                    id: 'equipo',
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <span className="font-medium">
-                            {row.original.equipo.codigo} ·{' '}
-                            {row.original.equipo.modelo}
-                        </span>
-                    ),
-                }),
-                columnHelper.display({
-                    id: 'cliente',
-                    header: 'Cliente',
-                    cell: ({ row }) =>
-                        row.original.equipo.cliente?.nombre ?? '—',
-                }),
+                columnHelper.accessor(
+                    (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <span className="font-medium">
+                                {row.original.equipo.codigo} ·{' '}
+                                {row.original.equipo.modelo}
+                            </span>
+                        ),
+                    },
+                ),
+                columnHelper.accessor(
+                    (row) => row.equipo.cliente?.nombre ?? '',
+                    {
+                        id: 'cliente',
+                        header: 'Cliente',
+                        cell: ({ row }) =>
+                            row.original.equipo.cliente?.nombre ?? '—',
+                    },
+                ),
                 columnHelper.accessor('tecnico_nombre', { header: 'Técnico' }),
                 columnHelper.accessor('laboratorio_nombre', {
                     header: 'Laboratorio',
                     cell: (info) => info.getValue() ?? '—',
                 }),
                 columnHelper.accessor('estado_calibracion', {
+                    meta: {
+                        filterOptions: Object.entries(
+                            estadosCalibracionLabel,
+                        ).map(([value, label]) => ({ value, label })),
+                    },
                     header: 'Estado',
                     cell: (info) => (
                         <Badge
@@ -122,6 +133,30 @@ export default function CalibracionesIndex({
                                 info.getValue()}
                         </Badge>
                     ),
+                }),
+                columnHelper.accessor('resultado_calibracion', {
+                    meta: {
+                        filterOptions: [
+                            { value: 'true', label: 'Aprobado' },
+                            { value: 'false', label: 'No aprobado' },
+                            { value: 'null', label: 'Sin resultado' },
+                        ],
+                    },
+                    header: 'Resultado',
+                    cell: (info) =>
+                        info.getValue() === null ? (
+                            <span className="text-muted-foreground">—</span>
+                        ) : (
+                            <Badge
+                                className={
+                                    info.getValue()
+                                        ? '!border-transparent !bg-emerald-500 !text-white'
+                                        : '!border-transparent !bg-red-500 !text-white'
+                                }
+                            >
+                                {info.getValue() ? 'Aprobado' : 'No aprobado'}
+                            </Badge>
+                        ),
                 }),
                 columnHelper.display({
                     id: 'acciones',

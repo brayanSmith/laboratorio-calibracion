@@ -90,6 +90,23 @@ export default function VerCalibracionModal({
                                 calibracion.estado_calibracion}
                         </Badge>
                     </Dato>
+                    <Dato etiqueta="Resultado de la calibración">
+                        {calibracion.resultado_calibracion === null ? (
+                            vacio
+                        ) : (
+                            <Badge
+                                className={
+                                    calibracion.resultado_calibracion
+                                        ? '!border-transparent !bg-emerald-500 !text-white'
+                                        : '!border-transparent !bg-red-500 !text-white'
+                                }
+                            >
+                                {calibracion.resultado_calibracion
+                                    ? 'Aprobado'
+                                    : 'No aprobado'}
+                            </Badge>
+                        )}
+                    </Dato>
                     <Dato etiqueta="Fecha">
                         {calibracion.fecha_calibracion}
                     </Dato>

@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $procedimiento_id Se completa cuando se realiza la calibración
  * @property bool $ajustes_requeridos
  * @property string $estado_calibracion PENDIENTE por defecto
+ * @property bool|null $resultado_calibracion true = Aprobado, false = No aprobado; se define al finalizar
  * @property bool $firmado
  * @property int|null $novedad_id Se completa si surge una novedad durante la calibración
  * @property string|null $pdf_certificado Ruta del certificado PDF, generado al finalizar la calibración
@@ -40,7 +41,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'orden_trabajo_id', 'fecha_calibracion', 'laboratorio_id', 'solicitante_id', 'tecnico_id',
-    'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion',
+    'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion', 'resultado_calibracion',
     'firmado', 'novedad_id', 'pdf_certificado', 'tenant_id',
 ])]
 class Calibracion extends Model
@@ -167,6 +168,7 @@ class Calibracion extends Model
             'temperatura' => 'decimal:2',
             'humedad' => 'decimal:2',
             'ajustes_requeridos' => 'boolean',
+            'resultado_calibracion' => 'boolean',
             'firmado' => 'boolean',
         ];
     }

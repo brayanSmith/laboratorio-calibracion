@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
 import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -15,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type EstadoFinalCalibracion = 'FINALIZADO' | 'DEVOLVER_MANTENIMIENTO';
+type ResultadoCalibracion = 'APROBADO' | 'NO_APROBADO';
 
 type Props = {
     calibracionId: number;
@@ -24,7 +26,8 @@ type Props = {
 };
 
 /** Modal que se abre al presionar "Finalizar" al editar la calibración: pide el estado
- * final (Finalizado o Devolver a mantenimiento) y cierra el tiempo_servicio en curso al
+ * final (Finalizado o Devolver a mantenimiento), el resultado (Aprobado o No aprobado)
+ * cuando queda finalizada, y cierra el tiempo_servicio en curso al
  * confirmar (ver CalibracionController::finalizar()). */
 export default function FinalizarCalibracionModal({
     calibracionId,
@@ -35,6 +38,11 @@ export default function FinalizarCalibracionModal({
     const [estadoCalibracion, setEstadoCalibracion] =
         useState<EstadoFinalCalibracion>('FINALIZADO');
     const [firmado, setFirmado] = useState(true);
+    // Sin valor inicial: quien finaliza debe elegirlo de forma explícita.
+    const [resultado, setResultado] = useState<ResultadoCalibracion | null>(
+        null,
+    );
+    const requiereResultado = estadoCalibracion === 'FINALIZADO';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,7 +52,7 @@ export default function FinalizarCalibracionModal({
                     {...CalibracionController.finalizar.form(calibracionId)}
                     onSuccess={onFinalizado}
                 >
-                    {({ processing }) => (
+                    {({ processing, errors }) => (
                         <>
                             <DialogHeader>
                                 <DialogTitle>Finalizar calibración</DialogTitle>
@@ -86,6 +94,44 @@ export default function FinalizarCalibracionModal({
                                 </ToggleGroup>
                             </div>
 
+                            {requiereResultado ? (
+                                <div className="space-y-1 py-2">
+                                    <Label className="text-xs text-muted-foreground">
+                                        Resultado de la calibración
+                                    </Label>
+                                    <ToggleGroup
+                                        type="single"
+                                        variant="outline"
+                                        value={resultado ?? ''}
+                                        onValueChange={(value) => {
+                                            if (value) {
+                                                setResultado(
+                                                    value as ResultadoCalibracion,
+                                                );
+                                            }
+                                        }}
+                                        className="w-full"
+                                        data-test="resultado-calibracion-toggle"
+                                    >
+                                        <ToggleGroupItem
+                                            value="NO_APROBADO"
+                                            className="grow basis-0 data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
+                                        >
+                                            No aprobado
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem
+                                            value="APROBADO"
+                                            className="grow basis-0 data-[state=on]:!border-emerald-500 data-[state=on]:!bg-emerald-500 data-[state=on]:!text-white"
+                                        >
+                                            Aprobado
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
+                                    <InputError
+                                        message={errors.resultado_calibracion}
+                                    />
+                                </div>
+                            ) : null}
+
                             <div className="space-y-1 py-2">
                                 <Label className="text-xs text-muted-foreground">
                                     Firmado
@@ -122,6 +168,13 @@ export default function FinalizarCalibracionModal({
                                 name="estado_calibracion"
                                 value={estadoCalibracion}
                             />
+                            {requiereResultado && resultado ? (
+                                <input
+                                    type="hidden"
+                                    name="resultado_calibracion"
+                                    value={resultado === 'APROBADO' ? '1' : '0'}
+                                />
+                            ) : null}
                             <input
                                 type="hidden"
                                 name="firmado"
@@ -137,7 +190,11 @@ export default function FinalizarCalibracionModal({
                                 <Button
                                     type="submit"
                                     className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-                                    disabled={processing}
+                                    disabled={
+                                        processing ||
+                                        (requiereResultado &&
+                                            resultado === null)
+                                    }
                                     data-test="confirmar-finalizar-calibracion-button"
                                 >
                                     Finalizar

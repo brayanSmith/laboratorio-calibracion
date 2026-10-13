@@ -12,6 +12,7 @@ import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
+import { OPCIONES_SI_NO } from '@/lib/data-table';
 import { index } from '@/routes/despachos';
 import type { Despacho, DespachoOptions } from '@/types';
 
@@ -51,17 +52,20 @@ export default function DespachosIndex({
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),
-                columnHelper.display({
-                    id: 'equipo',
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <span className="font-medium">
-                            {row.original.equipo.codigo} ·{' '}
-                            {row.original.equipo.modelo}
-                        </span>
-                    ),
-                }),
-                columnHelper.display({
+                columnHelper.accessor(
+                    (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <span className="font-medium">
+                                {row.original.equipo.codigo} ·{' '}
+                                {row.original.equipo.modelo}
+                            </span>
+                        ),
+                    },
+                ),
+                columnHelper.accessor((row) => row.equipo.cliente.nombre, {
                     id: 'cliente',
                     header: 'Cliente',
                     cell: ({ row }) => row.original.equipo.cliente.nombre,
@@ -75,6 +79,7 @@ export default function DespachosIndex({
                     cell: (info) => info.getValue() ?? '—',
                 }),
                 columnHelper.accessor('entrega_autorizada', {
+                    meta: { filterOptions: OPCIONES_SI_NO },
                     header: 'Autorizada',
                     cell: (info) => (
                         <Badge
@@ -89,6 +94,7 @@ export default function DespachosIndex({
                     ),
                 }),
                 columnHelper.accessor('entrega_recibida', {
+                    meta: { filterOptions: OPCIONES_SI_NO },
                     header: 'Recibida',
                     cell: (info) => (
                         <Badge

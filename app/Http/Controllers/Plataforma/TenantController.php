@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Plataforma;
 
 use App\Actions\Tenants\SetupTenantRoles;
 use App\Actions\Usuarios\CreateTenantUser;
+use App\Concerns\FiltraListados;
 use App\Enums\TenantRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenants\StoreTenantRequest;
 use App\Http\Requests\Tenants\UpdateTenantRequest;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -17,21 +19,37 @@ use Inertia\Response;
 
 class TenantController extends Controller
 {
+    use FiltraListados;
+
     /**
-     * Display a listing of the tenants.
+     * Display a listing of the tenants, optionally filtered by column (`filtro[nombre]`,
+     * `slug`, `usuarios`, `activo`).
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Tenant::class);
 
-        $tenants = Tenant::query()
-            ->withCount('users')
-            ->latest('id')
-            ->paginate(15)
-            ->withQueryString();
+        $filtros = $this->filtrosDe($request, ['nombre', 'slug', 'usuarios', 'activo']);
+
+        $consulta = Tenant::query()->withCount('users')->latest('id');
+
+        foreach (['nombre', 'slug'] as $columna) {
+            if (isset($filtros[$columna])) {
+                $this->whereContiene($consulta, $columna, $filtros[$columna]);
+            }
+        }
+
+        if (isset($filtros['usuarios']) && ctype_digit($filtros['usuarios'])) {
+            $consulta->has('users', '=', (int) $filtros['usuarios']);
+        }
+
+        if (isset($filtros['activo']) && in_array($filtros['activo'], ['1', '0'], true)) {
+            $consulta->where('activo', $filtros['activo'] === '1');
+        }
 
         return Inertia::render('plataforma/tenants/index', [
-            'tenants' => $tenants,
+            'tenants' => $consulta->paginate(15)->withQueryString(),
+            'filtros' => (object) $filtros,
         ]);
     }
 

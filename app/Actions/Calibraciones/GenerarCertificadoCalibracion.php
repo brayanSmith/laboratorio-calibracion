@@ -73,18 +73,23 @@ class GenerarCertificadoCalibracion
     }
 
     /**
-     * CONFORME si todos los puntos medidos quedaron aprobados, NO CONFORME si alguno no lo
-     * quedó, y null mientras no haya resultados.
+     * Resultado de la calibración: el que definió el técnico al finalizarla. Si es una
+     * calibración anterior a ese campo, se deduce de los puntos medidos (APROBADO si ninguno
+     * quedó no aprobado); null si no hay de dónde sacarlo.
      */
     private function resultado(Calibracion $calibracion): ?string
     {
+        if ($calibracion->resultado_calibracion !== null) {
+            return $calibracion->resultado_calibracion ? 'APROBADO' : 'NO APROBADO';
+        }
+
         $resultados = $calibracion->detalleMedicionCalibracion->pluck('resultado_calibracion')->filter();
 
         if ($resultados->isEmpty()) {
             return null;
         }
 
-        return $resultados->contains('NO_APROBADO') ? 'NO CONFORME' : 'CONFORME';
+        return $resultados->contains('NO_APROBADO') ? 'NO APROBADO' : 'APROBADO';
     }
 
     /**
