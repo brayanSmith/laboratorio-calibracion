@@ -42,6 +42,7 @@ class GenerarInformeMantenimiento
             'fechaHora' => now()->timezone(self::ZONA_HORARIA),
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),
+            'firma' => $mantenimiento->firmado ? $this->comoDataUri($mantenimiento->tecnico->firma) : null,
             'fotos' => $mantenimiento->galeriaMantenimientos
                 ->map(fn ($foto) => ['data' => $this->comoDataUri($foto->imagen), 'descripcion' => $foto->descripcion])
                 ->filter(fn (array $foto) => $foto['data'] !== null)

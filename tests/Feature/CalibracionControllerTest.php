@@ -16,6 +16,7 @@ use App\Models\Tenant;
 use App\Models\TiempoServicio;
 use App\Models\UnidadMedida;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -618,3 +619,17 @@ test('el grafico de error dibuja los puntos medidos y no se genera sin medicione
         ->and(substr_count($svg, '<circle'))->toBe(2)
         ->and(substr_count($svg, '<polyline'))->toBe(3);
 });
+
+test('el certificado incluye la firma del tecnico solo si la calibracion quedo firmada', function (bool $firmado, bool $apareceFirma) {
+    $calibracion = crearCalibracion($this->bahia, ['estado_calibracion' => 'FINALIZADO', 'firmado' => $firmado]);
+    Storage::disk('public')->put('firmas-usuarios/firma.png', UploadedFile::fake()->image('firma.png', 120, 60)->getContent());
+    $calibracion->tecnico->forceFill(['firma' => 'firmas-usuarios/firma.png'])->save();
+
+    $this->actingAs($this->admin)->get(route('calibraciones.certificado', $calibracion))->assertOk();
+    $pdf = Storage::disk('public')->get($calibracion->refresh()->pdf_certificado);
+
+    expect(str_contains($pdf, '/Subtype /Image'))->toBe($apareceFirma);
+})->with([
+    'firmada' => [true, true],
+    'sin firmar' => [false, false],
+]);

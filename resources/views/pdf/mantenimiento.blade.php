@@ -177,7 +177,10 @@
         <tr>
             <td class="etiqueta">Firma del Inspector:</td>
             <td>
-                <div class="firma-linea"></div>
+                @if ($firma)
+                    <img src="{{ $firma }}" style="max-height: 52px; max-width: 200px;">
+                @endif
+                <div class="firma-linea" @if ($firma) style="height: 4px;" @endif></div>
                 Nombre: {{ $mantenimiento->tecnico->name }}
             </td>
         </tr>

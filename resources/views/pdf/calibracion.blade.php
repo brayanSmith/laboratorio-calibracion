@@ -149,7 +149,10 @@
     @endif
 
     <div class="firma">
-        <div class="linea"></div>
+        @if ($firma)
+            <img src="{{ $firma }}" style="max-height: 60px; max-width: 220px;">
+        @endif
+        <div class="linea" @if ($firma) style="margin-top: 4px;" @endif></div>
         {{ $calibracion->tecnico->name }}
     </div>
 

@@ -478,3 +478,28 @@ test('un usuario sin permiso de ver mantenimientos no puede descargar el informe
 
     $this->actingAs($sinRol)->get(route('mantenimientos.informe', $mantenimiento))->assertForbidden();
 });
+
+/** Ruta del PDF del informe, generándolo si todavía no existe. */
+function contenidoInformeMantenimiento(Mantenimiento $mantenimiento): string
+{
+    test()->actingAs(test()->admin)->get(route('mantenimientos.informe', $mantenimiento))->assertOk();
+
+    return Storage::disk('public')->get($mantenimiento->refresh()->pdf_informe);
+}
+
+test('el informe incluye la firma del tecnico solo si el mantenimiento quedo firmado', function (bool $firmado, bool $apareceFirma) {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO', 'firmado' => $firmado]);
+    Storage::disk('public')->put('firmas-usuarios/firma.png', UploadedFile::fake()->image('firma.png', 120, 60)->getContent());
+    $mantenimiento->tecnico->forceFill(['firma' => 'firmas-usuarios/firma.png'])->save();
+
+    expect(str_contains(contenidoInformeMantenimiento($mantenimiento), '/Subtype /Image'))->toBe($apareceFirma);
+})->with([
+    'firmado' => [true, true],
+    'sin firmar' => [false, false],
+]);
+
+test('el informe firmado de un tecnico sin firma registrada se genera sin imagen', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO', 'firmado' => true]);
+
+    expect(str_contains(contenidoInformeMantenimiento($mantenimiento), '/Subtype /Image'))->toBeFalse();
+});

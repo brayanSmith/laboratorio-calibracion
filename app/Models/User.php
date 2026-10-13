@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -21,6 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property string|null $firma Ruta de la imagen de la firma, para los PDF de mantenimiento y calibración
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -40,6 +42,26 @@ class User extends Authenticatable implements PasskeyUser
     use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /**
+     * Get the public URL path of the user's signature, if they registered one.
+     */
+    public function firmaUrl(): ?string
+    {
+        if (! $this->firma) {
+            return null;
+        }
+
+        $url = Storage::disk('public')->url($this->firma);
+
+        if (config('filesystems.disks.public.driver') !== 'local') {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+
+        return is_string($path) ? $path : $url;
+    }
+
+    /**
      * Get the tenant this user belongs to.
      *
      * @return BelongsTo<Tenant, $this>
@@ -48,7 +70,6 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->belongsTo(Tenant::class);
     }
-
 
     /**
      * Get the attributes that should be cast.

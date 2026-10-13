@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('firma')->nullable(); // Imagen de la firma del usuario, para los PDF
             $table->rememberToken();
             $table->timestamps();
         });

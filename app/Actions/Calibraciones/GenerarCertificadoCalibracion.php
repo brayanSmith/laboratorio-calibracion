@@ -46,6 +46,7 @@ class GenerarCertificadoCalibracion
             'especificacion' => $programacion->equipo->equipoEspecificacionTecnica,
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),
+            'firma' => $calibracion->firmado ? $this->comoDataUri($calibracion->tecnico->firma) : null,
             'numeroCertificado' => 'CC-'.str_pad((string) $calibracion->id, 6, '0', STR_PAD_LEFT),
             'fechaEmision' => now()->timezone(self::ZONA_HORARIA),
             'fechaVencimiento' => EquipoProgramacion::calcularFechaProximoServicio(
