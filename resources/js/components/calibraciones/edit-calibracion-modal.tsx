@@ -1,5 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
+import { usePermissions } from '@/hooks/use-permissions';
 import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
 import CalibracionFormFields from '@/components/calibraciones/calibracion-form-fields';
 import FinalizarCalibracionModal from '@/components/calibraciones/finalizar-calibracion-modal';
@@ -76,6 +77,7 @@ function EditCalibracionFormulario({
 }: FormularioProps) {
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
     const [finalizarOpen, setFinalizarOpen] = useState(false);
+    const { can } = usePermissions();
 
     return (
         <>
@@ -119,14 +121,16 @@ function EditCalibracionFormulario({
                             <DialogClose asChild>
                                 <Button variant="secondary">Cancelar</Button>
                             </DialogClose>
-                            <Button
-                                type="button"
-                                className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-                                onClick={() => setFinalizarOpen(true)}
-                                data-test="abrir-finalizar-calibracion-button"
-                            >
-                                Finalizar
-                            </Button>
+                            {can('calibraciones.finalizar') ? (
+                                <Button
+                                    type="button"
+                                    className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
+                                    onClick={() => setFinalizarOpen(true)}
+                                    data-test="abrir-finalizar-calibracion-button"
+                                >
+                                    Finalizar
+                                </Button>
+                            ) : null}
                             <Button
                                 type="submit"
                                 disabled={processing}

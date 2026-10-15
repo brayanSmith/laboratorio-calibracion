@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
@@ -7,9 +7,10 @@ import DataTable, {
 import Heading from '@/components/heading';
 import CreateRoleModal from '@/components/roles/create-role-modal';
 import DeleteRoleModal from '@/components/roles/delete-role-modal';
+import EditRoleModal from '@/components/roles/edit-role-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { edit, index } from '@/routes/roles';
+import { index } from '@/routes/roles';
 import type { PermissionCatalogGroup, RoleSummary } from '@/types';
 
 type Props = {
@@ -21,6 +22,8 @@ const columnHelper = createDataTableColumnHelper<RoleSummary>();
 
 export default function RolesIndex({ roles, catalog }: Props) {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [roleEditing, setRoleEditing] = useState<RoleSummary | null>(null);
     const [roleDeleting, setRoleDeleting] = useState<RoleSummary | null>(null);
 
     const totalPermissions = catalog.reduce(
@@ -56,13 +59,16 @@ export default function RolesIndex({ roles, catalog }: Props) {
                         <div className="flex items-center justify-end gap-2">
                             {row.original.is_system ? null : (
                                 <>
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <Link
-                                            href={edit(row.original.id)}
-                                            data-test="role-edit-button"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Link>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        data-test="role-edit-button"
+                                        onClick={() => {
+                                            setRoleEditing(row.original);
+                                            setEditDialogOpen(true);
+                                        }}
+                                    >
+                                        <Pencil className="h-4 w-4" />
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -118,6 +124,13 @@ export default function RolesIndex({ roles, catalog }: Props) {
                     se puede editar ni eliminar.
                 </p>
             </div>
+
+            <EditRoleModal
+                role={roleEditing}
+                catalog={catalog}
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+            />
 
             <DeleteRoleModal
                 role={roleDeleting}

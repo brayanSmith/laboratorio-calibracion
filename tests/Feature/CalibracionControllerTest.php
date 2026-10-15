@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Calibraciones\GraficoErrorCalibracion;
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\Calibracion;
@@ -18,6 +19,7 @@ use App\Models\UnidadMedida;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     Storage::fake('public');
@@ -719,4 +721,25 @@ test('el listado de calibraciones incluye su resultado', function () {
     $this->actingAs($this->admin)
         ->get(route('calibraciones.index'))
         ->assertInertia(fn ($page) => $page->where('calibraciones.0.resultado_calibracion', false));
+});
+
+test('iniciar, finalizar y ver el PDF de una calibracion dependen de su propio permiso, no del de editar', function () {
+    $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
+    $usuario->syncRoles([]);
+    $usuario->givePermissionTo(TenantPermission::CalibracionesEditar->value);
+    $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
+
+    $this->actingAs($usuario)->post(route('calibraciones.iniciar', $calibracion))->assertForbidden();
+    $this->actingAs($usuario)->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO'])->assertForbidden();
+    $this->actingAs($usuario)->get(route('calibraciones.certificado', $calibracion))->assertForbidden();
+
+    $usuario->givePermissionTo([
+        TenantPermission::CalibracionesIniciar->value,
+        TenantPermission::CalibracionesPdf->value,
+    ]);
+
+    $this->actingAs($usuario)->get(route('calibraciones.certificado', $calibracion))->assertOk();
+    $this->actingAs($usuario)->post(route('calibraciones.iniciar', $calibracion))->assertRedirect();
+    $this->actingAs($usuario)->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO'])->assertForbidden();
 });

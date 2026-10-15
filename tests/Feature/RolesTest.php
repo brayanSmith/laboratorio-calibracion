@@ -26,7 +26,7 @@ test('el administrador ve los roles de su tenant con permisos y cantidad de usua
         ->assertInertia(fn ($page) => $page
             ->component('roles/index')
             ->has('roles', 4)
-            ->has('catalog', 21)
+            ->has('catalog', 22)
             ->where('roles.0.name', TenantRole::Administrador->value)
             ->where('roles.0.is_system', true)
             ->where('roles.0.users_count', 1));
@@ -50,13 +50,13 @@ test('se puede crear un rol con permisos', function () {
     $rol = rolDe($this->tenant, 'Supervisor');
 
     expect($rol->permissions->pluck('name')->sort()->values()->all())
-        ->toBe([TenantPermission::EquiposEditar->value, TenantPermission::EquiposVer->value]);
+        ->toBe([TenantPermission::DashboardVer->value, TenantPermission::EquiposEditar->value, TenantPermission::EquiposVer->value]);
 });
 
-test('se puede crear un rol sin permisos', function () {
+test('se puede crear un rol sin permisos, solo con el del dashboard', function () {
     $this->actingAs($this->admin)->post(route('roles.store'), ['name' => 'Vacio'])->assertRedirect();
 
-    expect(rolDe($this->tenant, 'Vacio')->permissions)->toBeEmpty();
+    expect(rolDe($this->tenant, 'Vacio')->permissions->pluck('name')->all())->toBe([TenantPermission::DashboardVer->value]);
 });
 
 test('el nombre del rol es unico dentro del tenant pero puede repetirse en otro', function () {
@@ -88,11 +88,6 @@ test('se puede editar el nombre y los permisos de un rol', function () {
     $rol = rolDe($this->tenant, TenantRole::Recepcion);
 
     $this->actingAs($this->admin)
-        ->get(route('roles.edit', $rol))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('roles/edit')->where('role.name', TenantRole::Recepcion->value));
-
-    $this->actingAs($this->admin)
         ->put(route('roles.update', $rol), [
             'name' => 'Front desk',
             'permissions' => [TenantPermission::EquiposVer->value],
@@ -102,23 +97,22 @@ test('se puede editar el nombre y los permisos de un rol', function () {
     $rol->refresh();
 
     expect($rol->name)->toBe('Front desk')
-        ->and($rol->permissions->pluck('name')->all())->toBe([TenantPermission::EquiposVer->value]);
+        ->and($rol->permissions->pluck('name')->sort()->values()->all())->toBe([TenantPermission::DashboardVer->value, TenantPermission::EquiposVer->value]);
 });
 
-test('quitar todos los permisos a un rol lo deja sin permisos', function () {
+test('quitar todos los permisos a un rol solo deja el del dashboard', function () {
     $rol = rolDe($this->tenant, TenantRole::Tecnico);
 
     $this->actingAs($this->admin)
         ->put(route('roles.update', $rol), ['name' => TenantRole::Tecnico->value])
         ->assertSessionHasNoErrors();
 
-    expect($rol->fresh()->permissions)->toBeEmpty();
+    expect($rol->fresh()->permissions->pluck('name')->all())->toBe([TenantPermission::DashboardVer->value]);
 });
 
 test('el rol Administrador no se puede editar ni eliminar', function () {
     $administrador = rolDe($this->tenant, TenantRole::Administrador);
 
-    $this->actingAs($this->admin)->get(route('roles.edit', $administrador))->assertForbidden();
     $this->actingAs($this->admin)->put(route('roles.update', $administrador), ['name' => 'Otro'])->assertForbidden();
     $this->actingAs($this->admin)->delete(route('roles.destroy', $administrador))->assertForbidden();
 
@@ -150,7 +144,6 @@ test('un administrador no puede tocar los roles de otro tenant', function () {
     User::factory()->forTenant($otroTenant)->create();
     $rolAjeno = rolDe($otroTenant, TenantRole::Tecnico);
 
-    $this->actingAs($this->admin)->get(route('roles.edit', $rolAjeno))->assertForbidden();
     $this->actingAs($this->admin)->put(route('roles.update', $rolAjeno), ['name' => 'Hackeado'])->assertForbidden();
     $this->actingAs($this->admin)->delete(route('roles.destroy', $rolAjeno))->assertForbidden();
 

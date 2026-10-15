@@ -1,5 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
+import { usePermissions } from '@/hooks/use-permissions';
 import InputError from '@/components/input-error';
 import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
 import FinalizarMantenimientoModal from '@/components/mantenimientos/finalizar-mantenimiento-modal';
@@ -87,6 +88,7 @@ function GestionarMantenimientoFormulario({
     );
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
     const [finalizarOpen, setFinalizarOpen] = useState(false);
+    const { can } = usePermissions();
     const [faltanRepuestos, setFaltanRepuestos] = useState(
         mantenimiento.estado_mantenimiento === 'FALTA_REPUESTOS',
     );
@@ -340,15 +342,17 @@ function GestionarMantenimientoFormulario({
                             <DialogClose asChild>
                                 <Button variant="secondary">Cerrar</Button>
                             </DialogClose>
-                            <Button
-                                type="button"
-                                className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-                                disabled={faltanRepuestos}
-                                onClick={() => setFinalizarOpen(true)}
-                                data-test="abrir-finalizar-button"
-                            >
-                                Finalizar
-                            </Button>
+                            {can('mantenimientos.finalizar') ? (
+                                <Button
+                                    type="button"
+                                    className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
+                                    disabled={faltanRepuestos}
+                                    onClick={() => setFinalizarOpen(true)}
+                                    data-test="abrir-finalizar-button"
+                                >
+                                    Finalizar
+                                </Button>
+                            ) : null}
                             <Button
                                 type="submit"
                                 disabled={processing}

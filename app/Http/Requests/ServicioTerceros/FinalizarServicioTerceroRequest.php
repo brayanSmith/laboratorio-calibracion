@@ -14,7 +14,7 @@ class FinalizarServicioTerceroRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('servicio_tercero'));
+        return Gate::allows('finalizar', $this->route('servicio_tercero'));
     }
 
     /**

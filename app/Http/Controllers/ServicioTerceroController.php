@@ -70,7 +70,7 @@ class ServicioTerceroController extends Controller
      */
     public function iniciar(ServicioTercero $servicioTercero): RedirectResponse
     {
-        Gate::authorize('update', $servicioTercero);
+        Gate::authorize('iniciar', $servicioTercero);
 
         TiempoServicio::create([
             'orden_trabajo_id' => $servicioTercero->orden_trabajo_id,

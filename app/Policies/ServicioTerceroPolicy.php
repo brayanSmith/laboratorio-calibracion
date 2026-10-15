@@ -23,6 +23,32 @@ class ServicioTerceroPolicy
     }
 
     /**
+     * Determine whether the user can start the model.
+     */
+    public function iniciar(User $user, ServicioTercero $servicioTercero): bool
+    {
+        $permiso = $servicioTercero->tipo_servicio === 'MANTENIMIENTO'
+            ? TenantPermission::MantenimientosIniciar
+            : TenantPermission::CalibracionesIniciar;
+
+        return $user->tenant_id === $servicioTercero->tenant_id
+            && $user->can($permiso->value);
+    }
+
+    /**
+     * Determine whether the user can finish the model.
+     */
+    public function finalizar(User $user, ServicioTercero $servicioTercero): bool
+    {
+        $permiso = $servicioTercero->tipo_servicio === 'MANTENIMIENTO'
+            ? TenantPermission::MantenimientosFinalizar
+            : TenantPermission::CalibracionesFinalizar;
+
+        return $user->tenant_id === $servicioTercero->tenant_id
+            && $user->can($permiso->value);
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, ServicioTercero $servicioTercero): bool

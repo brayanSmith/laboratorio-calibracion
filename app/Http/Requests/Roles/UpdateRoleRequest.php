@@ -24,7 +24,10 @@ class UpdateRoleRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge(['permissions' => $this->input('permissions', [])]);
+        $this->merge(['permissions' => array_values(array_unique([
+            ...(array) $this->input('permissions', []),
+            TenantPermission::DashboardVer->value,
+        ]))]);
     }
 
     /**

@@ -150,7 +150,7 @@ class MantenimientoController extends Controller
      */
     public function iniciar(Mantenimiento $mantenimiento): RedirectResponse
     {
-        Gate::authorize('update', $mantenimiento);
+        Gate::authorize('iniciar', $mantenimiento);
 
         TiempoServicio::create([
             'orden_trabajo_id' => $mantenimiento->orden_trabajo_id,
@@ -223,13 +223,13 @@ class MantenimientoController extends Controller
      */
     public function informe(Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): StreamedResponse
     {
-        Gate::authorize('viewAny', Mantenimiento::class);
-
         abort_unless(
             $mantenimiento->tenant_id === auth()->user()->tenant_id
                 && $mantenimiento->estado_mantenimiento === 'FINALIZADO',
             404,
         );
+
+        Gate::authorize('verPdf', $mantenimiento);
 
         $disco = Storage::disk('public');
 

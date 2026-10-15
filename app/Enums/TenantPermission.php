@@ -4,6 +4,16 @@ namespace App\Enums;
 
 enum TenantPermission: string
 {
+    // "dashboard.ver" es obligatorio en todo rol; el resto son los bloques del dashboard que
+    // el rol puede ver (ver DashboardController).
+    case DashboardVer = 'dashboard.ver';
+    case DashboardTodosEquipos = 'dashboard.todos-equipos';
+    case DashboardEquiposAlDia = 'dashboard.equipos-al-dia';
+    case DashboardEquiposProximos = 'dashboard.equipos-proximos';
+    case DashboardEquiposVencidos = 'dashboard.equipos-vencidos';
+    case DashboardEquiposUrgentes = 'dashboard.equipos-urgentes';
+    case DashboardTablaEquipos = 'dashboard.tabla-equipos';
+
     case ClientesVer = 'clientes.ver';
     case ClientesCrear = 'clientes.crear';
     case ClientesEditar = 'clientes.editar';
@@ -24,12 +34,18 @@ enum TenantPermission: string
     case MantenimientosVer = 'mantenimientos.ver';
     case MantenimientosEditar = 'mantenimientos.editar';
     case MantenimientosEliminar = 'mantenimientos.eliminar';
+    case MantenimientosIniciar = 'mantenimientos.iniciar';
+    case MantenimientosFinalizar = 'mantenimientos.finalizar';
+    case MantenimientosPdf = 'mantenimientos.pdf';
 
     // Sin "crear": una calibración solo se origina desde "Agendar Calibraciones" (ver
     // OrdenTrabajoController), no tiene un formulario de creación propio.
     case CalibracionesVer = 'calibraciones.ver';
     case CalibracionesEditar = 'calibraciones.editar';
     case CalibracionesEliminar = 'calibraciones.eliminar';
+    case CalibracionesIniciar = 'calibraciones.iniciar';
+    case CalibracionesFinalizar = 'calibraciones.finalizar';
+    case CalibracionesPdf = 'calibraciones.pdf';
 
     // Sin "crear": un despacho solo se origina al finalizar una calibración (ver
     // CalibracionController::finalizar()), no tiene un formulario de creación propio.
@@ -111,6 +127,13 @@ enum TenantPermission: string
     public function group(): string
     {
         return match ($this) {
+            self::DashboardVer,
+            self::DashboardTodosEquipos,
+            self::DashboardEquiposAlDia,
+            self::DashboardEquiposProximos,
+            self::DashboardEquiposVencidos,
+            self::DashboardEquiposUrgentes,
+            self::DashboardTablaEquipos => 'Dashboard',
             self::ClientesVer,
             self::ClientesCrear,
             self::ClientesEditar,
@@ -125,10 +148,16 @@ enum TenantPermission: string
             self::IngresosEliminar => 'Ingresos',
             self::MantenimientosVer,
             self::MantenimientosEditar,
-            self::MantenimientosEliminar => 'Mantenimientos',
+            self::MantenimientosEliminar,
+            self::MantenimientosIniciar,
+            self::MantenimientosFinalizar,
+            self::MantenimientosPdf => 'Mantenimientos',
             self::CalibracionesVer,
             self::CalibracionesEditar,
-            self::CalibracionesEliminar => 'Calibraciones',
+            self::CalibracionesEliminar,
+            self::CalibracionesIniciar,
+            self::CalibracionesFinalizar,
+            self::CalibracionesPdf => 'Calibraciones',
             self::DespachosVer,
             self::DespachosEditar,
             self::DespachosEliminar => 'Despachos',
@@ -190,11 +219,36 @@ enum TenantPermission: string
     }
 
     /**
+     * Get every permission that belongs to the dashboard.
+     *
+     * @return array<self>
+     */
+    public static function dashboardCases(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $permission) => $permission->group() === 'Dashboard'));
+    }
+
+    /**
+     * Determine if every role must hold the permission, so it cannot be unchecked.
+     */
+    public function isMandatory(): bool
+    {
+        return $this === self::DashboardVer;
+    }
+
+    /**
      * Get the display label for the permission.
      */
     public function label(): string
     {
         return match ($this) {
+            self::DashboardVer => 'Ver el dashboard (obligatorio)',
+            self::DashboardTodosEquipos => 'Tarjeta: todos los equipos',
+            self::DashboardEquiposAlDia => 'Tarjeta: equipos al día',
+            self::DashboardEquiposProximos => 'Tarjeta: equipos próximos a vencer',
+            self::DashboardEquiposVencidos => 'Tarjeta: equipos vencidos',
+            self::DashboardEquiposUrgentes => 'Listado de equipos urgentes',
+            self::DashboardTablaEquipos => 'Tabla de equipos',
             self::ClientesVer => 'Ver clientes',
             self::ClientesCrear => 'Crear clientes',
             self::ClientesEditar => 'Editar clientes',
@@ -210,9 +264,15 @@ enum TenantPermission: string
             self::MantenimientosVer => 'Ver mantenimientos',
             self::MantenimientosEditar => 'Editar mantenimientos',
             self::MantenimientosEliminar => 'Eliminar mantenimientos',
+            self::MantenimientosIniciar => 'Iniciar mantenimientos',
+            self::MantenimientosFinalizar => 'Finalizar mantenimientos',
+            self::MantenimientosPdf => 'Ver PDF de mantenimientos',
             self::CalibracionesVer => 'Ver calibraciones',
             self::CalibracionesEditar => 'Editar calibraciones',
             self::CalibracionesEliminar => 'Eliminar calibraciones',
+            self::CalibracionesIniciar => 'Iniciar calibraciones',
+            self::CalibracionesFinalizar => 'Finalizar calibraciones',
+            self::CalibracionesPdf => 'Ver PDF de calibraciones',
             self::DespachosVer => 'Ver despachos',
             self::DespachosEditar => 'Editar despachos',
             self::DespachosEliminar => 'Eliminar despachos',
@@ -276,7 +336,7 @@ enum TenantPermission: string
     /**
      * Get every permission grouped by module, ready to be rendered as a matrix.
      *
-     * @return array<int, array{group: string, permissions: array<int, array{value: string, label: string}>}>
+     * @return array<int, array{group: string, permissions: array<int, array{value: string, label: string, mandatory: bool}>}>
      */
     public static function catalog(): array
     {
@@ -285,7 +345,7 @@ enum TenantPermission: string
             ->map(fn ($permissions, string $group) => [
                 'group' => $group,
                 'permissions' => $permissions
-                    ->map(fn (self $permission) => ['value' => $permission->value, 'label' => $permission->label()])
+                    ->map(fn (self $permission) => ['value' => $permission->value, 'label' => $permission->label(), 'mandatory' => $permission->isMandatory()])
                     ->values()
                     ->all(),
             ])

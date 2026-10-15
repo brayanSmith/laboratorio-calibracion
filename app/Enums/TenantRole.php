@@ -24,7 +24,7 @@ enum TenantRole: string
      */
     public function permissions(): array
     {
-        return match ($this) {
+        $base = match ($this) {
             self::Administrador => TenantPermission::cases(),
             self::Metrologo => [
                 TenantPermission::ClientesVer,
@@ -38,8 +38,14 @@ enum TenantRole: string
                 TenantPermission::IngresosEditar,
                 TenantPermission::MantenimientosVer,
                 TenantPermission::MantenimientosEditar,
+                TenantPermission::MantenimientosIniciar,
+                TenantPermission::MantenimientosFinalizar,
+                TenantPermission::MantenimientosPdf,
                 TenantPermission::CalibracionesVer,
                 TenantPermission::CalibracionesEditar,
+                TenantPermission::CalibracionesIniciar,
+                TenantPermission::CalibracionesFinalizar,
+                TenantPermission::CalibracionesPdf,
                 TenantPermission::DespachosVer,
                 TenantPermission::DespachosEditar,
                 TenantPermission::TiposEquipoVer,
@@ -88,8 +94,14 @@ enum TenantRole: string
                 TenantPermission::IngresosCrear,
                 TenantPermission::MantenimientosVer,
                 TenantPermission::MantenimientosEditar,
+                TenantPermission::MantenimientosIniciar,
+                TenantPermission::MantenimientosFinalizar,
+                TenantPermission::MantenimientosPdf,
                 TenantPermission::CalibracionesVer,
                 TenantPermission::CalibracionesEditar,
+                TenantPermission::CalibracionesIniciar,
+                TenantPermission::CalibracionesFinalizar,
+                TenantPermission::CalibracionesPdf,
                 TenantPermission::DespachosVer,
                 TenantPermission::DespachosEditar,
                 TenantPermission::TiposEquipoVer,
@@ -114,7 +126,9 @@ enum TenantRole: string
                 TenantPermission::IngresosVer,
                 TenantPermission::IngresosCrear,
                 TenantPermission::MantenimientosVer,
+                TenantPermission::MantenimientosPdf,
                 TenantPermission::CalibracionesVer,
+                TenantPermission::CalibracionesPdf,
                 TenantPermission::DespachosVer,
                 TenantPermission::TiposEquipoVer,
                 TenantPermission::AreasVer,
@@ -131,5 +145,7 @@ enum TenantRole: string
                 TenantPermission::EmpresaVer,
             ],
         };
+
+        return array_values(array_unique([...$base, ...TenantPermission::dashboardCases()], SORT_REGULAR));
     }
 }

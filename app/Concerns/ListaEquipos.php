@@ -23,18 +23,18 @@ trait ListaEquipos
      *
      * @return array<string, mixed>
      */
-    protected function datosListadoEquipos(Request $request): array
+    protected function datosListadoEquipos(Request $request, bool $incluirEquipos = true): array
     {
         $tenantId = $request->user()->tenant_id;
 
         return [
-            'equipos' => Equipo::query()
+            ...($incluirEquipos ? ['equipos' => Equipo::query()
                 ->where('tenant_id', $tenantId)
                 ->with($this->relacionesListadoEquipos())
                 ->latest()
                 ->get()
                 ->map(fn (Equipo $equipo) => $this->conDocumentos($equipo))
-                ->all(),
+                ->all()] : []),
             'options' => $this->formOptions($tenantId),
         ];
     }

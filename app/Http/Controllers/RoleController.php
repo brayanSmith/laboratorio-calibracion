@@ -67,23 +67,6 @@ class RoleController extends Controller
     }
 
     /**
-     * Show the form for editing the specified role.
-     */
-    public function edit(Role $role): Response
-    {
-        Gate::authorize('update', $role);
-
-        return Inertia::render('roles/edit', [
-            'role' => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'permissions' => $role->permissions->pluck('name')->sort()->values(),
-            ],
-            'catalog' => TenantPermission::catalog(),
-        ]);
-    }
-
-    /**
      * Update the specified role.
      */
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse

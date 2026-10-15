@@ -1,6 +1,6 @@
 export type PermissionCatalogGroup = {
     group: string;
-    permissions: { value: string; label: string }[];
+    permissions: { value: string; label: string; mandatory: boolean }[];
 };
 
 export type RoleSummary = {
@@ -9,12 +9,6 @@ export type RoleSummary = {
     is_system: boolean;
     permissions: string[];
     users_count: number;
-};
-
-export type RoleDetail = {
-    id: number;
-    name: string;
-    permissions: string[];
 };
 
 export type TenantRoleOption = {

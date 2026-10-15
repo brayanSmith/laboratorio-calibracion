@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\ListaEquipos;
+use App\Enums\TenantPermission;
 use App\Models\Equipo;
 use App\Models\EquipoProgramacion;
 use Illuminate\Http\RedirectResponse;
@@ -37,19 +38,22 @@ class DashboardController extends Controller
         $tenantId = $request->user()->tenant_id;
         $estadoPorEquipo = EquipoProgramacion::vencimientoPorEquipo($tenantId);
         $porEstado = $estadoPorEquipo->countBy();
+        $usuario = $request->user();
         $puedeVerEquipos = Gate::allows('viewAny', Equipo::class);
+        $puedeTabla = $puedeVerEquipos && $usuario->can(TenantPermission::DashboardTablaEquipos->value);
+        $puedeUrgentes = $puedeVerEquipos && $usuario->can(TenantPermission::DashboardEquiposUrgentes->value);
 
         return Inertia::render('dashboard', [
-            'total_equipos' => Equipo::query()->where('tenant_id', $tenantId)->count(),
+            'total_equipos' => $usuario->can(TenantPermission::DashboardTodosEquipos->value)
+                ? Equipo::query()->where('tenant_id', $tenantId)->count()
+                : null,
             'vencimientos' => [
-                'al_dia' => $porEstado->get('AL_DIA', 0),
-                'proximos_a_vencer' => $porEstado->get('PROXIMO_A_VENCER', 0),
-                'vencidos' => $porEstado->get('VENCIDO', 0),
+                'al_dia' => $usuario->can(TenantPermission::DashboardEquiposAlDia->value) ? $porEstado->get('AL_DIA', 0) : null,
+                'proximos_a_vencer' => $usuario->can(TenantPermission::DashboardEquiposProximos->value) ? $porEstado->get('PROXIMO_A_VENCER', 0) : null,
+                'vencidos' => $usuario->can(TenantPermission::DashboardEquiposVencidos->value) ? $porEstado->get('VENCIDO', 0) : null,
             ],
-            ...($puedeVerEquipos ? [
-                'equipos_urgentes' => $this->equiposUrgentes($tenantId, $estadoPorEquipo),
-                ...$this->datosListadoEquipos($request),
-            ] : []),
+            ...($puedeUrgentes ? ['equipos_urgentes' => $this->equiposUrgentes($tenantId, $estadoPorEquipo)] : []),
+            ...($puedeUrgentes || $puedeTabla ? $this->datosListadoEquipos($request, incluirEquipos: $puedeTabla) : []),
         ]);
     }
 

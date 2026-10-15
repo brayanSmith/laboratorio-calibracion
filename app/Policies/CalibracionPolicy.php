@@ -26,6 +26,33 @@ class CalibracionPolicy
     }
 
     /**
+     * Determine whether the user can start the model.
+     */
+    public function iniciar(User $user, Calibracion $calibracion): bool
+    {
+        return $user->tenant_id === $calibracion->tenant_id
+            && $user->can(TenantPermission::CalibracionesIniciar->value);
+    }
+
+    /**
+     * Determine whether the user can finish the model.
+     */
+    public function finalizar(User $user, Calibracion $calibracion): bool
+    {
+        return $user->tenant_id === $calibracion->tenant_id
+            && $user->can(TenantPermission::CalibracionesFinalizar->value);
+    }
+
+    /**
+     * Determine whether the user can view the PDF certificate of the model.
+     */
+    public function verPdf(User $user, Calibracion $calibracion): bool
+    {
+        return $user->tenant_id === $calibracion->tenant_id
+            && $user->can(TenantPermission::CalibracionesPdf->value);
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Calibracion $calibracion): bool

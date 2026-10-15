@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\EmpresaTercero;
@@ -12,6 +13,7 @@ use App\Models\TiempoServicio;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     Storage::fake('public');
@@ -502,4 +504,21 @@ test('el informe firmado de un tecnico sin firma registrada se genera sin imagen
     $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO', 'firmado' => true]);
 
     expect(str_contains(contenidoInformeMantenimiento($mantenimiento), '/Subtype /Image'))->toBeFalse();
+});
+
+test('iniciar y finalizar un mantenimiento dependen de su propio permiso, no del de editar', function () {
+    $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
+    $usuario->syncRoles([]);
+    $usuario->givePermissionTo(TenantPermission::MantenimientosEditar->value);
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+
+    $this->actingAs($usuario)->post(route('mantenimientos.iniciar', $mantenimiento))->assertForbidden();
+    $this->actingAs($usuario)->post(route('mantenimientos.finalizar', $mantenimiento))->assertForbidden();
+    $this->actingAs($usuario)->get(route('mantenimientos.informe', $mantenimiento))->assertForbidden();
+
+    $usuario->givePermissionTo([TenantPermission::MantenimientosIniciar->value, TenantPermission::MantenimientosPdf->value]);
+
+    $this->actingAs($usuario)->post(route('mantenimientos.iniciar', $mantenimiento))->assertRedirect();
+    $this->actingAs($usuario)->post(route('mantenimientos.finalizar', $mantenimiento))->assertForbidden();
 });

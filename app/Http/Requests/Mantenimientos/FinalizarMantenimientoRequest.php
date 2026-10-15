@@ -17,7 +17,7 @@ class FinalizarMantenimientoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('mantenimiento'));
+        return Gate::allows('finalizar', $this->route('mantenimiento'));
     }
 
     /**

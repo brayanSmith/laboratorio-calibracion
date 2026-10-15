@@ -139,7 +139,7 @@ class CalibracionController extends Controller
      */
     public function iniciar(Calibracion $calibracion): RedirectResponse
     {
-        Gate::authorize('update', $calibracion);
+        Gate::authorize('iniciar', $calibracion);
 
         TiempoServicio::create([
             'orden_trabajo_id' => $calibracion->orden_trabajo_id,
@@ -301,13 +301,13 @@ class CalibracionController extends Controller
      */
     public function certificado(Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): StreamedResponse
     {
-        Gate::authorize('viewAny', Calibracion::class);
-
         abort_unless(
             $calibracion->tenant_id === auth()->user()->tenant_id
                 && $calibracion->estado_calibracion === 'FINALIZADO',
             404,
         );
+
+        Gate::authorize('verPdf', $calibracion);
 
         $disco = Storage::disk('public');
 

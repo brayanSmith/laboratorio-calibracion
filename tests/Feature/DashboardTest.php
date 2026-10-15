@@ -1,8 +1,12 @@
 <?php
 
+use App\Enums\TenantPermission;
+use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\Tenant;
 use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 test('guests are redirected to the login page', function () {
     $this->get(route('dashboard'))->assertRedirect(route('login'));
@@ -87,4 +91,39 @@ test('el dashboard lista hasta cinco equipos urgentes, los vencidos primero', fu
             ->where('equipos_urgentes.4.codigo', 'EQ-PROX-2')
             ->has('equipos_urgentes.0.equipo_programaciones')
             ->has('equipos_urgentes.0.equipo_documentos'));
+});
+
+test('el dashboard solo envia los bloques que el rol tiene habilitados', function () {
+    $tenant = Tenant::factory()->create();
+    $user = User::factory()->forTenant($tenant, TenantRole::Tecnico)->create();
+    app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+    $user->syncRoles([]);
+    $user->givePermissionTo([
+        TenantPermission::DashboardVer->value,
+        TenantPermission::DashboardEquiposVencidos->value,
+        TenantPermission::EquiposVer->value,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('total_equipos', null)
+            ->where('vencimientos.al_dia', null)
+            ->where('vencimientos.vencidos', 0)
+            ->missing('equipos_urgentes')
+            ->missing('equipos'));
+});
+
+test('el permiso del dashboard no se puede quitar de un rol', function () {
+    $tenant = Tenant::factory()->create();
+    $admin = User::factory()->forTenant($tenant)->create();
+
+    $this->actingAs($admin)
+        ->post(route('roles.store'), ['name' => 'Auditor', 'permissions' => [TenantPermission::EquiposVer->value]])
+        ->assertRedirect(route('roles.index'));
+
+    $role = Role::query()->where('tenant_id', $tenant->id)->where('name', 'Auditor')->firstOrFail();
+
+    expect($role->permissions->pluck('name')->all())->toContain(TenantPermission::DashboardVer->value);
 });

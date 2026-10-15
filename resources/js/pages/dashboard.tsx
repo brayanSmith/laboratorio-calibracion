@@ -11,13 +11,14 @@ import { dashboard } from '@/routes';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
 type Props = {
-    total_equipos: number;
+    /** Cada conteo llega null si el rol no tiene habilitada esa tarjeta. */
+    total_equipos: number | null;
     vencimientos: {
-        al_dia: number;
-        proximos_a_vencer: number;
-        vencidos: number;
+        al_dia: number | null;
+        proximos_a_vencer: number | null;
+        vencidos: number | null;
     };
-    /** Solo llegan si la persona puede ver equipos. */
+    /** Solo llegan si el rol puede ver equipos y tiene habilitado ese bloque. */
     equipos_urgentes?: EquipoUrgente[];
     equipos?: Equipo[];
     options?: EquipoFormOptions;
@@ -25,7 +26,7 @@ type Props = {
 
 type TarjetaVencimiento = {
     titulo: string;
-    valor: number;
+    valor: number | null;
     icono: LucideIcon;
     color: string;
     /** Botón en un tono más oscuro que el de la tarjeta. */
@@ -86,6 +87,10 @@ export default function Dashboard({
         },
     ];
 
+    const tarjetasVisibles = tarjetas.filter(
+        (tarjeta) => tarjeta.valor !== null,
+    );
+
     const verEquipos = (vencimiento: string | null) => {
         setVista((actual) => ({ n: actual.n + 1, vencimiento }));
     };
@@ -101,40 +106,42 @@ export default function Dashboard({
                     />
                 ) : null}
 
-                <div className="grid auto-rows-min gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {tarjetas.map((tarjeta) => (
-                        <Card
-                            key={tarjeta.testId}
-                            data-test={tarjeta.testId}
-                            className={tarjeta.color}
-                        >
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                <CardTitle className="text-sm font-medium">
-                                    {tarjeta.titulo}
-                                </CardTitle>
-                                <tarjeta.icono className="h-5 w-5" />
-                            </CardHeader>
-                            <CardContent className="flex items-end justify-between gap-2">
-                                <p className="text-3xl font-bold tabular-nums">
-                                    {tarjeta.valor}
-                                </p>
-                                {equipos ? (
-                                    <Button
-                                        type="button"
-                                        className={tarjeta.colorBoton}
-                                        size="sm"
-                                        onClick={() =>
-                                            verEquipos(tarjeta.vencimiento)
-                                        }
-                                        data-test={`${tarjeta.testId}-ver`}
-                                    >
-                                        Ver
-                                    </Button>
-                                ) : null}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                {tarjetasVisibles.length > 0 ? (
+                    <div className="grid auto-rows-min gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        {tarjetasVisibles.map((tarjeta) => (
+                            <Card
+                                key={tarjeta.testId}
+                                data-test={tarjeta.testId}
+                                className={tarjeta.color}
+                            >
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                    <CardTitle className="text-sm font-medium">
+                                        {tarjeta.titulo}
+                                    </CardTitle>
+                                    <tarjeta.icono className="h-5 w-5" />
+                                </CardHeader>
+                                <CardContent className="flex items-end justify-between gap-2">
+                                    <p className="text-3xl font-bold tabular-nums">
+                                        {tarjeta.valor}
+                                    </p>
+                                    {equipos ? (
+                                        <Button
+                                            type="button"
+                                            className={tarjeta.colorBoton}
+                                            size="sm"
+                                            onClick={() =>
+                                                verEquipos(tarjeta.vencimiento)
+                                            }
+                                            data-test={`${tarjeta.testId}-ver`}
+                                        >
+                                            Ver
+                                        </Button>
+                                    ) : null}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                ) : null}
 
                 {equipos && options ? (
                     <EquiposTabla

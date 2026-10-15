@@ -14,7 +14,7 @@ class FinalizarCalibracionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('calibracion'));
+        return Gate::allows('finalizar', $this->route('calibracion'));
     }
 
     /**

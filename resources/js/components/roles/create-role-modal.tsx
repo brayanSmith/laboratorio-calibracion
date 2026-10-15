@@ -26,7 +26,7 @@ export default function CreateRoleModal({ catalog, children }: Props) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
                 <Form
                     key={String(open)}
                     {...RoleController.store.form()}

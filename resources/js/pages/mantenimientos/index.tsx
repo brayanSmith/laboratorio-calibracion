@@ -61,6 +61,8 @@ export default function MantenimientosIndex({
     const { can } = usePermissions();
     const canEdit = can('mantenimientos.editar');
     const canDelete = can('mantenimientos.eliminar');
+    const canIniciar = can('mantenimientos.iniciar');
+    const canPdf = can('mantenimientos.pdf');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         mantenimientos.find(
@@ -169,8 +171,9 @@ export default function MantenimientosIndex({
                                     <Eye className="h-4 w-4" /> Ver
                                 </Button>
                             ) : null}
-                            {row.original.estado_mantenimiento ===
-                            'FINALIZADO' ? (
+                            {canPdf &&
+                            row.original.estado_mantenimiento ===
+                                'FINALIZADO' ? (
                                 <Button variant="outline" size="sm" asChild>
                                     <a
                                         href={informe.url(row.original.id)}
@@ -204,7 +207,7 @@ export default function MantenimientosIndex({
                                     <Play className="h-4 w-4" /> Continuar
                                 </Button>
                             ) : null}
-                            {canEdit &&
+                            {canIniciar &&
                             row.original.estado_mantenimiento !==
                                 'FINALIZADO' &&
                             !row.original.tiempo_servicio_inicio ? (
@@ -250,7 +253,7 @@ export default function MantenimientosIndex({
                     ),
                 }),
             ]),
-        [canEdit, canDelete],
+        [canEdit, canDelete, canIniciar, canPdf],
     );
 
     return (
@@ -314,6 +317,8 @@ export default function MantenimientosIndex({
                             empresasTerceras={empresasTerceras}
                             canEdit={canEdit}
                             canDelete={canDelete}
+                            canIniciar={canIniciar}
+                            canFinalizar={can('mantenimientos.finalizar')}
                             searchPlaceholder="Buscar servicio de tercero..."
                             emptyMessage="Aún no hay mantenimientos asignados a terceros."
                         />

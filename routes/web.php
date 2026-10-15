@@ -157,7 +157,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->parameters(['unidades-medida' => 'unidadMedida'])
         ->only(['index', 'store', 'update', 'destroy']);
 
-    Route::resource('roles', RoleController::class)->except(['create', 'show']);
+    Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);
 
     Route::resource('usuarios', UsuarioController::class)
         ->parameters(['usuarios' => 'usuario'])

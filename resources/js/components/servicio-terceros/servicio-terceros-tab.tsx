@@ -19,6 +19,8 @@ type Props = {
     empresasTerceras: MantenimientoOption[];
     canEdit: boolean;
     canDelete: boolean;
+    canIniciar: boolean;
+    canFinalizar: boolean;
     searchPlaceholder: string;
     emptyMessage: string;
 };
@@ -32,6 +34,8 @@ export default function ServicioTercerosTab({
     empresasTerceras,
     canEdit,
     canDelete,
+    canIniciar,
+    canFinalizar,
     searchPlaceholder,
     emptyMessage,
 }: Props) {
@@ -152,7 +156,7 @@ export default function ServicioTercerosTab({
                                         <Eye className="h-4 w-4" /> Ver
                                     </Button>
                                 ) : null}
-                                {canEdit && !finalizado && !iniciado ? (
+                                {canIniciar && !finalizado && !iniciado ? (
                                     <Button
                                         size="sm"
                                         className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
@@ -165,7 +169,7 @@ export default function ServicioTercerosTab({
                                         <Play className="h-4 w-4" /> Iniciar
                                     </Button>
                                 ) : null}
-                                {canEdit && !finalizado && iniciado ? (
+                                {canFinalizar && !finalizado && iniciado ? (
                                     <Button
                                         size="sm"
                                         className="!border-transparent !bg-blue-500 !text-white hover:!bg-blue-600"
@@ -210,7 +214,7 @@ export default function ServicioTercerosTab({
                     },
                 }),
             ]),
-        [canEdit, canDelete],
+        [canEdit, canDelete, canIniciar, canFinalizar],
     );
 
     return (

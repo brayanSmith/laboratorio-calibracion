@@ -66,6 +66,8 @@ export default function CalibracionesIndex({
     const { can } = usePermissions();
     const canEdit = can('calibraciones.editar');
     const canDelete = can('calibraciones.eliminar');
+    const canIniciar = can('calibraciones.iniciar');
+    const canPdf = can('calibraciones.pdf');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         calibraciones.find((calibracion) => calibracion.id === editingId) ??
@@ -177,8 +179,8 @@ export default function CalibracionesIndex({
                                     <Eye className="h-4 w-4" /> Ver
                                 </Button>
                             ) : null}
-                            {row.original.estado_calibracion ===
-                            'FINALIZADO' ? (
+                            {canPdf &&
+                            row.original.estado_calibracion === 'FINALIZADO' ? (
                                 <Button variant="outline" size="sm" asChild>
                                     <a
                                         href={certificado.url(row.original.id)}
@@ -211,7 +213,7 @@ export default function CalibracionesIndex({
                                     <Play className="h-4 w-4" /> Continuar
                                 </Button>
                             ) : null}
-                            {canEdit &&
+                            {canIniciar &&
                             !terminada(row.original) &&
                             !row.original.tiempo_servicio_inicio ? (
                                 <Button
@@ -262,7 +264,7 @@ export default function CalibracionesIndex({
                     ),
                 }),
             ]),
-        [canEdit, canDelete],
+        [canEdit, canDelete, canIniciar, canPdf],
     );
 
     return (
@@ -328,6 +330,8 @@ export default function CalibracionesIndex({
                             empresasTerceras={empresasTerceras}
                             canEdit={canEdit}
                             canDelete={canDelete}
+                            canIniciar={canIniciar}
+                            canFinalizar={can('calibraciones.finalizar')}
                             searchPlaceholder="Buscar servicio de tercero..."
                             emptyMessage="Aún no hay calibraciones asignadas a terceros."
                         />
