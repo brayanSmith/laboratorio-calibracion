@@ -248,7 +248,11 @@ export default function DataTable<TData extends RowData>({
                     </thead>
                     <tbody className="divide-y">
                         {rows.map((row) => (
-                            <tr key={row.id} data-test={rowTestId}>
+                            <tr
+                                key={row.id}
+                                data-test={rowTestId}
+                                className="transition-colors hover:bg-primary/10"
+                            >
                                 {row.getAllCells().map((cell) => (
                                     <td key={cell.id} className="px-4 py-3">
                                         <table.FlexRender cell={cell} />
