@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\BahiaController;
 use App\Http\Controllers\CalibracionController;
@@ -57,6 +58,8 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->creatable()
         ->destroyable()
         ->except(['create', 'edit']);
+
+    Route::get('agenda/eventos', [AgendaController::class, 'eventos'])->name('agenda.eventos');
 
     Route::resource('equipos', EquipoController::class)->except(['create', 'edit']);
 

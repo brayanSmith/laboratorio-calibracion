@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int $tenant_id
  * @property int $orden_trabajo_id
  * @property int|null $tecnico_entrega_id Se completa al agendar el despacho
+ * @property Carbon|null $fecha_despacho Día programado de la entrega; se completa al agendar el despacho
  * @property int|null $cliente_recibe_id Se completa cuando se realiza el despacho
  * @property bool $entrega_autorizada Se marca al finalizar la calibración (o el mantenimiento, si no requiere calibración)
  * @property string|null $firma_cliente_recibe
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Cliente|null $clienteRecibe
  * @property-read Novedad|null $novedad
  */
-#[Fillable(['tenant_id', 'orden_trabajo_id', 'tecnico_entrega_id', 'cliente_recibe_id', 'entrega_autorizada', 'firma_cliente_recibe', 'entrega_recibida', 'novedad_id'])]
+#[Fillable(['tenant_id', 'orden_trabajo_id', 'tecnico_entrega_id', 'fecha_despacho', 'cliente_recibe_id', 'entrega_autorizada', 'firma_cliente_recibe', 'entrega_recibida', 'novedad_id'])]
 class Despacho extends Model
 {
     use SoftDeletes;
@@ -153,6 +154,7 @@ class Despacho extends Model
     protected function casts(): array
     {
         return [
+            'fecha_despacho' => 'date',
             'entrega_autorizada' => 'boolean',
             'entrega_recibida' => 'boolean',
         ];

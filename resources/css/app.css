@@ -166,3 +166,200 @@
         );
     }
 }
+
+/* Calendario de la agenda (FullCalendar): bordes suaves, día actual en círculo y eventos tipo "pastilla". */
+.agenda-cal {
+    --fc-border-color: color-mix(in oklab, var(--border) 60%, transparent);
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: var(--muted);
+    --fc-today-bg-color: transparent;
+    --fc-event-border-color: transparent;
+    --fc-list-event-hover-bg-color: var(--muted);
+}
+
+.agenda-cal .fc-theme-standard td,
+.agenda-cal .fc-theme-standard th,
+.agenda-cal .fc-theme-standard .fc-scrollgrid {
+    border-color: var(--fc-border-color);
+}
+
+.agenda-cal .fc-scrollgrid {
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.agenda-cal .fc-toolbar {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.agenda-cal .fc-toolbar-title::first-letter {
+    text-transform: uppercase;
+}
+
+.agenda-cal .fc-toolbar-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.agenda-cal .fc-button {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    box-shadow: none;
+    color: var(--foreground);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.35rem 0.75rem;
+    text-transform: capitalize;
+}
+
+.agenda-cal .fc-button:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.agenda-cal .fc-button:focus {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+
+.agenda-cal .fc-button-primary:not(:disabled).fc-button-active,
+.agenda-cal .fc-button-primary:not(:disabled):active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.agenda-cal .fc-button-primary:disabled {
+    background: var(--background);
+    border-color: var(--border);
+    color: var(--muted-foreground);
+    opacity: 0.6;
+}
+
+.agenda-cal .fc-button-group > .fc-button {
+    border-radius: 0;
+}
+
+.agenda-cal .fc-button-group > .fc-button:first-child {
+    border-radius: calc(var(--radius) - 2px) 0 0 calc(var(--radius) - 2px);
+}
+
+.agenda-cal .fc-button-group > .fc-button:last-child {
+    border-radius: 0 calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0;
+}
+
+.agenda-cal .fc-col-header-cell {
+    background: var(--muted);
+}
+
+.agenda-cal .fc-col-header-cell-cushion {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.6rem 0.25rem;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.agenda-cal .fc-daygrid-day {
+    transition: background-color 0.15s;
+}
+
+.agenda-cal .fc-daygrid-day:hover {
+    background: color-mix(in oklab, var(--muted) 60%, transparent);
+    cursor: pointer;
+}
+
+.agenda-cal .fc-day-other .fc-daygrid-day-top {
+    opacity: 0.4;
+}
+
+.agenda-cal .fc-daygrid-day-number {
+    color: var(--foreground);
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.5rem;
+    text-decoration: none;
+}
+
+.agenda-cal .fc-day-today .fc-daygrid-day-number {
+    align-items: center;
+    background: var(--primary);
+    border-radius: 9999px;
+    color: var(--primary-foreground);
+    display: inline-flex;
+    font-weight: 600;
+    height: 1.625rem;
+    justify-content: center;
+    margin: 0.3rem;
+    padding: 0;
+    width: 1.625rem;
+}
+
+.agenda-cal .fc-day-today {
+    background: color-mix(in oklab, var(--primary) 5%, transparent);
+}
+
+.agenda-cal .fc-daygrid-event {
+    border-radius: 0.375rem;
+    margin: 1px 0.3rem;
+}
+
+.agenda-cal .fc-event {
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.agenda-cal .fc-event:hover {
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+    transform: translateY(-1px);
+}
+
+.agenda-cal .fc-daygrid-more-link {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin: 0 0.4rem;
+}
+
+.agenda-cal .fc-list {
+    border-color: var(--fc-border-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.agenda-cal .fc-list-day-cushion {
+    background: var(--muted);
+    text-transform: capitalize;
+}
+
+.agenda-cal .fc-list-empty {
+    background: transparent;
+    color: var(--muted-foreground);
+}
+
+.agenda-cal .fc-popover {
+    background: var(--popover);
+    border-color: var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.agenda-cal .fc-popover-header {
+    background: var(--muted);
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* FullCalendar fija el color del texto en el contenido del evento; que herede el de la pastilla. */
+.agenda-cal .fc-event-main,
+.agenda-cal .fc-event-main-frame,
+.agenda-cal .fc-list-event-title a {
+    color: inherit;
+}
+
+/* Vista semanal sin horas: las tareas son de día completo, así que las celdas son más altas. */
+.agenda-cal .fc-dayGridWeek-view .fc-daygrid-day-frame {
+    min-height: 14rem;
+}

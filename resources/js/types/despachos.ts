@@ -10,6 +10,7 @@ export type Despacho = {
     orden_trabajo_codigo: string;
     tecnico_entrega_id: number | null;
     tecnico_entrega_nombre: string | null;
+    fecha_despacho: string | null;
     entrega_autorizada: boolean;
     cliente_recibe_id: number | null;
     cliente_recibe_nombre: string | null;

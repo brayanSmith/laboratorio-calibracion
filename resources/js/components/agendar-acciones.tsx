@@ -1,12 +1,14 @@
 import { usePage, useHttp } from '@inertiajs/react';
-import { Gauge, Truck, Wrench } from 'lucide-react';
+import { CalendarDays, Gauge, Truck, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { opcionesAgendar } from '@/actions/App/Http/Controllers/OrdenTrabajoController';
+import AgendaModal from '@/components/agenda/agenda-modal';
 import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
 import { Button } from '@/components/ui/button';
+import { usePermissions } from '@/hooks/use-permissions';
 import type { IngresoOption } from '@/types';
 
 type Opciones = {
@@ -14,7 +16,7 @@ type Opciones = {
     empresasTerceras: IngresoOption[];
 };
 
-type Atajo = 'mantenimiento' | 'calibracion' | 'despachos';
+type Atajo = 'mantenimiento' | 'calibracion' | 'despachos' | 'agenda';
 
 /** Globito con el conteo sobre un icono, oculto si no hay nada pendiente. */
 function ConteoBubble({ count }: { count: number }) {
@@ -77,13 +79,19 @@ function BotonAtajo({
  */
 export function AgendarAcciones() {
     const { porAgendar } = usePage().props;
+    const { can } = usePermissions();
     const [abierto, setAbierto] = useState<Atajo | null>(null);
     const { get, response: opciones } = useHttp<
         Record<string, never>,
         Opciones
     >();
 
-    if (!porAgendar) {
+    const puedeVerAgenda =
+        can('mantenimientos.ver') ||
+        can('calibraciones.ver') ||
+        can('despachos.ver');
+
+    if (!porAgendar && !puedeVerAgenda) {
         return null;
     }
 
@@ -107,28 +115,45 @@ export function AgendarAcciones() {
             className="ml-auto flex items-center gap-1"
             data-test="agendar-acciones"
         >
-            <BotonAtajo
-                icono={Wrench}
-                titulo="Agendar mantenimiento"
-                cantidad={porAgendar.mantenimiento}
-                dataTest="agendar-mantenimiento-button"
-                onClick={() => abrir('mantenimiento')}
-            />
-            <BotonAtajo
-                icono={Gauge}
-                titulo="Agendar calibraciones"
-                cantidad={porAgendar.calibracion}
-                dataTest="agendar-calibraciones-button"
-                onClick={() => abrir('calibracion')}
-            />
-            <BotonAtajo
-                icono={Truck}
-                titulo="Agendar despachos"
-                cantidad={porAgendar.despachos}
-                dataTest="agendar-despachos-button"
-                onClick={() => abrir('despachos')}
-            />
+            {puedeVerAgenda ? (
+                <BotonAtajo
+                    icono={CalendarDays}
+                    titulo="Agenda"
+                    cantidad={0}
+                    dataTest="agenda-button"
+                    onClick={() => setAbierto('agenda')}
+                />
+            ) : null}
+            {porAgendar ? (
+                <>
+                    <BotonAtajo
+                        icono={Wrench}
+                        titulo="Agendar mantenimiento"
+                        cantidad={porAgendar.mantenimiento}
+                        dataTest="agendar-mantenimiento-button"
+                        onClick={() => abrir('mantenimiento')}
+                    />
+                    <BotonAtajo
+                        icono={Gauge}
+                        titulo="Agendar calibraciones"
+                        cantidad={porAgendar.calibracion}
+                        dataTest="agendar-calibraciones-button"
+                        onClick={() => abrir('calibracion')}
+                    />
+                    <BotonAtajo
+                        icono={Truck}
+                        titulo="Agendar despachos"
+                        cantidad={porAgendar.despachos}
+                        dataTest="agendar-despachos-button"
+                        onClick={() => abrir('despachos')}
+                    />
+                </>
+            ) : null}
 
+            <AgendaModal
+                open={abierto === 'agenda'}
+                onOpenChange={alCambiar('agenda')}
+            />
             <AgendarMantenimientoModal
                 tecnicos={tecnicos}
                 empresasTerceras={empresasTerceras}

@@ -17,6 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DespachoListoItem, IngresoOption } from '@/types';
 
@@ -136,6 +137,7 @@ function DespachoListoItemRow({
     errors,
 }: DespachoListoItemRowProps) {
     const [tecnicoId, setTecnicoId] = useState('');
+    const [fechaDespacho, setFechaDespacho] = useState('');
     const [entregaAutorizada, setEntregaAutorizada] = useState(
         item.entrega_autorizada,
     );
@@ -147,6 +149,7 @@ function DespachoListoItemRow({
 
         if (!checked) {
             setTecnicoId('');
+            setFechaDespacho('');
         }
     }
 
@@ -201,6 +204,25 @@ function DespachoListoItemRow({
                             searchPlaceholder="Buscar técnico..."
                         />
                         <InputError message={errors[`${prefijo}.tecnico_id`]} />
+
+                        <Label
+                            htmlFor={`fecha-despacho-${item.id}`}
+                            className="text-xs"
+                        >
+                            Fecha del despacho
+                        </Label>
+                        <Input
+                            id={`fecha-despacho-${item.id}`}
+                            type="date"
+                            value={fechaDespacho}
+                            onChange={(event) =>
+                                setFechaDespacho(event.target.value)
+                            }
+                            data-test="fecha-despacho-input"
+                        />
+                        <InputError
+                            message={errors[`${prefijo}.fecha_despacho`]}
+                        />
                     </>
                 ) : null}
             </div>
@@ -209,6 +231,11 @@ function DespachoListoItemRow({
                 type="hidden"
                 name={`despachos_listos[${item.id}][tecnico_id]`}
                 value={tecnicoId}
+            />
+            <input
+                type="hidden"
+                name={`despachos_listos[${item.id}][fecha_despacho]`}
+                value={fechaDespacho}
             />
             <input
                 type="hidden"

@@ -321,6 +321,7 @@ class OrdenTrabajoController extends Controller
 
                 $despachos[$datos['id']]->update([
                     'tecnico_entrega_id' => $datos['tecnico_id'],
+                    'fecha_despacho' => $datos['fecha_despacho'] ?? null,
                     'entrega_autorizada' => $datos['entrega_autorizada'],
                 ]);
             }
