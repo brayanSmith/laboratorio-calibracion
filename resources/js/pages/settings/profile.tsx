@@ -1,5 +1,6 @@
 import { Form, Head, usePage } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import AvatarField from '@/components/avatar-field';
 import DeleteUser from '@/components/delete-user';
 import FirmaCanvas from '@/components/firma-canvas';
 import Heading from '@/components/heading';
@@ -46,6 +47,12 @@ export default function Profile({ firmaUrl }: Props) {
                 >
                     {({ processing, errors }) => (
                         <>
+                            <AvatarField
+                                name={auth.user.name}
+                                currentUrl={auth.user.avatar}
+                                error={errors.foto}
+                            />
+
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
 

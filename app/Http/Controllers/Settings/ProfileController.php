@@ -32,7 +32,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $user->fill($request->safe()->except(['firma', 'eliminar_firma']));
+        $user->fill($request->safe()->except(['firma', 'eliminar_firma', 'foto', 'eliminar_foto']));
 
         if ($request->hasFile('firma')) {
             $this->deleteFirma($user);
@@ -40,6 +40,14 @@ class ProfileController extends Controller
         } elseif ($request->boolean('eliminar_firma')) {
             $this->deleteFirma($user);
             $user->firma = null;
+        }
+
+        if ($request->hasFile('foto')) {
+            $this->deleteFoto($user);
+            $user->foto = $request->file('foto')->store("fotos-usuarios/{$user->id}", 'public');
+        } elseif ($request->boolean('eliminar_foto')) {
+            $this->deleteFoto($user);
+            $user->foto = null;
         }
 
         $user->save();
@@ -56,6 +64,16 @@ class ProfileController extends Controller
     {
         if ($user->firma) {
             Storage::disk('public')->delete($user->firma);
+        }
+    }
+
+    /**
+     * Delete the profile photo file of the user from storage, if they have one.
+     */
+    private function deleteFoto(User $user): void
+    {
+        if ($user->foto) {
+            Storage::disk('public')->delete($user->foto);
         }
     }
 

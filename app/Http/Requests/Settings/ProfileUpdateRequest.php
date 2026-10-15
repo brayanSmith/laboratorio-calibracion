@@ -15,7 +15,10 @@ class ProfileUpdateRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge(['eliminar_firma' => $this->boolean('eliminar_firma')]);
+        $this->merge([
+            'eliminar_firma' => $this->boolean('eliminar_firma'),
+            'eliminar_foto' => $this->boolean('eliminar_foto'),
+        ]);
     }
 
     /**
@@ -29,6 +32,8 @@ class ProfileUpdateRequest extends FormRequest
             ...$this->profileRules($this->user()->id),
             'firma' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
             'eliminar_firma' => ['boolean'],
+            'foto' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'eliminar_foto' => ['boolean'],
         ];
     }
 }

@@ -143,3 +143,58 @@ test('rechaza una firma que no es una imagen permitida', function () {
         ->patch(route('profile.update'), ['name' => $user->name, 'email' => $user->email, 'firma' => UploadedFile::fake()->create('firma.pdf', 10, 'application/pdf')])
         ->assertSessionHasErrors('firma');
 });
+
+test('el usuario puede subir su foto de perfil y se expone como avatar', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'foto' => UploadedFile::fake()->image('foto.png', 200, 200),
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    expect($user->refresh()->foto)->toStartWith("fotos-usuarios/{$user->id}/")
+        ->and($user->avatar)->toBe("/storage/{$user->foto}");
+    Storage::disk('public')->assertExists($user->foto);
+
+    $this->actingAs($user)
+        ->get(route('profile.edit'))
+        ->assertInertia(fn ($page) => $page->where('auth.user.avatar', "/storage/{$user->foto}"));
+});
+
+test('al reemplazar la foto se borra la anterior y se puede quitar', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+    $datos = ['name' => $user->name, 'email' => $user->email];
+
+    $this->actingAs($user)->patch(route('profile.update'), [...$datos, 'foto' => UploadedFile::fake()->image('uno.png')]);
+    $anterior = $user->refresh()->foto;
+
+    $this->actingAs($user)->patch(route('profile.update'), [...$datos, 'foto' => UploadedFile::fake()->image('dos.png')]);
+    $nueva = $user->refresh()->foto;
+
+    Storage::disk('public')->assertMissing($anterior);
+    Storage::disk('public')->assertExists($nueva);
+
+    $this->actingAs($user)->patch(route('profile.update'), [...$datos, 'eliminar_foto' => '1']);
+
+    expect($user->refresh()->foto)->toBeNull()
+        ->and($user->avatar)->toBeNull();
+    Storage::disk('public')->assertMissing($nueva);
+});
+
+test('la foto de perfil debe ser una imagen valida', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'foto' => UploadedFile::fake()->create('foto.pdf', 10, 'application/pdf'),
+        ])
+        ->assertSessionHasErrors('foto');
+});

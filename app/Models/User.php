@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -23,6 +25,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $firma Ruta de la imagen de la firma, para los PDF de mantenimiento y calibración
+ * @property string|null $foto Ruta de la foto de perfil
+ * @property-read string|null $avatar URL pública de la foto de perfil
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -35,6 +39,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property-read Tenant|null $tenant
  */
 #[Fillable(['name', 'email', 'password'])]
+#[Appends(['avatar'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -46,11 +51,29 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function firmaUrl(): ?string
     {
-        if (! $this->firma) {
+        return $this->publicUrl($this->firma);
+    }
+
+    /**
+     * Get the public URL path of the user's profile photo, if they uploaded one.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function avatar(): Attribute
+    {
+        return Attribute::get(fn (): ?string => $this->publicUrl($this->foto));
+    }
+
+    /**
+     * Resolve a path of the public disk to a URL independent of the host serving the app.
+     */
+    private function publicUrl(?string $file): ?string
+    {
+        if (! $file) {
             return null;
         }
 
-        $url = Storage::disk('public')->url($this->firma);
+        $url = Storage::disk('public')->url($file);
 
         if (config('filesystems.disks.public.driver') !== 'local') {
             return $url;
