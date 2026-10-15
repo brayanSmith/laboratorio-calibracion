@@ -13,6 +13,7 @@ use App\Models\ServicioTercero;
 use App\Models\Tenant;
 use App\Models\TipoEquipoCheckList;
 use App\Models\User;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -439,14 +440,13 @@ test('rechaza un equipo que no esta ingresado al agendar mantenimiento', functio
         ->assertSessionHasErrors('equipos_listos.0.id');
 });
 
-test('un usuario sin permiso de editar equipos no puede agendar mantenimiento, pero si puede listarlos', function () {
+test('un usuario sin permiso de agendar mantenimiento no puede listar ni agendar', function () {
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
     $programacion = crearEquipoRecibido($this->bahia);
 
     $this->actingAs($recepcion)
         ->getJson(route('orden-trabajos.equipos-listos'))
-        ->assertOk()
-        ->assertJsonCount(1);
+        ->assertForbidden();
 
     $this->actingAs($recepcion)
         ->post(route('orden-trabajos.store'), [
@@ -480,7 +480,26 @@ test('comparte con todas las paginas cuantos mantenimientos, calibraciones y des
             ->where('porAgendar.despachos', 0));
 });
 
-test('quien no puede editar equipos no recibe los contadores para agendar', function () {
+test('cada boton de agendar depende de su propio permiso', function () {
+    crearEquipoRecibido($this->bahia, 'EQ-LISTO');
+    $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
+    $usuario->syncRoles([]);
+    $usuario->givePermissionTo(['equipos.ver', 'equipos.editar', 'agendar.calibracion']);
+
+    $this->actingAs($usuario)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('porAgendar.mantenimiento', null)
+            ->where('porAgendar.calibracion', 0)
+            ->where('porAgendar.despachos', null));
+
+    $this->actingAs($usuario)->getJson(route('orden-trabajos.equipos-listos'))->assertForbidden();
+    $this->actingAs($usuario)->getJson(route('orden-trabajos.equipos-listos-calibracion'))->assertOk();
+    $this->actingAs($usuario)->post(route('orden-trabajos.store'), ['equipos_listos' => []])->assertForbidden();
+});
+
+test('quien no puede agendar no recibe los contadores para agendar', function () {
     crearEquipoRecibido($this->bahia, 'EQ-LISTO');
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
 

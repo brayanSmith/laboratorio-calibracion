@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TenantPermission;
 use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\Mantenimiento;
@@ -22,7 +23,11 @@ class AgendaController extends Controller
      */
     public function eventos(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
+        abort_unless($request->user()->can(TenantPermission::AgendaVer->value), 403);
+
+        $usuario = $request->user();
+        $tenantId = $usuario->tenant_id;
+        $soloPropias = ! $usuario->can(TenantPermission::AgendaVerTodos->value);
 
         $eventos = collect();
 
@@ -31,6 +36,7 @@ class AgendaController extends Controller
                 Mantenimiento::query()
                     ->where('tenant_id', $tenantId)
                     ->where('estado_mantenimiento', '!=', 'FINALIZADO')
+                    ->when($soloPropias, fn ($query) => $query->where('tecnico_id', $usuario->id))
                     ->with(['tecnico:id,name', 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre'])
                     ->get()
                     ->map(fn (Mantenimiento $mantenimiento) => $this->evento(
@@ -50,6 +56,7 @@ class AgendaController extends Controller
                 Calibracion::query()
                     ->where('tenant_id', $tenantId)
                     ->whereNotIn('estado_calibracion', ['FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])
+                    ->when($soloPropias, fn ($query) => $query->where('tecnico_id', $usuario->id))
                     ->with(['tecnico:id,name', 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre'])
                     ->get()
                     ->map(fn (Calibracion $calibracion) => $this->evento(
@@ -69,6 +76,7 @@ class AgendaController extends Controller
                 Despacho::query()
                     ->where('tenant_id', $tenantId)
                     ->whereNotNull('tecnico_entrega_id')
+                    ->when($soloPropias, fn ($query) => $query->where('tecnico_entrega_id', $usuario->id))
                     ->where('entrega_recibida', false)
                     ->whereNotNull('fecha_despacho')
                     ->with(['tecnicoEntrega:id,name', 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre'])

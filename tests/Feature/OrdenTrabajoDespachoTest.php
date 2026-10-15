@@ -171,14 +171,13 @@ test('rechaza un despacho que ya tiene tecnico asignado al agendar', function ()
         ->assertSessionHasErrors('despachos_listos.0.id');
 });
 
-test('un usuario sin permiso de editar equipos no puede agendar despacho, pero si puede listarlos', function () {
+test('un usuario sin permiso de agendar despachos no puede listar ni agendar', function () {
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
     $despacho = crearDespachoListo($this->bahia);
 
     $this->actingAs($recepcion)
         ->getJson(route('orden-trabajos.despachos-listos'))
-        ->assertOk()
-        ->assertJsonCount(1);
+        ->assertForbidden();
 
     $this->actingAs($recepcion)
         ->post(route('orden-trabajos.store-despacho'), [

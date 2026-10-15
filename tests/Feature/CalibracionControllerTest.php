@@ -482,7 +482,7 @@ test('rechaza un tecnico que no pertenece al tenant al actualizar una calibracio
 
 test('un tecnico con permiso de editar calibraciones puede verlas y actualizarlas, pero no eliminarlas', function () {
     $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
-    $calibracion = crearCalibracion($this->bahia);
+    $calibracion = crearCalibracion($this->bahia, ['tecnico_id' => $tecnico->id]);
 
     $this->actingAs($tecnico)
         ->get(route('calibraciones.index'))
@@ -727,7 +727,7 @@ test('iniciar, finalizar y ver el PDF de una calibracion dependen de su propio p
     $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
     app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
     $usuario->syncRoles([]);
-    $usuario->givePermissionTo(TenantPermission::CalibracionesEditar->value);
+    $usuario->givePermissionTo([TenantPermission::CalibracionesEditar->value, TenantPermission::CalibracionesVerTodos->value]);
     $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
 
     $this->actingAs($usuario)->post(route('calibraciones.iniciar', $calibracion))->assertForbidden();

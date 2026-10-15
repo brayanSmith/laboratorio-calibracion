@@ -22,6 +22,7 @@ class CalibracionPolicy
     public function update(User $user, Calibracion $calibracion): bool
     {
         return $user->tenant_id === $calibracion->tenant_id
+            && $calibracion->esVisiblePara($user)
             && $user->can(TenantPermission::CalibracionesEditar->value);
     }
 
@@ -31,6 +32,7 @@ class CalibracionPolicy
     public function iniciar(User $user, Calibracion $calibracion): bool
     {
         return $user->tenant_id === $calibracion->tenant_id
+            && $calibracion->esVisiblePara($user)
             && $user->can(TenantPermission::CalibracionesIniciar->value);
     }
 
@@ -40,6 +42,7 @@ class CalibracionPolicy
     public function finalizar(User $user, Calibracion $calibracion): bool
     {
         return $user->tenant_id === $calibracion->tenant_id
+            && $calibracion->esVisiblePara($user)
             && $user->can(TenantPermission::CalibracionesFinalizar->value);
     }
 
@@ -49,6 +52,7 @@ class CalibracionPolicy
     public function verPdf(User $user, Calibracion $calibracion): bool
     {
         return $user->tenant_id === $calibracion->tenant_id
+            && $calibracion->esVisiblePara($user)
             && $user->can(TenantPermission::CalibracionesPdf->value);
     }
 
@@ -58,6 +62,7 @@ class CalibracionPolicy
     public function delete(User $user, Calibracion $calibracion): bool
     {
         return $user->tenant_id === $calibracion->tenant_id
+            && $calibracion->esVisiblePara($user)
             && $user->can(TenantPermission::CalibracionesEliminar->value);
     }
 }

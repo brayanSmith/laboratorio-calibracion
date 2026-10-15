@@ -176,7 +176,7 @@ test('rechaza una novedad que no es de categoria salida al actualizar un despach
 
 test('un tecnico con permiso de editar despachos puede verlos y actualizarlos, pero no eliminarlos', function () {
     $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
-    $despacho = crearDespachoListo($this->bahia);
+    $despacho = crearDespachoListo($this->bahia, ['tecnico_entrega_id' => $tecnico->id]);
 
     $this->actingAs($tecnico)
         ->get(route('despachos.index'))

@@ -22,6 +22,7 @@ class DespachoPolicy
     public function update(User $user, Despacho $despacho): bool
     {
         return $user->tenant_id === $despacho->tenant_id
+            && $despacho->esVisiblePara($user)
             && $user->can(TenantPermission::DespachosEditar->value);
     }
 
@@ -31,6 +32,7 @@ class DespachoPolicy
     public function delete(User $user, Despacho $despacho): bool
     {
         return $user->tenant_id === $despacho->tenant_id
+            && $despacho->esVisiblePara($user)
             && $user->can(TenantPermission::DespachosEliminar->value);
     }
 }

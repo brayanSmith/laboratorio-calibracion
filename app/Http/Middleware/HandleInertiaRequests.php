@@ -94,6 +94,7 @@ class HandleInertiaRequests extends Middleware
             'mantenimientos' => $user->can(TenantPermission::MantenimientosVer->value) ? [
                 'local' => Mantenimiento::query()
                     ->where('tenant_id', $tenantId)
+                    ->visiblesPara($user)
                     ->where('estado_mantenimiento', '!=', 'FINALIZADO')
                     ->count(),
                 'tercero' => $tercerosPendientes('MANTENIMIENTO'),
@@ -101,6 +102,7 @@ class HandleInertiaRequests extends Middleware
             'calibraciones' => $user->can(TenantPermission::CalibracionesVer->value) ? [
                 'local' => Calibracion::query()
                     ->where('tenant_id', $tenantId)
+                    ->visiblesPara($user)
                     ->whereIn('estado_calibracion', ['PENDIENTE', 'EN_PROCESO'])
                     ->count(),
                 'tercero' => $tercerosPendientes('CALIBRACION'),
@@ -108,6 +110,7 @@ class HandleInertiaRequests extends Middleware
             'despachos' => $user->can(TenantPermission::DespachosVer->value)
                 ? Despacho::query()
                     ->where('tenant_id', $tenantId)
+                    ->visiblesPara($user)
                     ->where('entrega_recibida', false)
                     ->count()
                 : null,
@@ -123,22 +126,30 @@ class HandleInertiaRequests extends Middleware
     /**
      * Cuántos mantenimientos, calibraciones y despachos están listos para agendarse, para
      * los atajos del menú superior (ver OrdenTrabajoController::equiposListos(),
-     * equiposListosCalibracion() y despachosListos()). Null si el usuario no puede agendar.
+     * equiposListosCalibracion() y despachosListos()). Cada contador es null si el usuario
+     * no tiene el permiso de agendar ese servicio; todo es null si no tiene ninguno.
      *
-     * @return array{mantenimiento: int, calibracion: int, despachos: int}|null
+     * @return array{mantenimiento: int|null, calibracion: int|null, despachos: int|null}|null
      */
     private function porAgendar(?User $user): ?array
     {
-        if (! $user?->tenant_id || ! $user->can(TenantPermission::EquiposEditar->value)) {
+        if (! $user?->tenant_id) {
             return null;
         }
 
         $tenantId = $user->tenant_id;
+        $puedeMantenimiento = $user->can(TenantPermission::AgendarMantenimiento->value);
+        $puedeCalibracion = $user->can(TenantPermission::AgendarCalibracion->value);
+        $puedeDespachos = $user->can(TenantPermission::AgendarDespachos->value);
+
+        if (! $puedeMantenimiento && ! $puedeCalibracion && ! $puedeDespachos) {
+            return null;
+        }
 
         return [
-            'mantenimiento' => EquipoProgramacion::query()->listosParaMantenimiento($tenantId)->count(),
-            'calibracion' => OrdenTrabajo::query()->listosParaCalibracion($tenantId)->count(),
-            'despachos' => Despacho::query()->listosParaAgendar($tenantId)->count(),
+            'mantenimiento' => $puedeMantenimiento ? EquipoProgramacion::query()->listosParaMantenimiento($tenantId)->count() : null,
+            'calibracion' => $puedeCalibracion ? OrdenTrabajo::query()->listosParaCalibracion($tenantId)->count() : null,
+            'despachos' => $puedeDespachos ? Despacho::query()->listosParaAgendar($tenantId)->count() : null,
         ];
     }
 

@@ -29,6 +29,15 @@ test('la agenda lista todos los mantenimientos y calibraciones pendientes', func
         ->toBe(["CALIBRACION-{$calibracion->id}", "MANTENIMIENTO-{$pendiente->id}"]);
 });
 
+test('la agenda exige su propio permiso', function () {
+    $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
+    $usuario->syncRoles([]);
+    $usuario->givePermissionTo('calibraciones.ver');
+
+    $this->actingAs($usuario)->getJson(route('agenda.eventos'))->assertForbidden();
+});
+
 test('la agenda no incluye tareas de otro tenant', function () {
     $otro = Tenant::factory()->create();
     $bahiaAjena = Bahia::factory()->for(crearArea($otro))->create();
@@ -46,7 +55,7 @@ test('la agenda solo incluye los tipos que el rol puede ver', function () {
     $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
     app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
     $usuario->syncRoles([]);
-    $usuario->givePermissionTo('calibraciones.ver');
+    $usuario->givePermissionTo(['agenda.ver', 'agenda.ver-todos', 'calibraciones.ver']);
 
     $tipos = collect(
         $this->actingAs($usuario)
@@ -70,4 +79,14 @@ test('la agenda ubica los despachos pendientes en su fecha de despacho', functio
 
     expect(collect($respuesta->json())->pluck('id')->all())->toBe(["DESPACHO-{$programado->id}"])
         ->and($respuesta->json('0.start'))->toBe('2026-10-18');
+});
+
+test('sin el permiso de ver todos, la agenda solo muestra las tareas del usuario', function () {
+    $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
+    $propio = crearMantenimiento($this->bahia, ['tecnico_id' => $tecnico->id, 'fecha_mantenimiento' => '2026-10-15'], 'EQ-7011');
+    crearMantenimiento($this->bahia, ['fecha_mantenimiento' => '2026-10-15'], 'EQ-7012');
+
+    $ids = collect($this->actingAs($tecnico)->getJson(route('agenda.eventos'))->assertOk()->json())->pluck('id')->all();
+
+    expect($ids)->toBe(["MANTENIMIENTO-{$propio->id}"]);
 });

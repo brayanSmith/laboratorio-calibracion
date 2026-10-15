@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { eventos } from '@/actions/App/Http/Controllers/AgendaController';
 import AgendaFiltroTecnicos from '@/components/agenda/agenda-filtro-tecnicos';
 import type { TecnicoAgenda } from '@/components/agenda/agenda-filtro-tecnicos';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -143,6 +144,8 @@ const formatoDia = new Intl.DateTimeFormat('es', {
  */
 export default function AgendaCalendario() {
     const { auth } = usePage().props;
+    const { can } = usePermissions();
+    const puedeVerTodos = can('agenda.ver-todos');
     const clave = `agenda-eventos-${auth.user.id}`;
     const [cargados, setCargados] = useState<EventoAgenda[]>([]);
     const [ocultos, setOcultos] = useState<TipoAgenda[]>([]);
@@ -243,11 +246,17 @@ export default function AgendaCalendario() {
     return (
         <div className="space-y-4" data-test="agenda-calendario">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <AgendaFiltroTecnicos
-                    tecnicos={tecnicos}
-                    seleccionados={tecnicosElegidos}
-                    onChange={setTecnicosElegidos}
-                />
+                {puedeVerTodos ? (
+                    <AgendaFiltroTecnicos
+                        tecnicos={tecnicos}
+                        seleccionados={tecnicosElegidos}
+                        onChange={setTecnicosElegidos}
+                    />
+                ) : (
+                    <span className="text-xs text-muted-foreground">
+                        Solo se muestran tus tareas
+                    </span>
+                )}
 
                 <Button
                     type="button"

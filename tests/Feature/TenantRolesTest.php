@@ -117,6 +117,10 @@ test('los permisos del usuario se comparten con el frontend', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('auth.permissions', [
+                TenantPermission::AgendaVer->value,
+                TenantPermission::AgendarCalibracion->value,
+                TenantPermission::AgendarDespachos->value,
+                TenantPermission::AgendarMantenimiento->value,
                 TenantPermission::AlcancesMedicionVer->value,
                 TenantPermission::AreasVer->value,
                 TenantPermission::BahiasVer->value,

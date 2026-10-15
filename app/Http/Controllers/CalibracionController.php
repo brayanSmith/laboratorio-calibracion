@@ -50,6 +50,7 @@ class CalibracionController extends Controller
 
         $calibraciones = Calibracion::query()
             ->where('tenant_id', $tenantId)
+            ->visiblesPara($request->user())
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',

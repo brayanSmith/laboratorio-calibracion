@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TenantPermission;
 use App\Http\Requests\OrdenesTrabajo\StoreCalibracionAgendamientoRequest;
 use App\Http\Requests\OrdenesTrabajo\StoreDespachoAgendamientoRequest;
 use App\Http\Requests\OrdenesTrabajo\StoreOrdenTrabajoRequest;
@@ -20,7 +21,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class OrdenTrabajoController extends Controller
@@ -31,7 +31,11 @@ class OrdenTrabajoController extends Controller
      */
     public function opcionesAgendar(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', EquipoProgramacion::class);
+        abort_unless($request->user()->canAny([
+            TenantPermission::AgendarMantenimiento->value,
+            TenantPermission::AgendarCalibracion->value,
+            TenantPermission::AgendarDespachos->value,
+        ]), 403);
 
         $tenantId = $request->user()->tenant_id;
 
@@ -50,7 +54,7 @@ class OrdenTrabajoController extends Controller
      */
     public function equiposListos(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', EquipoProgramacion::class);
+        abort_unless($request->user()->can(TenantPermission::AgendarMantenimiento->value), 403);
 
         $tenantId = $request->user()->tenant_id;
 
@@ -184,7 +188,7 @@ class OrdenTrabajoController extends Controller
      */
     public function equiposListosCalibracion(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', EquipoProgramacion::class);
+        abort_unless($request->user()->can(TenantPermission::AgendarCalibracion->value), 403);
 
         $tenantId = $request->user()->tenant_id;
 
@@ -273,7 +277,7 @@ class OrdenTrabajoController extends Controller
      */
     public function despachosListos(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', EquipoProgramacion::class);
+        abort_unless($request->user()->can(TenantPermission::AgendarDespachos->value), 403);
 
         $tenantId = $request->user()->tenant_id;
 
@@ -321,6 +325,7 @@ class OrdenTrabajoController extends Controller
 
                 $despachos[$datos['id']]->update([
                     'tecnico_entrega_id' => $datos['tecnico_id'],
+                    'fecha_despacho' => $datos['fecha_despacho'] ?? null,
                     'fecha_despacho' => $datos['fecha_despacho'] ?? null,
                     'entrega_autorizada' => $datos['entrega_autorizada'],
                 ]);

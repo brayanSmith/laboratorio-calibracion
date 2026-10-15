@@ -14,7 +14,7 @@ class StoreOrdenTrabajoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can(TenantPermission::EquiposEditar->value);
+        return $this->user()->can(TenantPermission::AgendarMantenimiento->value);
     }
 
     /**

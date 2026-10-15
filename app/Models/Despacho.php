@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Concerns\RestringidoAlTecnico;
+use App\Enums\TenantPermission;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +36,18 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable(['tenant_id', 'orden_trabajo_id', 'tecnico_entrega_id', 'fecha_despacho', 'cliente_recibe_id', 'entrega_autorizada', 'firma_cliente_recibe', 'entrega_recibida', 'novedad_id'])]
 class Despacho extends Model
 {
+    use RestringidoAlTecnico;
+
+    public static function permisoVerTodos(): TenantPermission
+    {
+        return TenantPermission::DespachosVerTodos;
+    }
+
+    public static function columnaTecnico(): string
+    {
+        return 'tecnico_entrega_id';
+    }
+
     use SoftDeletes;
 
     /**

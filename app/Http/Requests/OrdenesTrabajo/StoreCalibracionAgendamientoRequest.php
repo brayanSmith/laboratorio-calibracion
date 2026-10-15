@@ -14,7 +14,7 @@ class StoreCalibracionAgendamientoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can(TenantPermission::EquiposEditar->value);
+        return $this->user()->can(TenantPermission::AgendarCalibracion->value);
     }
 
     /**

@@ -328,14 +328,13 @@ test('rechaza una orden sin el mantenimiento finalizado al agendar calibracion',
         ->assertSessionHasErrors('ordenes_listas.0.id');
 });
 
-test('un usuario sin permiso de editar equipos no puede agendar calibracion, pero si puede listarlas', function () {
+test('un usuario sin permiso de agendar calibracion no puede listar ni agendar', function () {
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
     $orden = crearOrdenListaParaCalibracion($this->bahia);
 
     $this->actingAs($recepcion)
         ->getJson(route('orden-trabajos.equipos-listos-calibracion'))
-        ->assertOk()
-        ->assertJsonCount(1);
+        ->assertForbidden();
 
     $this->actingAs($recepcion)
         ->post(route('orden-trabajos.store-calibracion'), [

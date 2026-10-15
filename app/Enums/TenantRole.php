@@ -146,6 +146,18 @@ enum TenantRole: string
             ],
         };
 
-        return array_values(array_unique([...$base, ...TenantPermission::dashboardCases()], SORT_REGULAR));
+        $agendar = in_array(TenantPermission::EquiposEditar, $base, true) ? [
+            TenantPermission::AgendarMantenimiento,
+            TenantPermission::AgendarCalibracion,
+            TenantPermission::AgendarDespachos,
+        ] : [];
+
+        return array_values(array_unique([
+            ...$base,
+            ...TenantPermission::dashboardCases(),
+            TenantPermission::AgendaVer,
+            ...$agendar,
+            ...($this === self::Tecnico ? [] : TenantPermission::verTodosCases()),
+        ], SORT_REGULAR));
     }
 }

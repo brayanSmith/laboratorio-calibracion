@@ -22,6 +22,7 @@ class MantenimientoPolicy
     public function update(User $user, Mantenimiento $mantenimiento): bool
     {
         return $user->tenant_id === $mantenimiento->tenant_id
+            && $mantenimiento->esVisiblePara($user)
             && $user->can(TenantPermission::MantenimientosEditar->value);
     }
 
@@ -31,6 +32,7 @@ class MantenimientoPolicy
     public function iniciar(User $user, Mantenimiento $mantenimiento): bool
     {
         return $user->tenant_id === $mantenimiento->tenant_id
+            && $mantenimiento->esVisiblePara($user)
             && $user->can(TenantPermission::MantenimientosIniciar->value);
     }
 
@@ -40,6 +42,7 @@ class MantenimientoPolicy
     public function finalizar(User $user, Mantenimiento $mantenimiento): bool
     {
         return $user->tenant_id === $mantenimiento->tenant_id
+            && $mantenimiento->esVisiblePara($user)
             && $user->can(TenantPermission::MantenimientosFinalizar->value);
     }
 
@@ -49,6 +52,7 @@ class MantenimientoPolicy
     public function verPdf(User $user, Mantenimiento $mantenimiento): bool
     {
         return $user->tenant_id === $mantenimiento->tenant_id
+            && $mantenimiento->esVisiblePara($user)
             && $user->can(TenantPermission::MantenimientosPdf->value);
     }
 
@@ -58,6 +62,7 @@ class MantenimientoPolicy
     public function delete(User $user, Mantenimiento $mantenimiento): bool
     {
         return $user->tenant_id === $mantenimiento->tenant_id
+            && $mantenimiento->esVisiblePara($user)
             && $user->can(TenantPermission::MantenimientosEliminar->value);
     }
 }

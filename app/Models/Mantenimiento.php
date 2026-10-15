@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Concerns\RestringidoAlTecnico;
+use App\Enums\TenantPermission;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -44,6 +46,18 @@ use Illuminate\Support\Carbon;
 ])]
 class Mantenimiento extends Model
 {
+    use RestringidoAlTecnico;
+
+    public static function permisoVerTodos(): TenantPermission
+    {
+        return TenantPermission::MantenimientosVerTodos;
+    }
+
+    public static function columnaTecnico(): string
+    {
+        return 'tecnico_id';
+    }
+
     use SoftDeletes;
 
     /**

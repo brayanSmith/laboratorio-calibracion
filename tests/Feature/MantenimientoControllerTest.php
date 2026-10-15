@@ -293,7 +293,7 @@ test('rechaza un tecnico que no pertenece al tenant al actualizar un mantenimien
 
 test('un tecnico con permiso de editar mantenimientos puede verlos y actualizarlos, pero no eliminarlos', function () {
     $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
-    $mantenimiento = crearMantenimiento($this->bahia);
+    $mantenimiento = crearMantenimiento($this->bahia, ['tecnico_id' => $tecnico->id]);
 
     $this->actingAs($tecnico)
         ->get(route('mantenimientos.index'))
@@ -510,7 +510,7 @@ test('iniciar y finalizar un mantenimiento dependen de su propio permiso, no del
     $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
     app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
     $usuario->syncRoles([]);
-    $usuario->givePermissionTo(TenantPermission::MantenimientosEditar->value);
+    $usuario->givePermissionTo([TenantPermission::MantenimientosEditar->value, TenantPermission::MantenimientosVerTodos->value]);
     $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
 
     $this->actingAs($usuario)->post(route('mantenimientos.iniciar', $mantenimiento))->assertForbidden();
@@ -521,4 +521,30 @@ test('iniciar y finalizar un mantenimiento dependen de su propio permiso, no del
 
     $this->actingAs($usuario)->post(route('mantenimientos.iniciar', $mantenimiento))->assertRedirect();
     $this->actingAs($usuario)->post(route('mantenimientos.finalizar', $mantenimiento))->assertForbidden();
+});
+
+test('sin el permiso de ver todos, un tecnico solo ve y gestiona sus propios mantenimientos', function () {
+    $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
+    $propio = crearMantenimiento($this->bahia, ['tecnico_id' => $tecnico->id], 'EQ-PROPIO');
+    $ajeno = crearMantenimiento($this->bahia, [], 'EQ-DE-OTRO');
+
+    $this->actingAs($tecnico)
+        ->get(route('mantenimientos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('mantenimientos', 1)
+            ->where('mantenimientos.0.id', $propio->id));
+
+    $this->actingAs($tecnico)->post(route('mantenimientos.iniciar', $ajeno))->assertForbidden();
+    $this->actingAs($tecnico)->post(route('mantenimientos.iniciar', $propio))->assertRedirect();
+});
+
+test('con el permiso de ver todos, un rol ve los mantenimientos de todos los tecnicos', function () {
+    $metrologo = User::factory()->forTenant($this->tenant, TenantRole::Metrologo)->create();
+    crearMantenimiento($this->bahia, [], 'EQ-UNO');
+    crearMantenimiento($this->bahia, [], 'EQ-DOS');
+
+    $this->actingAs($metrologo)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page->has('mantenimientos', 2));
 });

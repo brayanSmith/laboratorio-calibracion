@@ -14,6 +14,14 @@ enum TenantPermission: string
     case DashboardEquiposUrgentes = 'dashboard.equipos-urgentes';
     case DashboardTablaEquipos = 'dashboard.tabla-equipos';
 
+    // Botones del menú superior: la agenda y los atajos para agendar mantenimientos,
+    // calibraciones y despachos.
+    case AgendaVer = 'agenda.ver';
+    case AgendaVerTodos = 'agenda.ver-todos';
+    case AgendarMantenimiento = 'agendar.mantenimiento';
+    case AgendarCalibracion = 'agendar.calibracion';
+    case AgendarDespachos = 'agendar.despachos';
+
     case ClientesVer = 'clientes.ver';
     case ClientesCrear = 'clientes.crear';
     case ClientesEditar = 'clientes.editar';
@@ -34,6 +42,7 @@ enum TenantPermission: string
     case MantenimientosVer = 'mantenimientos.ver';
     case MantenimientosEditar = 'mantenimientos.editar';
     case MantenimientosEliminar = 'mantenimientos.eliminar';
+    case MantenimientosVerTodos = 'mantenimientos.ver-todos';
     case MantenimientosIniciar = 'mantenimientos.iniciar';
     case MantenimientosFinalizar = 'mantenimientos.finalizar';
     case MantenimientosPdf = 'mantenimientos.pdf';
@@ -43,6 +52,7 @@ enum TenantPermission: string
     case CalibracionesVer = 'calibraciones.ver';
     case CalibracionesEditar = 'calibraciones.editar';
     case CalibracionesEliminar = 'calibraciones.eliminar';
+    case CalibracionesVerTodos = 'calibraciones.ver-todos';
     case CalibracionesIniciar = 'calibraciones.iniciar';
     case CalibracionesFinalizar = 'calibraciones.finalizar';
     case CalibracionesPdf = 'calibraciones.pdf';
@@ -52,6 +62,7 @@ enum TenantPermission: string
     case DespachosVer = 'despachos.ver';
     case DespachosEditar = 'despachos.editar';
     case DespachosEliminar = 'despachos.eliminar';
+    case DespachosVerTodos = 'despachos.ver-todos';
 
     case TiposEquipoVer = 'tipos-equipo.ver';
     case TiposEquipoCrear = 'tipos-equipo.crear';
@@ -134,6 +145,11 @@ enum TenantPermission: string
             self::DashboardEquiposVencidos,
             self::DashboardEquiposUrgentes,
             self::DashboardTablaEquipos => 'Dashboard',
+            self::AgendaVer,
+            self::AgendaVerTodos,
+            self::AgendarMantenimiento,
+            self::AgendarCalibracion,
+            self::AgendarDespachos => 'Agenda y agendamiento',
             self::ClientesVer,
             self::ClientesCrear,
             self::ClientesEditar,
@@ -149,18 +165,21 @@ enum TenantPermission: string
             self::MantenimientosVer,
             self::MantenimientosEditar,
             self::MantenimientosEliminar,
+            self::MantenimientosVerTodos,
             self::MantenimientosIniciar,
             self::MantenimientosFinalizar,
             self::MantenimientosPdf => 'Mantenimientos',
             self::CalibracionesVer,
             self::CalibracionesEditar,
             self::CalibracionesEliminar,
+            self::CalibracionesVerTodos,
             self::CalibracionesIniciar,
             self::CalibracionesFinalizar,
             self::CalibracionesPdf => 'Calibraciones',
             self::DespachosVer,
             self::DespachosEditar,
-            self::DespachosEliminar => 'Despachos',
+            self::DespachosEliminar,
+            self::DespachosVerTodos => 'Despachos',
             self::TiposEquipoVer,
             self::TiposEquipoCrear,
             self::TiposEquipoEditar,
@@ -219,6 +238,16 @@ enum TenantPermission: string
     }
 
     /**
+     * Get the permissions that let a user see the services of every técnico.
+     *
+     * @return array<self>
+     */
+    public static function verTodosCases(): array
+    {
+        return [self::AgendaVerTodos, self::MantenimientosVerTodos, self::CalibracionesVerTodos, self::DespachosVerTodos];
+    }
+
+    /**
      * Get every permission that belongs to the dashboard.
      *
      * @return array<self>
@@ -249,6 +278,11 @@ enum TenantPermission: string
             self::DashboardEquiposVencidos => 'Tarjeta: equipos vencidos',
             self::DashboardEquiposUrgentes => 'Listado de equipos urgentes',
             self::DashboardTablaEquipos => 'Tabla de equipos',
+            self::AgendaVer => 'Ver la agenda',
+            self::AgendaVerTodos => 'Ver la agenda de todos los técnicos (sin marcar, solo la propia)',
+            self::AgendarMantenimiento => 'Agendar mantenimientos',
+            self::AgendarCalibracion => 'Agendar calibraciones',
+            self::AgendarDespachos => 'Agendar despachos',
             self::ClientesVer => 'Ver clientes',
             self::ClientesCrear => 'Crear clientes',
             self::ClientesEditar => 'Editar clientes',
@@ -264,18 +298,21 @@ enum TenantPermission: string
             self::MantenimientosVer => 'Ver mantenimientos',
             self::MantenimientosEditar => 'Editar mantenimientos',
             self::MantenimientosEliminar => 'Eliminar mantenimientos',
+            self::MantenimientosVerTodos => 'Ver mantenimientos de todos los técnicos (sin marcar, solo los propios)',
             self::MantenimientosIniciar => 'Iniciar mantenimientos',
             self::MantenimientosFinalizar => 'Finalizar mantenimientos',
             self::MantenimientosPdf => 'Ver PDF de mantenimientos',
             self::CalibracionesVer => 'Ver calibraciones',
             self::CalibracionesEditar => 'Editar calibraciones',
             self::CalibracionesEliminar => 'Eliminar calibraciones',
+            self::CalibracionesVerTodos => 'Ver calibraciones de todos los técnicos (sin marcar, solo los propios)',
             self::CalibracionesIniciar => 'Iniciar calibraciones',
             self::CalibracionesFinalizar => 'Finalizar calibraciones',
             self::CalibracionesPdf => 'Ver PDF de calibraciones',
             self::DespachosVer => 'Ver despachos',
             self::DespachosEditar => 'Editar despachos',
             self::DespachosEliminar => 'Eliminar despachos',
+            self::DespachosVerTodos => 'Ver despachos de todos los técnicos (sin marcar, solo los propios)',
             self::TiposEquipoVer => 'Ver tipos de equipo',
             self::TiposEquipoCrear => 'Crear tipos de equipo',
             self::TiposEquipoEditar => 'Editar tipos de equipo',

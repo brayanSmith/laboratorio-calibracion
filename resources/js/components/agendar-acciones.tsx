@@ -86,12 +86,10 @@ export function AgendarAcciones() {
         Opciones
     >();
 
-    const puedeVerAgenda =
-        can('mantenimientos.ver') ||
-        can('calibraciones.ver') ||
-        can('despachos.ver');
+    const puedeVerAgenda = can('agenda.ver');
+    const contadores = porAgendar ?? null;
 
-    if (!porAgendar && !puedeVerAgenda) {
+    if (!contadores && !puedeVerAgenda) {
         return null;
     }
 
@@ -124,32 +122,33 @@ export function AgendarAcciones() {
                     onClick={() => setAbierto('agenda')}
                 />
             ) : null}
-            {porAgendar ? (
-                <>
-                    <BotonAtajo
-                        icono={Wrench}
-                        titulo="Agendar mantenimiento"
-                        cantidad={porAgendar.mantenimiento}
-                        dataTest="agendar-mantenimiento-button"
-                        onClick={() => abrir('mantenimiento')}
-                    />
-                    <BotonAtajo
-                        icono={Gauge}
-                        titulo="Agendar calibraciones"
-                        cantidad={porAgendar.calibracion}
-                        dataTest="agendar-calibraciones-button"
-                        onClick={() => abrir('calibracion')}
-                    />
-                    <BotonAtajo
-                        icono={Truck}
-                        titulo="Agendar despachos"
-                        cantidad={porAgendar.despachos}
-                        dataTest="agendar-despachos-button"
-                        onClick={() => abrir('despachos')}
-                    />
-                </>
+            {contadores?.mantenimiento != null ? (
+                <BotonAtajo
+                    icono={Wrench}
+                    titulo="Agendar mantenimiento"
+                    cantidad={contadores.mantenimiento}
+                    dataTest="agendar-mantenimiento-button"
+                    onClick={() => abrir('mantenimiento')}
+                />
             ) : null}
-
+            {contadores?.calibracion != null ? (
+                <BotonAtajo
+                    icono={Gauge}
+                    titulo="Agendar calibraciones"
+                    cantidad={contadores.calibracion}
+                    dataTest="agendar-calibraciones-button"
+                    onClick={() => abrir('calibracion')}
+                />
+            ) : null}
+            {contadores?.despachos != null ? (
+                <BotonAtajo
+                    icono={Truck}
+                    titulo="Agendar despachos"
+                    cantidad={contadores.despachos}
+                    dataTest="agendar-despachos-button"
+                    onClick={() => abrir('despachos')}
+                />
+            ) : null}
             <AgendaModal
                 open={abierto === 'agenda'}
                 onOpenChange={alCambiar('agenda')}
