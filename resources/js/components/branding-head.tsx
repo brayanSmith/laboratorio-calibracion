@@ -7,7 +7,7 @@ import { empresaCssVariables } from '@/lib/empresa-colors';
  * and apply the empresa's theme and navigation colors over the default ones.
  */
 export default function BrandingHead() {
-    const { empresa } = usePage().props;
+    const { empresa, plataforma } = usePage().props;
     const colorTema = empresa?.color_tema;
     const colorNav = empresa?.color_nav;
 
@@ -31,7 +31,9 @@ export default function BrandingHead() {
             <link
                 head-key="favicon"
                 rel="icon"
-                href={empresa?.logo_url ?? '/favicon.svg'}
+                href={
+                    empresa?.logo_url ?? plataforma.logo_url ?? '/favicon.svg'
+                }
             />
         </Head>
     );

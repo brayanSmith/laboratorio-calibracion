@@ -30,17 +30,22 @@
             }
         </style>
 
-        @php($empresa = $page['props']['empresa'] ?? null)
+        @php
+            $empresa = $page['props']['empresa'] ?? null;
+            $plataforma = $page['props']['plataforma'] ?? null;
+            $logo = $empresa['logo_url'] ?? $plataforma['logo_url'] ?? null;
+            $marca = $empresa['nombre'] ?? $plataforma['nombre'] ?? config('app.name', 'Laravel');
+        @endphp
 
-        <link rel="icon" href="{{ $empresa['logo_url'] ?? '/favicon.svg' }}" data-inertia="favicon">
-        <link rel="apple-touch-icon" href="{{ $empresa['logo_url'] ?? '/apple-touch-icon.png' }}">
+        <link rel="icon" href="{{ $logo ?? '/favicon.svg' }}" data-inertia="favicon">
+        <link rel="apple-touch-icon" href="{{ $logo ?? '/apple-touch-icon.png' }}">
 
         @fonts
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ $empresa['nombre'] ?? config('app.name', 'Laravel') }}</title>
+            <title>{{ $marca }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

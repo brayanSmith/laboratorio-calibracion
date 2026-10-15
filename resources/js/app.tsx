@@ -12,8 +12,13 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 void createInertiaApp({
     title: (title, page) => {
         // Inertia inserts this result as HTML, so the name must be escaped.
-        const props = page.props as { empresa?: { nombre: string } | null };
-        const brand = escapeHtml(props.empresa?.nombre ?? appName);
+        const props = page.props as {
+            empresa?: { nombre: string } | null;
+            plataforma?: { nombre: string } | null;
+        };
+        const brand = escapeHtml(
+            props.empresa?.nombre ?? props.plataforma?.nombre ?? appName,
+        );
 
         return title ? `${title} - ${brand}` : brand;
     },

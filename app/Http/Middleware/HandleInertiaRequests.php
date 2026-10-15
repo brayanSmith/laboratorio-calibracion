@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\TenantPermission;
+use App\Models\AjustePlataforma;
 use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\Empresa;
@@ -56,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                     ? $user->getAllPermissions()->pluck('name')->sort()->values()
                     : [],
             ],
+            'plataforma' => fn () => $this->plataforma(),
             'empresa' => fn () => $this->brand($user),
             'pendientes' => fn () => $this->pendientes($user),
             'porAgendar' => fn () => $this->porAgendar($user),
@@ -150,6 +152,21 @@ class HandleInertiaRequests extends Middleware
             'mantenimiento' => $puedeMantenimiento ? EquipoProgramacion::query()->listosParaMantenimiento($tenantId)->count() : null,
             'calibracion' => $puedeCalibracion ? OrdenTrabajo::query()->listosParaCalibracion($tenantId)->count() : null,
             'despachos' => $puedeDespachos ? Despacho::query()->listosParaAgendar($tenantId)->count() : null,
+        ];
+    }
+
+    /**
+     * Public identity of the platform, shown to guests on the welcome page.
+     *
+     * @return array{nombre: string, logo_url: string|null}
+     */
+    private function plataforma(): array
+    {
+        $ajuste = AjustePlataforma::query()->first();
+
+        return [
+            'nombre' => $ajuste?->nombre ?: config('app.name'),
+            'logo_url' => $ajuste?->logoUrl(),
         ];
     }
 

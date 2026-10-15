@@ -27,6 +27,7 @@ use App\Http\Controllers\MantenimientoDefectoIdentificadoController;
 use App\Http\Controllers\MedicionAlcanceController;
 use App\Http\Controllers\NovedadController;
 use App\Http\Controllers\OrdenTrabajoController;
+use App\Http\Controllers\Plataforma\AjustePlataformaController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
 use App\Http\Controllers\Plataforma\TenantUserController;
@@ -173,6 +174,9 @@ Route::prefix('plataforma')
     ->middleware(['auth', EnsurePlatformAdmin::class])
     ->group(function () {
         Route::get('/', PlataformaDashboardController::class)->name('dashboard');
+
+        Route::get('ajustes', [AjustePlataformaController::class, 'edit'])->name('ajustes.edit');
+        Route::post('ajustes', [AjustePlataformaController::class, 'update'])->name('ajustes.update');
 
         Route::resource('tenants', TenantController::class)->except('create');
 

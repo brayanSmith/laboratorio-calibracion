@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import type { Empresa } from '@/types';
 
 type Props = {
-    empresa?: Empresa;
+    empresa?: Pick<Empresa, 'logo_url' | 'nombre'>;
     error?: string;
 };
 

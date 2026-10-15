@@ -10,6 +10,7 @@ import {
     FlaskConical,
     Gauge,
     Handshake,
+    Settings,
     LayoutGrid,
     MapPin,
     Package,
@@ -52,6 +53,7 @@ import { index as itemsIndex } from '@/routes/items';
 import { index as laboratoriosIndex } from '@/routes/laboratorios';
 import { index as mantenimientosIndex } from '@/routes/mantenimientos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
+import { edit as ajustesEdit } from '@/routes/plataforma/ajustes';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
 import { index as novedadesIndex } from '@/routes/novedades';
@@ -85,6 +87,11 @@ export function AppSidebar() {
                           title: 'Tenants',
                           href: tenantsIndex(),
                           icon: Building2,
+                      },
+                      {
+                          title: 'Ajustes',
+                          href: ajustesEdit(),
+                          icon: Settings,
                       },
                   ],
               },

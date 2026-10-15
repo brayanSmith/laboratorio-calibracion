@@ -11,6 +11,10 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            plataforma: {
+                nombre: string;
+                logo_url: string | null;
+            };
             empresa: {
                 nombre: string;
                 logo_url: string | null;
