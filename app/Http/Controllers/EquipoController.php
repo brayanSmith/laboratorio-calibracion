@@ -2,21 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Concerns\FiltraListados;
+use App\Concerns\ListaEquipos;
 use App\Http\Requests\Equipos\StoreEquipoRequest;
 use App\Http\Requests\Equipos\UpdateEquipoRequest;
-use App\Models\Area;
-use App\Models\Bahia;
-use App\Models\Cliente;
 use App\Models\DocumentoEquipo;
 use App\Models\Equipo;
 use App\Models\EquipoProgramacion;
-use App\Models\Fabricante;
-use App\Models\TipoEquipo;
-use App\Models\TipoMagnitud;
-use App\Models\UnidadMedida;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +19,7 @@ use Inertia\Response;
 
 class EquipoController extends Controller
 {
-    use FiltraListados;
+    use ListaEquipos;
 
     /**
      * Display a listing of the tenant's equipos, optionally filtered by column
@@ -38,94 +29,7 @@ class EquipoController extends Controller
     {
         Gate::authorize('viewAny', Equipo::class);
 
-        $tenantId = $request->user()->tenant_id;
-        $filtros = $this->filtrosDe($request, ['codigo', 'modelo', 'tipo_equipo', 'fabricante', 'cliente', 'vencimiento', 'activo']);
-
-        $consulta = Equipo::query()
-            ->where('tenant_id', $tenantId)
-            ->with([
-                'tipoEquipo:id,nombre',
-                'fabricante:id,nombre',
-                'area:id,nombre',
-                'bahia:id,nombre',
-                'cliente:id,nombre',
-                'equipoEspecificacionTecnica',
-                'equipoProgramaciones' => fn ($query) => $query->latest()->with([
-                    'seguimientos' => fn ($seguimientos) => $seguimientos->with('usuario:id,name')->latest('id'),
-                ]),
-            ])
-            ->latest();
-
-        $this->aplicarFiltros($consulta, $filtros, $tenantId);
-
-        $equipos = $consulta->paginate(15)->withQueryString();
-
-        $equipos = $equipos->through(fn (Equipo $equipo) => $this->conDocumentos($equipo));
-
-        return Inertia::render('equipos/index', [
-            'equipos' => $equipos,
-            'filtros' => (object) $filtros,
-            'options' => $this->formOptions($request->user()->tenant_id),
-        ]);
-    }
-
-    /**
-     * Apply the column filters of the listing: text columns by "contains", the related
-     * ones (tipo de equipo, fabricante, cliente) through their name, `activo` as yes/no and
-     * `vencimiento` as the most urgent state among the programaciones still to attend.
-     *
-     * @param  Builder<Equipo>  $consulta
-     * @param  array<string, string>  $filtros
-     */
-    private function aplicarFiltros(Builder $consulta, array $filtros, int $tenantId): void
-    {
-        foreach (['codigo', 'modelo'] as $columna) {
-            if (isset($filtros[$columna])) {
-                $this->whereContiene($consulta, $columna, $filtros[$columna]);
-            }
-        }
-
-        foreach (['tipo_equipo' => 'tipoEquipo', 'fabricante' => 'fabricante', 'cliente' => 'cliente'] as $filtro => $relacion) {
-            if (isset($filtros[$filtro])) {
-                $consulta->whereHas($relacion, fn (Builder $relacionada) => $this->whereContiene($relacionada, 'nombre', $filtros[$filtro]));
-            }
-        }
-
-        if (isset($filtros['activo']) && in_array($filtros['activo'], ['1', '0'], true)) {
-            $consulta->where('activo', $filtros['activo'] === '1');
-        }
-
-        if (isset($filtros['vencimiento'])) {
-            $porEquipo = $this->vencimientoPorEquipo($tenantId);
-
-            if ($filtros['vencimiento'] === 'NINGUNO') {
-                $consulta->whereNotIn('id', $porEquipo->keys());
-            } elseif (in_array($filtros['vencimiento'], ['AL_DIA', 'PROXIMO_A_VENCER', 'VENCIDO'], true)) {
-                $consulta->whereIn('id', $porEquipo->filter(fn (string $estado) => $estado === $filtros['vencimiento'])->keys());
-            }
-        }
-    }
-
-    /**
-     * Most urgent estado de vencimiento (vencido, próximo a vencer, al día) of each equipo
-     * among its programaciones still to attend (those that haven't arrived yet), the same
-     * criterion the listing shows. Equipos without any are left out.
-     *
-     * @return \Illuminate\Support\Collection<int, string>
-     */
-    private function vencimientoPorEquipo(int $tenantId): \Illuminate\Support\Collection
-    {
-        $gravedad = ['AL_DIA' => 0, 'PROXIMO_A_VENCER' => 1, 'VENCIDO' => 2];
-
-        return EquipoProgramacion::query()
-            ->where('tenant_id', $tenantId)
-            ->where('estado_programacion', '!=', 'RECIBIDO')
-            ->get(['id', 'equipo_id', 'fecha_proximo_servicio', 'dias_plazo_vencimiento'])
-            ->groupBy('equipo_id')
-            ->map(fn ($programaciones) => $programaciones
-                ->pluck('estado_vencimiento')
-                ->sortByDesc(fn (string $estado) => $gravedad[$estado])
-                ->first());
+        return Inertia::render('equipos/index', $this->datosListadoEquipos($request));
     }
 
     /**
@@ -288,28 +192,6 @@ class EquipoController extends Controller
     }
 
     /**
-     * Serialize the equipo along with its documentos (each including their archivo_url).
-     *
-     * @return array<string, mixed>
-     */
-    private function conDocumentos(Equipo $equipo): array
-    {
-        $documentos = $equipo->equipoDocumentos()
-            ->latest()
-            ->get()
-            ->map(fn (DocumentoEquipo $documento) => [
-                'id' => $documento->id,
-                'nombre' => $documento->nombre,
-                'archivo_url' => $documento->archivoUrl(),
-            ]);
-
-        return [
-            ...$equipo->toArray(),
-            'equipo_documentos' => $documentos,
-        ];
-    }
-
-    /**
      * Build the ficha_tecnica JSON payload from the request's validated data.
      *
      * @return array{pais_procedencia: string, numero_activo: string, proveedor: string, costo_usd: float, fecha_adquisicion: string}
@@ -322,32 +204,6 @@ class EquipoController extends Controller
             'proveedor' => $request->validated('proveedor'),
             'costo_usd' => (float) $request->validated('costo_usd'),
             'fecha_adquisicion' => $request->validated('fecha_adquisicion'),
-        ];
-    }
-
-    /**
-     * Get the select options for the equipo form, scoped to the given tenant.
-     *
-     * @return array{
-     *     tipoEquipos: Collection<int, TipoEquipo>,
-     *     fabricantes: Collection<int, Fabricante>,
-     *     areas: Collection<int, Area>,
-     *     bahias: Collection<int, Bahia>,
-     *     clientes: Collection<int, Cliente>,
-     *     tiposMagnitud: Collection<int, TipoMagnitud>,
-     *     unidadesMedida: Collection<int, UnidadMedida>,
-     * }
-     */
-    private function formOptions(int $tenantId): array
-    {
-        return [
-            'tipoEquipos' => TipoEquipo::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'tipo_mantenimiento']),
-            'fabricantes' => Fabricante::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'area_id']),
-            'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'tiposMagnitud' => TipoMagnitud::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'unidadesMedida' => UnidadMedida::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'simbolo']),
         ];
     }
 }

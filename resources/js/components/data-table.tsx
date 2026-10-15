@@ -38,6 +38,8 @@ type Props<TData extends RowData> = {
     emptyMessage?: string;
     pageSize?: number;
     rowTestId?: string;
+    /** Filtros de columna con los que arranca la tabla. */
+    initialColumnFilters?: { id: string; value: unknown }[];
 };
 
 const selectClassName =
@@ -50,6 +52,7 @@ export default function DataTable<TData extends RowData>({
     emptyMessage = 'No hay registros.',
     pageSize = 10,
     rowTestId,
+    initialColumnFilters,
 }: Props<TData>) {
     // Cada columna filtra por texto (sin tildes ni mayúsculas) o, si declara opciones, por
     // coincidencia exacta con la opción elegida.
@@ -63,7 +66,12 @@ export default function DataTable<TData extends RowData>({
         columns: columnsConFiltro,
         data,
         globalFilterFn: 'includesText',
-        initialState: { pagination: { pageIndex: 0, pageSize } },
+        initialState: {
+            pagination: { pageIndex: 0, pageSize },
+            ...(initialColumnFilters
+                ? { columnFilters: initialColumnFilters }
+                : {}),
+        },
     });
 
     const clavesColumnas = table
@@ -187,8 +195,7 @@ export default function DataTable<TData extends RowData>({
                                     column.columnDef.meta?.filterOptions;
                                 const valor =
                                     (column.getFilterValue() as
-                                        | string
-                                        | undefined) ?? '';
+                                        string | undefined) ?? '';
                                 const etiqueta = `Filtrar ${String(column.columnDef.header ?? column.id)}`;
 
                                 return (

@@ -87,6 +87,28 @@ class EquipoProgramacion extends Model
     }
 
     /**
+     * Most urgent estado de vencimiento (vencido, próximo a vencer, al día) of each equipo
+     * among its programaciones still to attend (those that haven't arrived yet), the same
+     * criterion the equipos listing and the dashboard show. Equipos without any are left out.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public static function vencimientoPorEquipo(int $tenantId): \Illuminate\Support\Collection
+    {
+        $gravedad = ['AL_DIA' => 0, 'PROXIMO_A_VENCER' => 1, 'VENCIDO' => 2];
+
+        return static::query()
+            ->where('tenant_id', $tenantId)
+            ->where('estado_programacion', '!=', 'RECIBIDO')
+            ->get(['id', 'equipo_id', 'fecha_proximo_servicio', 'dias_plazo_vencimiento'])
+            ->groupBy('equipo_id')
+            ->map(fn ($programaciones) => $programaciones
+                ->pluck('estado_vencimiento')
+                ->sortByDesc(fn (string $estado) => $gravedad[$estado])
+                ->first());
+    }
+
+    /**
      * The accessors to append to the model's array/JSON form.
      *
      * @var list<string>

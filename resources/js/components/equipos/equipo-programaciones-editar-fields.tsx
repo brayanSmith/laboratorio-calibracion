@@ -29,7 +29,7 @@ type Props = {
 };
 
 /** El valor guardado es un CSV de uno o varios tipos, ej: "MANTENIMIENTO,CALIBRACION". */
-function tiposServicioLabel(value: string): string {
+export function tiposServicioLabel(value: string): string {
     return value
         .split(',')
         .map(
@@ -40,7 +40,7 @@ function tiposServicioLabel(value: string): string {
         .join(' + ');
 }
 
-function estadoVencimientoLabel(value: string): string {
+export function estadoVencimientoLabel(value: string): string {
     return (
         estadosVencimiento.find((option) => option.value === value)?.label ??
         value
@@ -48,14 +48,14 @@ function estadoVencimientoLabel(value: string): string {
 }
 
 /** La tarjeta se tiñe solo cuando hay algo que atender. */
-const TARJETA_VENCIMIENTO: Record<EstadoVencimiento, string> = {
+export const TARJETA_VENCIMIENTO: Record<EstadoVencimiento, string> = {
     AL_DIA: '',
     PROXIMO_A_VENCER:
         'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30',
     VENCIDO: 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30',
 };
 
-function estaCompletada(programacion: EquipoProgramacion): boolean {
+export function estaCompletada(programacion: EquipoProgramacion): boolean {
     const ultimo = programacion.seguimientos?.[0];
 
     return ultimo?.fase === 'DESPACHO' && ultimo.seguimiento === 'ENTREGADO';
