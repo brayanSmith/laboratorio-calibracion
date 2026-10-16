@@ -48,6 +48,7 @@ class IngresoController extends Controller
                 'id' => $ingreso->id,
                 'bahia_id' => $ingreso->bahia_id,
                 'bahia_nombre' => $ingreso->bahia->nombre,
+                'fecha_creacion' => $ingreso->created_at->toDateString(),
                 'desde' => $ingreso->desde->toDateString(),
                 'hasta' => $ingreso->hasta->toDateString(),
                 'tecnico_recibe_id' => $ingreso->tecnico_recibe_id,

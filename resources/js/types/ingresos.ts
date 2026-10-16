@@ -6,6 +6,7 @@ export type Ingreso = {
     id: number;
     bahia_id: number;
     bahia_nombre: string;
+    fecha_creacion: string;
     desde: string;
     hasta: string;
     /** Nulo hasta que se edita el ingreso. */

@@ -15,7 +15,7 @@ export default function EmpresaFormFields({ empresa, errors }: Props) {
     return (
         <div className="grid gap-6 sm:grid-cols-2">
             <div className="grid gap-2">
-                <Label htmlFor="nit">NIT</Label>
+                <Label htmlFor="nit">RUC</Label>
                 <Input
                     id="nit"
                     name="nit"

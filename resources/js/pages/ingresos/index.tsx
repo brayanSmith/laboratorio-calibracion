@@ -56,6 +56,7 @@ export default function IngresosIndex({
     const columns = useMemo(
         () =>
             columnHelper.columns([
+                
                 columnHelper.accessor('desde', { header: 'Desde' }),
                 columnHelper.accessor('hasta', { header: 'Hasta' }),
                 columnHelper.accessor('bahia_nombre', { header: 'Bahía' }),
@@ -90,6 +91,10 @@ export default function IngresosIndex({
                             )?.label ?? info.getValue()}
                         </Badge>
                     ),
+                }),
+
+                columnHelper.accessor('fecha_creacion', {
+                    header: 'Creado',
                 }),
                 columnHelper.display({
                     id: 'acciones',

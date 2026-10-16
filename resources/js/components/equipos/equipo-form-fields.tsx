@@ -47,7 +47,7 @@ export default function EquipoFormFields({
     return (
         <div className="grid gap-6 sm:grid-cols-2">
             <div className="grid gap-2">
-                <Label htmlFor="codigo">Código</Label>
+                <Label htmlFor="codigo">Código SAP</Label>
                 <Input
                     id="codigo"
                     name="codigo"
@@ -79,7 +79,7 @@ export default function EquipoFormFields({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="tipo_tecnologia">Tipo de tecnología</Label>
+                <Label htmlFor="tipo_tecnologia">Tipo de indicación</Label>
                 <Combobox
                     id="tipo_tecnologia"
                     name="tipo_tecnologia"
