@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import ServicioTerceroController from '@/actions/App/Http/Controllers/ServicioTerceroController';
+import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import EquipoServicioCard from '@/components/servicio-terceros/equipo-servicio-card';
@@ -125,7 +125,7 @@ export default function ServicioTerceroModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="servicio-tercero-update-submit"
                                 >
                                     Guardar

@@ -14,6 +14,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 export type ComboboxOption = {
@@ -31,6 +32,8 @@ type Props = {
     searchPlaceholder?: string;
     emptyMessage?: string;
     disabled?: boolean;
+    /** Muestra un spinner mientras se cargan las opciones desde el servidor. */
+    loading?: boolean;
     className?: string;
 };
 
@@ -53,6 +56,7 @@ export default function Combobox({
     searchPlaceholder = 'Buscar...',
     emptyMessage = 'Sin resultados.',
     disabled,
+    loading = false,
     className,
 }: Props) {
     const [open, setOpen] = useState(false);
@@ -83,7 +87,8 @@ export default function Combobox({
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        disabled={disabled}
+                        disabled={disabled || loading}
+                        aria-busy={loading || undefined}
                         className={cn(
                             'w-full justify-between font-normal',
                             !seleccionado && 'text-muted-foreground',
@@ -91,9 +96,15 @@ export default function Combobox({
                         )}
                     >
                         <span className="min-w-0 flex-1 truncate text-left">
-                            {seleccionado?.label ?? placeholder}
+                            {loading
+                                ? 'Cargando opciones...'
+                                : (seleccionado?.label ?? placeholder)}
                         </span>
-                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                        {loading ? (
+                            <Spinner className="ml-2 shrink-0 opacity-50" />
+                        ) : (
+                            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                        )}
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent

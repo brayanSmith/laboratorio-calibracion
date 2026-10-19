@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Area;
-use App\Models\Bahia;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Bahia;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

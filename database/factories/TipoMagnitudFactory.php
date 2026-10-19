@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\TipoMagnitud;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

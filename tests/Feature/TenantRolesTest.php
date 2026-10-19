@@ -3,9 +3,9 @@
 use App\Actions\Tenants\SetupTenantRoles;
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
-use App\Models\Equipo;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Equipos\Models\Equipo;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;

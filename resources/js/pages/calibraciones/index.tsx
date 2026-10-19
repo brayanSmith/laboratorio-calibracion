@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
-import { certificado } from '@/actions/App/Http/Controllers/CalibracionController';
+import { certificado } from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
 import ActualizarCertificadoModal from '@/components/calibraciones/actualizar-certificado-modal';
@@ -207,7 +207,8 @@ export default function CalibracionesIndex({
                                         setCertificadoOpen(true);
                                     }}
                                 >
-                                    <RefreshCw className="h-4 w-4" /> Actualizar PDF
+                                    <RefreshCw className="h-4 w-4" /> Actualizar
+                                    PDF
                                 </Button>
                             ) : null}
                             {canEdit &&

@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import NovedadController from '@/actions/App/Http/Controllers/NovedadController';
+import NovedadController from '@/actions/App/Modules/Catalogos/Http/Controllers/NovedadController';
 import NovedadFormFields from '@/components/novedades/novedad-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +48,7 @@ export default function CreateNovedadModal({ children }: PropsWithChildren) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="novedad-create-submit"
                                 >
                                     Guardar novedad

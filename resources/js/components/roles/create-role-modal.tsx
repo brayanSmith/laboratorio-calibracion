@@ -53,7 +53,7 @@ export default function CreateRoleModal({ catalog, children }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="role-create-submit"
                                 >
                                     Guardar rol

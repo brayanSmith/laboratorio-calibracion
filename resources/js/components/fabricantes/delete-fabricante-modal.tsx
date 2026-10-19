@@ -57,7 +57,7 @@ export default function DeleteFabricanteModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="fabricante-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar fabricante
                                 </Button>

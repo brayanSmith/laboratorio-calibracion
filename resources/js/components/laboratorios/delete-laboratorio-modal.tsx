@@ -60,7 +60,7 @@ export default function DeleteLaboratorioModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="laboratorio-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar laboratorio
                                 </Button>

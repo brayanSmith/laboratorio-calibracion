@@ -96,7 +96,7 @@ export default function CreateUsuarioModal({ roles, children }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="usuario-create-submit"
                                 >
                                     Crear usuario

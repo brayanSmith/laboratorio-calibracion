@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import {
     despachosListos,
     storeDespacho,
-} from '@/actions/App/Http/Controllers/OrdenTrabajoController';
+} from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
+import CargandoContenido from '@/components/cargando-contenido';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -80,7 +81,9 @@ export default function AgendarDespachosModal({
                                 </DialogDescription>
                             </DialogHeader>
 
-                            {!cargando && despachos.length === 0 ? (
+                            {cargando ? (
+                                <CargandoContenido />
+                            ) : despachos.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
                                     No hay despachos pendientes de agendar.
                                 </p>
@@ -109,9 +112,8 @@ export default function AgendarDespachosModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={
-                                        processing || despachos.length === 0
-                                    }
+                                    disabled={despachos.length === 0}
+                                    loading={processing}
                                     data-test="agendar-despachos-submit"
                                 >
                                     Guardar

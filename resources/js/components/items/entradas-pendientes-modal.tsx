@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { PackageCheck } from 'lucide-react';
-import EntradaItemController from '@/actions/App/Http/Controllers/EntradaItemController';
+import EntradaItemController from '@/actions/App/Modules/Inventario/Http/Controllers/EntradaItemController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -101,7 +101,7 @@ export default function EntradasPendientesModal({
 
                                             <Button
                                                 type="submit"
-                                                disabled={processing}
+                                                loading={processing}
                                                 data-test="entrada-recibir-submit"
                                             >
                                                 <PackageCheck /> Marcar recibida

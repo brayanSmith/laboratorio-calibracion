@@ -1,0 +1,194 @@
+<?php
+
+namespace App\Modules\Calibraciones\Models;
+
+use App\Concerns\RestringidoAlTecnico;
+use App\Enums\TenantPermission;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property int $orden_trabajo_id
+ * @property Carbon $fecha_calibracion
+ * @property int|null $laboratorio_id Se completa cuando se realiza la calibración
+ * @property int|null $solicitante_id Se completa cuando se realiza la calibración
+ * @property int $tecnico_id
+ * @property string|null $temperatura
+ * @property string|null $humedad
+ * @property int|null $procedimiento_id Se completa cuando se realiza la calibración
+ * @property bool $ajustes_requeridos
+ * @property string $estado_calibracion PENDIENTE por defecto
+ * @property bool|null $resultado_calibracion true = Aprobado, false = No aprobado; se define al finalizar
+ * @property bool $firmado
+ * @property int|null $novedad_id Se completa si surge una novedad durante la calibración
+ * @property string|null $pdf_certificado Ruta del certificado PDF, generado al finalizar la calibración
+ * @property int $tenant_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read OrdenTrabajo $ordenTrabajo
+ * @property-read Laboratorio|null $laboratorio
+ * @property-read Area|null $solicitante
+ * @property-read User $tecnico
+ * @property-read ProcedimientoCalibracion|null $procedimiento
+ * @property-read Novedad|null $novedad
+ * @property-read Tenant $tenant
+ * @property-read Collection<int, DetalleMedicionCalibracion> $detalleMedicionCalibracion
+ */
+#[Fillable([
+    'orden_trabajo_id', 'fecha_calibracion', 'laboratorio_id', 'solicitante_id', 'tecnico_id',
+    'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion', 'resultado_calibracion',
+    'firmado', 'novedad_id', 'pdf_certificado', 'tenant_id',
+])]
+class Calibracion extends Model
+{
+    use RestringidoAlTecnico;
+
+    public static function permisoVerTodos(): TenantPermission
+    {
+        return TenantPermission::CalibracionesVerTodos;
+    }
+
+    public static function columnaTecnico(): string
+    {
+        return 'tecnico_id';
+    }
+
+    use SoftDeletes;
+
+    /**
+     * Same defaults as the table, so a just-created model already carries them.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'estado_calibracion' => 'PENDIENTE',
+    ];
+
+    /**
+     * Registra un seguimiento de fase CALIBRACION al crearse la calibración o cambiar
+     * su estado, siempre que la orden de trabajo esté lista para calibración.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Calibracion $calibracion): void {
+            if (! $calibracion->wasRecentlyCreated && ! $calibracion->wasChanged('estado_calibracion')) {
+                return;
+            }
+
+            $ordenTrabajo = $calibracion->ordenTrabajo;
+
+            if ($ordenTrabajo?->listo_para_calibracion) {
+                $ordenTrabajo->equipoProgramacion->registrarSeguimiento('CALIBRACION', $calibracion->estado_calibracion);
+            }
+        });
+    }
+
+    /**
+     * Get the orden de trabajo this calibracion belongs to.
+     *
+     * @return BelongsTo<OrdenTrabajo, $this>
+     */
+    public function ordenTrabajo(): BelongsTo
+    {
+        return $this->belongsTo(OrdenTrabajo::class);
+    }
+
+    /**
+     * Get the laboratorio where this calibracion was performed.
+     *
+     * @return BelongsTo<Laboratorio, $this>
+     */
+    public function laboratorio(): BelongsTo
+    {
+        return $this->belongsTo(Laboratorio::class);
+    }
+
+    /**
+     * Get the area that solicited this calibracion.
+     *
+     * @return BelongsTo<Area, $this>
+     */
+    public function solicitante(): BelongsTo
+    {
+        return $this->belongsTo(Area::class, 'solicitante_id');
+    }
+
+    /**
+     * Get the tecnico that performed this calibracion.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function tecnico(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the procedimiento used for this calibracion.
+     *
+     * @return BelongsTo<ProcedimientoCalibracion, $this>
+     */
+    public function procedimiento(): BelongsTo
+    {
+        return $this->belongsTo(ProcedimientoCalibracion::class);
+    }
+
+    /**
+     * Get the novedad reported during this calibracion.
+     *
+     * @return BelongsTo<Novedad, $this>
+     */
+    public function novedad(): BelongsTo
+    {
+        return $this->belongsTo(Novedad::class);
+    }
+
+    /**
+     * Get the tenant this calibracion belongs to.
+     *
+     * @return BelongsTo<Tenant, $this>
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the detalles de medicion of this calibracion.
+     *
+     * @return HasMany<DetalleMedicionCalibracion, $this>
+     */
+    public function detalleMedicionCalibracion(): HasMany
+    {
+        return $this->hasMany(DetalleMedicionCalibracion::class);
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'fecha_calibracion' => 'date',
+            'temperatura' => 'decimal:2',
+            'humedad' => 'decimal:2',
+            'ajustes_requeridos' => 'boolean',
+            'resultado_calibracion' => 'boolean',
+            'firmado' => 'boolean',
+        ];
+    }
+}

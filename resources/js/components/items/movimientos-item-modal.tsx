@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import ItemController from '@/actions/App/Http/Controllers/ItemController';
+import ItemController from '@/actions/App/Modules/Inventario/Http/Controllers/ItemController';
 import { Badge } from '@/components/ui/badge';
 import {
     Dialog,

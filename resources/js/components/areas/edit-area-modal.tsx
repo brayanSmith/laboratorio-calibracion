@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import AreaController from '@/actions/App/Http/Controllers/AreaController';
+import AreaController from '@/actions/App/Modules/Catalogos/Http/Controllers/AreaController';
 import AreaFormFields from '@/components/areas/area-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,7 +53,7 @@ export default function EditAreaModal({ area, open, onOpenChange }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="area-update-submit"
                                 >
                                     Guardar cambios

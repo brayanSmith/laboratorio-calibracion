@@ -1,13 +1,13 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\Equipo;
-use App\Models\EquipoProgramacion;
-use App\Models\Fabricante;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Fabricante;
+use App\Modules\Equipos\Models\Equipo;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

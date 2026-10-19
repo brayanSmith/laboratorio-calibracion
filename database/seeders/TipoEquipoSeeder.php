@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Database\Seeder;
 
 class TipoEquipoSeeder extends Seeder

@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Area;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Area;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 test('el tenant se crea con la factory y activo es booleano', function () {

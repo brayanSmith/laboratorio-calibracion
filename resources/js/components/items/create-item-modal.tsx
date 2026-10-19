@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import ItemController from '@/actions/App/Http/Controllers/ItemController';
+import ItemController from '@/actions/App/Modules/Inventario/Http/Controllers/ItemController';
 import ItemFormFields from '@/components/items/item-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +48,7 @@ export default function CreateItemModal({ children }: PropsWithChildren) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="item-create-submit"
                                 >
                                     Guardar ítem

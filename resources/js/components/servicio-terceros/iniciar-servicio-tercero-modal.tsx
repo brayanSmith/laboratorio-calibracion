@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import ServicioTerceroController from '@/actions/App/Http/Controllers/ServicioTerceroController';
+import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -54,7 +54,7 @@ export default function IniciarServicioTerceroModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="iniciar-servicio-tercero-confirm"
                                 >
                                     Sí, iniciar

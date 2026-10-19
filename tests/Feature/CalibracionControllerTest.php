@@ -1,22 +1,22 @@
 <?php
 
-use App\Actions\Calibraciones\GraficoErrorCalibracion;
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\Calibracion;
-use App\Models\Despacho;
-use App\Models\DetalleMedicionAlcance;
-use App\Models\DetalleMedicionCalibracion;
-use App\Models\EmpresaTercero;
-use App\Models\Laboratorio;
-use App\Models\Novedad;
-use App\Models\OrdenTrabajo;
-use App\Models\ServicioTercero;
 use App\Models\Tenant;
-use App\Models\TiempoServicio;
-use App\Models\UnidadMedida;
 use App\Models\User;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\Calibraciones\Actions\GraficoErrorCalibracion;
+use App\Modules\Calibraciones\Models\Calibracion;
+use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
+use App\Modules\Calibraciones\Models\Laboratorio;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Despachos\Models\Despacho;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\PermissionRegistrar;

@@ -2,7 +2,7 @@ import { usePage, useHttp } from '@inertiajs/react';
 import { CalendarDays, Gauge, Truck, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { opcionesAgendar } from '@/actions/App/Http/Controllers/OrdenTrabajoController';
+import { opcionesAgendar } from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import AgendaModal from '@/components/agenda/agenda-modal';
 import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';

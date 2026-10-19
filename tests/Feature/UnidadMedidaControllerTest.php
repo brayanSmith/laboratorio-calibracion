@@ -1,12 +1,12 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\DetalleMedicionAlcance;
-use App\Models\DetalleMedicionCalibracion;
-use App\Models\EquipoEspecificacionTecnica;
 use App\Models\Tenant;
-use App\Models\UnidadMedida;
 use App\Models\User;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
+use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {

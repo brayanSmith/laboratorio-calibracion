@@ -1,11 +1,11 @@
-import { Form } from "@inertiajs/react";
-import { Plus } from "lucide-react";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
-import MedicionAlcanceController from "@/actions/App/Http/Controllers/MedicionAlcanceController";
-import AlcanceMedicionFormFields from "@/components/alcances-medicion/alcance-medicion-form-fields";
-import DetallesAlcanceTabla from "@/components/alcances-medicion/detalles-alcance-tabla";
-import { Button } from "@/components/ui/button";
+import { Form } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
+import type { PropsWithChildren } from 'react';
+import { useState } from 'react';
+import MedicionAlcanceController from '@/actions/App/Modules/AlcancesMedicion/Http/Controllers/MedicionAlcanceController';
+import AlcanceMedicionFormFields from '@/components/alcances-medicion/alcance-medicion-form-fields';
+import DetallesAlcanceTabla from '@/components/alcances-medicion/detalles-alcance-tabla';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogClose,
@@ -15,14 +15,14 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import type {
     AlcanceMedicionOpcion,
     AlcancesIndicacionPorModelo,
     AlcanceMedicionUnidadOpcion,
     EspecificacionAlcance,
     EspecificacionesAlcance,
-} from "@/types";
+} from '@/types';
 
 type Props = PropsWithChildren<{
     tiposEquipo: AlcanceMedicionOpcion[];
@@ -39,7 +39,8 @@ export default function CreateAlcanceMedicionModal({
     children,
 }: Props) {
     const [open, setOpen] = useState(false);
-    const [especificacion, setEspecificacion] = useState<EspecificacionAlcance | null>(null);
+    const [especificacion, setEspecificacion] =
+        useState<EspecificacionAlcance | null>(null);
     // Cada fila lleva una llave estable para que quitar una no mezcle los valores de las demás.
     const [detalleKeys, setDetalleKeys] = useState<number[]>([]);
     const [nextKey, setNextKey] = useState(0);
@@ -120,7 +121,7 @@ export default function CreateAlcanceMedicionModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="alcance-medicion-create-submit"
                                 >
                                     Guardar alcance

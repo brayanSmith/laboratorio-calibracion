@@ -88,7 +88,7 @@ export default function EditTenantUserModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="tenant-user-update-submit"
                                 >
                                     Guardar usuario

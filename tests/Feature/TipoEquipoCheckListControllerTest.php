@@ -2,9 +2,9 @@
 
 use App\Enums\TenantRole;
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
-use App\Models\TipoEquipoCheckList;
 use App\Models\User;
+use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoEquipoCheckList;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

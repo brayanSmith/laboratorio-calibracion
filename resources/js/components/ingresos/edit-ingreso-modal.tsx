@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import IngresoController from '@/actions/App/Http/Controllers/IngresoController';
+import IngresoController from '@/actions/App/Modules/Ingresos/Http/Controllers/IngresoController';
 import IngresoFormFields from '@/components/ingresos/ingreso-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,7 +64,7 @@ export default function EditIngresoModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="ingreso-update-submit"
                                 >
                                     Guardar cambios

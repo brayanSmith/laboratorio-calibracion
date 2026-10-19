@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import ServicioTerceroController from '@/actions/App/Http/Controllers/ServicioTerceroController';
+import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -58,7 +58,7 @@ export default function DeleteServicioTerceroModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="servicio-tercero-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar servicio
                                 </Button>

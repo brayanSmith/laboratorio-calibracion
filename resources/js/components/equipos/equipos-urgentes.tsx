@@ -1,4 +1,4 @@
-import { ChevronDown, Siren } from 'lucide-react';
+import { CircleCheck, ChevronDown, Siren } from 'lucide-react';
 import { useState } from 'react';
 import ViewEquipoModal from '@/components/equipos/view-equipo-modal';
 import { estadosVencimiento } from '@/components/equipos/equipo-programacion-fields';
@@ -41,6 +41,18 @@ type Props = {
 export default function EquiposUrgentes({ equipos, options }: Props) {
     const [abierto, setAbierto] = useState(true);
 
+    if (equipos.length === 0) {
+        return (
+            <div
+                className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300"
+                data-test="equipos-urgentes-vacio"
+            >
+                <CircleCheck className="h-4 w-4 text-emerald-600" />
+                Ningún equipo requiere atención
+            </div>
+        );
+    }
+
     return (
         <Collapsible
             open={abierto}
@@ -66,73 +78,66 @@ export default function EquiposUrgentes({ equipos, options }: Props) {
                 </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-                {equipos.length === 0 ? (
-                    <p className="border-t px-4 py-6 text-center text-sm text-muted-foreground">
-                        No hay equipos vencidos ni próximos a vencer.
-                    </p>
-                ) : (
-                    <ul className="border-t border-red-200 dark:border-red-900">
-                        {equipos.map((equipo) => (
-                            <li
-                                key={equipo.id}
-                                data-test="equipo-urgente"
-                                className={cn(
-                                    'flex flex-wrap items-center justify-between gap-3 border-l-4 px-4 py-3 text-sm',
-                                    FILA[equipo.estado_vencimiento],
-                                )}
-                            >
-                                <div className="min-w-0 space-y-0.5">
-                                    <p className="font-medium">
-                                        {equipo.codigo}{' '}
-                                        <span className="font-normal text-muted-foreground">
-                                            · {equipo.modelo}
-                                            {equipo.tipo_equipo?.nombre
-                                                ? ` · ${equipo.tipo_equipo.nombre}`
-                                                : ''}
-                                        </span>
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {equipo.cliente?.nombre ??
-                                            'Sin cliente'}
-                                        {equipo.fecha_proximo_servicio
-                                            ? ` · Próximo servicio: ${equipo.fecha_proximo_servicio}`
+                <ul className="border-t border-red-200 dark:border-red-900">
+                    {equipos.map((equipo) => (
+                        <li
+                            key={equipo.id}
+                            data-test="equipo-urgente"
+                            className={cn(
+                                'flex flex-wrap items-center justify-between gap-3 border-l-4 px-4 py-3 text-sm',
+                                FILA[equipo.estado_vencimiento],
+                            )}
+                        >
+                            <div className="min-w-0 space-y-0.5">
+                                <p className="font-medium">
+                                    {equipo.codigo}{' '}
+                                    <span className="font-normal text-muted-foreground">
+                                        · {equipo.modelo}
+                                        {equipo.tipo_equipo?.nombre
+                                            ? ` · ${equipo.tipo_equipo.nombre}`
                                             : ''}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Badge
+                                    </span>
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    {equipo.cliente?.nombre ?? 'Sin cliente'}
+                                    {equipo.fecha_proximo_servicio
+                                        ? ` · Próximo servicio: ${equipo.fecha_proximo_servicio}`
+                                        : ''}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    className={
+                                        BADGE_VENCIMIENTO[
+                                            equipo.estado_vencimiento
+                                        ]
+                                    }
+                                >
+                                    {estadosVencimiento.find(
+                                        (opcion) =>
+                                            opcion.value ===
+                                            equipo.estado_vencimiento,
+                                    )?.label ?? equipo.estado_vencimiento}
+                                </Badge>
+                                <ViewEquipoModal
+                                    equipo={equipo}
+                                    options={options}
+                                >
+                                    <Button
+                                        type="button"
                                         className={
-                                            BADGE_VENCIMIENTO[
-                                                equipo.estado_vencimiento
-                                            ]
+                                            BOTON[equipo.estado_vencimiento]
                                         }
+                                        size="sm"
+                                        data-test="equipo-urgente-ver"
                                     >
-                                        {estadosVencimiento.find(
-                                            (opcion) =>
-                                                opcion.value ===
-                                                equipo.estado_vencimiento,
-                                        )?.label ?? equipo.estado_vencimiento}
-                                    </Badge>
-                                    <ViewEquipoModal
-                                        equipo={equipo}
-                                        options={options}
-                                    >
-                                        <Button
-                                            type="button"
-                                            className={
-                                                BOTON[equipo.estado_vencimiento]
-                                            }
-                                            size="sm"
-                                            data-test="equipo-urgente-ver"
-                                        >
-                                            Ver
-                                        </Button>
-                                    </ViewEquipoModal>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                        Ver
+                                    </Button>
+                                </ViewEquipoModal>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
             </CollapsibleContent>
         </Collapsible>
     );

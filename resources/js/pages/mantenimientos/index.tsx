@@ -8,7 +8,7 @@ import Heading from '@/components/heading';
 import ActualizarInformeModal from '@/components/mantenimientos/actualizar-informe-modal';
 import DeleteMantenimientoModal from '@/components/mantenimientos/delete-mantenimiento-modal';
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
-import { informe } from '@/actions/App/Http/Controllers/MantenimientoController';
+import { informe } from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import GestionarMantenimientoModal from '@/components/mantenimientos/gestionar-mantenimiento-modal';
 import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mantenimiento-modal';
 import VerMantenimientoModal from '@/components/mantenimientos/ver-mantenimiento-modal';
@@ -204,7 +204,8 @@ export default function MantenimientosIndex({
                                         setInformeOpen(true);
                                     }}
                                 >
-                                    <RefreshCw className="h-4 w-4" /> Actualizar PDF
+                                    <RefreshCw className="h-4 w-4" /> Actualizar
+                                    PDF
                                 </Button>
                             ) : null}
                             {canEdit &&

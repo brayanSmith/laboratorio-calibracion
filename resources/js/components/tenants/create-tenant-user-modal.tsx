@@ -127,7 +127,7 @@ export default function CreateTenantUserModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="tenant-user-create-submit"
                                 >
                                     Guardar usuario

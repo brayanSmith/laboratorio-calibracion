@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
-import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
+import CalibracionController from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {

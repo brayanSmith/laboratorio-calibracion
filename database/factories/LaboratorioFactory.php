@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Laboratorio;
 use App\Models\Tenant;
+use App\Modules\Calibraciones\Models\Laboratorio;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import FabricanteController from '@/actions/App/Http/Controllers/FabricanteController';
+import FabricanteController from '@/actions/App/Modules/Catalogos/Http/Controllers/FabricanteController';
 import FabricanteFormFields from '@/components/fabricantes/fabricante-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +48,7 @@ export default function CreateFabricanteModal({ children }: PropsWithChildren) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="fabricante-create-submit"
                                 >
                                     Guardar fabricante

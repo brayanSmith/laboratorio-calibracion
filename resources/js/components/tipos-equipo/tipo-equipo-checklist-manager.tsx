@@ -2,7 +2,7 @@ import { Form, useForm } from '@inertiajs/react';
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { ClipboardEvent, KeyboardEvent } from 'react';
 import { useState } from 'react';
-import TipoEquipoCheckListController from '@/actions/App/Http/Controllers/TipoEquipoCheckListController';
+import TipoEquipoCheckListController from '@/actions/App/Modules/Catalogos/Http/Controllers/TipoEquipoCheckListController';
 import InputError from '@/components/input-error';
 import {
     mergeChecklistItems,
@@ -47,7 +47,7 @@ function ChecklistItemRow({ item, editing, onEdit, onCancel }: RowProps) {
                                 <Button
                                     type="submit"
                                     size="sm"
-                                    disabled={processing}
+                                    loading={processing}
                                     aria-label="Guardar ítem"
                                     data-test="checklist-item-save"
                                 >
@@ -98,7 +98,7 @@ function ChecklistItemRow({ item, editing, onEdit, onCancel }: RowProps) {
                             type="submit"
                             variant="ghost"
                             size="sm"
-                            disabled={processing}
+                            loading={processing}
                             aria-label={`Eliminar ${item.nombre}`}
                             data-test="checklist-item-delete"
                         >
@@ -310,7 +310,8 @@ export default function TipoEquipoChecklistManager({ tipoEquipo }: Props) {
                     <Button
                         type="button"
                         onClick={enviar}
-                        disabled={pendientes.length === 0 || form.processing}
+                        disabled={pendientes.length === 0}
+                        loading={form.processing}
                         data-test="checklist-items-submit"
                     >
                         Agregar checklists

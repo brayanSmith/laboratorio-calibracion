@@ -63,7 +63,7 @@ export default function EditRoleModal({
 
                                     <Button
                                         type="submit"
-                                        disabled={processing}
+                                        loading={processing}
                                         data-test="role-update-button"
                                     >
                                         Guardar cambios

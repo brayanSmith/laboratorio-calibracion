@@ -1,11 +1,11 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\EquipoEspecificacionTecnica;
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
-use App\Models\UnidadMedida;
 use App\Models\User;
+use App\Modules\Catalogos\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

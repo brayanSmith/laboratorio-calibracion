@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import UnidadMedidaController from '@/actions/App/Http/Controllers/UnidadMedidaController';
+import UnidadMedidaController from '@/actions/App/Modules/Catalogos/Http/Controllers/UnidadMedidaController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -62,7 +62,7 @@ export default function EditUnidadMedidaModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="unidad-medida-update-submit"
                                 >
                                     Guardar cambios

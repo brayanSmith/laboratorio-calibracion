@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
+import CalibracionController from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -52,7 +52,7 @@ export default function IniciarCalibracionModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="iniciar-calibracion-confirm"
                                 >
                                     Sí, iniciar

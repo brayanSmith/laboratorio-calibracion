@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import {
     equiposListos,
     store,
-} from '@/actions/App/Http/Controllers/OrdenTrabajoController';
+} from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
+import CargandoContenido from '@/components/cargando-contenido';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -79,7 +80,9 @@ export default function AgendarMantenimientoModal({
                                 </DialogDescription>
                             </DialogHeader>
 
-                            {!cargando && equipos.length === 0 ? (
+                            {cargando ? (
+                                <CargandoContenido />
+                            ) : equipos.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
                                     No hay equipos recibidos pendientes de
                                     agendar mantenimiento.
@@ -110,9 +113,8 @@ export default function AgendarMantenimientoModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={
-                                        processing || equipos.length === 0
-                                    }
+                                    disabled={equipos.length === 0}
+                                    loading={processing}
                                     data-test="agendar-mantenimiento-submit"
                                 >
                                     Guardar

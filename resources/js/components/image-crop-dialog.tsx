@@ -228,7 +228,8 @@ export default function ImageCropDialog({
                     <Button
                         type="button"
                         onClick={confirm}
-                        disabled={processing || pixels === null}
+                        disabled={pixels === null}
+                        loading={processing}
                         data-test="image-crop-confirm"
                     >
                         Usar imagen

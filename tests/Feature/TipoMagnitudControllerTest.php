@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\EquipoEspecificacionTecnica;
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
 use App\Models\User;
+use App\Modules\Catalogos\Models\TipoMagnitud;
+use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {

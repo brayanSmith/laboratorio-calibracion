@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import TipoMagnitudController from '@/actions/App/Http/Controllers/TipoMagnitudController';
+import TipoMagnitudController from '@/actions/App/Modules/Catalogos/Http/Controllers/TipoMagnitudController';
 import TipoMagnitudFormFields from '@/components/tipos-magnitud/tipo-magnitud-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,7 +62,7 @@ export default function EditTipoMagnitudModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="tipo-magnitud-update-submit"
                                 >
                                     Guardar cambios

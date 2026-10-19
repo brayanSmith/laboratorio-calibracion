@@ -66,7 +66,7 @@ export default function ResetUserPasswordModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="user-password-submit"
                                 >
                                     Asignar contraseña

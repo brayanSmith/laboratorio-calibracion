@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Tenant;
-use App\Models\UnidadMedida;
+use App\Modules\Catalogos\Models\UnidadMedida;
 use Illuminate\Database\Seeder;
 
 class UnidadMedidaSeeder extends Seeder

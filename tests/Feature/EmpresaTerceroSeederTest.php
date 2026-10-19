@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\EmpresaTercero;
 use App\Models\Tenant;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Database\Seeders\EmpresaTerceroSeeder;
 
 test('el seeder crea las empresas terceras por defecto en cada tenant sin duplicarlas', function () {

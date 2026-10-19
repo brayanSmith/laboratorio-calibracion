@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { CheckCircle2, Printer, XCircle } from 'lucide-react';
-import { informe } from '@/actions/App/Http/Controllers/MantenimientoController';
+import { informe } from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

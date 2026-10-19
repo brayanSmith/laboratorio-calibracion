@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import LaboratorioController from '@/actions/App/Http/Controllers/LaboratorioController';
+import LaboratorioController from '@/actions/App/Modules/Calibraciones/Http/Controllers/LaboratorioController';
 import LaboratorioFormFields from '@/components/laboratorios/laboratorio-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +50,7 @@ export default function CreateLaboratorioModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="laboratorio-create-submit"
                                 >
                                     Guardar laboratorio

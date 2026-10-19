@@ -1,11 +1,11 @@
-import { Form } from "@inertiajs/react";
-import { Plus } from "lucide-react";
-import { useRef, useState } from "react";
-import MedicionAlcanceController from "@/actions/App/Http/Controllers/MedicionAlcanceController";
-import AlcanceMedicionFormFields from "@/components/alcances-medicion/alcance-medicion-form-fields";
-import DetallesAlcanceTabla from "@/components/alcances-medicion/detalles-alcance-tabla";
-import type { FilaDetalleAlcance } from "@/components/alcances-medicion/detalles-alcance-tabla";
-import { Button } from "@/components/ui/button";
+import { Form } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
+import MedicionAlcanceController from '@/actions/App/Modules/AlcancesMedicion/Http/Controllers/MedicionAlcanceController';
+import AlcanceMedicionFormFields from '@/components/alcances-medicion/alcance-medicion-form-fields';
+import DetallesAlcanceTabla from '@/components/alcances-medicion/detalles-alcance-tabla';
+import type { FilaDetalleAlcance } from '@/components/alcances-medicion/detalles-alcance-tabla';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogClose,
@@ -14,7 +14,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import type {
     AlcanceMedicion,
     AlcanceMedicionOpcion,
@@ -22,7 +22,7 @@ import type {
     AlcanceMedicionUnidadOpcion,
     EspecificacionAlcance,
     EspecificacionesAlcance,
-} from "@/types";
+} from '@/types';
 
 type Props = {
     alcanceMedicion: AlcanceMedicion | null;
@@ -34,7 +34,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
 };
 
-type FormProps = Omit<Props, "alcanceMedicion" | "open"> & {
+type FormProps = Omit<Props, 'alcanceMedicion' | 'open'> & {
     alcanceMedicion: AlcanceMedicion;
 };
 
@@ -47,7 +47,8 @@ function EditAlcanceMedicionForm({
     unidadesMedida,
     onOpenChange,
 }: FormProps) {
-    const [especificacion, setEspecificacion] = useState<EspecificacionAlcance | null>(null);
+    const [especificacion, setEspecificacion] =
+        useState<EspecificacionAlcance | null>(null);
     const siguienteKey = useRef(alcanceMedicion.detalles.length);
     const [filas, setFilas] = useState<FilaDetalleAlcance[]>(() =>
         alcanceMedicion.detalles.map((detalle, key) => ({ key, detalle })),
@@ -121,7 +122,7 @@ function EditAlcanceMedicionForm({
 
                         <Button
                             type="submit"
-                            disabled={processing}
+                            loading={processing}
                             data-test="alcance-medicion-update-submit"
                         >
                             Guardar cambios

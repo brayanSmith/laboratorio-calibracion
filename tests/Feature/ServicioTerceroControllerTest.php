@@ -1,13 +1,13 @@
 <?php
 
-use App\Models\Bahia;
-use App\Models\Despacho;
-use App\Models\EmpresaTercero;
-use App\Models\OrdenTrabajo;
-use App\Models\ServicioTercero;
 use App\Models\Tenant;
-use App\Models\TiempoServicio;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Despachos\Models\Despacho;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 

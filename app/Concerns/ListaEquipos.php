@@ -2,15 +2,15 @@
 
 namespace App\Concerns;
 
-use App\Models\Area;
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\DocumentoEquipo;
-use App\Models\Equipo;
-use App\Models\Fabricante;
-use App\Models\TipoEquipo;
-use App\Models\TipoMagnitud;
-use App\Models\UnidadMedida;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Fabricante;
+use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Equipos\Models\DocumentoEquipo;
+use App\Modules\Equipos\Models\Equipo;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 

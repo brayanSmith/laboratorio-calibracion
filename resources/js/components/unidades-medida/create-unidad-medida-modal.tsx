@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import UnidadMedidaController from '@/actions/App/Http/Controllers/UnidadMedidaController';
+import UnidadMedidaController from '@/actions/App/Modules/Catalogos/Http/Controllers/UnidadMedidaController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -53,7 +53,7 @@ export default function CreateUnidadMedidaModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="unidad-medida-create-submit"
                                 >
                                     Guardar unidad de medida

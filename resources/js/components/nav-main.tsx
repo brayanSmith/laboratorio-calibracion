@@ -14,8 +14,11 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { Spinner } from '@/components/ui/spinner';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { useNavegacionPendiente } from '@/hooks/use-navegacion-pendiente';
 import { normalizeText } from '@/lib/data-table';
+import { toUrl } from '@/lib/utils';
 import type { NavBadge, NavGroup } from '@/types';
 
 const STORAGE_KEY = 'sidebar-collapsed-groups';
@@ -73,6 +76,12 @@ function NavItemBadges({ badges }: { badges?: NavBadge[] }) {
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
     const { isCurrentUrl } = useCurrentUrl();
+    const rutaPendiente = useNavegacionPendiente();
+
+    // El ítem del menú muestra un spinner mientras carga la página a la que lleva.
+    const estaCargando = (href: NavGroup['items'][number]['href']): boolean =>
+        rutaPendiente !== null &&
+        new URL(toUrl(href), window.location.origin).pathname === rutaPendiente;
     const [query, setQuery] = useState('');
     const [collapsedGroups, setCollapsedGroups] = useState<
         Record<string, boolean>
@@ -146,8 +155,19 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                             isActive={isCurrentUrl(item.href)}
                                             tooltip={{ children: item.title }}
                                         >
-                                            <Link href={item.href} prefetch>
-                                                {item.icon && <item.icon />}
+                                            <Link
+                                                href={item.href}
+                                                prefetch
+                                                aria-busy={
+                                                    estaCargando(item.href) ||
+                                                    undefined
+                                                }
+                                            >
+                                                {estaCargando(item.href) ? (
+                                                    <Spinner data-test="nav-item-cargando" />
+                                                ) : (
+                                                    item.icon && <item.icon />
+                                                )}
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
@@ -187,8 +207,19 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                             isActive={isCurrentUrl(item.href)}
                                             tooltip={{ children: item.title }}
                                         >
-                                            <Link href={item.href} prefetch>
-                                                {item.icon && <item.icon />}
+                                            <Link
+                                                href={item.href}
+                                                prefetch
+                                                aria-busy={
+                                                    estaCargando(item.href) ||
+                                                    undefined
+                                                }
+                                            >
+                                                {estaCargando(item.href) ? (
+                                                    <Spinner data-test="nav-item-cargando" />
+                                                ) : (
+                                                    item.icon && <item.icon />
+                                                )}
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>

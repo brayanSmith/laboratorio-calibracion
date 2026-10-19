@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import AreaController from '@/actions/App/Http/Controllers/AreaController';
+import AreaController from '@/actions/App/Modules/Catalogos/Http/Controllers/AreaController';
 import AreaFormFields from '@/components/areas/area-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +48,7 @@ export default function CreateAreaModal({ children }: PropsWithChildren) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="area-create-submit"
                                 >
                                     Guardar área

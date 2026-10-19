@@ -60,7 +60,7 @@ export default function DeleteCalibracionModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="calibracion-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar calibración
                                 </Button>

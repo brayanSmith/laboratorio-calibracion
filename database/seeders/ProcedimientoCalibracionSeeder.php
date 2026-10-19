@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\ProcedimientoCalibracion;
 use App\Models\Tenant;
+use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
 use Illuminate\Database\Seeder;
 
 class ProcedimientoCalibracionSeeder extends Seeder

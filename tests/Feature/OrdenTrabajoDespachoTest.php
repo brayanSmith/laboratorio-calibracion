@@ -1,11 +1,11 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\Despacho;
-use App\Models\OrdenTrabajo;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Despachos\Models\Despacho;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

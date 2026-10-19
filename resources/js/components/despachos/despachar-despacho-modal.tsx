@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import DespachoController from '@/actions/App/Http/Controllers/DespachoController';
+import DespachoController from '@/actions/App/Modules/Despachos/Http/Controllers/DespachoController';
 import Combobox from '@/components/combobox';
 import FirmaCanvas from '@/components/firma-canvas';
 import InputError from '@/components/input-error';
@@ -255,7 +255,7 @@ function DespacharFormulario({
                         </DialogClose>
                         <Button
                             type="submit"
-                            disabled={processing}
+                            loading={processing}
                             data-test="despachar-submit"
                         >
                             Guardar despacho

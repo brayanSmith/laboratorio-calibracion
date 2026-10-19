@@ -57,7 +57,7 @@ export default function AjustesPlataforma({ ajuste }: Props) {
 
                             <Button
                                 type="submit"
-                                disabled={processing}
+                                loading={processing}
                                 data-test="ajustes-plataforma-submit"
                             >
                                 Guardar cambios

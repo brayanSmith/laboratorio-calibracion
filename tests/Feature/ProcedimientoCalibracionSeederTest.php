@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\ProcedimientoCalibracion;
 use App\Models\Tenant;
+use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
 use Database\Seeders\ProcedimientoCalibracionSeeder;
 
 test('el seeder crea los procedimientos de calibracion por defecto en cada tenant sin duplicarlos', function () {

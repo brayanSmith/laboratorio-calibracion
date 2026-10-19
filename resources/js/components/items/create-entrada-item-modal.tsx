@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import EntradaItemController from '@/actions/App/Http/Controllers/EntradaItemController';
+import EntradaItemController from '@/actions/App/Modules/Inventario/Http/Controllers/EntradaItemController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -161,7 +161,7 @@ export default function CreateEntradaItemModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="entrada-item-create-submit"
                                 >
                                     Guardar entrada

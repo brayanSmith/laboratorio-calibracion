@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\TipoMagnitud;
 use Database\Seeders\TipoMagnitudSeeder;
 
 test('el seeder crea los tipos de magnitud por defecto en cada tenant sin duplicarlos', function () {

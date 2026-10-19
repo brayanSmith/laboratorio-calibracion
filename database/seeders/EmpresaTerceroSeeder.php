@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\EmpresaTercero;
 use App\Models\Tenant;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Database\Seeder;
 
 class EmpresaTerceroSeeder extends Seeder

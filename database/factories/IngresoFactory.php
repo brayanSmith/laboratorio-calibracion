@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\Ingreso;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Ingresos\Models\Ingreso;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

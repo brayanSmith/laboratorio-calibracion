@@ -60,7 +60,7 @@ export default function DeleteEmpresaTerceroModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="empresaTercero-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar empresa tercera
                                 </Button>

@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Item;
 use App\Models\Tenant;
+use App\Modules\Inventario\Models\Item;
 use Database\Seeders\ItemSeeder;
 
 test('el seeder crea los items por defecto en cada tenant sin duplicarlos', function () {

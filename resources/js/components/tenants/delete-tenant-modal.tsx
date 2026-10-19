@@ -59,7 +59,7 @@ export default function DeleteTenantModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="tenant-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar tenant
                                 </Button>

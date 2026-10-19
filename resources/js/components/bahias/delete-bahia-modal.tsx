@@ -54,7 +54,7 @@ export default function DeleteBahiaModal({ bahia, open, onOpenChange }: Props) {
                                     variant="destructive"
                                     type="submit"
                                     data-test="bahia-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar bahía
                                 </Button>

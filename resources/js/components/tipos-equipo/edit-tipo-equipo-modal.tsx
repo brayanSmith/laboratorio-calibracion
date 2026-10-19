@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import TipoEquipoController from '@/actions/App/Http/Controllers/TipoEquipoController';
+import TipoEquipoController from '@/actions/App/Modules/Catalogos/Http/Controllers/TipoEquipoController';
 import TipoEquipoFormFields from '@/components/tipos-equipo/tipo-equipo-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +61,7 @@ export default function EditTipoEquipoModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="tipo-equipo-update-submit"
                                 >
                                     Guardar cambios

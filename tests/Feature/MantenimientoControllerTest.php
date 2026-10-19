@@ -2,16 +2,16 @@
 
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\EmpresaTercero;
-use App\Models\Item;
-use App\Models\Mantenimiento;
-use App\Models\Novedad;
-use App\Models\OrdenTrabajo;
-use App\Models\ServicioTercero;
 use App\Models\Tenant;
-use App\Models\TiempoServicio;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Inventario\Models\Item;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\PermissionRegistrar;

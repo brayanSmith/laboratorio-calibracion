@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { type PropsWithChildren, useState } from 'react';
-import EquipoController from '@/actions/App/Http/Controllers/EquipoController';
+import EquipoController from '@/actions/App/Modules/Equipos/Http/Controllers/EquipoController';
 import EquipoDocumentosEditarFields from '@/components/equipos/equipo-documentos-editar-fields';
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
@@ -202,7 +202,7 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="equipo-update-button"
                                 >
                                     Guardar cambios

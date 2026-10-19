@@ -2,7 +2,7 @@ import { Form, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
 import InputError from '@/components/input-error';
-import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
+import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import FinalizarMantenimientoModal from '@/components/mantenimientos/finalizar-mantenimiento-modal';
 import MantenimientoChecklist from '@/components/mantenimientos/mantenimiento-checklist';
 import MantenimientoComentarios from '@/components/mantenimientos/mantenimiento-comentarios';
@@ -383,7 +383,7 @@ function GestionarMantenimientoFormulario({
                             ) : null}
                             <Button
                                 type="submit"
-                                disabled={processing}
+                                loading={processing}
                                 data-test="gestionar-mantenimiento-submit"
                             >
                                 Guardar

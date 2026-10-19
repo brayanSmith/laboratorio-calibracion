@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Laboratorio;
 use App\Models\Tenant;
+use App\Modules\Calibraciones\Models\Laboratorio;
 use Illuminate\Database\Seeder;
 
 class LaboratorioSeeder extends Seeder

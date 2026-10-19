@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Novedad;
 use App\Models\Tenant;
+use App\Modules\Catalogos\Models\Novedad;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

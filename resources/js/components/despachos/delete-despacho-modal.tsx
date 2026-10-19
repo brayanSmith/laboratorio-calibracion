@@ -56,7 +56,7 @@ export default function DeleteDespachoModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="despacho-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar despacho
                                 </Button>

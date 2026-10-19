@@ -56,7 +56,7 @@ export default function EditEmpresaModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="empresa-update-submit"
                                 >
                                     Guardar cambios

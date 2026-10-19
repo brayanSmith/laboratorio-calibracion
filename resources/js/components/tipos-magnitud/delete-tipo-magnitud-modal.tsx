@@ -60,7 +60,7 @@ export default function DeleteTipoMagnitudModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="tipo-magnitud-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar tipo de magnitud
                                 </Button>

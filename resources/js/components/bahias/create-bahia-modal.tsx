@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import BahiaController from '@/actions/App/Http/Controllers/BahiaController';
+import BahiaController from '@/actions/App/Modules/Catalogos/Http/Controllers/BahiaController';
 import BahiaFormFields from '@/components/bahias/bahia-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,7 +53,7 @@ export default function CreateBahiaModal({ areas, children }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="bahia-create-submit"
                                 >
                                     Guardar bahía

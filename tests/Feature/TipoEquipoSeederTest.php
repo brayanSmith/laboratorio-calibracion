@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoEquipo;
 use Database\Seeders\TipoEquipoSeeder;
 
 test('el seeder crea los tipos de equipo por defecto en cada tenant sin duplicarlos', function () {

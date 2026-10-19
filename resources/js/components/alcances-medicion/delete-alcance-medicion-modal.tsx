@@ -63,7 +63,7 @@ export default function DeleteAlcanceMedicionModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="alcance-medicion-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar alcance
                                 </Button>

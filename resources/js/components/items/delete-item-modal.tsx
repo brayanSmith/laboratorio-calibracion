@@ -53,7 +53,7 @@ export default function DeleteItemModal({ item, open, onOpenChange }: Props) {
                                     variant="destructive"
                                     type="submit"
                                     data-test="item-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar ítem
                                 </Button>

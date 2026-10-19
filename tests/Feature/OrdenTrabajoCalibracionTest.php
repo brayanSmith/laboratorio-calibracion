@@ -1,20 +1,20 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\Calibracion;
-use App\Models\DetalleMedicionAlcance;
-use App\Models\DetalleMedicionCalibracion;
-use App\Models\EmpresaTercero;
-use App\Models\EquipoEspecificacionTecnica;
-use App\Models\MedicionAlcance;
-use App\Models\Novedad;
-use App\Models\OrdenTrabajo;
-use App\Models\ServicioTercero;
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
-use App\Models\UnidadMedida;
 use App\Models\User;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
+use App\Modules\Calibraciones\Models\Calibracion;
+use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Catalogos\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -102,9 +102,10 @@ test('agenda calibracion con un tecnico propio y crea la calibracion con la nove
 
     expect(ServicioTercero::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
 
-    expect($orden->equipoProgramacion->refresh())
-        ->fase_programacion->toBe('CALIBRACION')
-        ->subfase_programacion->toBe('Pendiente');
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($orden->equipoProgramacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('CALIBRACION')
+        ->seguimiento->toBe('PENDIENTE');
 });
 
 test('agenda calibracion y crea un detalle_medicion_calibracion por cada detalle del alcance del equipo', function () {

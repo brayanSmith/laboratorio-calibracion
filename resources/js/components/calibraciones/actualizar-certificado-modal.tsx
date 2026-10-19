@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
+import CalibracionController from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,17 +32,21 @@ export default function ActualizarCertificadoModal({
             <DialogContent>
                 <Form
                     key={String(open)}
-                    {...CalibracionController.actualizarCertificado.form(calibracion.id)}
+                    {...CalibracionController.actualizarCertificado.form(
+                        calibracion.id,
+                    )}
                     onSuccess={() => onOpenChange(false)}
                 >
                     {({ processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>¿Actualizar certificado?</DialogTitle>
+                                <DialogTitle>
+                                    ¿Actualizar certificado?
+                                </DialogTitle>
                                 <DialogDescription>
-                                    El certificado PDF se volverá a generar con los
-                                    datos y el diseño actuales y reemplazará al
-                                    guardado. ¿Desea continuar?
+                                    El certificado PDF se volverá a generar con
+                                    los datos y el diseño actuales y reemplazará
+                                    al guardado. ¿Desea continuar?
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter className="gap-2">
@@ -53,7 +57,7 @@ export default function ActualizarCertificadoModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="actualizar-certificado-confirm"
                                 >
                                     Sí, actualizar

@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Item;
 use App\Models\Tenant;
+use App\Modules\Inventario\Models\Item;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

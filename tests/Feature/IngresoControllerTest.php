@@ -1,14 +1,14 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\EquipoProgramacion;
-use App\Models\Ingreso;
-use App\Models\Novedad;
-use App\Models\OrdenTrabajo;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Models\Ingreso;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -218,8 +218,12 @@ test('agenda un equipo correctivo al crear el ingreso y lo enlaza con su ingreso
         ->tipo_mantenimiento->toBe('CORRECTIVO')
         ->tipo_servicio->toBe('MANTENIMIENTO,CALIBRACION')
         ->falla_detectada->toBe('El equipo no enciende')
-        ->estado_programacion->toBe('AGENDADO')
-        ->subfase_programacion->toBe('Ingresado');
+        ->estado_programacion->toBe('AGENDADO');
+
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($programacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('INGRESO')
+        ->seguimiento->toBe('AGENDADO');
 });
 
 test('no enlaza una programacion marcada con agendar=false al crear el ingreso', function () {
@@ -240,9 +244,12 @@ test('no enlaza una programacion marcada con agendar=false al crear el ingreso',
     expect($programacion->fresh())
         ->ingreso_id->toBeNull()
         ->estado_programacion->toBe('PENDIENTE')
-        ->agendar->toBeFalse()
-        ->fase_programacion->toBe('PENDIENTE')
-        ->subfase_programacion->toBeNull();
+        ->agendar->toBeFalse();
+
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($programacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('BAHIA')
+        ->seguimiento->toBe('PENDIENTE');
 });
 
 test('agenda y enlaza una programacion marcada con agendar=true al editar el ingreso', function () {
@@ -261,9 +268,12 @@ test('agenda y enlaza una programacion marcada con agendar=true al editar el ing
     expect($programacion->fresh())
         ->ingreso_id->toBe($ingreso->id)
         ->estado_programacion->toBe('AGENDADO')
-        ->agendar->toBeTrue()
-        ->fase_programacion->toBe('INGRESO')
-        ->subfase_programacion->toBe('Ingresado');
+        ->agendar->toBeTrue();
+
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($programacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('INGRESO')
+        ->seguimiento->toBe('AGENDADO');
 });
 
 test('un usuario sin permiso de editar equipos no puede tocar programaciones al crear un ingreso', function () {
@@ -488,9 +498,13 @@ test('marca un equipo programado como no ingresado, dejandolo cancelado con su n
     expect($programacion->fresh())
         ->ingresado->toBeFalse()
         ->estado_programacion->toBe('CANCELADO')
-        ->subfase_programacion->toBe('Pendiente')
         ->novedad_ingreso_id->toBe($novedad->id)
         ->observacion_no_ingreso->toBe('El cliente no trajo el equipo');
+
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($programacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('INGRESO')
+        ->seguimiento->toBe('CANCELADO');
 });
 
 test('rechaza un equipo recibido que no pertenece a este ingreso', function () {

@@ -62,7 +62,7 @@ export default function DeleteProcedimientoCalibracionModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="procedimiento-calibracion-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar procedimiento
                                 </Button>

@@ -4,15 +4,15 @@ namespace App\Http\Middleware;
 
 use App\Enums\TenantPermission;
 use App\Models\AjustePlataforma;
-use App\Models\Calibracion;
-use App\Models\Despacho;
 use App\Models\Empresa;
-use App\Models\EquipoProgramacion;
-use App\Models\Ingreso;
-use App\Models\Mantenimiento;
-use App\Models\OrdenTrabajo;
-use App\Models\ServicioTercero;
 use App\Models\User;
+use App\Modules\Calibraciones\Models\Calibracion;
+use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Models\Ingreso;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 

@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import ClienteController from '@/actions/App/Http/Controllers/ClienteController';
+import ClienteController from '@/actions/App/Modules/Catalogos/Http/Controllers/ClienteController';
 import ClienteFormFields from '@/components/clientes/cliente-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,7 +60,7 @@ export default function EditClienteModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="cliente-update-submit"
                                 >
                                     Guardar cambios

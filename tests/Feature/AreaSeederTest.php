@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Area;
 use App\Models\Tenant;
+use App\Modules\Catalogos\Models\Area;
 use Database\Seeders\AreaSeeder;
 
 test('el seeder crea las areas por defecto en cada tenant sin duplicarlas', function () {

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\TipoMagnitud;
 use Illuminate\Database\Seeder;
 
 class TipoMagnitudSeeder extends Seeder

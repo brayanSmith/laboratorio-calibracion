@@ -5,7 +5,6 @@ import PasswordInput from '@/components/password-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import { logout } from '@/routes';
 import { update } from '@/routes/password-change';
 
@@ -80,10 +79,9 @@ export default function PasswordChange({ passwordRules }: Props) {
 
                         <Button
                             className="w-full"
-                            disabled={processing}
+                            loading={processing}
                             data-test="password-change-button"
                         >
-                            {processing && <Spinner />}
                             Cambiar contraseña
                         </Button>
 

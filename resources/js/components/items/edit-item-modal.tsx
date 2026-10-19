@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import ItemController from '@/actions/App/Http/Controllers/ItemController';
+import ItemController from '@/actions/App/Modules/Inventario/Http/Controllers/ItemController';
 import ItemFormFields from '@/components/items/item-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,7 +53,7 @@ export default function EditItemModal({ item, open, onOpenChange }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="item-update-submit"
                                 >
                                     Guardar cambios

@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import DespachoController from '@/actions/App/Http/Controllers/DespachoController';
+import DespachoController from '@/actions/App/Modules/Despachos/Http/Controllers/DespachoController';
 import DespachoFormFields from '@/components/despachos/despacho-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,7 +66,7 @@ export default function EditDespachoModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="despacho-update-submit"
                                 >
                                     Guardar cambios

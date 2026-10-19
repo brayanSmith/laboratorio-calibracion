@@ -53,7 +53,7 @@ export default function TenantsEdit({ tenant, users, roles }: Props) {
                             <div className="flex items-center gap-4">
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="tenant-update-button"
                                 >
                                     Guardar cambios

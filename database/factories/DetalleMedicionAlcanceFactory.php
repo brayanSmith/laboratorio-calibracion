@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\DetalleMedicionAlcance;
-use App\Models\MedicionAlcance;
 use App\Models\Tenant;
-use App\Models\UnidadMedida;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
+use App\Modules\Catalogos\Models\UnidadMedida;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

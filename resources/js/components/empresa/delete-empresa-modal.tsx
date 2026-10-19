@@ -53,7 +53,7 @@ export default function DeleteEmpresaModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="empresa-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar empresa
                                 </Button>

@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
+import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -60,7 +60,7 @@ export default function IniciarMantenimientoModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="iniciar-mantenimiento-confirm"
                                 >
                                     Sí, iniciar

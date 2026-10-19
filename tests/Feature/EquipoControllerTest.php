@@ -1,17 +1,17 @@
 <?php
 
-use App\Models\Area;
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\DocumentoEquipo;
-use App\Models\Equipo;
-use App\Models\EquipoEspecificacionTecnica;
-use App\Models\EquipoProgramacion;
-use App\Models\Fabricante;
 use App\Models\Tenant;
-use App\Models\TipoMagnitud;
-use App\Models\UnidadMedida;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Fabricante;
+use App\Modules\Catalogos\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Equipos\Models\DocumentoEquipo;
+use App\Modules\Equipos\Models\Equipo;
+use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 

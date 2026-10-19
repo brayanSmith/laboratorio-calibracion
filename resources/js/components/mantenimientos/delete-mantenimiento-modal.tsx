@@ -60,7 +60,7 @@ export default function DeleteMantenimientoModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="mantenimiento-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar mantenimiento
                                 </Button>

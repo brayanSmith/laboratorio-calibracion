@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { ChevronRight, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { actualizarEstado } from '@/actions/App/Http/Controllers/IngresoController';
+import { actualizarEstado } from '@/actions/App/Modules/Ingresos/Http/Controllers/IngresoController';
 import Combobox from '@/components/combobox';
 import FirmaCanvas from '@/components/firma-canvas';
 import {
@@ -473,7 +473,7 @@ function RecibirIngresoFormulario({
                         ) : (
                             <Button
                                 type="submit"
-                                disabled={processing}
+                                loading={processing}
                                 data-test="ingreso-recibir-submit"
                             >
                                 Guardar

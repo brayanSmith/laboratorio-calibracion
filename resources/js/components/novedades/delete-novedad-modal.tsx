@@ -58,7 +58,7 @@ export default function DeleteNovedadModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="novedad-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar novedad
                                 </Button>

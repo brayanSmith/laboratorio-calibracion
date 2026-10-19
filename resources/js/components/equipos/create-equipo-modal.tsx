@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import EquipoController from '@/actions/App/Http/Controllers/EquipoController';
+import EquipoController from '@/actions/App/Modules/Equipos/Http/Controllers/EquipoController';
 import EquipoDocumentosFields from '@/components/equipos/equipo-documentos-fields';
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
@@ -156,7 +156,7 @@ export default function CreateEquipoModal({ options, children }: Props) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="equipo-create-submit"
                                 >
                                     Guardar equipo

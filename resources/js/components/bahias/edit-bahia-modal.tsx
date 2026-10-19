@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import BahiaController from '@/actions/App/Http/Controllers/BahiaController';
+import BahiaController from '@/actions/App/Modules/Catalogos/Http/Controllers/BahiaController';
 import BahiaFormFields from '@/components/bahias/bahia-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,7 +63,7 @@ export default function EditBahiaModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="bahia-update-submit"
                                 >
                                     Guardar cambios

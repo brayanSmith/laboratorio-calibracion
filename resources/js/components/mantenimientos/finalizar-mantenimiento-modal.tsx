@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
+import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -150,7 +150,7 @@ export default function FinalizarMantenimientoModal({
                                 <Button
                                     type="submit"
                                     className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="confirmar-finalizar-button"
                                 >
                                     Finalizar

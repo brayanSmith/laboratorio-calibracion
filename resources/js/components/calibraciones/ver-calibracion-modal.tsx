@@ -1,6 +1,6 @@
 import { Printer } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { certificado } from '@/actions/App/Http/Controllers/CalibracionController';
+import { certificado } from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

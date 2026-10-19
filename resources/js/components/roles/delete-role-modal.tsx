@@ -53,7 +53,7 @@ export default function DeleteRoleModal({ role, open, onOpenChange }: Props) {
                                     variant="destructive"
                                     type="submit"
                                     data-test="role-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar rol
                                 </Button>

@@ -1,15 +1,15 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Area;
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\Despacho;
-use App\Models\Equipo;
-use App\Models\Fabricante;
-use App\Models\Ingreso;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Fabricante;
+use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\Equipo;
+use App\Modules\Ingresos\Models\Ingreso;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {

@@ -95,7 +95,7 @@ export default function EditUsuarioModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="usuario-update-submit"
                                 >
                                     Guardar usuario

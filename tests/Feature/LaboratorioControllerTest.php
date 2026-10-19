@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Calibracion;
-use App\Models\Laboratorio;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Calibraciones\Models\Calibracion;
+use App\Modules\Calibraciones\Models\Laboratorio;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {

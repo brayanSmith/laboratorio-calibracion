@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Concerns\ListaEquipos;
 use App\Enums\TenantPermission;
-use App\Models\Equipo;
-use App\Models\EquipoProgramacion;
+use App\Modules\Equipos\Models\Equipo;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;

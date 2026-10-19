@@ -1,13 +1,13 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\Cliente;
-use App\Models\Despacho;
-use App\Models\EquipoProgramacion;
-use App\Models\Novedad;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -59,9 +59,10 @@ test('actualiza un despacho', function () {
         ->estado_despacho->toBe('ENTREGADO')
         ->novedad_id->toBe($novedad->id);
 
-    expect($despacho->ordenTrabajo->equipoProgramacion->refresh())
-        ->fase_programacion->toBe('DESPACHO')
-        ->subfase_programacion->toBe('Entregado');
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($despacho->ordenTrabajo->equipoProgramacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('DESPACHO')
+        ->seguimiento->toBe('ENTREGADO');
 });
 
 test('actualiza la firma de un despacho con una imagen', function () {

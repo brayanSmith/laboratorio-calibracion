@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Laboratorio;
 use App\Models\Tenant;
+use App\Modules\Calibraciones\Models\Laboratorio;
 use Database\Seeders\LaboratorioSeeder;
 
 test('el seeder crea los laboratorios por defecto en cada tenant sin duplicarlos', function () {

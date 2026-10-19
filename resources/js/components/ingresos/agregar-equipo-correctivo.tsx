@@ -40,10 +40,11 @@ export function AgregarEquipoCorrectivo({
 }: AgregarEquipoCorrectivoProps) {
     const [equipoId, setEquipoId] = useState('');
     const [fallaDetectada, setFallaDetectada] = useState('');
-    const { get: cargarEquipos, response: equipos } = useHttp<
-        { bahia_id: string },
-        EquipoDisponibleItem[]
-    >();
+    const {
+        get: cargarEquipos,
+        response: equipos,
+        processing: cargandoEquipos,
+    } = useHttp<{ bahia_id: string }, EquipoDisponibleItem[]>();
 
     useEffect(() => {
         void cargarEquipos(
@@ -89,6 +90,7 @@ export function AgregarEquipoCorrectivo({
                     placeholder="Selecciona un equipo"
                     searchPlaceholder="Buscar equipo..."
                     emptyMessage="Sin equipos en esta bahía."
+                    loading={cargandoEquipos}
                 />
             </div>
 

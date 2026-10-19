@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
+import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,7 +32,9 @@ export default function ActualizarInformeModal({
             <DialogContent>
                 <Form
                     key={String(open)}
-                    {...MantenimientoController.actualizarInforme.form(mantenimiento.id)}
+                    {...MantenimientoController.actualizarInforme.form(
+                        mantenimiento.id,
+                    )}
                     onSuccess={() => onOpenChange(false)}
                 >
                     {({ processing }) => (
@@ -53,7 +55,7 @@ export default function ActualizarInformeModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="actualizar-informe-confirm"
                                 >
                                     Sí, actualizar

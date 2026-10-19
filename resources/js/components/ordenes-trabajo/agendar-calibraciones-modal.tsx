@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import {
     equiposListosCalibracion,
     storeCalibracion,
-} from '@/actions/App/Http/Controllers/OrdenTrabajoController';
+} from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
+import CargandoContenido from '@/components/cargando-contenido';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -78,7 +79,9 @@ export default function AgendarCalibracionesModal({
                                 </DialogDescription>
                             </DialogHeader>
 
-                            {!cargando && ordenes.length === 0 ? (
+                            {cargando ? (
+                                <CargandoContenido />
+                            ) : ordenes.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
                                     No hay órdenes de trabajo pendientes de
                                     agendar calibración.
@@ -109,9 +112,8 @@ export default function AgendarCalibracionesModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={
-                                        processing || ordenes.length === 0
-                                    }
+                                    disabled={ordenes.length === 0}
+                                    loading={processing}
                                     data-test="agendar-calibraciones-submit"
                                 >
                                     Guardar

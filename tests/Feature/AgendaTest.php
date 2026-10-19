@@ -1,9 +1,9 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {

@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

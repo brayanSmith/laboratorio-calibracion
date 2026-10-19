@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Area;
-use App\Models\DetalleMedicionAlcance;
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

@@ -59,7 +59,7 @@ export default function DeleteTipoEquipoModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="tipo-equipo-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar tipo de equipo
                                 </Button>

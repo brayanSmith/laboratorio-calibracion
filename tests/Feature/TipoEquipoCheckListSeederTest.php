@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
-use App\Models\TipoEquipoCheckList;
+use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoEquipoCheckList;
 use Database\Seeders\TipoEquipoCheckListSeeder;
 
 test('el seeder crea el checklist de cada tipo de equipo en cada tenant sin duplicarlo', function () {

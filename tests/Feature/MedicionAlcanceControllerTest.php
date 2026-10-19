@@ -1,12 +1,12 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\DetalleMedicionAlcance;
-use App\Models\MedicionAlcance;
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
-use App\Models\UnidadMedida;
 use App\Models\User;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
+use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\UnidadMedida;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

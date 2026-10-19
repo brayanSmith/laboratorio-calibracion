@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
-import ServicioTerceroController from '@/actions/App/Http/Controllers/ServicioTerceroController';
+import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import CodigosServicioFields from '@/components/servicio-terceros/codigos-servicio-fields';
 import EquipoServicioCard from '@/components/servicio-terceros/equipo-servicio-card';
 import { Button } from '@/components/ui/button';
@@ -78,7 +78,7 @@ function ContinuarServicioTerceroForm({
                         </DialogClose>
                         <Button
                             type="submit"
-                            disabled={processing}
+                            loading={processing}
                             data-test="servicio-tercero-guardar-codigos-button"
                         >
                             Guardar

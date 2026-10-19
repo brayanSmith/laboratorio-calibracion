@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Tenant;
-use App\Models\UnidadMedida;
+use App\Modules\Catalogos\Models\UnidadMedida;
 use Database\Seeders\UnidadMedidaSeeder;
 
 test('el seeder crea las unidades de medida por defecto en cada tenant sin duplicarlas', function () {

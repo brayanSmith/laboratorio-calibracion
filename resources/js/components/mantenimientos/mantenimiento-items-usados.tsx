@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
+import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import ColumnResizeHandle from '@/components/column-resize-handle';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';

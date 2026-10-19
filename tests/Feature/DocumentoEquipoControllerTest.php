@@ -1,9 +1,9 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\DocumentoEquipo;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Equipos\Models\DocumentoEquipo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 

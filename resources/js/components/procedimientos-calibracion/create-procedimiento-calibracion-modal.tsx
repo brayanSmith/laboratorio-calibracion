@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import ProcedimientoCalibracionController from '@/actions/App/Http/Controllers/ProcedimientoCalibracionController';
+import ProcedimientoCalibracionController from '@/actions/App/Modules/Calibraciones/Http/Controllers/ProcedimientoCalibracionController';
 import ProcedimientoCalibracionFormFields from '@/components/procedimientos-calibracion/procedimiento-calibracion-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,7 +54,7 @@ export default function CreateProcedimientoCalibracionModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="procedimiento-calibracion-create-submit"
                                 >
                                     Guardar procedimiento

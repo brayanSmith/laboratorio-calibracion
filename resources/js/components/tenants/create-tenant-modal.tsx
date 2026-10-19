@@ -49,7 +49,7 @@ export default function CreateTenantModal({ children }: PropsWithChildren) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="tenant-create-submit"
                                 >
                                     Guardar tenant

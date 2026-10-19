@@ -58,7 +58,7 @@ export default function DeleteEquipoModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="equipo-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar equipo
                                 </Button>

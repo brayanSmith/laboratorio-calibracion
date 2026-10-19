@@ -7,7 +7,7 @@ import FullCalendar from '@fullcalendar/react';
 import { ExternalLink, Gauge, RefreshCw, Truck, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { eventos } from '@/actions/App/Http/Controllers/AgendaController';
+import { eventos } from '@/actions/App/Modules/Agenda/Http/Controllers/AgendaController';
 import AgendaFiltroTecnicos from '@/components/agenda/agenda-filtro-tecnicos';
 import type { TecnicoAgenda } from '@/components/agenda/agenda-filtro-tecnicos';
 import { usePermissions } from '@/hooks/use-permissions';

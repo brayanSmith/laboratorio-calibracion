@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\EmpresaTercero;
-use App\Models\ServicioTercero;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {

@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
-import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
+import CalibracionController from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import CalibracionFormFields from '@/components/calibraciones/calibracion-form-fields';
 import FinalizarCalibracionModal from '@/components/calibraciones/finalizar-calibracion-modal';
 import { Button } from '@/components/ui/button';
@@ -160,7 +160,7 @@ function EditCalibracionFormulario({
                             ) : null}
                             <Button
                                 type="submit"
-                                disabled={processing}
+                                loading={processing}
                                 data-test="calibracion-update-submit"
                             >
                                 Guardar cambios

@@ -68,7 +68,7 @@ export default function DeleteIngresoModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="ingreso-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar ingreso
                                 </Button>

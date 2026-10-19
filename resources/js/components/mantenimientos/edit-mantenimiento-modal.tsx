@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import MantenimientoController from '@/actions/App/Http/Controllers/MantenimientoController';
+import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import MantenimientoFormFields from '@/components/mantenimientos/mantenimiento-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,7 +65,7 @@ export default function EditMantenimientoModal({
                                 </DialogClose>
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="mantenimiento-update-submit"
                                 >
                                     Guardar cambios

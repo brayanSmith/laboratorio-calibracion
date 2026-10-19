@@ -1,18 +1,18 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\ComentarioMantenimiento;
-use App\Models\EntradaItem;
-use App\Models\GaleriaMantenimiento;
-use App\Models\Item;
-use App\Models\ItemMantenimiento;
-use App\Models\Mantenimiento;
-use App\Models\MantenimientoCheckList;
-use App\Models\MantenimientoDefectoIdentificado;
 use App\Models\Tenant;
-use App\Models\TipoEquipoCheckList;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\TipoEquipoCheckList;
+use App\Modules\Inventario\Models\EntradaItem;
+use App\Modules\Inventario\Models\Item;
+use App\Modules\Mantenimientos\Models\ComentarioMantenimiento;
+use App\Modules\Mantenimientos\Models\GaleriaMantenimiento;
+use App\Modules\Mantenimientos\Models\ItemMantenimiento;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
+use App\Modules\Mantenimientos\Models\MantenimientoCheckList;
+use App\Modules\Mantenimientos\Models\MantenimientoDefectoIdentificado;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 

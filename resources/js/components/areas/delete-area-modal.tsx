@@ -54,7 +54,7 @@ export default function DeleteAreaModal({ area, open, onOpenChange }: Props) {
                                     variant="destructive"
                                     type="submit"
                                     data-test="area-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar área
                                 </Button>

@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
-import EmpresaTerceroController from '@/actions/App/Http/Controllers/EmpresaTerceroController';
+import EmpresaTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/EmpresaTerceroController';
 import EmpresaTerceroFormFields from '@/components/empresas-terceras/empresa-tercero-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,7 +51,7 @@ export default function CreateEmpresaTerceroModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="empresaTercero-create-submit"
                                 >
                                     Guardar empresa tercera

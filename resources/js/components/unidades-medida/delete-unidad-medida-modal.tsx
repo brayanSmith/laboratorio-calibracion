@@ -59,7 +59,7 @@ export default function DeleteUnidadMedidaModal({
                                     variant="destructive"
                                     type="submit"
                                     data-test="unidad-medida-delete-confirm"
-                                    disabled={processing}
+                                    loading={processing}
                                 >
                                     Eliminar unidad de medida
                                 </Button>

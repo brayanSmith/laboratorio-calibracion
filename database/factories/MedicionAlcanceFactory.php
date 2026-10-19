@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\MedicionAlcance;
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
+use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

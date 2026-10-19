@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Tenant;
-use App\Models\TipoEquipo;
-use App\Models\TipoEquipoCheckList;
+use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Catalogos\Models\TipoEquipoCheckList;
 use Illuminate\Database\Seeder;
 
 class TipoEquipoCheckListSeeder extends Seeder

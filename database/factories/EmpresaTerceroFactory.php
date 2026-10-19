@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\EmpresaTercero;
 use App\Models\Tenant;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

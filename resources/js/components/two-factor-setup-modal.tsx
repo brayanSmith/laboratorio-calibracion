@@ -215,9 +215,8 @@ function TwoFactorVerificationStep({
                             <Button
                                 type="submit"
                                 className="flex-1"
-                                disabled={
-                                    processing || code.length < OTP_MAX_LENGTH
-                                }
+                                disabled={code.length < OTP_MAX_LENGTH}
+                                loading={processing}
                             >
                                 Confirm
                             </Button>

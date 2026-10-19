@@ -50,7 +50,7 @@ export default function CreateEmpresaModal({ children }: PropsWithChildren) {
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="empresa-create-submit"
                                 >
                                     Registrar empresa

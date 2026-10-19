@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Area;
-use App\Models\Bahia;
 use App\Models\Tenant;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Bahia;
 use Illuminate\Database\Seeder;
 
 class BahiaSeeder extends Seeder

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Fabricante;
 use App\Models\Tenant;
+use App\Modules\Catalogos\Models\Fabricante;
 use Illuminate\Database\Seeder;
 
 class FabricanteSeeder extends Seeder

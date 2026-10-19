@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import FabricanteController from '@/actions/App/Http/Controllers/FabricanteController';
+import FabricanteController from '@/actions/App/Modules/Catalogos/Http/Controllers/FabricanteController';
 import FabricanteFormFields from '@/components/fabricantes/fabricante-form-fields';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,7 +60,7 @@ export default function EditFabricanteModal({
 
                                 <Button
                                     type="submit"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="fabricante-update-submit"
                                 >
                                     Guardar cambios

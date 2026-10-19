@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\EntradaItem;
-use App\Models\Item;
+use App\Modules\Inventario\Models\EntradaItem;
+use App\Modules\Inventario\Models\Item;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

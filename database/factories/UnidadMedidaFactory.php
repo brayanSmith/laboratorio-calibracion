@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Tenant;
-use App\Models\UnidadMedida;
+use App\Modules\Catalogos\Models\UnidadMedida;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

@@ -1,18 +1,18 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\Bahia;
-use App\Models\EmpresaTercero;
-use App\Models\EquipoProgramacion;
-use App\Models\Ingreso;
-use App\Models\Mantenimiento;
-use App\Models\MantenimientoCheckList;
-use App\Models\Novedad;
-use App\Models\OrdenTrabajo;
-use App\Models\ServicioTercero;
 use App\Models\Tenant;
-use App\Models\TipoEquipoCheckList;
 use App\Models\User;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Catalogos\Models\TipoEquipoCheckList;
+use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Models\Ingreso;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
+use App\Modules\Mantenimientos\Models\MantenimientoCheckList;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -194,9 +194,10 @@ test('agenda mantenimiento con un tecnico propio y crea el mantenimiento con la 
 
     expect(ServicioTercero::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
 
-    expect($programacion->refresh())
-        ->fase_programacion->toBe('MANTENIMIENTO')
-        ->subfase_programacion->toBe('Pendiente');
+    // fase_programacion/subfase_programacion ya no existen: el avance se registra como seguimiento.
+    expect($programacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('MANTENIMIENTO')
+        ->seguimiento->toBe('PENDIENTE');
 });
 
 test('crea el checklist del mantenimiento copiando los items del tipo de equipo', function () {

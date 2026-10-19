@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\TenantRole;
-use App\Models\EntradaItem;
-use App\Models\Item;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Inventario\Models\EntradaItem;
+use App\Modules\Inventario\Models\Item;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();

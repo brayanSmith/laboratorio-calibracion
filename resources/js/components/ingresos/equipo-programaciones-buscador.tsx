@@ -221,10 +221,11 @@ export default function EquipoProgramacionesBuscador({
                     type="button"
                     size="sm"
                     onClick={handleBuscar}
-                    disabled={!puedeBuscar || processing}
+                    disabled={!puedeBuscar}
+                    loading={processing}
                     data-test="buscar-programaciones-button"
                 >
-                    <Search className="h-4 w-4" /> Buscar
+                    {!processing && <Search className="h-4 w-4" />} Buscar
                 </Button>
             </div>
 

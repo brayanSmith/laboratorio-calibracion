@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import ServicioTerceroController from '@/actions/App/Http/Controllers/ServicioTerceroController';
+import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -208,7 +208,7 @@ export default function FinalizarServicioTerceroModal({
                                 <Button
                                     type="submit"
                                     className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-                                    disabled={processing}
+                                    loading={processing}
                                     data-test="confirmar-finalizar-servicio-button"
                                 >
                                     Finalizar
