@@ -134,7 +134,7 @@
         <tbody>
             <tr class="ultima">
                 <td>{{ data_get($equipo->ficha_tecnica, 'numero_activo') ?: $equipo->codigo }}</td>
-                <td>{{ $equipo->tipoEquipo->nombre }} - {{ $equipo->codigo }}</td>
+                <td>{{ $equipo->codigo_nombre }}</td>
                 <td>{{ $equipo->modelo }}</td>
                 <td>{{ $equipo->numero_serie }}</td>
                 <td>{{ $fecha($fechaVencimiento) }}</td>

@@ -295,12 +295,8 @@ class IngresoController extends Controller
             ->where('id', $correctivo['equipo_id'])
             ->firstOrFail();
 
-        $tipoServicio = $equipo->tipoEquipo->tipo_mantenimiento === 'A'
-            ? ['MANTENIMIENTO', 'CALIBRACION']
-            : ['MANTENIMIENTO'];
-
         $equipo->equipoProgramaciones()->create([
-            'tipo_servicio' => implode(',', $tipoServicio),
+            'tipo_servicio' => implode(',', $equipo->tipoEquipo->tiposServicio()),
             'tipo_mantenimiento' => 'CORRECTIVO',
             'falla_detectada' => $correctivo['falla_detectada'],
             'estado_programacion' => $estadoProgramacion,

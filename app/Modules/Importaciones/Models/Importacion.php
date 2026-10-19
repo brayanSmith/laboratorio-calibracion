@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Modules\Importaciones\Models;
+
+use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property string $tipo
+ * @property string $archivo
+ * @property string $nombre_original
+ * @property string $delimitador
+ * @property string $codificacion
+ * @property array<string, int> $mapeo campo del sistema => índice de la columna del CSV
+ * @property string $estado
+ * @property int $total_filas
+ * @property int $filas_procesadas
+ * @property int $filas_creadas
+ * @property int $filas_con_error
+ * @property list<array{fila: int, mensaje: string}>|null $errores
+ * @property int $user_id
+ * @property int $tenant_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
+ * @property-read Tenant $tenant
+ */
+#[Fillable([
+    'tipo', 'archivo', 'nombre_original', 'delimitador', 'codificacion', 'mapeo', 'estado',
+    'total_filas', 'filas_procesadas', 'filas_creadas', 'filas_con_error', 'errores',
+    'user_id', 'tenant_id',
+])]
+class Importacion extends Model
+{
+    public const ESTADO_PENDIENTE = 'PENDIENTE';
+
+    public const ESTADO_PROCESANDO = 'PROCESANDO';
+
+    public const ESTADO_COMPLETADA = 'COMPLETADA';
+
+    public const ESTADO_FALLIDA = 'FALLIDA';
+
+    /**
+     * Get the user who started this importación.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the tenant this importación belongs to.
+     *
+     * @return BelongsTo<Tenant, $this>
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Whether the importación is still waiting in the queue or being processed.
+     */
+    public function enCurso(): bool
+    {
+        return in_array($this->estado, [self::ESTADO_PENDIENTE, self::ESTADO_PROCESANDO], true);
+    }
+
+    /**
+     * Summary sent to the frontend to show the progress and the result.
+     *
+     * @return array{id: int, estado: string, nombre_original: string, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
+     */
+    public function resumen(): array
+    {
+        return [
+            'id' => $this->id,
+            'estado' => $this->estado,
+            'nombre_original' => $this->nombre_original,
+            'total_filas' => $this->total_filas,
+            'filas_procesadas' => $this->filas_procesadas,
+            'filas_creadas' => $this->filas_creadas,
+            'filas_con_error' => $this->filas_con_error,
+            'errores' => $this->errores ?? [],
+        ];
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'mapeo' => 'array',
+            'errores' => 'array',
+        ];
+    }
+}

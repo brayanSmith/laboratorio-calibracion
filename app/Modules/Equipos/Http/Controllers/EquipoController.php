@@ -46,7 +46,7 @@ class EquipoController extends Controller
                 ...$request->safe()->only([
                     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
                     'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'notas', 'activo',
-                    'patron_referencia', 'concatenar_codigo_nombre', 'requiere_programacion', 'cliente_id',
+                    'patron_referencia', 'requiere_programacion', 'cliente_id',
                 ]),
                 'ficha_tecnica' => $this->fichaTecnica($request),
                 'tenant_id' => $tenantId,
@@ -126,7 +126,7 @@ class EquipoController extends Controller
                 ...$request->safe()->only([
                     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
                     'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'notas', 'activo',
-                    'patron_referencia', 'concatenar_codigo_nombre', 'requiere_programacion', 'cliente_id',
+                    'patron_referencia', 'requiere_programacion', 'cliente_id',
                 ]),
                 'ficha_tecnica' => $this->fichaTecnica($request),
             ]);

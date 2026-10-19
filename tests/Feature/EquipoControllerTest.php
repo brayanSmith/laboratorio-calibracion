@@ -49,6 +49,41 @@ function datosEquipoBase(Tenant $tenant, array $overrides = []): array
     ], $overrides);
 }
 
+test('el codigo y nombre del equipo se concatena solo a partir del tipo de equipo y el codigo', function () {
+    $this->actingAs($this->admin)
+        ->post(route('equipos.store'), datosEquipoBase($this->tenant, ['codigo' => 'EQ-0001']))
+        ->assertRedirect();
+
+    $equipo = Equipo::firstOrFail();
+
+    expect($equipo->codigo_nombre)->toBe('Manómetro - EQ-0001');
+
+    $equipo->tipoEquipo->update(['nombre' => 'Vacuómetro']);
+
+    expect($equipo->fresh()->codigo_nombre)->toBe('Vacuómetro - EQ-0001');
+});
+
+test('acepta una resolucion de hasta 4 decimales', function () {
+    $unidadMedida = UnidadMedida::create(['nombre' => 'Milímetro', 'simbolo' => 'mm', 'tenant_id' => $this->tenant->id]);
+    $especificacion = fn (string $resolucion): array => datosEquipoBase($this->tenant, [
+        'tipo_magnitud_id' => TipoMagnitud::create(['nombre' => fake()->unique()->word(), 'tenant_id' => $this->tenant->id])->id,
+        'unidad_medida_id' => $unidadMedida->id,
+        'alcance_indicacion' => '0 a 25mm',
+        'precision' => '±0.5',
+        'resolucion' => $resolucion,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('equipos.store'), $especificacion('0.0005mm'))
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->admin)
+        ->post(route('equipos.store'), $especificacion('0.00005mm'))
+        ->assertSessionHasErrors('resolucion');
+
+    expect(EquipoEspecificacionTecnica::sole()->resolucion)->toBe('0.0005mm');
+});
+
 test('crea un equipo con solo los campos base', function () {
     $this->actingAs($this->admin)
         ->post(route('equipos.store'), datosEquipoBase($this->tenant))

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\TipoDocumentoCliente;
 use App\Models\Tenant;
 use App\Modules\Catalogos\Models\Cliente;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,6 +21,8 @@ class ClienteFactory extends Factory
     {
         return [
             'nombre' => fake()->company(),
+            'tipo_documento' => fake()->randomElement(TipoDocumentoCliente::cases()),
+            'numero_documento' => fake()->unique()->numerify('##########'),
             'email' => fake()->unique()->safeEmail(),
             'telefono' => fake()->optional()->phoneNumber(),
             'direccion' => fake()->optional()->address(),

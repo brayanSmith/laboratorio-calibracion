@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\TenantRole;
+use App\Enums\TipoDocumentoCliente;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Catalogos\Models\Area;
@@ -65,7 +66,11 @@ function registrarIngresoDeCliente(Cliente $cliente): Ingreso
 }
 
 test('lista solo los clientes del tenant con la cantidad de equipos asociados', function () {
-    $cliente = Cliente::factory()->for($this->tenant)->create(['nombre' => 'Acme']);
+    $cliente = Cliente::factory()->for($this->tenant)->create([
+        'nombre' => 'Acme',
+        'tipo_documento' => TipoDocumentoCliente::Nit,
+        'numero_documento' => '900123456',
+    ]);
     crearEquipoDeCliente($cliente);
     Cliente::factory()->create(['nombre' => 'Ajeno']);
 
@@ -76,7 +81,10 @@ test('lista solo los clientes del tenant con la cantidad de equipos asociados', 
             ->component('clientes/index')
             ->has('clientes', 1)
             ->where('clientes.0.nombre', 'Acme')
-            ->where('clientes.0.equipos_count', 1));
+            ->where('clientes.0.tipo_documento', 'NIT')
+            ->where('clientes.0.numero_documento', '900123456')
+            ->where('clientes.0.equipos_count', 1)
+            ->where('tiposDocumento.0', ['value' => 'NIT', 'label' => 'NIT']));
 });
 
 test('un usuario sin permiso de ver clientes no puede acceder', function () {
@@ -96,6 +104,16 @@ test('un tecnico puede ver pero no crear clientes', function () {
     expect(Cliente::count())->toBe(0);
 });
 
+/**
+ * Tipo y número de documento válidos, ahora obligatorios al crear o editar un cliente.
+ *
+ * @return array{tipo_documento: string, numero_documento: string}
+ */
+function documentoClienteValido(string $numero = '900123456'): array
+{
+    return ['tipo_documento' => 'NIT', 'numero_documento' => $numero];
+}
+
 test('un invitado es redirigido al inicio de sesion', function () {
     $this->get(route('clientes.index'))->assertRedirect(route('login'));
 });
@@ -103,6 +121,7 @@ test('un invitado es redirigido al inicio de sesion', function () {
 test('crea un cliente asignado al tenant del usuario', function () {
     $this->actingAs($this->admin)
         ->post(route('clientes.store'), [
+            ...documentoClienteValido(),
             'nombre' => 'Acme SAC',
             'email' => 'contacto@acme.test',
             'telefono' => '987654321',
@@ -115,12 +134,14 @@ test('crea un cliente asignado al tenant del usuario', function () {
 
     expect($cliente->nombre)->toBe('Acme SAC')
         ->and($cliente->email)->toBe('contacto@acme.test')
+        ->and($cliente->tipo_documento)->toBe(TipoDocumentoCliente::Nit)
+        ->and($cliente->numero_documento)->toBe('900123456')
         ->and($cliente->tenant_id)->toBe($this->tenant->id);
 });
 
 test('el telefono y la direccion son opcionales', function () {
     $this->actingAs($this->admin)
-        ->post(route('clientes.store'), ['nombre' => 'Acme', 'email' => 'acme@example.com'])
+        ->post(route('clientes.store'), [...documentoClienteValido(), 'nombre' => 'Acme', 'email' => 'acme@example.com'])
         ->assertSessionHasNoErrors();
 
     expect(Cliente::firstOrFail())->telefono->toBeNull()->direccion->toBeNull();
@@ -129,7 +150,7 @@ test('el telefono y la direccion son opcionales', function () {
 test('rechaza un cliente sin nombre ni correo', function () {
     $this->actingAs($this->admin)
         ->post(route('clientes.store'), [])
-        ->assertSessionHasErrors(['nombre', 'email']);
+        ->assertSessionHasErrors(['nombre', 'tipo_documento', 'numero_documento', 'email']);
 });
 
 test('rechaza un correo con formato invalido', function () {
@@ -142,11 +163,11 @@ test('el correo es unico dentro del tenant pero puede repetirse en otro', functi
     Cliente::factory()->for($this->tenant)->create(['email' => 'acme@example.com']);
 
     $this->actingAs($this->admin)
-        ->post(route('clientes.store'), ['nombre' => 'Otro', 'email' => 'acme@example.com'])
+        ->post(route('clientes.store'), [...documentoClienteValido(), 'nombre' => 'Otro', 'email' => 'acme@example.com'])
         ->assertSessionHasErrors('email');
 
     $this->actingAs(User::factory()->forTenant(Tenant::factory()->create())->create())
-        ->post(route('clientes.store'), ['nombre' => 'Otro', 'email' => 'acme@example.com'])
+        ->post(route('clientes.store'), [...documentoClienteValido(), 'nombre' => 'Otro', 'email' => 'acme@example.com'])
         ->assertSessionHasNoErrors();
 });
 
@@ -155,6 +176,8 @@ test('actualiza los datos del cliente', function () {
 
     $this->actingAs($this->admin)
         ->put(route('clientes.update', $cliente), [
+            'tipo_documento' => 'CC',
+            'numero_documento' => '1020304050',
             'nombre' => 'Nuevo nombre',
             'email' => 'nuevo@example.com',
             'telefono' => null,
@@ -164,6 +187,8 @@ test('actualiza los datos del cliente', function () {
 
     expect($cliente->fresh())
         ->nombre->toBe('Nuevo nombre')
+        ->tipo_documento->toBe(TipoDocumentoCliente::Cc)
+        ->numero_documento->toBe('1020304050')
         ->email->toBe('nuevo@example.com');
 });
 
@@ -180,10 +205,52 @@ test('permite guardar un cliente conservando su propio correo', function () {
     $cliente = Cliente::factory()->for($this->tenant)->create(['email' => 'acme@example.com']);
 
     $this->actingAs($this->admin)
-        ->put(route('clientes.update', $cliente), ['nombre' => 'Nuevo nombre', 'email' => 'acme@example.com'])
+        ->put(route('clientes.update', $cliente), [
+            'tipo_documento' => $cliente->tipo_documento->value,
+            'numero_documento' => $cliente->numero_documento,
+            'nombre' => 'Nuevo nombre',
+            'email' => 'acme@example.com',
+        ])
         ->assertSessionHasNoErrors();
 
     expect($cliente->fresh()->nombre)->toBe('Nuevo nombre');
+});
+
+test('rechaza un tipo de documento que no existe', function () {
+    $this->actingAs($this->admin)
+        ->post(route('clientes.store'), [
+            ...documentoClienteValido(),
+            'tipo_documento' => 'RUT',
+            'nombre' => 'Acme',
+            'email' => 'acme@example.com',
+        ])
+        ->assertSessionHasErrors('tipo_documento');
+});
+
+test('el numero de documento es unico dentro del tenant, incluso entre clientes eliminados', function () {
+    Cliente::factory()->for($this->tenant)->create(['numero_documento' => '900123456']);
+    Cliente::factory()->for($this->tenant)->create(['numero_documento' => '800111222'])->delete();
+
+    $this->actingAs($this->admin)
+        ->post(route('clientes.store'), [...documentoClienteValido('900123456'), 'nombre' => 'Otro', 'email' => 'otro@example.com'])
+        ->assertSessionHasErrors(['numero_documento' => 'El campo número de documento ya ha sido registrado.']);
+
+    $this->actingAs($this->admin)
+        ->post(route('clientes.store'), [...documentoClienteValido('800111222'), 'nombre' => 'Otro', 'email' => 'otro@example.com'])
+        ->assertSessionHasErrors('numero_documento');
+
+    $this->actingAs(User::factory()->forTenant(Tenant::factory()->create())->create())
+        ->post(route('clientes.store'), [...documentoClienteValido('900123456'), 'nombre' => 'Otro', 'email' => 'otro@example.com'])
+        ->assertSessionHasNoErrors();
+});
+
+test('al actualizar el documento no puede coincidir con el de otro cliente del mismo tenant', function () {
+    Cliente::factory()->for($this->tenant)->create(['numero_documento' => '900123456']);
+    $cliente = Cliente::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->put(route('clientes.update', $cliente), [...documentoClienteValido('900123456'), 'nombre' => 'X', 'email' => $cliente->email])
+        ->assertSessionHasErrors('numero_documento');
 });
 
 test('no permite actualizar ni eliminar clientes de otro tenant', function () {

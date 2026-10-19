@@ -2,6 +2,7 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Enums\TipoDocumentoCliente;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalogos\Http\Requests\StoreClienteRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateClienteRequest;
@@ -25,10 +26,12 @@ class ClienteController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->withCount('equipo as equipos_count')
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'email', 'telefono', 'direccion'])
+            ->get(['id', 'nombre', 'tipo_documento', 'numero_documento', 'email', 'telefono', 'direccion'])
             ->map(fn (Cliente $cliente) => [
                 'id' => $cliente->id,
                 'nombre' => $cliente->nombre,
+                'tipo_documento' => $cliente->tipo_documento?->value,
+                'numero_documento' => $cliente->numero_documento,
                 'email' => $cliente->email,
                 'telefono' => $cliente->telefono,
                 'direccion' => $cliente->direccion,
@@ -37,6 +40,10 @@ class ClienteController extends Controller
 
         return Inertia::render('clientes/index', [
             'clientes' => $clientes,
+            'tiposDocumento' => array_map(fn (TipoDocumentoCliente $tipo): array => [
+                'value' => $tipo->value,
+                'label' => $tipo->label(),
+            ], TipoDocumentoCliente::cases()),
         ]);
     }
 

@@ -39,6 +39,13 @@ export default function ClientesIndex({ clientes }: Props) {
                         <span className="font-medium">{info.getValue()}</span>
                     ),
                 }),
+                columnHelper.accessor('numero_documento', {
+                    header: 'Documento',
+                    cell: ({ row }) =>
+                        row.original.numero_documento
+                            ? `${row.original.tipo_documento ?? ''} ${row.original.numero_documento}`.trim()
+                            : '—',
+                }),
                 columnHelper.accessor('email', { header: 'Correo' }),
                 columnHelper.accessor('telefono', {
                     header: 'Teléfono',

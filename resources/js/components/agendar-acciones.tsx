@@ -1,13 +1,13 @@
 import { usePage, useHttp } from '@inertiajs/react';
 import { CalendarDays, Gauge, Truck, Wrench } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { opcionesAgendar } from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import AgendaModal from '@/components/agenda/agenda-modal';
+import BotonAtajo from '@/components/boton-atajo';
+import ImportarEquipos from '@/components/importaciones/importar-equipos';
 import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
-import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import type { IngresoOption } from '@/types';
 
@@ -17,60 +17,6 @@ type Opciones = {
 };
 
 type Atajo = 'mantenimiento' | 'calibracion' | 'despachos' | 'agenda';
-
-/** Globito con el conteo sobre un icono, oculto si no hay nada pendiente. */
-function ConteoBubble({ count }: { count: number }) {
-    if (count === 0) {
-        return null;
-    }
-
-    return (
-        <span
-            className="pointer-events-none absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-medium text-white"
-            data-test="agendar-conteo-bubble"
-        >
-            {count > 99 ? '99+' : count}
-        </span>
-    );
-}
-
-function BotonAtajo({
-    icono: Icono,
-    titulo,
-    cantidad,
-    dataTest,
-    onClick,
-}: {
-    icono: LucideIcon;
-    titulo: string;
-    cantidad: number;
-    dataTest: string;
-    onClick: () => void;
-}) {
-    return (
-        <div className="relative">
-            <Button
-                type="button"
-                variant="ghost"
-                aria-label={
-                    cantidad > 0 ? `${titulo} (${cantidad} pendientes)` : titulo
-                }
-                onClick={onClick}
-                data-test={dataTest}
-                className="group/atajo h-9 gap-0 overflow-hidden px-2.5"
-            >
-                <Icono className="size-5 shrink-0" />
-                <span
-                    aria-hidden="true"
-                    className="max-w-0 overflow-hidden text-sm font-medium whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover/atajo:ml-2 group-hover/atajo:max-w-48 group-hover/atajo:opacity-100 group-focus-visible/atajo:ml-2 group-focus-visible/atajo:max-w-48 group-focus-visible/atajo:opacity-100 motion-reduce:transition-none"
-                >
-                    {titulo}
-                </span>
-            </Button>
-            <ConteoBubble count={cantidad} />
-        </div>
-    );
-}
 
 /**
  * Atajos del menú superior para agendar mantenimientos, calibraciones y despachos desde
@@ -87,9 +33,10 @@ export function AgendarAcciones() {
     >();
 
     const puedeVerAgenda = can('agenda.ver');
+    const puedeImportar = can('equipos.crear');
     const contadores = porAgendar ?? null;
 
-    if (!contadores && !puedeVerAgenda) {
+    if (!contadores && !puedeVerAgenda && !puedeImportar) {
         return null;
     }
 
@@ -113,6 +60,7 @@ export function AgendarAcciones() {
             className="ml-auto flex items-center gap-1"
             data-test="agendar-acciones"
         >
+            {puedeImportar ? <ImportarEquipos /> : null}
             {puedeVerAgenda ? (
                 <BotonAtajo
                     icono={CalendarDays}

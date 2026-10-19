@@ -31,6 +31,7 @@ use App\Modules\Equipos\Http\Controllers\DocumentoEquipoController;
 use App\Modules\Equipos\Http\Controllers\EquipoController;
 use App\Modules\Equipos\Http\Controllers\EquipoEspecificacionTecnicaController;
 use App\Modules\Equipos\Http\Controllers\EquipoProgramacionController;
+use App\Modules\Importaciones\Http\Controllers\ImportacionEquipoController;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
 use App\Modules\Inventario\Http\Controllers\EntradaItemController;
 use App\Modules\Inventario\Http\Controllers\ItemController;
@@ -72,6 +73,12 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::delete('programaciones/{equipoProgramacion}', [EquipoProgramacionController::class, 'destroy'])->name('programaciones.destroy');
     Route::post('equipos/{equipo}/documentos', [DocumentoEquipoController::class, 'store'])->name('equipos.documentos.store');
     Route::delete('documentos/{documentoEquipo}', [DocumentoEquipoController::class, 'destroy'])->name('documentos.destroy');
+
+    Route::get('importaciones/equipos/plantilla', [ImportacionEquipoController::class, 'plantilla'])->name('importaciones.equipos.plantilla');
+    Route::post('importaciones/equipos/encabezados', [ImportacionEquipoController::class, 'encabezados'])->name('importaciones.equipos.encabezados');
+    Route::get('importaciones/equipos/en-curso', [ImportacionEquipoController::class, 'enCurso'])->name('importaciones.equipos.en-curso');
+    Route::post('importaciones/equipos', [ImportacionEquipoController::class, 'store'])->name('importaciones.equipos.store');
+    Route::get('importaciones/{importacion}', [ImportacionEquipoController::class, 'show'])->name('importaciones.show');
 
     Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Catalogos\Models;
 
+use App\Enums\TipoDocumentoCliente;
 use App\Models\Tenant;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\Equipo;
@@ -19,6 +20,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $nombre
+ * @property TipoDocumentoCliente|null $tipo_documento nulo solo en clientes creados antes de exigirlo
+ * @property string|null $numero_documento único por tenant
  * @property string $email
  * @property string|null $telefono
  * @property string|null $direccion
@@ -28,7 +31,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['nombre', 'email', 'telefono', 'direccion', 'tenant_id'])]
+#[Fillable(['nombre', 'tipo_documento', 'numero_documento', 'email', 'telefono', 'direccion', 'tenant_id'])]
 #[UseFactory(ClienteFactory::class)]
 class Cliente extends Model
 {
@@ -73,5 +76,17 @@ class Cliente extends Model
     public function ingresoEntregado(): HasMany
     {
         return $this->hasMany(Ingreso::class, 'cliente_entrega_id');
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'tipo_documento' => TipoDocumentoCliente::class,
+        ];
     }
 }

@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Modules\Importaciones\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Equipos\Models\Equipo;
+use App\Modules\Importaciones\Http\Requests\LeerEncabezadosImportacionRequest;
+use App\Modules\Importaciones\Http\Requests\StoreImportacionEquipoRequest;
+use App\Modules\Importaciones\Jobs\ImportarEquipos;
+use App\Modules\Importaciones\Models\Importacion;
+use App\Modules\Importaciones\Support\CamposImportacionEquipo;
+use App\Modules\Importaciones\Support\LectorCsv;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Spatie\SimpleExcel\SimpleExcelWriter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+class ImportacionEquipoController extends Controller
+{
+    /** Los CSV que se subieron pero nunca se importaron se borran pasado este tiempo. */
+    private const HORAS_ARCHIVOS_HUERFANOS = 24;
+
+    /**
+     * Descarga un CSV con los encabezados de todos los campos y una fila de ejemplo. Va
+     * separado por ";" y con BOM para que Excel en español lo abra en columnas y con tildes.
+     */
+    public function plantilla(): BinaryFileResponse
+    {
+        Gate::authorize('create', Equipo::class);
+
+        $ruta = sys_get_temp_dir().DIRECTORY_SEPARATOR.'plantilla-'.Str::uuid().'.csv';
+
+        SimpleExcelWriter::create($ruta, 'csv', delimiter: ';')
+            ->noHeaderRow()
+            ->addRow(array_column(CamposImportacionEquipo::todos(), 'etiqueta'))
+            ->addRow(array_map(
+                fn (array $campo): string => CamposImportacionEquipo::ejemplo()[$campo['clave']] ?? '',
+                CamposImportacionEquipo::todos(),
+            ))
+            ->close();
+
+        return response()->download($ruta, 'plantilla-importacion-equipos.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ])->deleteFileAfterSend();
+    }
+
+    /**
+     * Guarda el CSV subido y devuelve sus encabezados, una vista previa y los campos del
+     * equipo, para que el usuario relacione cada campo con una columna antes de importar.
+     */
+    public function encabezados(LeerEncabezadosImportacionRequest $request): JsonResponse
+    {
+        $carpeta = $this->carpeta($request);
+        $this->borrarArchivosHuerfanos($carpeta);
+
+        $archivo = Str::random(40).'.csv';
+        $request->file('archivo')->storeAs($carpeta, $archivo, 'local');
+
+        $lector = LectorCsv::detectar(Storage::disk('local')->path("{$carpeta}/{$archivo}"));
+        $encabezados = $lector->encabezados();
+
+        if ($encabezados === [] || $lector->filas()->isEmpty()) {
+            Storage::disk('local')->delete("{$carpeta}/{$archivo}");
+
+            throw ValidationException::withMessages([
+                'archivo' => 'El archivo no tiene filas para importar (la primera fila debe ser la de encabezados).',
+            ]);
+        }
+
+        return response()->json([
+            'archivo' => $archivo,
+            'nombre_original' => $request->file('archivo')->getClientOriginalName(),
+            'encabezados' => $encabezados,
+            'vista_previa' => $lector->filas()->take(3)->values()->all(),
+            'campos' => CamposImportacionEquipo::todos(),
+            'sugerencias' => CamposImportacionEquipo::sugerirMapeo($encabezados),
+        ]);
+    }
+
+    /**
+     * Crea la importación con el mapeo elegido y la deja corriendo en segundo plano.
+     */
+    public function store(StoreImportacionEquipoRequest $request): JsonResponse
+    {
+        $ruta = $this->carpeta($request).'/'.$request->validated('archivo');
+
+        if (! Storage::disk('local')->exists($ruta)) {
+            throw ValidationException::withMessages([
+                'archivo' => 'El archivo ya no está disponible, vuelve a subirlo.',
+            ]);
+        }
+
+        $lector = LectorCsv::detectar(Storage::disk('local')->path($ruta));
+
+        $importacion = Importacion::create([
+            'tipo' => 'equipos',
+            'archivo' => $ruta,
+            'nombre_original' => $request->validated('nombre_original'),
+            'delimitador' => $lector->delimitador(),
+            'codificacion' => $lector->codificacion(),
+            'mapeo' => array_map(intval(...), array_filter($request->validated('mapeo'), fn (mixed $indice): bool => $indice !== null)),
+            'estado' => Importacion::ESTADO_PENDIENTE,
+            'user_id' => $request->user()->id,
+            'tenant_id' => $request->user()->tenant_id,
+        ]);
+
+        ImportarEquipos::dispatch($importacion);
+
+        return response()->json($importacion->fresh()->resumen(), 201);
+    }
+
+    /**
+     * Avance y resultado de una importación, para mostrarlo mientras corre.
+     */
+    public function show(Importacion $importacion): JsonResponse
+    {
+        Gate::authorize('view', $importacion);
+
+        return response()->json($importacion->resumen());
+    }
+
+    /**
+     * Importación de equipos que el usuario tiene en curso, para retomar el avance al
+     * recargar la página; `importacion` es null si no tiene ninguna.
+     */
+    public function enCurso(Request $request): JsonResponse
+    {
+        $importacion = Importacion::query()
+            ->where('user_id', $request->user()->id)
+            ->where('tipo', 'equipos')
+            ->whereIn('estado', [Importacion::ESTADO_PENDIENTE, Importacion::ESTADO_PROCESANDO])
+            ->latest('id')
+            ->first();
+
+        // Se envuelve en una llave porque response()->json(null) responde "{}", no "null".
+        return response()->json(['importacion' => $importacion?->resumen()]);
+    }
+
+    private function carpeta(Request $request): string
+    {
+        return "importaciones/{$request->user()->tenant_id}";
+    }
+
+    private function borrarArchivosHuerfanos(string $carpeta): void
+    {
+        $limite = now()->subHours(self::HORAS_ARCHIVOS_HUERFANOS)->getTimestamp();
+        $enUso = Importacion::query()
+            ->whereIn('estado', [Importacion::ESTADO_PENDIENTE, Importacion::ESTADO_PROCESANDO])
+            ->pluck('archivo')
+            ->all();
+
+        foreach (Storage::disk('local')->files($carpeta) as $archivo) {
+            if (! in_array($archivo, $enUso, true) && Storage::disk('local')->lastModified($archivo) < $limite) {
+                Storage::disk('local')->delete($archivo);
+            }
+        }
+    }
+}

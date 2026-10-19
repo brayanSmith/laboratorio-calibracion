@@ -33,6 +33,19 @@ class TipoEquipo extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Tipos de servicio que recibe un equipo de este tipo: los de tipo A se mantienen y se
+     * calibran; los de tipo B solo se mantienen.
+     *
+     * @return list<string>
+     */
+    public function tiposServicio(): array
+    {
+        return $this->tipo_mantenimiento === 'A'
+            ? ['MANTENIMIENTO', 'CALIBRACION']
+            : ['MANTENIMIENTO'];
+    }
+
+    /**
      * Get the tenant this tipo de equipo belongs to.
      *
      * @return BelongsTo<Tenant, $this>

@@ -9,6 +9,7 @@ use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Fabricante;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $notas
  * @property bool $activo
  * @property bool $patron_referencia
- * @property string|null $concatenar_codigo_nombre
+ * @property-read string $codigo_nombre Calculado: "Tipo de equipo - código" (requiere tipoEquipo)
  * @property bool $requiere_programacion
  * @property int $cliente_id
  * @property int $tenant_id
@@ -51,12 +52,22 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
     'numero_serie', 'ficha_tecnica', 'area_id', 'bahia_id', 'condicion_actual',
-    'notas', 'activo', 'patron_referencia', 'concatenar_codigo_nombre',
-    'requiere_programacion', 'cliente_id', 'tenant_id',
+    'notas', 'activo', 'patron_referencia', 'requiere_programacion', 'cliente_id', 'tenant_id',
 ])]
 class Equipo extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Código y nombre del equipo concatenados, ej. "Manómetro - EQ-0001". Se calcula en vez
+     * de guardarse para que, si cambia la regla, aplique a todos los equipos.
+     *
+     * @return Attribute<non-falsy-string, never>
+     */
+    protected function codigoNombre(): Attribute
+    {
+        return Attribute::get(fn (): string => "{$this->tipoEquipo->nombre} - {$this->codigo}");
+    }
 
     /**
      * Get the tipo de equipo this equipo belongs to.

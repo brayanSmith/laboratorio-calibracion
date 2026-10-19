@@ -1,7 +1,15 @@
+import { usePage } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Cliente } from '@/types';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import type { Cliente, TipoDocumentoClienteOption } from '@/types';
 
 type Props = {
     cliente?: Cliente;
@@ -9,8 +17,47 @@ type Props = {
 };
 
 export default function ClienteFormFields({ cliente, errors }: Props) {
+    const { tiposDocumento } = usePage<{
+        tiposDocumento: TipoDocumentoClienteOption[];
+    }>().props;
+
     return (
         <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-2">
+                <Label htmlFor="tipo_documento">Tipo de documento</Label>
+                <Select
+                    name="tipo_documento"
+                    defaultValue={cliente?.tipo_documento ?? undefined}
+                >
+                    <SelectTrigger
+                        id="tipo_documento"
+                        className="w-full"
+                        data-test="cliente-tipo-documento"
+                    >
+                        <SelectValue placeholder="Selecciona un tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {tiposDocumento.map((tipo) => (
+                            <SelectItem key={tipo.value} value={tipo.value}>
+                                {tipo.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <InputError message={errors.tipo_documento} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="numero_documento">Número de documento</Label>
+                <Input
+                    id="numero_documento"
+                    name="numero_documento"
+                    defaultValue={cliente?.numero_documento ?? ''}
+                    required
+                />
+                <InputError message={errors.numero_documento} />
+            </div>
+
             <div className="grid gap-2">
                 <Label htmlFor="nombre">Nombre</Label>
                 <Input

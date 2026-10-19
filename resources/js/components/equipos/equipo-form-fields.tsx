@@ -168,20 +168,6 @@ export default function EquipoFormFields({
                 <InputError message={errors.cliente_id} />
             </div>
 
-            {!isCreate ? (
-                <div className="grid gap-2 sm:col-span-2">
-                    <Label htmlFor="concatenar_codigo_nombre">
-                        Concatenar código y nombre
-                    </Label>
-                    <Input
-                        id="concatenar_codigo_nombre"
-                        name="concatenar_codigo_nombre"
-                        defaultValue={equipo?.concatenar_codigo_nombre ?? ''}
-                    />
-                    <InputError message={errors.concatenar_codigo_nombre} />
-                </div>
-            ) : null}
-
             {isCreate ? (
                 <>
                     <input type="hidden" name="activo" value="1" />

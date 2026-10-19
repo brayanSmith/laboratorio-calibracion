@@ -2,6 +2,7 @@
 
 namespace App\Modules\Catalogos\Http\Requests;
 
+use App\Enums\TipoDocumentoCliente;
 use App\Modules\Catalogos\Models\Cliente;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,6 +28,15 @@ class StoreClienteRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
+            'tipo_documento' => ['required', Rule::enum(TipoDocumentoCliente::class)],
+            'numero_documento' => [
+                'required',
+                'string',
+                'max:50',
+                // Sin excluir los eliminados: el índice único de la tabla también los cuenta.
+                Rule::unique('clientes', 'numero_documento')
+                    ->where('tenant_id', $this->user()->tenant_id),
+            ],
             'email' => [
                 'required',
                 'string',
@@ -50,6 +60,8 @@ class StoreClienteRequest extends FormRequest
     {
         return [
             'nombre' => 'nombre',
+            'tipo_documento' => 'tipo de documento',
+            'numero_documento' => 'número de documento',
             'email' => 'correo electrónico',
             'telefono' => 'teléfono',
             'direccion' => 'dirección',

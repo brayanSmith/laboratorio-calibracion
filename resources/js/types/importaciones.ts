@@ -1,0 +1,34 @@
+export type EstadoImportacion =
+    | 'PENDIENTE'
+    | 'PROCESANDO'
+    | 'COMPLETADA'
+    | 'FALLIDA';
+
+/** Campo del sistema que se relaciona con una columna del CSV. */
+export type CampoImportacion = {
+    clave: string;
+    etiqueta: string;
+    requerido: boolean;
+    ayuda: string | null;
+};
+
+/** Respuesta al subir el CSV: sus columnas y lo necesario para relacionarlas. */
+export type ArchivoImportacion = {
+    archivo: string;
+    nombre_original: string;
+    encabezados: string[];
+    vista_previa: string[][];
+    campos: CampoImportacion[];
+    sugerencias: Record<string, number | null>;
+};
+
+export type ResumenImportacion = {
+    id: number;
+    estado: EstadoImportacion;
+    nombre_original: string;
+    total_filas: number;
+    filas_procesadas: number;
+    filas_creadas: number;
+    filas_con_error: number;
+    errores: { fila: number; mensaje: string }[];
+};

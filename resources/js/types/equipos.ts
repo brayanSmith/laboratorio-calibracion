@@ -178,7 +178,6 @@ export type Equipo = {
     notas: string | null;
     activo: boolean;
     patron_referencia: boolean;
-    concatenar_codigo_nombre: string | null;
     requiere_programacion: boolean;
     cliente_id: number;
     ficha_tecnica: EquipoFichaTecnica | null;

@@ -9,6 +9,7 @@ export type * from './despachos';
 export type * from './empresas-terceras';
 export type * from './equipos';
 export type * from './fabricantes';
+export type * from './importaciones';
 export type * from './ingresos';
 export type * from './items';
 export type * from './laboratorios';

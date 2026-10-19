@@ -54,7 +54,6 @@ class StoreEquipoRequest extends FormRequest
             'notas' => ['nullable', 'string'],
             'activo' => ['boolean'],
             'patron_referencia' => ['boolean'],
-            'concatenar_codigo_nombre' => ['nullable', 'string', 'max:255'],
             'requiere_programacion' => ['boolean'],
             'cliente_id' => ['required', Rule::exists('clientes', 'id')->where('tenant_id', $tenantId)],
 
@@ -158,7 +157,7 @@ class StoreEquipoRequest extends FormRequest
 
             $simbolo = preg_quote($unidad->simbolo, '/');
 
-            if (! preg_match("/^\d+(\.\d{1,2})?{$simbolo}$/u", (string) $value)) {
+            if (! preg_match("/^\d+(\.\d{1,4})?{$simbolo}$/u", (string) $value)) {
                 $fail("La resolución debe ser un número seguido del símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
             }
         };
