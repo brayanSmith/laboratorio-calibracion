@@ -1,47 +1,27 @@
-import { useState } from 'react';
 import ColumnResizeHandle from '@/components/column-resize-handle';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useResizableColumns } from '@/hooks/use-resizable-columns';
+import ResultadoCalibracionDetalle from '@/components/calibraciones/resultado-calibracion-detalle';
+import {
+    calcularErrorEncontrado,
+    calcularResultado,
+    resultadoDeLaCalibracion,
+} from '@/lib/calibracion-resultado';
+import type { ValoresInstrumento } from '@/lib/calibracion-resultado';
 import type { CalibracionDetalleMedicion } from '@/types';
 
 type Props = {
     detalles: CalibracionDetalleMedicion[];
+    /** Valor del instrumento escrito en cada fila; lo controla el formulario. */
+    valoresInstrumento: ValoresInstrumento;
+    onValorInstrumentoChange: (detalleId: number, valor: string) => void;
     errors: Partial<Record<string, string>>;
 };
 
 const inputClassName =
     'h-7 w-full rounded-none border-0 bg-transparent p-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset';
-
-/** Error encontrado = valor de referencia - valor del instrumento. Null si el valor del
- * instrumento todavía no se llenó. */
-function calcularErrorEncontrado(
-    valorReferencia: string,
-    valorInstrumento: string,
-): number | null {
-    const instrumento = parseFloat(valorInstrumento);
-
-    if (!Number.isFinite(instrumento)) {
-        return null;
-    }
-
-    return parseFloat(valorReferencia) - instrumento;
-}
-
-/** Resultado: APROBADO si el error encontrado no supera el EMP (el margen de error
- * permitido del equipo), NO_APROBADO si lo supera. Null si todavía no hay error
- * encontrado. */
-function calcularResultado(
-    errorEncontrado: number | null,
-    emp: string,
-): 'APROBADO' | 'NO_APROBADO' | null {
-    if (errorEncontrado === null) {
-        return null;
-    }
-
-    return errorEncontrado <= parseFloat(emp) ? 'APROBADO' : 'NO_APROBADO';
-}
 
 const etiquetaResultado: Record<'APROBADO' | 'NO_APROBADO', string> = {
     APROBADO: 'Aprobado',
@@ -61,22 +41,18 @@ const colorResultado: Record<'APROBADO' | 'NO_APROBADO', string> = {
  * de la modal; se guarda junto con el resto de la calibración al presionar el botón
  * "Guardar". Las columnas se pueden redimensionar arrastrando su separador, al estilo
  * Excel, y la tabla tiene su propio scroll horizontal. */
-export default function CalibracionResultados({ detalles, errors }: Props) {
-    const [valoresInstrumento, setValoresInstrumento] = useState<
-        Record<number, string>
-    >(() =>
-        Object.fromEntries(
-            detalles.map((detalle) => [
-                detalle.id,
-                detalle.valor_instrumento ?? '',
-            ]),
-        ),
-    );
+export default function CalibracionResultados({
+    detalles,
+    valoresInstrumento,
+    onValorInstrumentoChange,
+    errors,
+}: Props) {
     const { anchos, iniciarRedimension } = useResizableColumns({
         referencia: 130,
         instrumento: 110,
         error: 100,
         emp: 80,
+        empPorcentaje: 90,
         incertidumbre: 100,
         resultado: 110,
     });
@@ -101,6 +77,7 @@ export default function CalibracionResultados({ detalles, errors }: Props) {
                         <col style={{ width: anchos.instrumento }} />
                         <col style={{ width: anchos.error }} />
                         <col style={{ width: anchos.emp }} />
+                        <col style={{ width: anchos.empPorcentaje }} />
                         <col style={{ width: anchos.incertidumbre }} />
                         <col style={{ width: anchos.resultado }} />
                     </colgroup>
@@ -139,6 +116,15 @@ export default function CalibracionResultados({ detalles, errors }: Props) {
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
+                                EMP %
+                                <ColumnResizeHandle
+                                    label="EMP %"
+                                    onPointerDown={iniciarRedimension(
+                                        'empPorcentaje',
+                                    )}
+                                />
+                            </th>
+                            <th className="relative px-3 py-2 font-medium">
                                 Incertidumbre
                                 <ColumnResizeHandle
                                     label="Incertidumbre"
@@ -156,7 +142,7 @@ export default function CalibracionResultados({ detalles, errors }: Props) {
                     >
                         {detalles.map((detalle, index) => {
                             const valorInstrumento =
-                                valoresInstrumento[detalle.id];
+                                valoresInstrumento[detalle.id] ?? '';
                             const errorEncontrado = calcularErrorEncontrado(
                                 detalle.valor_referencia,
                                 valorInstrumento,
@@ -181,12 +167,9 @@ export default function CalibracionResultados({ detalles, errors }: Props) {
                                             step="0.01"
                                             value={valorInstrumento}
                                             onChange={(event) =>
-                                                setValoresInstrumento(
-                                                    (prev) => ({
-                                                        ...prev,
-                                                        [detalle.id]:
-                                                            event.target.value,
-                                                    }),
+                                                onValorInstrumentoChange(
+                                                    detalle.id,
+                                                    event.target.value,
                                                 )
                                             }
                                             className={inputClassName}
@@ -212,6 +195,14 @@ export default function CalibracionResultados({ detalles, errors }: Props) {
                                     </td>
                                     <td className="truncate px-3 py-2">
                                         {detalle.emp}
+                                    </td>
+                                    <td
+                                        className="truncate px-3 py-2"
+                                        data-test="calibracion-emp-porcentaje"
+                                    >
+                                        {detalle.emp_porcentaje !== null
+                                            ? `${(parseFloat(detalle.emp_porcentaje) * 100).toFixed(2)} %`
+                                            : '—'}
                                     </td>
                                     <td className="truncate px-3 py-2">
                                         {detalle.incertidumbre}
@@ -240,6 +231,13 @@ export default function CalibracionResultados({ detalles, errors }: Props) {
                     </tbody>
                 </table>
             </div>
+
+            <ResultadoCalibracionDetalle
+                resultado={resultadoDeLaCalibracion(
+                    detalles,
+                    valoresInstrumento,
+                )}
+            />
 
             {detalles.map((detalle, index) => {
                 const mensaje = errors[`detalles.${index}.valor_instrumento`];

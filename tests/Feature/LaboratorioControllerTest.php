@@ -170,3 +170,47 @@ test('permite volver a usar el nombre de un laboratorio eliminado', function () 
 
     expect(Laboratorio::where('nombre', 'Presión')->count())->toBe(1);
 });
+
+test('solo un laboratorio puede ser el principal del tenant', function () {
+    $primero = Laboratorio::factory()->for($this->tenant)->create(['principal' => true]);
+
+    $this->actingAs($this->admin)
+        ->post(route('laboratorios.store'), ['nombre' => 'Segundo', 'principal' => '1'])
+        ->assertSessionHasNoErrors();
+
+    $segundo = Laboratorio::where('nombre', 'Segundo')->firstOrFail();
+
+    expect($segundo->principal)->toBeTrue()
+        ->and($primero->fresh()->principal)->toBeFalse()
+        ->and(Laboratorio::where('principal', true)->count())->toBe(1);
+
+    $this->actingAs($this->admin)
+        ->put(route('laboratorios.update', $primero), ['nombre' => $primero->nombre, 'principal' => '1'])
+        ->assertSessionHasNoErrors();
+
+    expect($primero->fresh()->principal)->toBeTrue()
+        ->and($segundo->fresh()->principal)->toBeFalse();
+});
+
+test('marcar un laboratorio como principal no afecta al de otro tenant', function () {
+    $ajeno = Laboratorio::factory()->create(['principal' => true]);
+
+    $this->actingAs($this->admin)
+        ->post(route('laboratorios.store'), ['nombre' => 'Propio', 'principal' => '1']);
+
+    expect($ajeno->fresh()->principal)->toBeTrue();
+});
+
+test('se puede desmarcar el laboratorio principal y el listado lo informa', function () {
+    $principal = Laboratorio::factory()->for($this->tenant)->create(['principal' => true]);
+
+    $this->actingAs($this->admin)
+        ->get(route('laboratorios.index'))
+        ->assertInertia(fn ($page) => $page->where('laboratorios.0.principal', true));
+
+    $this->actingAs($this->admin)
+        ->put(route('laboratorios.update', $principal), ['nombre' => $principal->nombre])
+        ->assertSessionHasNoErrors();
+
+    expect($principal->fresh()->principal)->toBeFalse();
+});

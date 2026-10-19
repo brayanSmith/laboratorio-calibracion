@@ -237,6 +237,28 @@ test('registra seguimientos de la programacion al crear y autorizar un despacho'
         ->toBe(['AUTORIZADO', 'ENTREGADO']);
 });
 
+test('la fecha de entrega se fija el dia en que la entrega queda recibida y no cambia', function () {
+    $despacho = crearDespachoListo($this->bahia, ['fecha_programada' => '2026-10-10', 'entrega_autorizada' => true]);
+
+    expect($despacho->fecha_despacho)->toBeNull();
+
+    $this->travelTo(now()->setDate(2026, 10, 14));
+    $despacho->update(['entrega_recibida' => true]);
+
+    expect($despacho->refresh())
+        ->fecha_programada->toDateString()->toBe('2026-10-10')
+        ->fecha_despacho->toDateString()->toBe('2026-10-14');
+
+    $this->travelTo(now()->setDate(2026, 10, 20));
+    $despacho->update(['novedad_id' => null, 'entrega_recibida' => true]);
+
+    expect($despacho->refresh()->fecha_despacho->toDateString())->toBe('2026-10-14');
+
+    $this->actingAs($this->admin)
+        ->get(route('despachos.index'))
+        ->assertInertia(fn ($page) => $page->where('despachos.0.fecha_despacho', '2026-10-14'));
+});
+
 test('registra un seguimiento de bahia o ingreso segun agendar al crear la programacion', function () {
     $agendada = crearEquipoRecibido($this->bahia, 'EQ-SEG-1');
     $agendada->update(['agendar' => false, 'estado_programacion' => 'PENDIENTE']);

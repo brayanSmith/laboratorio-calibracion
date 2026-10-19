@@ -11,9 +11,10 @@ export type CalibracionOption = {
     nombre: string;
 };
 
-export type CalibracionAreaOption = {
-    id: number;
-    nombre: string;
+/** Área del equipo, que se usa como solicitante de la calibración. */
+export type CalibracionAreaEquipo = {
+    /** "CRC - Centro de Reparación de Componentes". */
+    etiqueta: string;
     direccion: string | null;
     descripcion: string | null;
 };
@@ -79,14 +80,14 @@ export type Calibracion = {
         fabricante: { nombre: string };
         tipo_equipo: { nombre: string; tipo_mantenimiento: string };
         cliente: { nombre: string } | null;
+        area: CalibracionAreaEquipo | null;
     };
     detalles_medicion: CalibracionDetalleMedicion[];
 };
 
 export type CalibracionOptions = {
-    tecnicos: CalibracionOption[];
-    laboratorios: CalibracionOption[];
-    areas: CalibracionAreaOption[];
+    /** Laboratorio marcado como principal: es el de las calibraciones locales. */
+    laboratorioPrincipal: CalibracionOption | null;
     procedimientos: CalibracionOption[];
     novedadesCalibracion: CalibracionOption[];
 };

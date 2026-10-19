@@ -136,6 +136,9 @@ export default function VerMantenimientoModal({
                             ? 'Correctivo'
                             : 'Preventivo'}
                     </Dato>
+                    <Dato etiqueta="Duración">
+                        {mantenimiento.duracion ?? '—'}
+                    </Dato>
                     <Dato etiqueta="Firmado">
                         {mantenimiento.firmado ? 'Sí' : 'No'}
                     </Dato>

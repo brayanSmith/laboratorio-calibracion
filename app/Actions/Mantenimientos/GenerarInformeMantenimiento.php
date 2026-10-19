@@ -4,6 +4,7 @@ namespace App\Actions\Mantenimientos;
 
 use App\Models\Empresa;
 use App\Models\Mantenimiento;
+use App\Models\TiempoServicio;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
@@ -39,6 +40,7 @@ class GenerarInformeMantenimiento
             'mantenimiento' => $mantenimiento,
             'equipo' => $mantenimiento->ordenTrabajo->equipoProgramacion->equipo,
             'programacion' => $mantenimiento->ordenTrabajo->equipoProgramacion,
+            'duracion' => TiempoServicio::formatearDuracion(TiempoServicio::duracionMantenimiento($mantenimiento->orden_trabajo_id)),
             'fechaHora' => now()->timezone(self::ZONA_HORARIA),
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),

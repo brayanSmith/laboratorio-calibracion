@@ -93,6 +93,10 @@ export default function IngresosIndex({
                     ),
                 }),
 
+                columnHelper.accessor('fecha_recepcion', {
+                    header: 'Fecha de recepción',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
                 columnHelper.accessor('fecha_creacion', {
                     header: 'Creado',
                 }),

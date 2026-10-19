@@ -68,7 +68,7 @@ test('agenda un despacho con el tecnico elegido y autoriza la entrega', function
             'despachos_listos' => [
                 $despacho->id => [
                     'tecnico_id' => $tecnico->id,
-                    'fecha_despacho' => '2026-10-20',
+                    'fecha_programada' => '2026-10-20',
                     'entrega_autorizada' => '1',
                 ],
             ],
@@ -78,7 +78,7 @@ test('agenda un despacho con el tecnico elegido y autoriza la entrega', function
 
     expect($despacho->refresh())
         ->tecnico_entrega_id->toBe($tecnico->id)
-        ->fecha_despacho->toDateString()->toBe('2026-10-20')
+        ->fecha_programada->toDateString()->toBe('2026-10-20')
         ->entrega_autorizada->toBeTrue();
 });
 
@@ -139,7 +139,7 @@ test('exige la fecha del despacho cuando se autoriza la entrega', function () {
                 $despacho->id => ['tecnico_id' => $tecnico->id, 'entrega_autorizada' => '1'],
             ],
         ])
-        ->assertSessionHasErrors('despachos_listos.0.fecha_despacho');
+        ->assertSessionHasErrors('despachos_listos.0.fecha_programada');
 
     expect($despacho->refresh()->tecnico_entrega_id)->toBeNull();
 });

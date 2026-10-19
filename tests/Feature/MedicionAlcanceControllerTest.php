@@ -20,11 +20,12 @@ beforeEach(function () {
 test('lista solo los alcances de medicion del tenant con sus detalles', function () {
     $alcance = MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 100 bar',
     ]);
     DetalleMedicionAlcance::factory()->for($this->tenant)->create([
         'medicion_alcance_id' => $alcance->id,
-        'valor_instrumento' => 50,
+        'valor_referencia' => 50,
     ]);
     MedicionAlcance::factory()->create(['alcance_indicacion' => 'Ajeno']);
 
@@ -37,9 +38,9 @@ test('lista solo los alcances de medicion del tenant con sus detalles', function
             ->where('alcancesMedicion.0.alcance_indicacion', '0 - 100 bar')
             ->where('alcancesMedicion.0.tipo_equipo', 'Manómetro')
             ->has('alcancesMedicion.0.detalles', 1)
-            ->where('alcancesMedicion.0.detalles.0.valor_instrumento', '50.00')
+            ->where('alcancesMedicion.0.detalles.0.valor_referencia', '50.00')
             ->has('tiposEquipo', 1)
-            ->where('alcancesIndicacion', [$this->tipoEquipo->id => ['0 - 10 bar', '0 - 100 bar', '0 - 20 bar']])
+            ->where('alcancesIndicacion', [$this->tipoEquipo->id => ['M-1' => ['0 - 10 bar', '0 - 100 bar', '0 - 20 bar']]])
             ->has('unidadesMedida', 1));
 });
 
@@ -56,6 +57,7 @@ test('un tecnico puede ver pero no crear alcances de medicion', function () {
     $this->actingAs($tecnico)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
         ])
         ->assertForbidden();
@@ -71,6 +73,7 @@ test('crea un alcance de medicion asignado al tenant del usuario', function () {
     $this->actingAs($this->admin)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
             'tenant_id' => Tenant::factory()->create()->id,
         ])
@@ -93,6 +96,7 @@ test('valida los campos requeridos y que el tipo de equipo sea del tenant', func
     $this->actingAs($this->admin)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $ajeno->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
         ])
         ->assertSessionHasErrors('tipo_equipo_id');
@@ -101,6 +105,7 @@ test('valida los campos requeridos y que el tipo de equipo sea del tenant', func
 test('el alcance es unico por tipo de equipo dentro del tenant', function () {
     MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 10 bar',
     ]);
     $otroTipo = TipoEquipo::factory()->for($this->tenant)->create();
@@ -109,6 +114,7 @@ test('el alcance es unico por tipo de equipo dentro del tenant', function () {
     $this->actingAs($this->admin)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
         ])
         ->assertSessionHasErrors('alcance_indicacion');
@@ -116,6 +122,7 @@ test('el alcance es unico por tipo de equipo dentro del tenant', function () {
     $this->actingAs($this->admin)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $otroTipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
         ])
         ->assertSessionHasNoErrors();
@@ -124,12 +131,14 @@ test('el alcance es unico por tipo de equipo dentro del tenant', function () {
 test('actualiza un alcance de medicion conservando su propia indicacion', function () {
     $alcance = MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 10 bar',
     ]);
 
     $this->actingAs($this->admin)
         ->put(route('alcances-medicion.update', $alcance), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
         ])
         ->assertSessionHasNoErrors();
@@ -137,6 +146,7 @@ test('actualiza un alcance de medicion conservando su propia indicacion', functi
     $this->actingAs($this->admin)
         ->put(route('alcances-medicion.update', $alcance), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 20 bar',
         ])
         ->assertRedirect(route('alcances-medicion.index'));
@@ -150,6 +160,7 @@ test('no permite actualizar ni eliminar alcances de otro tenant', function () {
     $this->actingAs($this->admin)
         ->put(route('alcances-medicion.update', $ajeno), [
             'tipo_equipo_id' => $ajeno->tipo_equipo_id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => 'Hackeado',
         ])
         ->assertForbidden();
@@ -194,6 +205,7 @@ test('solo acepta alcances de indicacion registrados en las especificaciones tec
         $this->actingAs($this->admin)
             ->post(route('alcances-medicion.store'), [
                 'tipo_equipo_id' => $this->tipoEquipo->id,
+                'modelo' => 'M-1',
                 'alcance_indicacion' => $alcance,
             ])
             ->assertSessionHasErrors('alcance_indicacion');
@@ -208,10 +220,11 @@ test('crea el alcance junto con sus detalles en una sola solicitud', function ()
     $this->actingAs($this->admin)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
             'detalles' => [
-                ['unidad_medida_id' => $unidad->id, 'valor_instrumento' => '5', 'emp' => '0.1', 'incertidumbre' => '0.05'],
-                ['unidad_medida_id' => $unidad->id, 'valor_instrumento' => '10', 'emp' => '0.2', 'incertidumbre' => '0.1'],
+                ['unidad_medida_id' => $unidad->id, 'valor_referencia' => '5', 'emp' => '0.1', 'incertidumbre' => '0.05'],
+                ['unidad_medida_id' => $unidad->id, 'valor_referencia' => '10', 'emp' => '0.2', 'incertidumbre' => '0.1'],
             ],
         ])
         ->assertRedirect(route('alcances-medicion.index'));
@@ -220,7 +233,7 @@ test('crea el alcance junto con sus detalles en una sola solicitud', function ()
 
     expect($alcance->detalleMedicionAlcance)->toHaveCount(2)
         ->and($alcance->detalleMedicionAlcance->pluck('tenant_id')->unique()->all())->toBe([$this->tenant->id])
-        ->and($alcance->detalleMedicionAlcance->first()->valor_instrumento)->toBe('5.00');
+        ->and($alcance->detalleMedicionAlcance->first()->valor_referencia)->toBe('5.00');
 });
 
 test('si un detalle es invalido no se crea ni el alcance', function () {
@@ -229,14 +242,15 @@ test('si un detalle es invalido no se crea ni el alcance', function () {
     $this->actingAs($this->admin)
         ->post(route('alcances-medicion.store'), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
             'detalles' => [
-                ['unidad_medida_id' => $ajena->id, 'valor_instrumento' => 'x', 'emp' => '-1', 'incertidumbre' => ''],
+                ['unidad_medida_id' => $ajena->id, 'valor_referencia' => 'x', 'emp' => '-1', 'incertidumbre' => ''],
             ],
         ])
         ->assertSessionHasErrors([
             'detalles.0.unidad_medida_id',
-            'detalles.0.valor_instrumento',
+            'detalles.0.valor_referencia',
             'detalles.0.emp',
             'detalles.0.incertidumbre',
         ]);
@@ -248,6 +262,7 @@ test('si un detalle es invalido no se crea ni el alcance', function () {
 test('al editar sincroniza los detalles: actualiza, crea y elimina los que faltan', function () {
     $alcance = MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 10 bar',
     ]);
     $unidad = UnidadMedida::factory()->for($this->tenant)->create();
@@ -257,23 +272,25 @@ test('al editar sincroniza los detalles: actualiza, crea y elimina los que falta
     $this->actingAs($this->admin)
         ->put(route('alcances-medicion.update', $alcance), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
             'sincronizar_detalles' => '1',
             'detalles' => [
-                ['id' => $conservado->id, 'unidad_medida_id' => $unidad->id, 'valor_instrumento' => '77', 'emp' => '1', 'incertidumbre' => '1'],
-                ['unidad_medida_id' => $unidad->id, 'valor_instrumento' => '88', 'emp' => '2', 'incertidumbre' => '2'],
+                ['id' => $conservado->id, 'unidad_medida_id' => $unidad->id, 'valor_referencia' => '77', 'emp' => '1', 'incertidumbre' => '1'],
+                ['unidad_medida_id' => $unidad->id, 'valor_referencia' => '88', 'emp' => '2', 'incertidumbre' => '2'],
             ],
         ])
         ->assertRedirect(route('alcances-medicion.index'));
 
-    expect($conservado->fresh()->valor_instrumento)->toBe('77.00')
+    expect($conservado->fresh()->valor_referencia)->toBe('77.00')
         ->and(DetalleMedicionAlcance::find($quitado->id))->toBeNull()
-        ->and($alcance->detalleMedicionAlcance()->pluck('valor_instrumento')->all())->toBe(['77.00', '88.00']);
+        ->and($alcance->detalleMedicionAlcance()->pluck('valor_referencia')->all())->toBe(['77.00', '88.00']);
 });
 
 test('al editar sin sincronizar detalles no se tocan los existentes', function () {
     $alcance = MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 10 bar',
     ]);
     $detalle = DetalleMedicionAlcance::factory()->for($this->tenant)->create(['medicion_alcance_id' => $alcance->id]);
@@ -281,6 +298,7 @@ test('al editar sin sincronizar detalles no se tocan los existentes', function (
     $this->actingAs($this->admin)
         ->put(route('alcances-medicion.update', $alcance), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 20 bar',
         ])
         ->assertSessionHasNoErrors();
@@ -291,6 +309,7 @@ test('al editar sin sincronizar detalles no se tocan los existentes', function (
 test('al editar no permite quitar un detalle ya usado en calibraciones y no guarda nada', function () {
     $alcance = MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 10 bar',
     ]);
     $usado = DetalleMedicionAlcance::factory()->for($this->tenant)->create(['medicion_alcance_id' => $alcance->id]);
@@ -300,6 +319,7 @@ test('al editar no permite quitar un detalle ya usado en calibraciones y no guar
         ->from(route('alcances-medicion.index'))
         ->put(route('alcances-medicion.update', $alcance), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 20 bar',
             'sincronizar_detalles' => '1',
         ])
@@ -312,6 +332,7 @@ test('al editar no permite quitar un detalle ya usado en calibraciones y no guar
 test('al editar rechaza el id de un detalle de otro alcance', function () {
     $alcance = MedicionAlcance::factory()->for($this->tenant)->create([
         'tipo_equipo_id' => $this->tipoEquipo->id,
+        'modelo' => 'M-1',
         'alcance_indicacion' => '0 - 10 bar',
     ]);
     $ajeno = DetalleMedicionAlcance::factory()->for($this->tenant)->create();
@@ -320,11 +341,29 @@ test('al editar rechaza el id de un detalle de otro alcance', function () {
     $this->actingAs($this->admin)
         ->put(route('alcances-medicion.update', $alcance), [
             'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'M-1',
             'alcance_indicacion' => '0 - 10 bar',
             'sincronizar_detalles' => '1',
             'detalles' => [
-                ['id' => $ajeno->id, 'unidad_medida_id' => $unidad->id, 'valor_instrumento' => '1', 'emp' => '1', 'incertidumbre' => '1'],
+                ['id' => $ajeno->id, 'unidad_medida_id' => $unidad->id, 'valor_referencia' => '1', 'emp' => '1', 'incertidumbre' => '1'],
             ],
         ])
         ->assertSessionHasErrors('detalles.0.id');
+});
+
+test('exige un modelo existente en los equipos del tipo de equipo', function () {
+    $this->actingAs($this->admin)
+        ->post(route('alcances-medicion.store'), [
+            'tipo_equipo_id' => $this->tipoEquipo->id,
+            'alcance_indicacion' => '0 - 10 bar',
+        ])
+        ->assertSessionHasErrors('modelo');
+
+    $this->actingAs($this->admin)
+        ->post(route('alcances-medicion.store'), [
+            'tipo_equipo_id' => $this->tipoEquipo->id,
+            'modelo' => 'Inexistente',
+            'alcance_indicacion' => '0 - 10 bar',
+        ])
+        ->assertSessionHasErrors(['modelo', 'alcance_indicacion']);
 });

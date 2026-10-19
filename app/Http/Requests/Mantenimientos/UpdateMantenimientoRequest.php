@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests\Mantenimientos;
 
+use App\Models\Item;
 use App\Models\Mantenimiento;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateMantenimientoRequest extends FormRequest
 {
@@ -97,6 +99,57 @@ class UpdateMantenimientoRequest extends FormRequest
             'nuevas_fotos.*.archivo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
             'nuevas_fotos.*.descripcion' => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * Get the validator instance's "after" callbacks.
+     *
+     * La cantidad usada de un ítem no puede superar su stock, contando todas las filas
+     * nuevas que usan el mismo ítem.
+     *
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            /** @var Mantenimiento $mantenimiento */
+            $mantenimiento = $this->route('mantenimiento');
+
+            /** @var array<int, array{item_id?: string|null, cantidad?: string|null}> $filas */
+            $filas = array_filter(
+                $this->input('nuevos_items_usados', []),
+                fn (array $fila): bool => filled($fila['item_id'] ?? null),
+            );
+
+            $solicitado = [];
+
+            foreach ($filas as $fila) {
+                $solicitado[$fila['item_id']] = ($solicitado[$fila['item_id']] ?? 0) + (float) $fila['cantidad'];
+            }
+
+            $items = Item::query()
+                ->where('tenant_id', $mantenimiento->tenant_id)
+                ->whereKey(array_keys($solicitado))
+                ->conMovimientos()
+                ->get()
+                ->keyBy('id');
+
+            foreach ($filas as $indice => $fila) {
+                $stock = $items->get((int) $fila['item_id'])?->stock ?? 0.0;
+
+                // Sin stock no hay tope: se registra para saber qué repuestos hacen falta.
+                if ($stock > 0 && $solicitado[$fila['item_id']] > $stock) {
+                    $validator->errors()->add(
+                        "nuevos_items_usados.{$indice}.cantidad",
+                        __('La cantidad supera el stock disponible (:stock).', ['stock' => $stock]),
+                    );
+                }
+            }
+        }];
     }
 
     /**

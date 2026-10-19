@@ -27,7 +27,7 @@ class DetalleMedicionAlcanceFactory extends Factory
             'unidad_medida_id' => fn (array $attributes) => UnidadMedida::factory()->create([
                 'tenant_id' => $attributes['tenant_id'],
             ])->id,
-            'valor_instrumento' => fake()->randomFloat(2, 1, 1000),
+            'valor_referencia' => fake()->randomFloat(2, 1, 1000),
             'emp' => fake()->randomFloat(2, 0, 10),
             'incertidumbre' => fake()->randomFloat(2, 0, 5),
             'tenant_id' => Tenant::factory(),

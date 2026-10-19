@@ -5,6 +5,11 @@ export type EquipoOption = {
     nombre: string;
 };
 
+export type EquipoAreaOption = EquipoOption & {
+    /** "CRC - Centro de Reparación de Componentes". */
+    etiqueta: string;
+};
+
 export type EquipoTipoEquipoOption = EquipoOption & {
     /** A: requiere mantenimiento y calibración. B: solo mantenimiento. */
     tipo_mantenimiento: 'A' | 'B';
@@ -190,7 +195,7 @@ export type Equipo = {
 export type EquipoFormOptions = {
     tipoEquipos: EquipoTipoEquipoOption[];
     fabricantes: EquipoOption[];
-    areas: EquipoOption[];
+    areas: EquipoAreaOption[];
     bahias: EquipoBahiaOption[];
     clientes: EquipoOption[];
     tiposMagnitud: EquipoOption[];

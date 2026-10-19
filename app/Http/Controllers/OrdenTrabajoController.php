@@ -325,8 +325,7 @@ class OrdenTrabajoController extends Controller
 
                 $despachos[$datos['id']]->update([
                     'tecnico_entrega_id' => $datos['tecnico_id'],
-                    'fecha_despacho' => $datos['fecha_despacho'] ?? null,
-                    'fecha_despacho' => $datos['fecha_despacho'] ?? null,
+                    'fecha_programada' => $datos['fecha_programada'] ?? null,
                     'entrega_autorizada' => $datos['entrega_autorizada'],
                 ]);
             }
@@ -341,8 +340,8 @@ class OrdenTrabajoController extends Controller
      * Crea los detalle_medicion_calibracion de una calibración recién agendada, uno por
      * cada detalle_medicion_alcance del equipo (según su tipo_equipo y el alcance_indicacion
      * de su equipo_especificacion_tecnica). Copia los datos de referencia conocidos de
-     * antemano (valor_referencia, unidad_medida_id, emp, incertidumbre) y calcula emp_porcentaje
-     * y emp_porcentaje_negativo a partir de ellos (ver fórmulas abajo); el resto se completa
+     * antemano (valor_referencia, unidad_medida_id, incertidumbre) y calcula emp, emp_porcentaje
+     * y emp_porcentaje_negativo a partir del EMP porcentual del alcance (ver fórmulas abajo); el resto se completa
      * cuando el técnico realiza la medición real. Si el equipo no tiene especificación
      * técnica o no hay un medicion_alcance que coincida, no crea nada.
      */
@@ -357,6 +356,7 @@ class OrdenTrabajoController extends Controller
 
         $medicionAlcance = MedicionAlcance::query()
             ->where('tipo_equipo_id', $equipo->tipo_equipo_id)
+            ->where('modelo', $equipo->modelo)
             ->where('alcance_indicacion', $especificacionTecnica->alcance_indicacion)
             ->with('detalleMedicionAlcance')
             ->first();
@@ -366,14 +366,23 @@ class OrdenTrabajoController extends Controller
         }
 
         foreach ($medicionAlcance->detalleMedicionAlcance as $detalleAlcance) {
-            $valorReferencia = $detalleAlcance->valor_instrumento;
-            $emp = $detalleAlcance->emp;
+            $valorReferencia = $detalleAlcance->valor_referencia;
 
-            // EMP % = EMP / valor de referencia; EMP% negativo = EMP% - (EMP% * 2), su
-            // opuesto; EMP% positivo es a su vez el opuesto del negativo (es decir, el
-            // mismo EMP%). Los tres son datos de referencia: no dependen de la medición
-            // real, así que se calculan una sola vez aquí.
-            $empPorcentaje = (float) $valorReferencia !== 0.0 ? (float) $emp / (float) $valorReferencia : null;
+            // El alcance guarda el EMP como porcentaje (precisión "%", 5 = 5 %) o como valor
+            // absoluto (precisión "±"). Con porcentaje se pasa a fracción (0.05) y
+            // EMP = valor de referencia * EMP%; con valor absoluto EMP% = EMP / valor de
+            // referencia. EMP% negativo = EMP% - (EMP% * 2), su opuesto;
+            // EMP% positivo es a su vez el opuesto del negativo (es decir, el mismo EMP%). Son
+            // datos de referencia: no dependen de la medición real, así que se calculan una
+            // sola vez aquí.
+            if ($detalleAlcance->emp_porcentaje !== null) {
+                $empPorcentaje = (float) $detalleAlcance->emp_porcentaje / 100;
+                $emp = round((float) $valorReferencia * $empPorcentaje, 2);
+            } else {
+                $emp = $detalleAlcance->emp;
+                $empPorcentaje = (float) $valorReferencia !== 0.0 ? (float) $emp / (float) $valorReferencia : null;
+            }
+
             $empPorcentajeNegativo = $empPorcentaje !== null ? $empPorcentaje - ($empPorcentaje * 2) : null;
             $empPorcentajePositivo = $empPorcentajeNegativo !== null ? -$empPorcentajeNegativo : null;
 

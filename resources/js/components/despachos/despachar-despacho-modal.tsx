@@ -151,6 +151,28 @@ function DespacharFormulario({
                     {entregaRecibida ? (
                         <div className="space-y-6" data-test="datos-recepcion">
                             <div className="grid gap-2">
+                                <Label htmlFor="fecha_despacho">
+                                    Fecha de despacho
+                                </Label>
+                                <Input
+                                    id="fecha_despacho"
+                                    type="date"
+                                    value={
+                                        despacho.fecha_despacho ??
+                                        new Date().toLocaleDateString('en-CA')
+                                    }
+                                    readOnly
+                                    disabled
+                                    className="sm:max-w-xs"
+                                    data-test="despacho-fecha-entrega-input"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Se registra automáticamente el día en que se
+                                    despacha el equipo.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-2">
                                 <Label htmlFor="cliente_recibe_id">
                                     Cliente que recibe
                                 </Label>

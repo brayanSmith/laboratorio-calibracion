@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
 import CalibracionController from '@/actions/App/Http/Controllers/CalibracionController';
 import CalibracionFormFields from '@/components/calibraciones/calibracion-form-fields';
@@ -15,6 +15,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
+import { valoresGuardados } from '@/lib/calibracion-resultado';
 import type { Calibracion, CalibracionOptions } from '@/types';
 
 type Props = {
@@ -27,9 +28,7 @@ type Props = {
 
 export default function EditCalibracionModal({
     calibracion,
-    tecnicos,
-    laboratorios,
-    areas,
+    laboratorioPrincipal,
     procedimientos,
     novedadesCalibracion,
     iniciadoEn,
@@ -46,9 +45,7 @@ export default function EditCalibracionModal({
                 <EditCalibracionFormulario
                     key={`${calibracion.id}-${String(open)}`}
                     calibracion={calibracion}
-                    tecnicos={tecnicos}
-                    laboratorios={laboratorios}
-                    areas={areas}
+                    laboratorioPrincipal={laboratorioPrincipal}
                     procedimientos={procedimientos}
                     novedadesCalibracion={novedadesCalibracion}
                     iniciadoEn={iniciadoEn}
@@ -67,9 +64,7 @@ type FormularioProps = {
 
 function EditCalibracionFormulario({
     calibracion,
-    tecnicos,
-    laboratorios,
-    areas,
+    laboratorioPrincipal,
     procedimientos,
     novedadesCalibracion,
     iniciadoEn,
@@ -77,7 +72,32 @@ function EditCalibracionFormulario({
 }: FormularioProps) {
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
     const [finalizarOpen, setFinalizarOpen] = useState(false);
+    // Lo escrito en "Valor instrumento": alimenta en vivo el resultado de la calibración.
+    const [valoresInstrumento, setValoresInstrumento] = useState(() =>
+        valoresGuardados(calibracion.detalles_medicion),
+    );
     const { can } = usePermissions();
+    // Marca dentro del formulario: permite a "Finalizar" leer sus datos y enviarlos junto
+    // con la finalización, en una sola petición (ver FinalizarCalibracionModal).
+    const marcaFormulario = useRef<HTMLSpanElement>(null);
+    const puedeEditar = can('calibraciones.editar');
+
+    const obtenerFormulario = (): FormData | null => {
+        const formulario = marcaFormulario.current?.closest('form');
+
+        return formulario ? new FormData(formulario) : null;
+    };
+
+    // Antes de abrir la finalización se valida el formulario (campos obligatorios).
+    const abrirFinalizar = () => {
+        const formulario = marcaFormulario.current?.closest('form');
+
+        if (puedeEditar && formulario && !formulario.reportValidity()) {
+            return;
+        }
+
+        setFinalizarOpen(true);
+    };
 
     return (
         <>
@@ -88,6 +108,7 @@ function EditCalibracionFormulario({
             >
                 {({ errors, processing }) => (
                     <>
+                        <span ref={marcaFormulario} hidden />
                         <DialogHeader>
                             <DialogTitle>Editar calibración</DialogTitle>
                             <DialogDescription>
@@ -109,9 +130,14 @@ function EditCalibracionFormulario({
 
                         <CalibracionFormFields
                             calibracion={calibracion}
-                            tecnicos={tecnicos}
-                            laboratorios={laboratorios}
-                            areas={areas}
+                            laboratorioPrincipal={laboratorioPrincipal}
+                            valoresInstrumento={valoresInstrumento}
+                            onValorInstrumentoChange={(detalleId, valor) =>
+                                setValoresInstrumento((prev) => ({
+                                    ...prev,
+                                    [detalleId]: valor,
+                                }))
+                            }
                             procedimientos={procedimientos}
                             novedadesCalibracion={novedadesCalibracion}
                             errors={errors}
@@ -125,7 +151,8 @@ function EditCalibracionFormulario({
                                 <Button
                                     type="button"
                                     className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-                                    onClick={() => setFinalizarOpen(true)}
+                                    disabled={processing}
+                                    onClick={abrirFinalizar}
                                     data-test="abrir-finalizar-calibracion-button"
                                 >
                                     Finalizar
@@ -145,6 +172,7 @@ function EditCalibracionFormulario({
 
             <FinalizarCalibracionModal
                 calibracionId={calibracion.id}
+                obtenerFormulario={puedeEditar ? obtenerFormulario : undefined}
                 open={finalizarOpen}
                 onOpenChange={setFinalizarOpen}
                 onFinalizado={() => {

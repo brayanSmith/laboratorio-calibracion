@@ -39,6 +39,8 @@ class UpdateItemRequest extends FormRequest
             ],
             'nombre' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string', 'max:255'],
+            'ubicacion' => ['nullable', 'string', 'max:255'],
+            'precio_unitario' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 
@@ -53,6 +55,8 @@ class UpdateItemRequest extends FormRequest
             'codigo' => 'código',
             'nombre' => 'nombre',
             'descripcion' => 'descripción',
+            'ubicacion' => 'ubicación',
+            'precio_unitario' => 'precio unitario',
         ];
     }
 }

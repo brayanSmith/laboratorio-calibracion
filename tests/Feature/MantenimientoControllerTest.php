@@ -4,6 +4,7 @@ use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\EmpresaTercero;
+use App\Models\Item;
 use App\Models\Mantenimiento;
 use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
@@ -59,6 +60,41 @@ test('lista solo los mantenimientos del tenant', function () {
             ->where('mantenimientos.0.tecnico_nombre', $mantenimiento->tecnico->name)
             ->where('mantenimientos.0.equipo.codigo', $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->codigo));
 });
+
+test('la duracion del mantenimiento suma sus tiempos de servicio cerrados', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    foreach ([['00:30:15', 'FIN'], ['01:45:50', 'FIN'], ['02:00:00', 'INICIO']] as [$duracion, $estado]) {
+        TiempoServicio::create([
+            'orden_trabajo_id' => $mantenimiento->orden_trabajo_id,
+            'tipo_servicio' => 'MANTENIMIENTO',
+            'inicio' => now()->subHours(3),
+            'fin' => $estado === 'FIN' ? now() : null,
+            'duracion' => $estado === 'FIN' ? $duracion : null,
+            'estado_tiempo' => $estado,
+            'es_tercero' => false,
+            'tenant_id' => $this->tenant->id,
+        ]);
+    }
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page->where('mantenimientos.0.duracion', '2h 16m'));
+
+    expect(TiempoServicio::duracionMantenimiento($mantenimiento->orden_trabajo_id))->toBe('02:16:05')
+        ->and(TiempoServicio::sumarDuraciones([]))->toBeNull();
+});
+
+test('formatea la duracion sin segundos y con las dos unidades mayores', function (?string $duracion, ?string $esperado) {
+    expect(TiempoServicio::formatearDuracion($duracion))->toBe($esperado);
+})->with([
+    'menos de un minuto' => ['00:00:40', '<1m'],
+    'minutos' => ['00:45:59', '45m'],
+    'horas y minutos' => ['02:16:05', '2h 16m'],
+    'un dia y horas' => ['28:10:00', '1d 4h'],
+    'varios dias' => ['75:59:59', '3d 3h'],
+    'sin duracion' => [null, null],
+]);
 
 test('lista solo los servicios de tercero de mantenimiento del tenant', function () {
     $mantenimiento = crearMantenimiento($this->bahia);
@@ -450,6 +486,25 @@ test('el informe PDF incluye las fotos de la galeria del mantenimiento', functio
         ->assertHeader('content-type', 'application/pdf');
 });
 
+test('el informe PDF se genera con los items utilizados, su precio unitario y su subtotal', function () {
+    Storage::fake('public');
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    $mantenimiento->itemMantenimientos()->create([
+        'item_id' => Item::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'cantidad' => 3,
+        'precio_unitario' => 12500,
+        'subtotal' => 37500,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.informe', $mantenimiento))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    Storage::disk('public')->assertExists($mantenimiento->refresh()->pdf_informe);
+});
+
 test('muestra el informe de un mantenimiento finalizado y lo regenera si falta el archivo', function () {
     Storage::fake('public');
     $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO', 'pdf_informe' => 'informes/inexistente.pdf']);
@@ -462,6 +517,35 @@ test('muestra el informe de un mantenimiento finalizado y lo regenera si falta e
 
     Storage::disk('public')->assertExists($mantenimiento->refresh()->pdf_informe);
     expect($mantenimiento->pdf_informe)->not->toBe('informes/inexistente.pdf');
+});
+
+test('actualizar el informe reemplaza el archivo guardado', function () {
+    Storage::fake('public');
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    Storage::disk('public')->put('informes/viejo.pdf', 'viejo');
+    $mantenimiento->update(['pdf_informe' => 'informes/viejo.pdf']);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.actualizar-informe', $mantenimiento))
+        ->assertRedirect();
+
+    $mantenimiento->refresh();
+
+    expect($mantenimiento->pdf_informe)->not->toBe('informes/viejo.pdf');
+    Storage::disk('public')->assertExists($mantenimiento->pdf_informe);
+    Storage::disk('public')->assertMissing('informes/viejo.pdf');
+});
+
+test('no permite actualizar el informe de un mantenimiento sin finalizar, de otro tenant ni sin permiso', function () {
+    Storage::fake('public');
+    $sinFinalizar = crearMantenimiento($this->bahia);
+    $ajeno = crearMantenimiento(Bahia::factory()->create(), ['estado_mantenimiento' => 'FINALIZADO'], 'EQ-AJENO');
+    $finalizado = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO'], 'EQ-FIN');
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.actualizar-informe', $sinFinalizar))->assertNotFound();
+    $this->actingAs($this->admin)->post(route('mantenimientos.actualizar-informe', $ajeno))->assertForbidden();
+    $this->actingAs($sinRol)->post(route('mantenimientos.actualizar-informe', $finalizado))->assertForbidden();
 });
 
 test('no permite descargar el informe de un mantenimiento sin finalizar ni de otro tenant', function () {

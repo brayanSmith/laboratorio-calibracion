@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ServicioTerceros\FinalizarServicioTerceroRequest;
+use App\Http\Requests\ServicioTerceros\GuardarCodigosServicioTerceroRequest;
 use App\Http\Requests\ServicioTerceros\UpdateServicioTerceroRequest;
 use App\Models\Despacho;
 use App\Models\OrdenTrabajo;
@@ -48,6 +49,9 @@ class ServicioTerceroController extends Controller
             ->get()
             ->map(fn (ServicioTercero $servicio) => [
                 'id' => $servicio->id,
+                'tipo_servicio' => $servicio->tipo_servicio,
+                'codigo_compra' => $servicio->codigo_compra,
+                'codigo_despacho' => $servicio->codigo_despacho,
                 'fecha' => $servicio->created_at->toDateString(),
                 'orden_trabajo_codigo' => $servicio->ordenTrabajo->codigo,
                 'equipo_codigo' => $servicio->ordenTrabajo->equipoProgramacion->equipo->codigo,
@@ -109,6 +113,24 @@ class ServicioTerceroController extends Controller
     }
 
     /**
+     * Guarda el código de compra y el de despacho (ambos opcionales) de un servicio de
+     * tercero de mantenimiento que sigue en curso. No aplica a los de calibración.
+     */
+    public function guardarCodigos(GuardarCodigosServicioTerceroRequest $request, ServicioTercero $servicioTercero): RedirectResponse
+    {
+        abort_unless($servicioTercero->tipo_servicio === 'MANTENIMIENTO', 404);
+
+        $servicioTercero->update([
+            'codigo_compra' => $request->validated('codigo_compra'),
+            'codigo_despacho' => $request->validated('codigo_despacho'),
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Códigos guardados.')]);
+
+        return back();
+    }
+
+    /**
      * Finish the servicio de tercero: guarda el documento (PDF) del servicio y el
      * estado final del equipo, y cierra el tiempo_servicio en curso. Si quedó APROBADO
      * crea el despacho de la orden de trabajo (sin técnico todavía) para "Agendar
@@ -131,6 +153,10 @@ class ServicioTerceroController extends Controller
                 'estado_servicio' => 'FINALIZADO',
                 'estado_final_equipo' => $estadoFinal,
                 're_agendar' => $reAgendar,
+                ...($servicioTercero->tipo_servicio === 'MANTENIMIENTO' ? [
+                    'codigo_compra' => $request->validated('codigo_compra'),
+                    'codigo_despacho' => $request->validated('codigo_despacho'),
+                ] : []),
                 'pdf_servicio' => $request->file('pdf_servicio')
                     ->store("servicios-terceros/{$servicioTercero->tenant_id}/{$servicioTercero->id}", 'public'),
             ]);

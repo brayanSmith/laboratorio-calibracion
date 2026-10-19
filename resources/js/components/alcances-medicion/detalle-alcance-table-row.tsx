@@ -7,41 +7,64 @@ import { Input } from '@/components/ui/input';
 import type {
     AlcanceMedicionUnidadOpcion,
     DetalleAlcanceMedicion,
+    EspecificacionAlcance,
 } from '@/types';
 
 type Props = {
     index: number;
     detalle?: DetalleAlcanceMedicion;
     unidadesMedida: AlcanceMedicionUnidadOpcion[];
+    especificacion: EspecificacionAlcance | null;
     errors: Partial<Record<string, string>>;
     onRemove: () => void;
 };
 
-const numericFields = [
-    {
-        field: 'valor_instrumento',
-        label: 'Valor del instrumento',
-        min: undefined,
-    },
-    { field: 'emp', label: 'EMP', min: '0' },
-    { field: 'incertidumbre', label: 'Incertidumbre', min: '0' },
-] as const;
+const inputClassName =
+    'h-7 w-full rounded-none border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset';
 
 /**
- * Fila editable de la tabla de detalles del formulario de nuevo alcance. Envía
- * sus valores como `detalles[index][campo]`.
+ * Separa la precisión del equipo ("±0.5" o "0.5%") en su símbolo y su número. El símbolo
+ * decide si el EMP del detalle es un valor absoluto ("±", campo `emp`) o un porcentaje
+ * ("%", campo `emp_porcentaje`).
+ */
+function parsePrecision(precision: string | null): {
+    esPorcentaje: boolean;
+    numero: string;
+} {
+    const esPorcentaje = precision?.endsWith('%') ?? false;
+
+    return {
+        esPorcentaje,
+        numero: (precision ?? '').replace(/[±%]/g, ''),
+    };
+}
+
+/**
+ * Fila editable de la tabla de detalles del formulario de alcance. Envía sus
+ * valores como `detalles[index][campo]`. El EMP parte de la precisión de los equipos
+ * del alcance.
  */
 export default function DetalleAlcanceTableRow({
     index,
     detalle,
     unidadesMedida,
+    especificacion,
     errors,
     onRemove,
 }: Props) {
-    const [unidadMedidaId, setUnidadMedidaId] = useState(
-        detalle ? String(detalle.unidad_medida_id) : '',
-    );
+    // Hasta que se elige otra, la unidad es la del detalle guardado o la de los equipos del alcance.
+    const [unidadElegida, setUnidadElegida] = useState<string | null>(null);
+    const unidadMedidaId =
+        unidadElegida ??
+        (detalle
+            ? String(detalle.unidad_medida_id)
+            : especificacion
+              ? String(especificacion.unidad_medida_id)
+              : '');
     const errorOf = (field: string) => errors[`detalles.${index}.${field}`];
+    const { esPorcentaje, numero } = parsePrecision(especificacion?.precision ?? null);
+    const empField = esPorcentaje ? 'emp_porcentaje' : 'emp';
+    const empGuardado = detalle?.[empField];
 
     return (
         <tr className="align-top" data-test="alcance-medicion-detalle-row">
@@ -56,33 +79,64 @@ export default function DetalleAlcanceTableRow({
                 <Combobox
                     name={`detalles[${index}][unidad_medida_id]`}
                     value={unidadMedidaId}
-                    onValueChange={setUnidadMedidaId}
+                    onValueChange={setUnidadElegida}
                     options={unidadesMedida.map((unidad) => ({
                         id: unidad.id,
                         label: `${unidad.nombre} (${unidad.simbolo})`,
                     }))}
                     placeholder="Unidad de medida"
                     searchPlaceholder="Buscar unidad..."
-                    className="h-7 w-full rounded-none border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset"
+                    className={inputClassName}
                 />
                 <InputError message={errorOf('unidad_medida_id')} />
             </td>
 
-            {numericFields.map(({ field, label, min }) => (
-                <td key={field} className="px-3 py-2">
+            <td className="px-3 py-2">
+                <Input
+                    name={`detalles[${index}][valor_referencia]`}
+                    type="number"
+                    step="0.01"
+                    defaultValue={detalle?.valor_referencia}
+                    aria-label="Valor de referencia"
+                    className={inputClassName}
+                    required
+                />
+                <InputError message={errorOf('valor_referencia')} />
+            </td>
+
+            <td className="px-3 py-2">
+                <div className="flex items-center gap-1 text-xs">
+                    {esPorcentaje ? null : <span>±</span>}
                     <Input
-                        name={`detalles[${index}][${field}]`}
+                        key={`${empField}-${numero}`}
+                        name={`detalles[${index}][${empField}]`}
                         type="number"
                         step="0.01"
-                        min={min}
-                        defaultValue={detalle?.[field]}
-                        aria-label={label}
-                        className="h-7 w-full rounded-none border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset"
+                        min="0"
+                        max={esPorcentaje ? '100' : undefined}
+                        defaultValue={empGuardado ?? numero}
+                        aria-label={esPorcentaje ? 'EMP (%)' : 'EMP'}
+                        className={inputClassName}
                         required
                     />
-                    <InputError message={errorOf(field)} />
-                </td>
-            ))}
+                    {esPorcentaje ? <span>%</span> : null}
+                </div>
+                <InputError message={errorOf(empField)} />
+            </td>
+
+            <td className="px-3 py-2">
+                <Input
+                    name={`detalles[${index}][incertidumbre]`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={detalle?.incertidumbre}
+                    aria-label="Incertidumbre"
+                    className={inputClassName}
+                    required
+                />
+                <InputError message={errorOf('incertidumbre')} />
+            </td>
 
             <td className="px-3 py-2">
                 <Button

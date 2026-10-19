@@ -12,6 +12,7 @@ use App\Http\Controllers\DetalleMedicionAlcanceController;
 use App\Http\Controllers\DocumentoEquipoController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EmpresaTerceroController;
+use App\Http\Controllers\EntradaItemController;
 use App\Http\Controllers\EquipoController;
 use App\Http\Controllers\EquipoEspecificacionTecnicaController;
 use App\Http\Controllers\EquipoProgramacionController;
@@ -96,14 +97,18 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     // Sin "create": un servicio de tercero solo se origina desde "Agendar Mantenimiento"/"Agendar Calibraciones".
     Route::resource('servicio-terceros', ServicioTerceroController::class)->only(['update', 'destroy']);
     Route::post('servicio-terceros/{servicio_tercero}/iniciar', [ServicioTerceroController::class, 'iniciar'])->name('servicio-terceros.iniciar');
+    Route::post('servicio-terceros/{servicio_tercero}/codigos', [ServicioTerceroController::class, 'guardarCodigos'])->name('servicio-terceros.guardar-codigos');
     Route::post('servicio-terceros/{servicio_tercero}/finalizar', [ServicioTerceroController::class, 'finalizar'])->name('servicio-terceros.finalizar');
 
     Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
+    Route::post('mantenimientos/{mantenimiento}/actualizar-stock', [MantenimientoController::class, 'actualizarStock'])->name('mantenimientos.actualizar-stock');
     Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');
     Route::get('mantenimientos/{mantenimiento}/informe', [MantenimientoController::class, 'informe'])->name('mantenimientos.informe');
+    Route::post('mantenimientos/{mantenimiento}/informe/actualizar', [MantenimientoController::class, 'actualizarInforme'])->name('mantenimientos.actualizar-informe');
     Route::post('calibraciones/{calibracion}/iniciar', [CalibracionController::class, 'iniciar'])->name('calibraciones.iniciar');
     Route::post('calibraciones/{calibracion}/finalizar', [CalibracionController::class, 'finalizar'])->name('calibraciones.finalizar');
     Route::get('calibraciones/{calibracion}/certificado', [CalibracionController::class, 'certificado'])->name('calibraciones.certificado');
+    Route::post('calibraciones/{calibracion}/certificado/actualizar', [CalibracionController::class, 'actualizarCertificado'])->name('calibraciones.actualizar-certificado');
 
     // Borrado individual de lo registrado en la gestión de un mantenimiento (ver
     // GestionarMantenimientoModal): el checklist, un nuevo defecto/ítem usado/comentario/
@@ -122,6 +127,9 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('fabricantes', FabricanteController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('items', ItemController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('items/{item}/movimientos', [ItemController::class, 'movimientos'])->name('items.movimientos');
+    Route::post('items/{item}/entradas', [EntradaItemController::class, 'store'])->name('items.entradas.store');
+    Route::patch('entradas-item/{entradaItem}/recibir', [EntradaItemController::class, 'recibir'])->name('entradas-item.recibir');
 
     Route::resource('laboratorios', LaboratorioController::class)->only(['index', 'store', 'update', 'destroy']);
 

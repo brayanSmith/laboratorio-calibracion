@@ -19,6 +19,14 @@ class StoreLaboratorioRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['principal' => $this->boolean('principal')]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -36,6 +44,7 @@ class StoreLaboratorioRequest extends FormRequest
             ],
             'descripcion' => ['nullable', 'string', 'max:255'],
             'direccion' => ['nullable', 'string', 'max:255'],
+            'principal' => ['boolean'],
         ];
     }
 
@@ -50,6 +59,7 @@ class StoreLaboratorioRequest extends FormRequest
             'nombre' => 'nombre',
             'descripcion' => 'descripción',
             'direccion' => 'dirección',
+            'principal' => 'principal',
         ];
     }
 }

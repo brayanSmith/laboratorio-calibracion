@@ -117,6 +117,7 @@ function RecibirIngresoFormulario({
     onSuccess,
 }: FormularioProps) {
     const { can } = usePermissions();
+    const hoy = new Date().toLocaleDateString('en-CA');
     const [estadoIngreso, setEstadoIngreso] = useState<EstadoIngreso>(
         ingreso.estado_ingreso,
     );
@@ -297,6 +298,25 @@ function RecibirIngresoFormulario({
 
                     {aprobado && mostrarDatosRecepcion ? (
                         <div className="grid gap-6 sm:grid-cols-2">
+                            <div className="grid gap-2 sm:col-span-2">
+                                <Label htmlFor="fecha_recepcion">
+                                    Fecha de recepción
+                                </Label>
+                                <Input
+                                    id="fecha_recepcion"
+                                    type="date"
+                                    value={ingreso.fecha_recepcion ?? hoy}
+                                    readOnly
+                                    disabled
+                                    className="sm:max-w-xs"
+                                    data-test="ingreso-fecha-recepcion-input"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Se registra automáticamente el día en que se
+                                    recibe el ingreso.
+                                </p>
+                            </div>
+
                             <div className="grid gap-2">
                                 <Label htmlFor="tecnico_recibe_id">
                                     Técnico que recibe{' '}

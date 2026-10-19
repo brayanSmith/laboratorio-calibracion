@@ -94,7 +94,7 @@ function registrarMedicionDeCalibracionSobre(DetalleMedicionAlcance $detalle): v
     ]);
 }
 
-function registrarAlcanceIndicacion(Tenant $tenant, string $alcanceIndicacion, TipoEquipo $tipoEquipo): void
+function registrarAlcanceIndicacion(Tenant $tenant, string $alcanceIndicacion, TipoEquipo $tipoEquipo, string $precision = '±0.5'): void
 {
     DB::statement('PRAGMA defer_foreign_keys = ON');
 
@@ -119,7 +119,7 @@ function registrarAlcanceIndicacion(Tenant $tenant, string $alcanceIndicacion, T
         'tipo_magnitud_id' => 1,
         'unidad_medida_id' => 1,
         'alcance_indicacion' => $alcanceIndicacion,
-        'precision' => '±0.5',
+        'precision' => $precision,
         'resolucion' => '0.01mm',
         'tenant_id' => $tenant->id,
         'created_at' => now(),

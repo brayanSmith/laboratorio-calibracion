@@ -363,6 +363,46 @@ test('recibe un ingreso con tecnico, cliente y firma, quedando aprobado', functi
     Storage::disk('public')->assertExists($ingreso->firma_cliente_entrega);
 });
 
+test('la fecha de recepcion se fija el dia en que se recibe el ingreso y no cambia', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $datos = [
+        'estado_ingreso' => 'RECIBIDO',
+        'tecnico_recibe_id' => $this->admin->id,
+        'cliente_entrega_id' => $this->cliente->id,
+    ];
+
+    expect($ingreso->fecha_recepcion)->toBeNull();
+
+    // Una fecha enviada por el cliente se ignora: la calcula el servidor.
+    $this->travelTo(now()->setDate(2026, 10, 12));
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [...$datos, 'fecha_recepcion' => '2020-01-01'])
+        ->assertSessionHasNoErrors();
+
+    expect($ingreso->refresh()->fecha_recepcion->toDateString())->toBe('2026-10-12');
+
+    $this->travelTo(now()->setDate(2026, 10, 20));
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [...$datos, 'novedad' => 'Cambio de nota'])
+        ->assertSessionHasNoErrors();
+
+    expect($ingreso->refresh()->fecha_recepcion->toDateString())->toBe('2026-10-12');
+
+    $this->actingAs($this->admin)
+        ->get(route('ingresos.index'))
+        ->assertInertia(fn ($page) => $page->where('ingresos.0.fecha_recepcion', '2026-10-12'));
+});
+
+test('cancelar un ingreso no le fija fecha de recepcion', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'CANCELADO', 'motivo_cancelacion' => 'No llegaron'])
+        ->assertSessionHasNoErrors();
+
+    expect($ingreso->refresh()->fecha_recepcion)->toBeNull();
+});
+
 test('mantiene agendado un equipo programado marcado como ingresado al recibir el ingreso', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);

@@ -43,6 +43,30 @@ export default function ItemFormFields({ item, errors }: Props) {
                 />
                 <InputError message={errors.descripcion} />
             </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="ubicacion">Ubicación</Label>
+                <Input
+                    id="ubicacion"
+                    name="ubicacion"
+                    defaultValue={item?.ubicacion ?? ''}
+                    placeholder="Estante A-2"
+                />
+                <InputError message={errors.ubicacion} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="precio_unitario">Precio unitario</Label>
+                <Input
+                    id="precio_unitario"
+                    name="precio_unitario"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={item?.precio_unitario ?? ''}
+                />
+                <InputError message={errors.precio_unitario} />
+            </div>
         </div>
     );
 }

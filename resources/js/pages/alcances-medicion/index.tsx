@@ -1,26 +1,29 @@
-import { Head } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import CreateAlcanceMedicionModal from '@/components/alcances-medicion/create-alcance-medicion-modal';
-import DeleteAlcanceMedicionModal from '@/components/alcances-medicion/delete-alcance-medicion-modal';
-import EditAlcanceMedicionModal from '@/components/alcances-medicion/edit-alcance-medicion-modal';
+import { Head } from "@inertiajs/react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import CreateAlcanceMedicionModal from "@/components/alcances-medicion/create-alcance-medicion-modal";
+import DeleteAlcanceMedicionModal from "@/components/alcances-medicion/delete-alcance-medicion-modal";
+import EditAlcanceMedicionModal from "@/components/alcances-medicion/edit-alcance-medicion-modal";
 import DataTable, {
     createDataTableColumnHelper,
-} from '@/components/data-table';
-import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/alcances-medicion';
+} from "@/components/data-table";
+import Heading from "@/components/heading";
+import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/use-permissions";
+import { index } from "@/routes/alcances-medicion";
 import type {
     AlcanceMedicion,
     AlcanceMedicionOpcion,
+    AlcancesIndicacionPorModelo,
     AlcanceMedicionUnidadOpcion,
-} from '@/types';
+    EspecificacionesAlcance,
+} from "@/types";
 
 type Props = {
     alcancesMedicion: AlcanceMedicion[];
     tiposEquipo: AlcanceMedicionOpcion[];
-    alcancesIndicacion: Record<string, string[]>;
+    alcancesIndicacion: AlcancesIndicacionPorModelo;
+    especificaciones: EspecificacionesAlcance;
     unidadesMedida: AlcanceMedicionUnidadOpcion[];
 };
 
@@ -30,11 +33,12 @@ export default function AlcancesMedicionIndex({
     alcancesMedicion,
     tiposEquipo,
     alcancesIndicacion,
+    especificaciones,
     unidadesMedida,
 }: Props) {
     const { can } = usePermissions();
-    const canEdit = can('alcances-medicion.editar');
-    const canDelete = can('alcances-medicion.eliminar');
+    const canEdit = can("alcances-medicion.editar");
+    const canDelete = can("alcances-medicion.eliminar");
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         alcancesMedicion.find((alcance) => alcance.id === editingId) ?? null;
@@ -45,22 +49,25 @@ export default function AlcancesMedicionIndex({
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.accessor('tipo_equipo', {
-                    header: 'Tipo de equipo',
+                columnHelper.accessor("tipo_equipo", {
+                    header: "Tipo de equipo",
                     cell: (info) => (
                         <span className="font-medium">{info.getValue()}</span>
                     ),
                 }),
-                columnHelper.accessor('alcance_indicacion', {
-                    header: 'Alcance de indicación',
+                columnHelper.accessor("modelo", {
+                    header: "Modelo",
+                }),
+                columnHelper.accessor("alcance_indicacion", {
+                    header: "Alcance de indicación",
                 }),
                 columnHelper.accessor((alcance) => alcance.detalles.length, {
-                    id: 'detalles',
-                    header: 'Detalles',
+                    id: "detalles",
+                    header: "Detalles",
                 }),
                 columnHelper.display({
-                    id: 'acciones',
-                    header: '',
+                    id: "acciones",
+                    header: "",
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
@@ -111,10 +118,11 @@ export default function AlcancesMedicionIndex({
                         description="Define los alcances de cada tipo de equipo y sus valores de EMP e incertidumbre"
                     />
 
-                    {can('alcances-medicion.crear') ? (
+                    {can("alcances-medicion.crear") ? (
                         <CreateAlcanceMedicionModal
                             tiposEquipo={tiposEquipo}
                             alcancesIndicacion={alcancesIndicacion}
+                            especificaciones={especificaciones}
                             unidadesMedida={unidadesMedida}
                         >
                             <Button data-test="alcances-medicion-new-button">
@@ -137,6 +145,7 @@ export default function AlcancesMedicionIndex({
                 alcanceMedicion={editing}
                 tiposEquipo={tiposEquipo}
                 alcancesIndicacion={alcancesIndicacion}
+                especificaciones={especificaciones}
                 unidadesMedida={unidadesMedida}
                 open={editOpen}
                 onOpenChange={setEditOpen}
@@ -153,7 +162,7 @@ export default function AlcancesMedicionIndex({
 AlcancesMedicionIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Alcances de medición',
+            title: "Alcances de medición",
             href: index(),
         },
     ],

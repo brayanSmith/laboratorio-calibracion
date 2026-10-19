@@ -206,3 +206,14 @@ test('no elimina una bahia que tiene ingresos asociados', function () {
 
     expect(Bahia::find($bahia->id))->not->toBeNull();
 });
+
+test('las opciones de area para los selectores concatenan el nombre y la descripcion', function () {
+    Area::factory()->for($this->tenant)->create(['nombre' => 'CRC', 'descripcion' => 'Centro de Reparación de Componentes']);
+    Area::factory()->for($this->tenant)->create(['nombre' => 'SIN', 'descripcion' => null]);
+
+    $this->actingAs($this->admin)
+        ->get(route('bahias.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('areas.0.etiqueta', 'CRC - Centro de Reparación de Componentes')
+            ->where('areas.1.etiqueta', 'SIN'));
+});

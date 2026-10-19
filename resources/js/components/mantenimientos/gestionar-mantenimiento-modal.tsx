@@ -1,4 +1,4 @@
-import { Form } from '@inertiajs/react';
+import { Form, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
 import InputError from '@/components/input-error';
@@ -89,9 +89,37 @@ function GestionarMantenimientoFormulario({
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
     const [finalizarOpen, setFinalizarOpen] = useState(false);
     const { can } = usePermissions();
-    const [faltanRepuestos, setFaltanRepuestos] = useState(
-        mantenimiento.estado_mantenimiento === 'FALTA_REPUESTOS',
-    );
+    // "Hacen falta repuestos" no se edita a mano: se deriva de los ítems sin stock, tanto
+    // los ya guardados como los de las filas nuevas.
+    const [hayFilaNuevaSinStock, setHayFilaNuevaSinStock] = useState(false);
+    const faltanRepuestos =
+        hayFilaNuevaSinStock ||
+        mantenimiento.items_usados.some((itemUsado) => !itemUsado.con_stock);
+
+    // Si el estado guardado sigue en "Faltan repuestos" pero ya no hay ítems sin stock
+    // (p. ej. se quitó uno), se sincroniza en el servidor antes de abrir Finalizar.
+    const abrirFinalizar = () => {
+        if (
+            mantenimiento.estado_mantenimiento === 'FALTA_REPUESTOS' &&
+            !faltanRepuestos
+        ) {
+            router.post(
+                MantenimientoController.actualizarStock.url(mantenimiento.id),
+                {},
+                {
+                    only: ['items', 'mantenimientos'],
+                    preserveState: true,
+                    preserveScroll: true,
+                    onSuccess: () => setFinalizarOpen(true),
+                },
+            );
+
+            return;
+        }
+
+        setFinalizarOpen(true);
+    };
+
     const estadoMantenimiento = faltanRepuestos
         ? 'FALTA_REPUESTOS'
         : mantenimiento.estado_mantenimiento === 'FALTA_REPUESTOS'
@@ -304,9 +332,11 @@ function GestionarMantenimientoFormulario({
                         />
 
                         <MantenimientoItemsUsados
+                            mantenimientoId={mantenimiento.id}
                             itemsUsados={mantenimiento.items_usados}
                             items={items}
                             errors={errors}
+                            onSinStockChange={setHayFilaNuevaSinStock}
                         />
 
                         <MantenimientoComentarios
@@ -323,9 +353,7 @@ function GestionarMantenimientoFormulario({
                             <Checkbox
                                 id="faltan_repuestos"
                                 checked={faltanRepuestos}
-                                onCheckedChange={(checked) =>
-                                    setFaltanRepuestos(checked === true)
-                                }
+                                disabled
                                 data-test="faltan-repuestos-checkbox"
                             />
                             <Label
@@ -347,7 +375,7 @@ function GestionarMantenimientoFormulario({
                                     type="button"
                                     className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
                                     disabled={faltanRepuestos}
-                                    onClick={() => setFinalizarOpen(true)}
+                                    onClick={abrirFinalizar}
                                     data-test="abrir-finalizar-button"
                                 >
                                     Finalizar

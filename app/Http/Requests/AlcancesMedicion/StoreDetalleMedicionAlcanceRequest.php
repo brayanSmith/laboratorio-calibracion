@@ -28,6 +28,13 @@ class StoreDetalleMedicionAlcanceRequest extends FormRequest
         /** @var MedicionAlcance $medicionAlcance */
         $medicionAlcance = $this->route('medicionAlcance');
 
+        $porcentaje = MedicionAlcance::simboloPrecision(
+            $medicionAlcance->tenant_id,
+            $medicionAlcance->tipo_equipo_id,
+            $medicionAlcance->modelo,
+            $medicionAlcance->alcance_indicacion,
+        ) === '%';
+
         return [
             'unidad_medida_id' => [
                 'required',
@@ -36,8 +43,9 @@ class StoreDetalleMedicionAlcanceRequest extends FormRequest
                     ->where('tenant_id', $medicionAlcance->tenant_id)
                     ->whereNull('deleted_at'),
             ],
-            'valor_instrumento' => ['required', 'numeric', 'between:-99999999.99,99999999.99'],
-            'emp' => ['required', 'numeric', 'between:0,99999999.99'],
+            'valor_referencia' => ['required', 'numeric', 'between:-99999999.99,99999999.99'],
+            'emp' => [Rule::requiredIf($porcentaje === false), 'nullable', 'numeric', 'between:0,99999999.99'],
+            'emp_porcentaje' => [Rule::requiredIf($porcentaje), 'nullable', 'numeric', 'between:0,100'],
             'incertidumbre' => ['required', 'numeric', 'between:0,99999999.99'],
         ];
     }
@@ -51,8 +59,9 @@ class StoreDetalleMedicionAlcanceRequest extends FormRequest
     {
         return [
             'unidad_medida_id' => 'unidad de medida',
-            'valor_instrumento' => 'valor del instrumento',
+            'valor_referencia' => 'valor de referencia',
             'emp' => 'EMP',
+            'emp_porcentaje' => 'EMP (%)',
             'incertidumbre' => 'incertidumbre',
         ];
     }

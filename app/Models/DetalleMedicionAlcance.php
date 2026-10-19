@@ -15,8 +15,9 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $medicion_alcance_id
  * @property int $unidad_medida_id
- * @property string $valor_instrumento
- * @property string $emp
+ * @property string $valor_referencia
+ * @property string|null $emp Valor absoluto del EMP (precisión "±")
+ * @property string|null $emp_porcentaje EMP en porcentaje (precisión "%")
  * @property string $incertidumbre
  * @property int $tenant_id
  * @property Carbon|null $created_at
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
  * @property-read UnidadMedida $unidadMedida
  * @property-read Tenant $tenant
  */
-#[Fillable(['medicion_alcance_id', 'unidad_medida_id', 'valor_instrumento', 'emp', 'incertidumbre', 'tenant_id'])]
+#[Fillable(['medicion_alcance_id', 'unidad_medida_id', 'valor_referencia', 'emp', 'emp_porcentaje', 'incertidumbre', 'tenant_id'])]
 class DetalleMedicionAlcance extends Model
 {
     /** @use HasFactory<DetalleMedicionAlcanceFactory> */
@@ -80,8 +81,9 @@ class DetalleMedicionAlcance extends Model
     protected function casts(): array
     {
         return [
-            'valor_instrumento' => 'decimal:2',
+            'valor_referencia' => 'decimal:2',
             'emp' => 'decimal:2',
+            'emp_porcentaje' => 'decimal:2',
             'incertidumbre' => 'decimal:2',
         ];
     }

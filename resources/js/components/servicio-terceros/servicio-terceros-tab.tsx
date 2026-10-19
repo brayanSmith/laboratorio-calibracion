@@ -1,8 +1,10 @@
-import { CheckCircle2, Eye, Pencil, Play, Trash2 } from 'lucide-react';
+import { CheckCircle2, Eye, FastForward, Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
+import ContinuarServicioTerceroModal from '@/components/servicio-terceros/continuar-servicio-tercero-modal';
+import type { CodigosServicio } from '@/components/servicio-terceros/continuar-servicio-tercero-modal';
 import DeleteServicioTerceroModal from '@/components/servicio-terceros/delete-servicio-tercero-modal';
 import FinalizarServicioTerceroModal from '@/components/servicio-terceros/finalizar-servicio-tercero-modal';
 import IniciarServicioTerceroModal from '@/components/servicio-terceros/iniciar-servicio-tercero-modal';
@@ -54,6 +56,12 @@ export default function ServicioTercerosTab({
     const finalizando =
         servicios.find((servicio) => servicio.id === finalizandoId) ?? null;
     const [finalizarOpen, setFinalizarOpen] = useState(false);
+    const [codigosBorrador, setCodigosBorrador] =
+        useState<CodigosServicio | null>(null);
+    const [continuandoId, setContinuandoId] = useState<number | null>(null);
+    const continuando =
+        servicios.find((servicio) => servicio.id === continuandoId) ?? null;
+    const [continuarOpen, setContinuarOpen] = useState(false);
     const [viendoId, setViendoId] = useState<number | null>(null);
     const viendo =
         servicios.find((servicio) => servicio.id === viendoId) ?? null;
@@ -169,12 +177,33 @@ export default function ServicioTercerosTab({
                                         <Play className="h-4 w-4" /> Iniciar
                                     </Button>
                                 ) : null}
-                                {canFinalizar && !finalizado && iniciado ? (
+                                {canFinalizar &&
+                                !finalizado &&
+                                iniciado &&
+                                servicio.tipo_servicio === 'MANTENIMIENTO' ? (
+                                    <Button
+                                        size="sm"
+                                        className="!border-transparent !bg-blue-500 !text-white hover:!bg-blue-600"
+                                        data-test="servicio-tercero-continuar-button"
+                                        onClick={() => {
+                                            setContinuandoId(servicio.id);
+                                            setContinuarOpen(true);
+                                        }}
+                                    >
+                                        <FastForward className="h-4 w-4" />{' '}
+                                        Continuar
+                                    </Button>
+                                ) : null}
+                                {canFinalizar &&
+                                !finalizado &&
+                                iniciado &&
+                                servicio.tipo_servicio !== 'MANTENIMIENTO' ? (
                                     <Button
                                         size="sm"
                                         className="!border-transparent !bg-blue-500 !text-white hover:!bg-blue-600"
                                         data-test="servicio-tercero-finalizar-button"
                                         onClick={() => {
+                                            setCodigosBorrador(null);
                                             setFinalizandoId(servicio.id);
                                             setFinalizarOpen(true);
                                         }}
@@ -249,8 +278,20 @@ export default function ServicioTercerosTab({
                 open={verOpen}
                 onOpenChange={setVerOpen}
             />
+            <ContinuarServicioTerceroModal
+                servicio={continuando}
+                open={continuarOpen}
+                onOpenChange={setContinuarOpen}
+                onFinalizar={(codigos) => {
+                    setCodigosBorrador(codigos);
+                    setFinalizandoId(continuandoId);
+                    setContinuarOpen(false);
+                    setFinalizarOpen(true);
+                }}
+            />
             <FinalizarServicioTerceroModal
                 servicio={finalizando}
+                codigos={codigosBorrador}
                 open={finalizarOpen}
                 onOpenChange={setFinalizarOpen}
             />

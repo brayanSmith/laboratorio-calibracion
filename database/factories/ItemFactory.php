@@ -22,6 +22,8 @@ class ItemFactory extends Factory
             'codigo' => fake()->unique()->bothify('ITM-####'),
             'nombre' => fake()->words(2, true),
             'descripcion' => fake()->optional()->sentence(),
+            'ubicacion' => fake()->optional()->bothify('Estante ?-##'),
+            'precio_unitario' => fake()->optional()->randomFloat(2, 1, 500),
             'tenant_id' => Tenant::factory(),
         ];
     }

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int $bahia_id
  * @property Carbon $desde
  * @property Carbon $hasta
+ * @property Carbon|null $fecha_recepcion Día en que se recibieron los equipos; se completa al recibir el ingreso
  * @property int|null $tecnico_recibe_id Nulo hasta que se edita el ingreso
  * @property int|null $cliente_entrega_id Nulo hasta que se edita el ingreso
  * @property string|null $firma_cliente_entrega
@@ -34,7 +35,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Tenant $tenant
  */
 #[Fillable([
-    'bahia_id', 'desde', 'hasta', 'tecnico_recibe_id', 'cliente_entrega_id',
+    'bahia_id', 'desde', 'hasta', 'fecha_recepcion', 'tecnico_recibe_id', 'cliente_entrega_id',
     'firma_cliente_entrega', 'estado_ingreso', 'novedad', 'motivo_cancelacion', 'tenant_id',
 ])]
 class Ingreso extends Model
@@ -138,6 +139,7 @@ class Ingreso extends Model
         return [
             'desde' => 'date',
             'hasta' => 'date',
+            'fecha_recepcion' => 'date',
         ];
     }
 }

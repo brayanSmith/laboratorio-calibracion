@@ -39,7 +39,11 @@ class BahiaController extends Controller
 
         return Inertia::render('bahias/index', [
             'bahias' => $bahias,
-            'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'areas' => Area::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'descripcion'])
+                ->map(fn (Area $area) => ['id' => $area->id, 'nombre' => $area->nombre, 'etiqueta' => $area->etiqueta]),
         ]);
     }
 

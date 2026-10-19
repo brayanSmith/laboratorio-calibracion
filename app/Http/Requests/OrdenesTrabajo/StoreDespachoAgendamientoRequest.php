@@ -58,7 +58,7 @@ class StoreDespachoAgendamientoRequest extends FormRequest
                     ->whereNull('tecnico_entrega_id'),
             ],
             'despachos_listos.*.entrega_autorizada' => ['boolean'],
-            'despachos_listos.*.fecha_despacho' => ['nullable', 'required_if:despachos_listos.*.entrega_autorizada,true', 'date'],
+            'despachos_listos.*.fecha_programada' => ['nullable', 'required_if:despachos_listos.*.entrega_autorizada,true', 'date'],
 
             // El técnico es opcional: un despacho sin técnico elegido simplemente se deja
             // sin tocar (ver OrdenTrabajoController::storeDespacho()). Pero si se autoriza

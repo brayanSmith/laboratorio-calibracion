@@ -47,6 +47,7 @@ class DespachoController extends Controller
                 'orden_trabajo_codigo' => $despacho->ordenTrabajo->codigo,
                 'tecnico_entrega_id' => $despacho->tecnico_entrega_id,
                 'tecnico_entrega_nombre' => $despacho->tecnicoEntrega?->name,
+                'fecha_programada' => $despacho->fecha_programada?->toDateString(),
                 'fecha_despacho' => $despacho->fecha_despacho?->toDateString(),
                 'entrega_autorizada' => $despacho->entrega_autorizada,
                 'cliente_recibe_id' => $despacho->cliente_recibe_id,

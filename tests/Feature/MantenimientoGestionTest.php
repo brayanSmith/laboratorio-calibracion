@@ -3,6 +3,7 @@
 use App\Enums\TenantRole;
 use App\Models\Bahia;
 use App\Models\ComentarioMantenimiento;
+use App\Models\EntradaItem;
 use App\Models\GaleriaMantenimiento;
 use App\Models\Item;
 use App\Models\ItemMantenimiento;
@@ -91,6 +92,8 @@ test('guarda el checklist y varios defectos, items usados, comentarios y fotos n
     $itemChecklist = MantenimientoCheckList::create(['mantenimiento_id' => $mantenimiento->id, 'tipo_equipo_check_list_id' => $checkListItem->id, 'tenant_id' => $this->tenant->id]);
     $itemA = Item::factory()->create(['tenant_id' => $this->tenant->id]);
     $itemB = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $itemA->id, 'cantidad' => 10]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $itemB->id, 'cantidad' => 10]);
 
     $this->actingAs($this->admin)
         ->put(route('mantenimientos.update', $mantenimiento), [
@@ -187,6 +190,105 @@ test('valida que cada nuevo item usado pertenezca al tenant', function () {
     expect(ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(0);
 });
 
+test('la lista de mantenimientos incluye el stock de cada item disponible', function () {
+    crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $item->id, 'cantidad' => 8]);
+    EntradaItem::factory()->create(['item_id' => $item->id, 'cantidad' => 50]);
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('items.0.id', $item->id)
+            ->where('items.0.stock', 8));
+});
+
+test('no permite usar mas cantidad de un item que su stock', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $item->id, 'cantidad' => 5]);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [['item_id' => $item->id, 'cantidad' => 5.5]],
+        ])
+        ->assertSessionHasErrors('nuevos_items_usados.0.cantidad');
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [['item_id' => $item->id, 'cantidad' => 5]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(1);
+});
+
+test('suma las filas que usan el mismo item al validar el stock', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $item->id, 'cantidad' => 5]);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [
+                ['item_id' => $item->id, 'cantidad' => 3],
+                ['item_id' => $item->id, 'cantidad' => 3],
+            ],
+        ])
+        ->assertSessionHasErrors(['nuevos_items_usados.0.cantidad', 'nuevos_items_usados.1.cantidad']);
+
+    expect(ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(0);
+});
+
+test('un item sin stock se registra como sin stock y no cuenta como salida', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [['item_id' => $item->id, 'cantidad' => 4]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $usado = ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->sole();
+
+    expect($usado->con_stock)->toBeFalse()
+        ->and($usado->cantidad)->toBe('4.00');
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('items.0.stock', 0)
+            ->where('mantenimientos.0.items_usados.0.con_stock', false));
+
+    $this->actingAs($this->admin)
+        ->getJson(route('items.movimientos', $item))
+        ->assertJsonCount(0, 'salidas');
+});
+
+test('un item con stock queda registrado como con stock y descuenta del inventario', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $item->id, 'cantidad' => 10]);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [['item_id' => $item->id, 'cantidad' => 4]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->sole()->con_stock)->toBeTrue();
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page->where('items.0.stock', 6));
+});
+
 test('elimina un defecto identificado', function () {
     $mantenimiento = crearMantenimiento($this->bahia);
     $defecto = MantenimientoDefectoIdentificado::create(['mantenimiento_id' => $mantenimiento->id, 'defecto_identificado' => 'Fuga de aceite', 'nivel_riesgo' => 'ALTO', 'tenant_id' => $this->tenant->id]);
@@ -259,4 +361,105 @@ test('un usuario sin permiso de editar mantenimientos no puede guardar su gestio
         ->and(ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(0)
         ->and(ComentarioMantenimiento::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(0)
         ->and(GaleriaMantenimiento::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(0);
+});
+
+test('actualizar el stock convierte en usados los items sin stock que ya tienen stock suficiente', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $mantenimiento->update(['estado_mantenimiento' => 'FALTA_REPUESTOS']);
+    $conStock = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    $sinStock = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    $usadoA = ItemMantenimiento::create(['mantenimiento_id' => $mantenimiento->id, 'item_id' => $conStock->id, 'cantidad' => 3, 'con_stock' => false, 'tenant_id' => $this->tenant->id]);
+    $usadoB = ItemMantenimiento::create(['mantenimiento_id' => $mantenimiento->id, 'item_id' => $sinStock->id, 'cantidad' => 3, 'con_stock' => false, 'tenant_id' => $this->tenant->id]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $conStock->id, 'cantidad' => 5]);
+    EntradaItem::factory()->create(['item_id' => $sinStock->id, 'cantidad' => 50]);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.actualizar-stock', $mantenimiento))
+        ->assertRedirect();
+
+    expect($usadoA->fresh()->con_stock)->toBeTrue()
+        ->and($usadoB->fresh()->con_stock)->toBeFalse()
+        ->and($mantenimiento->fresh()->estado_mantenimiento)->toBe('FALTA_REPUESTOS');
+
+    EntradaItem::query()->where('item_id', $sinStock->id)->update(['recibido' => true, 'fecha_recibido' => now()]);
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.actualizar-stock', $mantenimiento));
+
+    expect($usadoB->fresh()->con_stock)->toBeTrue()
+        ->and($mantenimiento->fresh()->estado_mantenimiento)->toBe('EN_PROCESO');
+});
+
+test('no se puede actualizar el stock de un mantenimiento de otro tenant', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $otroAdmin = User::factory()->forTenant(Tenant::factory()->create())->create();
+
+    $this->actingAs($otroAdmin)
+        ->post(route('mantenimientos.actualizar-stock', $mantenimiento))
+        ->assertForbidden();
+});
+
+test('al quitar el ultimo item sin stock el mantenimiento deja de estar en falta de repuestos', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $mantenimiento->update(['estado_mantenimiento' => 'FALTA_REPUESTOS']);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    $usado = ItemMantenimiento::create(['mantenimiento_id' => $mantenimiento->id, 'item_id' => $item->id, 'cantidad' => 2, 'con_stock' => false, 'tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)->delete(route('item-mantenimientos.destroy', $usado));
+
+    expect($mantenimiento->fresh()->estado_mantenimiento)->toBe('EN_PROCESO');
+});
+
+test('quitar un item sin stock no cambia el estado si quedan otros sin stock', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $mantenimiento->update(['estado_mantenimiento' => 'FALTA_REPUESTOS']);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id]);
+    $usadoA = ItemMantenimiento::create(['mantenimiento_id' => $mantenimiento->id, 'item_id' => $item->id, 'cantidad' => 2, 'con_stock' => false, 'tenant_id' => $this->tenant->id]);
+    ItemMantenimiento::create(['mantenimiento_id' => $mantenimiento->id, 'item_id' => $item->id, 'cantidad' => 1, 'con_stock' => false, 'tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)->delete(route('item-mantenimientos.destroy', $usadoA));
+
+    expect($mantenimiento->fresh()->estado_mantenimiento)->toBe('FALTA_REPUESTOS');
+});
+
+test('guarda el precio unitario y el subtotal del item al usarlo y no cambian si el precio se actualiza', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id, 'precio_unitario' => 12.5]);
+    EntradaItem::factory()->recibido()->create(['item_id' => $item->id, 'cantidad' => 10, 'precio_unitario' => 12.5]);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [['item_id' => $item->id, 'cantidad' => 3, 'precio_unitario' => 1, 'subtotal' => 1]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $item->update(['precio_unitario' => 99]);
+
+    $usado = ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->sole();
+
+    expect($usado->precio_unitario)->toBe('12.50')
+        ->and($usado->subtotal)->toBe('37.50');
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('mantenimientos.0.items_usados.0.precio_unitario', 12.5)
+            ->where('mantenimientos.0.items_usados.0.subtotal', 37.5)
+            ->where('items.0.precio_unitario', 99));
+});
+
+test('un item sin precio se registra con precio y subtotal en cero', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $item = Item::factory()->create(['tenant_id' => $this->tenant->id, 'precio_unitario' => null]);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            ...datosBaseGestion($mantenimiento),
+            'nuevos_items_usados' => [['item_id' => $item->id, 'cantidad' => 2]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $usado = ItemMantenimiento::where('mantenimiento_id', $mantenimiento->id)->sole();
+
+    expect($usado->precio_unitario)->toBe('0.00')->and($usado->subtotal)->toBe('0.00');
 });

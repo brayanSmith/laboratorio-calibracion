@@ -71,6 +71,12 @@ export default function VerDespachoModal({
                     <Dato etiqueta="Cliente del equipo">
                         {despacho.equipo.cliente.nombre}
                     </Dato>
+                    <Dato etiqueta="Fecha programada">
+                        {despacho.fecha_programada ?? 'Sin agendar'}
+                    </Dato>
+                    <Dato etiqueta="Fecha de despacho">
+                        {despacho.fecha_despacho ?? 'Sin despachar'}
+                    </Dato>
                     <Dato etiqueta="Técnico que entrega">
                         {despacho.tecnico_entrega_nombre ?? 'Sin asignar'}
                     </Dato>

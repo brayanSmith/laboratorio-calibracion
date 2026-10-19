@@ -48,7 +48,7 @@ class UpdateDespachoRequest extends FormRequest
 
         return [
             'tecnico_entrega_id' => ['nullable', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
-            'fecha_despacho' => ['nullable', 'date'],
+            'fecha_programada' => ['nullable', 'date'],
             'entrega_autorizada' => ['boolean'],
             'cliente_recibe_id' => ['nullable', Rule::exists('clientes', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at')],
             'firma_cliente_recibe' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],

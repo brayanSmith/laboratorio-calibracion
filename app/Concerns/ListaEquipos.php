@@ -88,7 +88,7 @@ trait ListaEquipos
      * @return array{
      *     tipoEquipos: Collection<int, TipoEquipo>,
      *     fabricantes: Collection<int, Fabricante>,
-     *     areas: Collection<int, Area>,
+     *     areas: Collection<int, array{id: int, nombre: string, etiqueta: string}>,
      *     bahias: Collection<int, Bahia>,
      *     clientes: Collection<int, Cliente>,
      *     tiposMagnitud: Collection<int, TipoMagnitud>,
@@ -100,7 +100,11 @@ trait ListaEquipos
         return [
             'tipoEquipos' => TipoEquipo::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'tipo_mantenimiento']),
             'fabricantes' => Fabricante::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'areas' => Area::query()
+                ->where('tenant_id', $tenantId)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'descripcion'])
+                ->map(fn (Area $area) => ['id' => $area->id, 'nombre' => $area->nombre, 'etiqueta' => $area->etiqueta]),
             'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'area_id']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tiposMagnitud' => TipoMagnitud::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),

@@ -1,11 +1,11 @@
-import { Form } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
-import { useRef, useState } from 'react';
-import MedicionAlcanceController from '@/actions/App/Http/Controllers/MedicionAlcanceController';
-import AlcanceMedicionFormFields from '@/components/alcances-medicion/alcance-medicion-form-fields';
-import DetallesAlcanceTabla from '@/components/alcances-medicion/detalles-alcance-tabla';
-import type { FilaDetalleAlcance } from '@/components/alcances-medicion/detalles-alcance-tabla';
-import { Button } from '@/components/ui/button';
+import { Form } from "@inertiajs/react";
+import { Plus } from "lucide-react";
+import { useRef, useState } from "react";
+import MedicionAlcanceController from "@/actions/App/Http/Controllers/MedicionAlcanceController";
+import AlcanceMedicionFormFields from "@/components/alcances-medicion/alcance-medicion-form-fields";
+import DetallesAlcanceTabla from "@/components/alcances-medicion/detalles-alcance-tabla";
+import type { FilaDetalleAlcance } from "@/components/alcances-medicion/detalles-alcance-tabla";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogClose,
@@ -14,23 +14,27 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import type {
     AlcanceMedicion,
     AlcanceMedicionOpcion,
+    AlcancesIndicacionPorModelo,
     AlcanceMedicionUnidadOpcion,
-} from '@/types';
+    EspecificacionAlcance,
+    EspecificacionesAlcance,
+} from "@/types";
 
 type Props = {
     alcanceMedicion: AlcanceMedicion | null;
     tiposEquipo: AlcanceMedicionOpcion[];
-    alcancesIndicacion: Record<string, string[]>;
+    alcancesIndicacion: AlcancesIndicacionPorModelo;
+    especificaciones: EspecificacionesAlcance;
     unidadesMedida: AlcanceMedicionUnidadOpcion[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
-type FormProps = Omit<Props, 'alcanceMedicion' | 'open'> & {
+type FormProps = Omit<Props, "alcanceMedicion" | "open"> & {
     alcanceMedicion: AlcanceMedicion;
 };
 
@@ -39,9 +43,11 @@ function EditAlcanceMedicionForm({
     alcanceMedicion,
     tiposEquipo,
     alcancesIndicacion,
+    especificaciones,
     unidadesMedida,
     onOpenChange,
 }: FormProps) {
+    const [especificacion, setEspecificacion] = useState<EspecificacionAlcance | null>(null);
     const siguienteKey = useRef(alcanceMedicion.detalles.length);
     const [filas, setFilas] = useState<FilaDetalleAlcance[]>(() =>
         alcanceMedicion.detalles.map((detalle, key) => ({ key, detalle })),
@@ -72,6 +78,8 @@ function EditAlcanceMedicionForm({
                         alcanceMedicion={alcanceMedicion}
                         tiposEquipo={tiposEquipo}
                         alcancesIndicacion={alcancesIndicacion}
+                        especificaciones={especificaciones}
+                        onEspecificacionChange={setEspecificacion}
                         errors={errors}
                     />
 
@@ -81,6 +89,7 @@ function EditAlcanceMedicionForm({
                         <DetallesAlcanceTabla
                             filas={filas}
                             unidadesMedida={unidadesMedida}
+                            especificacion={especificacion}
                             errors={errors}
                             onRemove={(key) =>
                                 setFilas((prev) =>

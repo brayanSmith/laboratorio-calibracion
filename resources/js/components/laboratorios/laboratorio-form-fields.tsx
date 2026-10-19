@@ -1,4 +1,5 @@
 import InputError from '@/components/input-error';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Laboratorio } from '@/types';
@@ -41,6 +42,24 @@ export default function LaboratorioFormFields({ laboratorio, errors }: Props) {
                     defaultValue={laboratorio?.direccion ?? ''}
                 />
                 <InputError message={errors.direccion} />
+            </div>
+
+            <div className="grid gap-1">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id="principal"
+                        name="principal"
+                        defaultChecked={laboratorio?.principal}
+                    />
+                    <Label htmlFor="principal" className="font-normal">
+                        Laboratorio principal
+                    </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    Se usa en las calibraciones locales. Solo uno puede ser el
+                    principal: al marcar este se desmarca el anterior.
+                </p>
+                <InputError message={errors.principal} />
             </div>
         </div>
     );

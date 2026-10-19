@@ -123,19 +123,20 @@ test('agenda calibracion y crea un detalle_medicion_calibracion por cada detalle
 
     $medicionAlcance = MedicionAlcance::factory()->create([
         'tipo_equipo_id' => $equipo->tipo_equipo_id,
+        'modelo' => $equipo->modelo,
         'alcance_indicacion' => '0 - 100 bar',
         'tenant_id' => $this->tenant->id,
     ]);
 
     $detalleBajo = DetalleMedicionAlcance::factory()->for($medicionAlcance)->create([
         'tenant_id' => $this->tenant->id,
-        'valor_instrumento' => 10,
+        'valor_referencia' => 10,
         'emp' => 0.5,
         'incertidumbre' => 0.1,
     ]);
     $detalleAlto = DetalleMedicionAlcance::factory()->for($medicionAlcance)->create([
         'tenant_id' => $this->tenant->id,
-        'valor_instrumento' => 50,
+        'valor_referencia' => 50,
         'emp' => 0.6,
         'incertidumbre' => 0.2,
     ]);
@@ -183,6 +184,54 @@ test('agenda calibracion y crea un detalle_medicion_calibracion por cada detalle
         ->emp_porcentaje->toBe('0.01')
         ->emp_porcentaje_positivo->toBe('0.01')
         ->emp_porcentaje_negativo->toBe('-0.01');
+});
+
+test('agenda calibracion calculando el emp a partir del emp porcentual del detalle del alcance', function () {
+    $orden = crearOrdenListaParaCalibracion($this->bahia);
+    $equipo = $orden->equipoProgramacion->equipo;
+
+    EquipoEspecificacionTecnica::create([
+        'equipo_id' => $equipo->id,
+        'tipo_magnitud_id' => TipoMagnitud::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'unidad_medida_id' => UnidadMedida::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'alcance_indicacion' => '0 - 100 bar',
+        'precision' => '5%',
+        'resolucion' => '0.01',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $medicionAlcance = MedicionAlcance::factory()->create([
+        'tipo_equipo_id' => $equipo->tipo_equipo_id,
+        'modelo' => $equipo->modelo,
+        'alcance_indicacion' => '0 - 100 bar',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    DetalleMedicionAlcance::factory()->for($medicionAlcance)->create([
+        'tenant_id' => $this->tenant->id,
+        'valor_referencia' => 10,
+        'emp' => null,
+        'emp_porcentaje' => 5,
+        'incertidumbre' => 0.1,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('orden-trabajos.store-calibracion'), [
+            'ordenes_listas' => [
+                $orden->id => [
+                    'listo_para_calibracion' => '1',
+                    'tecnico_id' => $this->admin->id,
+                ],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    // emp_porcentaje = 5 % -> 0.05; emp = valor_referencia * emp_porcentaje = 10.00 * 0.05
+    expect(DetalleMedicionCalibracion::firstOrFail())
+        ->emp->toBe('0.50')
+        ->emp_porcentaje->toBe('0.05')
+        ->emp_porcentaje_positivo->toBe('0.05')
+        ->emp_porcentaje_negativo->toBe('-0.05');
 });
 
 test('agenda calibracion sin crear detalles de medicion si el equipo no tiene especificacion tecnica', function () {

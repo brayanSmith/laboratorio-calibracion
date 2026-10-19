@@ -10,6 +10,8 @@ export type Despacho = {
     orden_trabajo_codigo: string;
     tecnico_entrega_id: number | null;
     tecnico_entrega_nombre: string | null;
+    fecha_programada: string | null;
+    /** Día en que realmente se entregó; se fija sola cuando la entrega queda recibida. */
     fecha_despacho: string | null;
     entrega_autorizada: boolean;
     cliente_recibe_id: number | null;

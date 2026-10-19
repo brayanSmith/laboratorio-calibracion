@@ -1,10 +1,11 @@
 import { Head } from '@inertiajs/react';
-import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Play, Printer, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import Heading from '@/components/heading';
+import ActualizarInformeModal from '@/components/mantenimientos/actualizar-informe-modal';
 import DeleteMantenimientoModal from '@/components/mantenimientos/delete-mantenimiento-modal';
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
 import { informe } from '@/actions/App/Http/Controllers/MantenimientoController';
@@ -89,6 +90,12 @@ export default function MantenimientosIndex({
         mantenimientos.find((mantenimiento) => mantenimiento.id === viendoId) ??
         null;
     const [verOpen, setVerOpen] = useState(false);
+    const [informeId, setInformeId] = useState<number | null>(null);
+    const informeAActualizar =
+        mantenimientos.find(
+            (mantenimiento) => mantenimiento.id === informeId,
+        ) ?? null;
+    const [informeOpen, setInformeOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -183,6 +190,21 @@ export default function MantenimientosIndex({
                                     >
                                         <Printer className="h-4 w-4" /> PDF
                                     </a>
+                                </Button>
+                            ) : null}
+                            {canPdf &&
+                            row.original.estado_mantenimiento ===
+                                'FINALIZADO' ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-test="mantenimiento-actualizar-pdf-button"
+                                    onClick={() => {
+                                        setInformeId(row.original.id);
+                                        setInformeOpen(true);
+                                    }}
+                                >
+                                    <RefreshCw className="h-4 w-4" /> Actualizar PDF
                                 </Button>
                             ) : null}
                             {canEdit &&
@@ -337,6 +359,11 @@ export default function MantenimientosIndex({
                 mantenimiento={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            <ActualizarInformeModal
+                mantenimiento={informeAActualizar}
+                open={informeOpen}
+                onOpenChange={setInformeOpen}
             />
             <IniciarMantenimientoModal
                 mantenimiento={iniciando}

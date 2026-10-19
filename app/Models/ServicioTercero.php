@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Storage;
  * @property string $tipo_servicio
  * @property int $empresa_tercero_id
  * @property string|null $pdf_servicio
+ * @property string|null $codigo_compra Solo en servicios de mantenimiento; opcional
+ * @property string|null $codigo_despacho Solo en servicios de mantenimiento; opcional
  * @property string $estado_servicio PENDIENTE al agendarse, EN_PROCESO al iniciarse y FINALIZADO al finalizarse
  * @property string|null $estado_final_equipo
  * @property bool $re_agendar
@@ -26,7 +28,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read EmpresaTercero $empresaTercero
  * @property-read Tenant $tenant
  */
-#[Fillable(['orden_trabajo_id', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
+#[Fillable(['orden_trabajo_id', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'codigo_compra', 'codigo_despacho', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
 class ServicioTercero extends Model
 {
     use SoftDeletes;

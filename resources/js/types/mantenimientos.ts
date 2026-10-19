@@ -21,6 +21,10 @@ export type MantenimientoItemOption = {
     id: number;
     codigo: string;
     nombre: string;
+    /** Entradas recibidas menos salidas del ítem. */
+    stock: number;
+    /** Precio vigente del ítem (0 si no tiene). */
+    precio_unitario: number;
 };
 
 /** Item del checklist, copiado del tipo de equipo al agendar el mantenimiento. */
@@ -44,6 +48,11 @@ export type MantenimientoItemUsado = {
     item_codigo: string;
     item_nombre: string;
     cantidad: string;
+    /** Falso si al registrarlo el ítem no tenía stock. */
+    con_stock: boolean;
+    /** Precio del ítem al momento de usarlo: no cambia si luego se actualiza. */
+    precio_unitario: number;
+    subtotal: number;
 };
 
 export type MantenimientoComentario = {
@@ -80,6 +89,8 @@ export type Mantenimiento = {
     novedad_nombre: string | null;
     /** Fecha/hora ISO en que se inició el tiempo_servicio en curso, o null si no hay uno. */
     tiempo_servicio_inicio: string | null;
+    /** Duración total de los tiempos de servicio ya cerrados, sin segundos ("1d 4h", "2h 16m"), o null si no hay. */
+    duracion: string | null;
     equipo: {
         codigo: string;
         modelo: string;
@@ -106,6 +117,10 @@ export type MantenimientoOptions = {
 /** Servicio (de mantenimiento o calibración) realizado por una empresa tercera. */
 export type ServicioTerceroListado = {
     id: number;
+    tipo_servicio: 'MANTENIMIENTO' | 'CALIBRACION';
+    /** Solo en servicios de mantenimiento; opcional. */
+    codigo_compra: string | null;
+    codigo_despacho: string | null;
     fecha: string;
     orden_trabajo_codigo: string;
     equipo_codigo: string;

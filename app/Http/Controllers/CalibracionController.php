@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Actions\Calibraciones\GenerarCertificadoCalibracion;
 use App\Http\Requests\Calibraciones\FinalizarCalibracionRequest;
 use App\Http\Requests\Calibraciones\UpdateCalibracionRequest;
-use App\Models\Area;
 use App\Models\Calibracion;
 use App\Models\Despacho;
 use App\Models\DetalleMedicionCalibracion;
@@ -15,7 +14,7 @@ use App\Models\Novedad;
 use App\Models\OrdenTrabajo;
 use App\Models\ProcedimientoCalibracion;
 use App\Models\TiempoServicio;
-use App\Models\User;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,7 +53,8 @@ class CalibracionController extends Controller
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
-                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,fabricante_id,numero_serie,tipo_tecnologia,ficha_tecnica',
+                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,fabricante_id,area_id,numero_serie,tipo_tecnologia,ficha_tecnica',
+                'ordenTrabajo.equipoProgramacion.equipo.area:id,nombre,descripcion,direccion',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.fabricante:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
@@ -101,6 +101,11 @@ class CalibracionController extends Controller
                         'tipo_mantenimiento' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->tipo_mantenimiento,
                     ],
                     'cliente' => ['nombre' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->cliente->nombre],
+                    'area' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area === null ? null : [
+                        'etiqueta' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area->etiqueta,
+                        'direccion' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area->direccion,
+                        'descripcion' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area->descripcion,
+                    ],
                 ],
                 'detalles_medicion' => $calibracion->detalleMedicionCalibracion
                     ->sortBy('id')
@@ -124,9 +129,7 @@ class CalibracionController extends Controller
             'calibraciones' => $calibraciones,
             'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'CALIBRACION'),
             'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
-            'laboratorios' => Laboratorio::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'direccion', 'descripcion']),
+            'laboratorioPrincipal' => Laboratorio::principalDelTenant($tenantId)?->only(['id', 'nombre']),
             'procedimientos' => ProcedimientoCalibracion::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'novedadesCalibracion' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'CALIBRACION')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
@@ -164,54 +167,66 @@ class CalibracionController extends Controller
      */
     public function update(UpdateCalibracionRequest $request, Calibracion $calibracion): RedirectResponse
     {
-        DB::transaction(function () use ($request, $calibracion): void {
-            $calibracion->update($request->safe()->only([
-                'fecha_calibracion', 'laboratorio_id', 'solicitante_id', 'tecnico_id', 'temperatura',
-                'humedad', 'procedimiento_id', 'ajustes_requeridos', 'novedad_id',
-            ]));
-
-            $detalles = DetalleMedicionCalibracion::query()
-                ->where('calibracion_id', $calibracion->id)
-                ->get()
-                ->keyBy('id');
-
-            foreach ($request->validated('detalles', []) as $datos) {
-                $detalle = $detalles[$datos['id']];
-                $valorInstrumento = $datos['valor_instrumento'] ?? null;
-
-                // Error encontrado = valor de referencia - valor del instrumento; error %
-                // = error encontrado / valor del instrumento. Ambos se calculan en el
-                // servidor (no se aceptan del cliente) para que sean siempre consistentes
-                // con el valor del instrumento guardado.
-                $errorEncontrado = $valorInstrumento !== null
-                    ? $detalle->valor_referencia - $valorInstrumento
-                    : null;
-
-                $errorPorcentaje = $errorEncontrado !== null && (float) $valorInstrumento !== 0.0
-                    ? $errorEncontrado / $valorInstrumento
-                    : null;
-
-                // Resultado: APROBADO si el error encontrado no supera el EMP (el margen
-                // de error permitido del equipo), NO_APROBADO si lo supera.
-                $resultadoCalibracion = $errorEncontrado !== null
-                    ? ($errorEncontrado <= $detalle->emp ? 'APROBADO' : 'NO_APROBADO')
-                    : null;
-
-                // emp_porcentaje, emp_porcentaje_positivo y emp_porcentaje_negativo no se
-                // tocan aquí: son datos de referencia calculados una sola vez al agendar
-                // (ver OrdenTrabajoController::crearDetallesMedicionCalibracion()).
-                $detalle->update([
-                    'valor_instrumento' => $valorInstrumento,
-                    'error_encontrado' => $errorEncontrado,
-                    'error_porcentaje' => $errorPorcentaje,
-                    'resultado_calibracion' => $resultadoCalibracion,
-                ]);
-            }
-        });
+        DB::transaction(fn () => $this->guardarFormulario($request, $calibracion));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Calibración actualizada.')]);
 
         return to_route('calibraciones.index');
+    }
+
+    /**
+     * Guarda el formulario de edición de la calibración (condiciones ambientales, método,
+     * novedad y los valores del instrumento con sus cálculos). Lo usan "Guardar cambios" y
+     * "Finalizar", que envía el mismo formulario en una sola petición.
+     */
+    private function guardarFormulario(FormRequest $request, Calibracion $calibracion): void
+    {
+        // La fecha y el técnico no se editan aquí. El solicitante es el área del equipo y el
+        // laboratorio es el principal del tenant: se asignan en el servidor, no los envía el cliente.
+        $calibracion->update([
+            ...$request->safe()->only(['temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'novedad_id']),
+            'solicitante_id' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area_id ?? $calibracion->solicitante_id,
+            'laboratorio_id' => Laboratorio::principalDelTenant($calibracion->tenant_id)?->id ?? $calibracion->laboratorio_id,
+        ]);
+
+        $detalles = DetalleMedicionCalibracion::query()
+            ->where('calibracion_id', $calibracion->id)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($request->validated('detalles', []) as $datos) {
+            $detalle = $detalles[$datos['id']];
+            $valorInstrumento = $datos['valor_instrumento'] ?? null;
+
+            // Error encontrado = |valor de referencia - valor del instrumento| (siempre
+            // positivo: importa cuánto se aleja, no hacia dónde); error % = error
+            // encontrado / valor del instrumento. Ambos se calculan en el servidor (no se
+            // aceptan del cliente) para que sean siempre consistentes con el valor del
+            // instrumento guardado.
+            $errorEncontrado = $valorInstrumento !== null
+                ? abs($detalle->valor_referencia - $valorInstrumento)
+                : null;
+
+            $errorPorcentaje = $errorEncontrado !== null && (float) $valorInstrumento !== 0.0
+                ? $errorEncontrado / $valorInstrumento
+                : null;
+
+            // Resultado: APROBADO si el error encontrado no supera el EMP (el margen
+            // de error permitido del equipo), NO_APROBADO si lo supera.
+            $resultadoCalibracion = $errorEncontrado !== null
+                ? ($errorEncontrado <= $detalle->emp ? 'APROBADO' : 'NO_APROBADO')
+                : null;
+
+            // emp_porcentaje, emp_porcentaje_positivo y emp_porcentaje_negativo no se
+            // tocan aquí: son datos de referencia calculados una sola vez al agendar
+            // (ver OrdenTrabajoController::crearDetallesMedicionCalibracion()).
+            $detalle->update([
+                'valor_instrumento' => $valorInstrumento,
+                'error_encontrado' => $errorEncontrado,
+                'error_porcentaje' => $errorPorcentaje,
+                'resultado_calibracion' => $resultadoCalibracion,
+            ]);
+        }
     }
 
     /**
@@ -232,11 +247,20 @@ class CalibracionController extends Controller
     public function finalizar(FinalizarCalibracionRequest $request, Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): RedirectResponse
     {
         DB::transaction(function () use ($request, $calibracion): void {
+            // Si "Finalizar" trae el formulario de edición, se guarda en esta misma petición
+            // antes de calcular el resultado, para no obligar a guardar por separado.
+            if ($request->guardaFormulario()) {
+                $this->guardarFormulario($request, $calibracion);
+            }
+
             $estadoCalibracion = $request->validated('estado_calibracion');
 
             $calibracion->update([
                 'estado_calibracion' => $estadoCalibracion,
-                'resultado_calibracion' => $estadoCalibracion === 'FINALIZADO' ? $request->validated('resultado_calibracion') : null,
+                // Aprobado solo si ningún resultado de la medición quedó NO_APROBADO.
+                'resultado_calibracion' => $estadoCalibracion === 'FINALIZADO'
+                    ? ! $calibracion->detalleMedicionCalibracion()->where('resultado_calibracion', 'NO_APROBADO')->exists()
+                    : null,
                 'firmado' => $request->validated('firmado'),
             ]);
 
@@ -317,6 +341,23 @@ class CalibracionController extends Controller
             : $generarCertificado->handle($calibracion);
 
         return $disco->response($ruta, 'certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
+     * Vuelve a generar el certificado PDF de una calibración finalizada con los datos y el
+     * diseño actuales, reemplazando el archivo guardado.
+     */
+    public function actualizarCertificado(Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): RedirectResponse
+    {
+        abort_unless($calibracion->estado_calibracion === 'FINALIZADO', 404);
+
+        Gate::authorize('verPdf', $calibracion);
+
+        $generarCertificado->handle($calibracion);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Certificado actualizado.')]);
+
+        return back();
     }
 
     /**

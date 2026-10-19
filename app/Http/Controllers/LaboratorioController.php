@@ -24,12 +24,13 @@ class LaboratorioController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->withCount('calibracion as calibraciones_count')
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'descripcion', 'direccion'])
+            ->get(['id', 'nombre', 'descripcion', 'direccion', 'principal'])
             ->map(fn (Laboratorio $laboratorio) => [
                 'id' => $laboratorio->id,
                 'nombre' => $laboratorio->nombre,
                 'descripcion' => $laboratorio->descripcion,
                 'direccion' => $laboratorio->direccion,
+                'principal' => $laboratorio->principal,
                 'calibraciones_count' => (int) $laboratorio->getAttribute('calibraciones_count'),
             ]);
 
@@ -43,10 +44,14 @@ class LaboratorioController extends Controller
      */
     public function store(StoreLaboratorioRequest $request): RedirectResponse
     {
-        Laboratorio::create([
-            ...$request->validated(),
+        $laboratorio = Laboratorio::create([
+            ...$request->safe()->except('principal'),
             'tenant_id' => $request->user()->tenant_id,
         ]);
+
+        if ($request->boolean('principal')) {
+            $laboratorio->marcarComoPrincipal();
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Laboratorio creado.')]);
 
@@ -58,7 +63,13 @@ class LaboratorioController extends Controller
      */
     public function update(UpdateLaboratorioRequest $request, Laboratorio $laboratorio): RedirectResponse
     {
-        $laboratorio->update($request->validated());
+        $laboratorio->update($request->safe()->except('principal'));
+
+        if ($request->boolean('principal')) {
+            $laboratorio->marcarComoPrincipal();
+        } else {
+            $laboratorio->update(['principal' => false]);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Laboratorio actualizado.')]);
 

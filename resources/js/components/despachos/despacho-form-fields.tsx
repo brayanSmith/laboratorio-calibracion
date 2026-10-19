@@ -67,16 +67,16 @@ export default function DespachoFormFields({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="fecha_despacho">
-                    Fecha del despacho (opcional)
+                <Label htmlFor="fecha_programada">
+                    Fecha programada (opcional)
                 </Label>
                 <Input
-                    id="fecha_despacho"
-                    name="fecha_despacho"
+                    id="fecha_programada"
+                    name="fecha_programada"
                     type="date"
-                    defaultValue={despacho.fecha_despacho ?? ''}
+                    defaultValue={despacho.fecha_programada ?? ''}
                 />
-                <InputError message={errors.fecha_despacho} />
+                <InputError message={errors.fecha_programada} />
             </div>
 
             <div className="grid gap-2">

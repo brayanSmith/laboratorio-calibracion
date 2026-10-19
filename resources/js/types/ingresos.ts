@@ -9,6 +9,8 @@ export type Ingreso = {
     fecha_creacion: string;
     desde: string;
     hasta: string;
+    /** Día en que se recibieron los equipos; se completa al recibir el ingreso. */
+    fecha_recepcion: string | null;
     /** Nulo hasta que se edita el ingreso. */
     tecnico_recibe_id: number | null;
     tecnico_recibe_nombre: string | null;

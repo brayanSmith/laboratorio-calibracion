@@ -34,20 +34,23 @@ class MedicionAlcanceController extends Controller
                 'detalleMedicionAlcance' => fn ($query) => $query->with('unidadMedida:id,nombre,simbolo')->orderBy('id'),
             ])
             ->orderBy('tipo_equipo_id')
+            ->orderBy('modelo')
             ->orderBy('alcance_indicacion')
             ->get()
             ->map(fn (MedicionAlcance $medicionAlcance) => [
                 'id' => $medicionAlcance->id,
                 'tipo_equipo_id' => $medicionAlcance->tipo_equipo_id,
                 'tipo_equipo' => $medicionAlcance->tipoEquipo->nombre,
+                'modelo' => $medicionAlcance->modelo,
                 'alcance_indicacion' => $medicionAlcance->alcance_indicacion,
                 'detalles' => $medicionAlcance->detalleMedicionAlcance->map(fn (DetalleMedicionAlcance $detalle) => [
                     'id' => $detalle->id,
                     'unidad_medida_id' => $detalle->unidad_medida_id,
                     'unidad_medida' => $detalle->unidadMedida->nombre,
                     'unidad_medida_simbolo' => $detalle->unidadMedida->simbolo,
-                    'valor_instrumento' => $detalle->valor_instrumento,
+                    'valor_referencia' => $detalle->valor_referencia,
                     'emp' => $detalle->emp,
+                    'emp_porcentaje' => $detalle->emp_porcentaje,
                     'incertidumbre' => $detalle->incertidumbre,
                 ])->values(),
             ]);
@@ -64,9 +67,21 @@ class MedicionAlcanceController extends Controller
                 ->whereNull('equipos.deleted_at')
                 ->distinct()
                 ->orderBy('equipo_especificacion_tecnicas.alcance_indicacion')
-                ->get(['equipos.tipo_equipo_id', 'equipo_especificacion_tecnicas.alcance_indicacion'])
+                ->get(['equipos.tipo_equipo_id', 'equipos.modelo', 'equipo_especificacion_tecnicas.alcance_indicacion'])
                 ->groupBy('tipo_equipo_id')
-                ->map(fn ($alcances) => $alcances->pluck('alcance_indicacion')->values()),
+                ->map(fn ($alcances) => $alcances->groupBy('modelo')
+                    ->map(fn ($delModelo) => $delModelo->pluck('alcance_indicacion')->values())),
+            'especificaciones' => EquipoEspecificacionTecnica::query()
+                ->join('equipos', 'equipos.id', '=', 'equipo_especificacion_tecnicas.equipo_id')
+                ->where('equipo_especificacion_tecnicas.tenant_id', $tenantId)
+                ->whereNull('equipos.deleted_at')
+                ->orderBy('equipo_especificacion_tecnicas.id')
+                ->get(['equipos.tipo_equipo_id', 'equipos.modelo', 'equipo_especificacion_tecnicas.alcance_indicacion', 'equipo_especificacion_tecnicas.precision', 'equipo_especificacion_tecnicas.unidad_medida_id'])
+                ->groupBy(fn (EquipoEspecificacionTecnica $especificacion) => "{$especificacion->tipo_equipo_id}|{$especificacion->modelo}|{$especificacion->alcance_indicacion}")
+                ->map(fn ($especificaciones) => [
+                    'precision' => $especificaciones->first()->precision,
+                    'unidad_medida_id' => $especificaciones->first()->unidad_medida_id,
+                ]),
             'unidadesMedida' => UnidadMedida::query()
                 ->where('tenant_id', $tenantId)
                 ->orderBy('nombre')
@@ -86,12 +101,12 @@ class MedicionAlcanceController extends Controller
 
         DB::transaction(function () use ($request, $tenantId, $detalles): void {
             $medicionAlcance = MedicionAlcance::create([
-                ...$request->safe()->only(['tipo_equipo_id', 'alcance_indicacion']),
+                ...$request->safe()->only(['tipo_equipo_id', 'modelo', 'alcance_indicacion']),
                 'tenant_id' => $tenantId,
             ]);
 
             $medicionAlcance->detalleMedicionAlcance()->createMany(
-                array_map(fn (array $detalle) => [...$detalle, 'tenant_id' => $tenantId], $detalles),
+                array_map(fn (array $detalle) => ['emp' => null, 'emp_porcentaje' => null, ...$detalle, 'tenant_id' => $tenantId], $detalles),
             );
         });
 
@@ -105,7 +120,7 @@ class MedicionAlcanceController extends Controller
      */
     public function update(UpdateMedicionAlcanceRequest $request, MedicionAlcance $medicionAlcance): RedirectResponse
     {
-        $datos = $request->safe()->only(['tipo_equipo_id', 'alcance_indicacion']);
+        $datos = $request->safe()->only(['tipo_equipo_id', 'modelo', 'alcance_indicacion']);
 
         if (! $request->boolean('sincronizar_detalles')) {
             $medicionAlcance->update($datos);
@@ -135,7 +150,7 @@ class MedicionAlcanceController extends Controller
             $eliminados->delete();
 
             foreach ($detalles as $detalle) {
-                $campos = collect($detalle)->except('id')->all();
+                $campos = ['emp' => null, 'emp_porcentaje' => null, ...collect($detalle)->except('id')->all()];
 
                 if (empty($detalle['id'])) {
                     $medicionAlcance->detalleMedicionAlcance()->create([

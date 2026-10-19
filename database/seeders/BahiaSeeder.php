@@ -11,7 +11,7 @@ class BahiaSeeder extends Seeder
 {
     /**
      * Seed the default bahias for every tenant, under the area whose code (stored in the
-     * descripcion column, see AreaSeeder) matches. Run it after AreaSeeder.
+     * nombre column, see AreaSeeder) matches. Run it after AreaSeeder.
      *
      * Running it again does not duplicate bahias.
      */
@@ -28,7 +28,7 @@ class BahiaSeeder extends Seeder
             foreach ($bahias as $codigoArea => $nombres) {
                 $area = Area::query()
                     ->where('tenant_id', $tenant->id)
-                    ->where('descripcion', $codigoArea)
+                    ->where('nombre', $codigoArea)
                     ->first();
 
                 if (! $area) {

@@ -15,14 +15,14 @@ use Illuminate\Support\Carbon;
  * @property string $valor_referencia
  * @property int $unidad_medida_id
  * @property string|null $valor_instrumento Se completa cuando se realiza la medición real
- * @property string|null $error_encontrado Se completa cuando se realiza la medición real
+ * @property string|null $error_encontrado |valor_referencia - valor_instrumento|; se completa cuando se realiza la medición real
  * @property string $emp
  * @property string $incertidumbre
  * @property string|null $error_porcentaje Se completa cuando se realiza la medición real
  * @property string|null $emp_porcentaje Se completa cuando se realiza la medición real
  * @property string|null $emp_porcentaje_positivo Se completa cuando se realiza la medición real
  * @property string|null $emp_porcentaje_negativo Se completa cuando se realiza la medición real
- * @property string|null $resultado_calibracion APROBADO si error_encontrado <= emp, NO_APROBADO si no; se completa cuando se realiza la medición real
+ * @property string|null $resultado_calibracion APROBADO si |error_encontrado| <= emp, NO_APROBADO si no; se completa cuando se realiza la medición real
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at

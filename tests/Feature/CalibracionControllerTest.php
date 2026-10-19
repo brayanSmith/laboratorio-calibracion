@@ -45,6 +45,8 @@ function crearCalibracion(Bahia $bahia, array $overrides = [], string $codigo = 
         'orden_trabajo_id' => $ordenTrabajo->id,
         'fecha_calibracion' => now()->toDateString(),
         'tecnico_id' => User::factory()->forTenant($bahia->tenant)->create()->id,
+        'temperatura' => 20,
+        'humedad' => 50,
         'tenant_id' => $bahia->tenant_id,
         ...$overrides,
     ]);
@@ -118,15 +120,10 @@ test('lista solo las calibraciones del tenant', function () {
 
 test('actualiza una calibracion', function () {
     $calibracion = crearCalibracion($this->bahia);
-    $nuevoTecnico = User::factory()->forTenant($this->tenant)->create();
-    $laboratorio = Laboratorio::factory()->for($this->tenant)->create();
     $novedad = Novedad::create(['nombre' => 'Fuera de tolerancia', 'categoria' => 'CALIBRACION', 'tenant_id' => $this->tenant->id]);
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => '2026-11-05',
-            'tecnico_id' => $nuevoTecnico->id,
-            'laboratorio_id' => $laboratorio->id,
             'temperatura' => '21.50',
             'humedad' => '45.30',
             'ajustes_requeridos' => '1',
@@ -136,9 +133,6 @@ test('actualiza una calibracion', function () {
         ->assertRedirect(route('calibraciones.index'));
 
     expect($calibracion->refresh())
-        ->fecha_calibracion->toDateString()->toBe('2026-11-05')
-        ->tecnico_id->toBe($nuevoTecnico->id)
-        ->laboratorio_id->toBe($laboratorio->id)
         ->temperatura->toBe('21.50')
         ->humedad->toBe('45.30')
         ->ajustes_requeridos->toBeTrue()
@@ -155,8 +149,8 @@ test('actualiza los resultados de los detalles de medicion de una calibracion y 
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
             'detalles' => [
                 [
                     'id' => $detalle->id,
@@ -170,7 +164,7 @@ test('actualiza los resultados de los detalles de medicion de una calibracion y 
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
-    // error_encontrado = valor_referencia - valor_instrumento = 10.00 - 9.00
+    // error_encontrado = |valor_referencia - valor_instrumento| = |10.00 - 9.00|
     // error_porcentaje = error_encontrado / valor_instrumento = 1.00 / 9.00
     // resultado = NO_APROBADO porque error_encontrado (1.00) > emp (0.50)
     // emp_porcentaje, emp_porcentaje_positivo y emp_porcentaje_negativo no cambian: son de
@@ -191,8 +185,8 @@ test('aprueba el resultado cuando el error encontrado no supera el emp', functio
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
             'detalles' => [
                 ['id' => $detalle->id, 'valor_instrumento' => '9.60'],
             ],
@@ -200,11 +194,33 @@ test('aprueba el resultado cuando el error encontrado no supera el emp', functio
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
-    // error_encontrado = 10.00 - 9.60 = 0.40, que no supera el emp (0.50)
+    // error_encontrado = |10.00 - 9.60| = 0.40, que no supera el emp (0.50)
     expect($detalle->refresh())
         ->error_encontrado->toBe('0.40')
         ->resultado_calibracion->toBe('APROBADO');
 });
+
+test('el error encontrado es siempre positivo y el resultado considera el EMP en ambos sentidos', function (string $instrumento, string $errorEsperado, string $resultadoEsperado) {
+    $calibracion = crearCalibracion($this->bahia);
+    $detalle = crearDetalleMedicion($calibracion, ['valor_referencia' => 10, 'emp' => 0.5]);
+
+    $this->actingAs($this->admin)
+        ->put(route('calibraciones.update', $calibracion), [
+            'temperatura' => 20,
+            'humedad' => 50,
+            'detalles' => [['id' => $detalle->id, 'valor_instrumento' => $instrumento]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($detalle->refresh())
+        ->error_encontrado->toBe($errorEsperado)
+        ->resultado_calibracion->toBe($resultadoEsperado);
+})->with([
+    'instrumento por debajo, dentro del EMP' => ['9.60', '0.40', 'APROBADO'],
+    'instrumento por encima, dentro del EMP' => ['10.40', '0.40', 'APROBADO'],
+    'instrumento por debajo, fuera del EMP' => ['9.00', '1.00', 'NO_APROBADO'],
+    'instrumento por encima, fuera del EMP' => ['12.00', '2.00', 'NO_APROBADO'],
+]);
 
 test('deja error_encontrado y error_porcentaje en null cuando no se llena el valor del instrumento', function () {
     $calibracion = crearCalibracion($this->bahia);
@@ -216,8 +232,8 @@ test('deja error_encontrado y error_porcentaje en null cuando no se llena el val
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
             'detalles' => [
                 ['id' => $detalle->id],
             ],
@@ -239,8 +255,8 @@ test('rechaza un detalle de medicion que no pertenece a la calibracion al actual
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
             'detalles' => [
                 ['id' => $detalleAjeno->id, 'valor_instrumento' => '10.05'],
             ],
@@ -253,8 +269,8 @@ test('desmarca ajustes_requeridos cuando no se envia en la actualizacion', funct
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
@@ -460,24 +476,70 @@ test('no permite actualizar ni eliminar calibraciones de otro tenant', function 
     expect(Calibracion::find($ajeno->id))->not->toBeNull();
 });
 
-test('exige fecha y tecnico al actualizar', function () {
+test('la fecha y el tecnico no se pueden cambiar al actualizar una calibracion', function () {
     $calibracion = crearCalibracion($this->bahia);
-
-    $this->actingAs($this->admin)
-        ->put(route('calibraciones.update', $calibracion), [])
-        ->assertSessionHasErrors(['fecha_calibracion', 'tecnico_id']);
-});
-
-test('rechaza un tecnico que no pertenece al tenant al actualizar una calibracion', function () {
-    $calibracion = crearCalibracion($this->bahia);
-    $tecnicoAjeno = User::factory()->create();
+    $fechaOriginal = $calibracion->fecha_calibracion->toDateString();
+    $tecnicoOriginal = $calibracion->tecnico_id;
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $tecnicoAjeno->id,
+            'fecha_calibracion' => '2030-01-01',
+            'tecnico_id' => User::factory()->forTenant($this->tenant)->create()->id,
+            'temperatura' => 20,
+            'humedad' => 50,
         ])
-        ->assertSessionHasErrors('tecnico_id');
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh())
+        ->fecha_calibracion->toDateString()->toBe($fechaOriginal)
+        ->tecnico_id->toBe($tecnicoOriginal);
+});
+
+test('el solicitante es el area del equipo y no se puede cambiar', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    $areaDelEquipo = $calibracion->ordenTrabajo->equipoProgramacion->equipo->area_id;
+    $otraArea = crearArea($this->tenant);
+
+    $this->actingAs($this->admin)
+        ->put(route('calibraciones.update', $calibracion), ['solicitante_id' => $otraArea->id, 'temperatura' => 20, 'humedad' => 50])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->solicitante_id)->toBe($areaDelEquipo);
+});
+
+test('el laboratorio es el principal del tenant y no se puede cambiar', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    $principal = Laboratorio::factory()->for($this->tenant)->create(['principal' => true]);
+    $otro = Laboratorio::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->put(route('calibraciones.update', $calibracion), ['laboratorio_id' => $otro->id, 'temperatura' => 20, 'humedad' => 50])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->laboratorio_id)->toBe($principal->id);
+});
+
+test('sin laboratorio principal la calibracion conserva su laboratorio', function () {
+    $calibracion = crearCalibracion($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->put(route('calibraciones.update', $calibracion), ['temperatura' => 20, 'humedad' => 50])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->laboratorio_id)->toBeNull();
+});
+
+test('el listado de calibraciones incluye el area del equipo y el laboratorio principal', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    $calibracion->ordenTrabajo->equipoProgramacion->equipo->area->update(['nombre' => 'CRC', 'descripcion' => 'Centro de Reparación de Componentes']);
+    $principal = Laboratorio::factory()->for($this->tenant)->create(['principal' => true]);
+
+    $this->actingAs($this->admin)
+        ->get(route('calibraciones.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('calibraciones.0.equipo.area.etiqueta', 'CRC - Centro de Reparación de Componentes')
+            ->where('laboratorioPrincipal.id', $principal->id)
+            ->where('laboratorioPrincipal.nombre', $principal->nombre));
 });
 
 test('un tecnico con permiso de editar calibraciones puede verlas y actualizarlas, pero no eliminarlas', function () {
@@ -490,8 +552,8 @@ test('un tecnico con permiso de editar calibraciones puede verlas y actualizarla
 
     $this->actingAs($tecnico)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
@@ -511,8 +573,8 @@ test('un usuario de recepcion puede ver las calibraciones pero no editarlas ni e
 
     $this->actingAs($recepcion)
         ->put(route('calibraciones.update', $calibracion), [
-            'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-            'tecnico_id' => $calibracion->tecnico_id,
+            'temperatura' => 20,
+            'humedad' => 50,
         ])
         ->assertForbidden();
 
@@ -605,6 +667,33 @@ test('no permite ver el certificado de una calibracion sin finalizar ni de otro 
     $this->actingAs($this->admin)->get(route('calibraciones.certificado', $ajena))->assertNotFound();
 });
 
+test('actualizar el certificado reemplaza el archivo guardado', function () {
+    $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
+    Storage::disk('public')->put('certificados/viejo.pdf', 'viejo');
+    $calibracion->update(['pdf_certificado' => 'certificados/viejo.pdf']);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.actualizar-certificado', $calibracion))
+        ->assertRedirect();
+
+    $calibracion->refresh();
+
+    expect($calibracion->pdf_certificado)->not->toBe('certificados/viejo.pdf');
+    Storage::disk('public')->assertExists($calibracion->pdf_certificado);
+    Storage::disk('public')->assertMissing('certificados/viejo.pdf');
+});
+
+test('no permite actualizar el certificado de una calibracion sin finalizar, de otro tenant ni sin permiso', function () {
+    $sinFinalizar = crearCalibracion($this->bahia);
+    $ajena = crearCalibracion(Bahia::factory()->create(), ['estado_calibracion' => 'FINALIZADO'], 'EQ-AJENA');
+    $finalizada = crearCalibracion($this->bahia, ['estado_calibracion' => 'FINALIZADO'], 'EQ-FIN');
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)->post(route('calibraciones.actualizar-certificado', $sinFinalizar))->assertNotFound();
+    $this->actingAs($this->admin)->post(route('calibraciones.actualizar-certificado', $ajena))->assertForbidden();
+    $this->actingAs($sinRol)->post(route('calibraciones.actualizar-certificado', $finalizada))->assertForbidden();
+});
+
 test('un usuario sin permiso de ver calibraciones no puede ver el certificado', function () {
     $calibracion = crearCalibracion($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
     $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
@@ -612,7 +701,7 @@ test('un usuario sin permiso de ver calibraciones no puede ver el certificado', 
     $this->actingAs($sinRol)->get(route('calibraciones.certificado', $calibracion))->assertForbidden();
 });
 
-test('el grafico dibuja las tres lineas de EMP porcentual y no se genera sin puntos', function () {
+test('el grafico dibuja EMP +, EMP - y Error y no se genera sin puntos', function () {
     $sinMediciones = crearCalibracion($this->bahia, [], 'EQ-SIN-MED');
     $medida = crearCalibracionMedida($this->bahia);
     $grafico = app(GraficoErrorCalibracion::class);
@@ -623,11 +712,14 @@ test('el grafico dibuja las tres lineas de EMP porcentual y no se genera sin pun
 
     expect($svg)->toStartWith('<svg')
         ->and(substr_count($svg, '<circle'))->toBe(2)
-        ->and(substr_count($svg, '<polyline'))->toBe(3)
+        // Solo el error es una polilínea; EMP + y EMP - son líneas punteadas de borde a borde.
+        ->and(substr_count($svg, '<polyline'))->toBe(1)
+        ->and(substr_count($svg, 'stroke-dasharray="5,3"'))->toBe(2 + 2)
         // Cuadrícula: 7 líneas horizontales y una vertical por cada punto medido.
-        ->and(substr_count($svg, 'stroke="#d1d5db"'))->toBe(7 + 2)
-        // El eje vertical muestra los valores como porcentaje.
-        ->and($svg)->toContain('%</text>');
+        ->and(substr_count($svg, 'stroke="#e5e5e5" stroke-width="0.6"'))->toBe(7 + 2)
+        // El eje vertical llega hasta el EMP (2.00) con su margen, sin símbolo de porcentaje.
+        ->and($svg)->toContain('>Error / EMP</text>')
+        ->and($svg)->not->toContain('%</text>');
 });
 
 test('el certificado incluye la firma del tecnico solo si la calibracion quedo firmada', function (bool $firmado, bool $apareceFirma) {
@@ -647,14 +739,14 @@ test('el certificado incluye la firma del tecnico solo si la calibracion quedo f
 test('el grafico omite los puntos que todavia no tienen valor del instrumento', function () {
     $calibracion = crearCalibracion($this->bahia);
     $punto = ['emp_porcentaje' => 5, 'emp_porcentaje_positivo' => 5, 'emp_porcentaje_negativo' => -5];
-    crearDetalleMedicion($calibracion, ['valor_referencia' => 10, 'valor_instrumento' => 9.8, ...$punto]);
+    crearDetalleMedicion($calibracion, ['valor_referencia' => 10, 'valor_instrumento' => 9.8, 'error_encontrado' => 0.2, ...$punto]);
     crearDetalleMedicion($calibracion, ['valor_referencia' => 20, ...$punto]);
 
     $grafico = app(GraficoErrorCalibracion::class);
     $svg = $grafico->handle($calibracion->load('detalleMedicionCalibracion'));
 
-    // Solo el punto con valor del instrumento: cada línea queda reducida a un círculo.
-    expect($svg)->toStartWith('<svg')->and(substr_count($svg, '<circle'))->toBe(3);
+    // Solo el punto con valor del instrumento: el error queda reducido a un círculo.
+    expect($svg)->toStartWith('<svg')->and(substr_count($svg, '<circle'))->toBe(1);
 
     $sinMedir = crearCalibracion($this->bahia, [], 'EQ-SIN-INSTR');
     crearDetalleMedicion($sinMedir, ['valor_referencia' => 10, ...$punto]);
@@ -662,48 +754,193 @@ test('el grafico omite los puntos que todavia no tienen valor del instrumento', 
     expect($grafico->handle($sinMedir->load('detalleMedicionCalibracion')))->toBeNull();
 });
 
-test('el grafico muestra el EMP porcentual guardado como fraccion en porcentaje', function () {
+test('el grafico usa el emp maximo como rango positivo y negativo y colorea el area entre ambos', function () {
     $calibracion = crearCalibracion($this->bahia);
-    crearDetalleMedicion($calibracion, [
-        'valor_referencia' => 100,
-        'valor_instrumento' => 100,
-        'emp_porcentaje' => 0.05,
-        'emp_porcentaje_positivo' => 0.05,
-        'emp_porcentaje_negativo' => -0.05,
-    ]);
+    foreach ([['valor_referencia' => 50, 'emp' => 5], ['valor_referencia' => 100, 'emp' => 15]] as $punto) {
+        crearDetalleMedicion($calibracion, [
+            ...$punto,
+            'valor_instrumento' => $punto['valor_referencia'],
+            'error_encontrado' => 1,
+        ]);
+    }
 
     $svg = app(GraficoErrorCalibracion::class)->handle($calibracion->load('detalleMedicionCalibracion'));
 
-    // 0.05 se guarda como fracción (5%): el eje llega hasta ±6% (con su margen), no ±0.06%.
-    expect($svg)->toContain('>6%</text>')
-        ->and($svg)->toContain('>-6%</text>')
-        ->and($svg)->not->toContain('>0.06%</text>');
+    // Con EMP 5 y 15 el rango es ±15 en todos los puntos (con su margen del 10 %: el eje llega a ±18).
+    expect($svg)->toContain('>18</text>')
+        ->and($svg)->toContain('>-18</text>')
+        ->and($svg)->toContain('fill="#16a34a" fill-opacity="0.12"')
+        ->and($svg)->toContain('>EMP +</text>')
+        ->and($svg)->toContain('>EMP -</text>')
+        ->and($svg)->toContain('>Error</text>');
 });
 
-test('exige el resultado de la calibracion al finalizarla', function () {
+test('el area del rango del grafico se pinta de rojo si algun error supera el emp', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    crearDetalleMedicion($calibracion, ['valor_referencia' => 50, 'valor_instrumento' => 50, 'error_encontrado' => 1, 'emp' => 5]);
+    crearDetalleMedicion($calibracion, ['valor_referencia' => 100, 'valor_instrumento' => 100, 'error_encontrado' => 8, 'emp' => 5]);
+
+    $svg = app(GraficoErrorCalibracion::class)->handle($calibracion->load('detalleMedicionCalibracion'));
+
+    expect($svg)->toContain('fill="#dc2626" fill-opacity="0.12"')
+        ->and($svg)->not->toContain('#16a34a');
+});
+
+test('exige temperatura y humedad al actualizar una calibracion', function () {
     $calibracion = crearCalibracion($this->bahia);
 
     $this->actingAs($this->admin)
+        ->put(route('calibraciones.update', $calibracion), [])
+        ->assertSessionHasErrors(['temperatura', 'humedad']);
+});
+
+test('no permite finalizar una calibracion sin temperatura ni humedad registradas', function () {
+    $calibracion = crearCalibracion($this->bahia, ['temperatura' => null, 'humedad' => null]);
+
+    $this->actingAs($this->admin)
         ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO'])
-        ->assertSessionHasErrors('resultado_calibracion');
+        ->assertSessionHasErrors(['temperatura', 'humedad']);
+
+    expect($calibracion->refresh()->estado_calibracion)->not->toBe('FINALIZADO');
+});
+
+test('no permite finalizar mientras algun resultado de la medicion no tenga valor del instrumento', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    crearDetalleMedicion($calibracion, ['resultado_calibracion' => 'APROBADO']);
+    crearDetalleMedicion($calibracion, ['resultado_calibracion' => null]);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO'])
+        ->assertSessionHasErrors('detalles');
 
     expect($calibracion->refresh())
         ->estado_calibracion->not->toBe('FINALIZADO')
         ->resultado_calibracion->toBeNull();
 });
 
-test('guarda el resultado de la calibracion como aprobado o no aprobado', function (string $enviado, bool $esperado) {
+test('el resultado de la calibracion se calcula a partir de los resultados de la medicion', function (array $resultados, bool $esperado) {
     $calibracion = crearCalibracion($this->bahia);
 
+    foreach ($resultados as $resultado) {
+        crearDetalleMedicion($calibracion, ['resultado_calibracion' => $resultado]);
+    }
+
     $this->actingAs($this->admin)
-        ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO', 'resultado_calibracion' => $enviado])
+        ->post(route('calibraciones.finalizar', $calibracion), [
+            'estado_calibracion' => 'FINALIZADO',
+            'resultado_calibracion' => $esperado ? '0' : '1',
+        ])
         ->assertSessionHasNoErrors();
 
     expect($calibracion->refresh()->resultado_calibracion)->toBe($esperado);
 })->with([
-    'aprobado' => ['1', true],
-    'no aprobado' => ['0', false],
+    'todos aprobados' => [['APROBADO', 'APROBADO'], true],
+    'alguno no aprobado' => [['APROBADO', 'NO_APROBADO', 'APROBADO'], false],
+    'todos no aprobados' => [['NO_APROBADO', 'NO_APROBADO'], false],
+    'sin resultados de medicion' => [[], true],
 ]);
+
+test('finalizar guarda el formulario y finaliza en una sola peticion', function () {
+    $calibracion = crearCalibracion($this->bahia, ['temperatura' => null, 'humedad' => null]);
+    $aprobado = crearDetalleMedicion($calibracion);
+    $rechazado = crearDetalleMedicion($calibracion);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), [
+            'estado_calibracion' => 'FINALIZADO',
+            'firmado' => '1',
+            'temperatura' => '21.5',
+            'humedad' => '40',
+            'ajustes_requeridos' => '1',
+            'detalles' => [
+                ['id' => $aprobado->id, 'valor_instrumento' => '10'],
+                ['id' => $rechazado->id, 'valor_instrumento' => '5'],
+            ],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('calibraciones.index'));
+
+    expect($calibracion->refresh())
+        ->estado_calibracion->toBe('FINALIZADO')
+        ->temperatura->toBe('21.50')
+        ->humedad->toBe('40.00')
+        ->ajustes_requeridos->toBeTrue()
+        ->resultado_calibracion->toBeFalse()
+        ->and($aprobado->refresh())
+        ->valor_instrumento->toBe('10.00')
+        ->resultado_calibracion->toBe('APROBADO')
+        ->and($rechazado->refresh()->resultado_calibracion)->toBe('NO_APROBADO');
+});
+
+test('finalizar con el formulario aprueba cuando todos los valores enviados estan dentro del EMP', function () {
+    $calibracion = crearCalibracion($this->bahia, ['temperatura' => null, 'humedad' => null]);
+    $detalle = crearDetalleMedicion($calibracion);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), [
+            'estado_calibracion' => 'FINALIZADO',
+            'temperatura' => '20',
+            'humedad' => '50',
+            'detalles' => [['id' => $detalle->id, 'valor_instrumento' => '10']],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh()->resultado_calibracion)->toBeTrue();
+});
+
+test('finalizar con el formulario exige temperatura, humedad y valor del instrumento y no guarda nada si falla', function () {
+    $calibracion = crearCalibracion($this->bahia, ['temperatura' => null, 'humedad' => null]);
+    $detalle = crearDetalleMedicion($calibracion);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), [
+            'estado_calibracion' => 'FINALIZADO',
+            'temperatura' => '',
+            'humedad' => '',
+            'detalles' => [['id' => $detalle->id, 'valor_instrumento' => '']],
+        ])
+        ->assertSessionHasErrors(['temperatura', 'humedad', 'detalles.0.valor_instrumento']);
+
+    expect($calibracion->refresh())
+        ->estado_calibracion->not->toBe('FINALIZADO')
+        ->temperatura->toBeNull()
+        ->and($detalle->refresh()->valor_instrumento)->toBeNull();
+});
+
+test('devolver a mantenimiento con el formulario no exige temperatura ni valores del instrumento', function () {
+    $calibracion = crearCalibracion($this->bahia, ['temperatura' => null, 'humedad' => null]);
+    $detalle = crearDetalleMedicion($calibracion);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), [
+            'estado_calibracion' => 'DEVOLVER_MANTENIMIENTO',
+            'temperatura' => '',
+            'humedad' => '',
+            'detalles' => [['id' => $detalle->id, 'valor_instrumento' => '']],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($calibracion->refresh())
+        ->estado_calibracion->toBe('DEVOLVER_MANTENIMIENTO')
+        ->resultado_calibracion->toBeNull();
+});
+
+test('finalizar no acepta un detalle que no pertenece a la calibracion', function () {
+    $calibracion = crearCalibracion($this->bahia);
+    $otra = crearCalibracion($this->bahia, [], 'EQ-6002');
+    $ajeno = crearDetalleMedicion($otra);
+
+    $this->actingAs($this->admin)
+        ->post(route('calibraciones.finalizar', $calibracion), [
+            'estado_calibracion' => 'FINALIZADO',
+            'temperatura' => '20',
+            'humedad' => '50',
+            'detalles' => [['id' => $ajeno->id, 'valor_instrumento' => '10']],
+        ])
+        ->assertSessionHasErrors('detalles.0.id');
+
+    expect($ajeno->refresh()->valor_instrumento)->toBeNull();
+});
 
 test('una calibracion devuelta a mantenimiento no necesita ni guarda resultado', function () {
     $calibracion = crearCalibracion($this->bahia);

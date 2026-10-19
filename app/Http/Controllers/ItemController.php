@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Items\StoreItemRequest;
 use App\Http\Requests\Items\UpdateItemRequest;
+use App\Models\EntradaItem;
 use App\Models\Item;
+use App\Models\ItemMantenimiento;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,19 +25,77 @@ class ItemController extends Controller
 
         $items = Item::query()
             ->where('tenant_id', $request->user()->tenant_id)
-            ->withCount('itemsMantenimiento as usos_count')
+            ->conMovimientos()
+            ->with(['entradas' => fn ($query) => $query->where('recibido', false)->orderBy('id')])
             ->orderBy('nombre')
-            ->get(['id', 'codigo', 'nombre', 'descripcion'])
-            ->map(fn (Item $item) => [
-                'id' => $item->id,
-                'codigo' => $item->codigo,
-                'nombre' => $item->nombre,
-                'descripcion' => $item->descripcion,
-                'usos_count' => (int) $item->getAttribute('usos_count'),
-            ]);
+            ->get(['id', 'codigo', 'nombre', 'descripcion', 'ubicacion', 'precio_unitario'])
+            ->map(function (Item $item) {
+                return [
+                    'id' => $item->id,
+                    'codigo' => $item->codigo,
+                    'nombre' => $item->nombre,
+                    'descripcion' => $item->descripcion,
+                    'ubicacion' => $item->ubicacion,
+                    'precio_unitario' => $item->precio_unitario === null ? null : (float) $item->precio_unitario,
+                    'entradas' => (float) $item->getAttribute('entradas_recibidas'),
+                    'salidas' => (float) $item->getAttribute('salidas_total'),
+                    'stock' => $item->stock,
+                    'entradas_pendientes' => $item->entradas->map(fn (EntradaItem $entrada) => [
+                        'id' => $entrada->id,
+                        'cantidad' => (float) $entrada->cantidad,
+                        'precio_unitario' => (float) $entrada->precio_unitario,
+                        'precio_total' => (float) $entrada->precio_total,
+                        'codigo_compra' => $entrada->codigo_compra,
+                    ])->values(),
+                ];
+            });
 
         return Inertia::render('items/index', [
             'items' => $items,
+        ]);
+    }
+
+    /**
+     * List the entradas and salidas that make up the stock of the item.
+     */
+    public function movimientos(Request $request, Item $item): JsonResponse
+    {
+        Gate::authorize('viewAny', Item::class);
+        abort_unless($item->tenant_id === $request->user()->tenant_id, 403);
+
+        $entradas = $item->entradas()
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (EntradaItem $entrada) => [
+                'id' => $entrada->id,
+                'fecha_registro' => $entrada->created_at?->toDateString(),
+                'cantidad' => (float) $entrada->cantidad,
+                'precio_unitario' => (float) $entrada->precio_unitario,
+                'precio_total' => (float) $entrada->precio_total,
+                'codigo_compra' => $entrada->codigo_compra,
+                'recibido' => $entrada->recibido,
+                'fecha_recibido' => $entrada->fecha_recibido?->toDateString(),
+                'observaciones' => $entrada->observaciones,
+            ]);
+
+        $salidas = $item->itemsMantenimiento()
+            ->where('con_stock', true)
+            ->with('mantenimiento.ordenTrabajo:id,codigo')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (ItemMantenimiento $salida) => [
+                'id' => $salida->id,
+                'cantidad' => (float) $salida->cantidad,
+                'orden_trabajo_codigo' => $salida->mantenimiento?->ordenTrabajo?->codigo,
+                'tipo_mantenimiento' => $salida->mantenimiento?->tipo_mantenimiento,
+                'estado_mantenimiento' => $salida->mantenimiento?->estado_mantenimiento,
+                'fecha' => $salida->mantenimiento?->fecha_mantenimiento?->toDateString()
+                    ?? $salida->created_at?->toDateString(),
+            ]);
+
+        return response()->json([
+            'entradas' => $entradas,
+            'salidas' => $salidas,
         ]);
     }
 

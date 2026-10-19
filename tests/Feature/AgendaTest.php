@@ -69,8 +69,8 @@ test('la agenda solo incluye los tipos que el rol puede ver', function () {
 
 test('la agenda ubica los despachos pendientes en su fecha de despacho', function () {
     $tecnico = User::factory()->forTenant($this->tenant)->create();
-    $programado = crearDespachoListo($this->bahia, ['tecnico_entrega_id' => $tecnico->id, 'fecha_despacho' => '2026-10-18'], 'EQ-7008');
-    crearDespachoListo($this->bahia, ['tecnico_entrega_id' => $tecnico->id, 'fecha_despacho' => '2026-10-19', 'entrega_recibida' => true], 'EQ-7009');
+    $programado = crearDespachoListo($this->bahia, ['tecnico_entrega_id' => $tecnico->id, 'fecha_programada' => '2026-10-18'], 'EQ-7008');
+    crearDespachoListo($this->bahia, ['tecnico_entrega_id' => $tecnico->id, 'fecha_programada' => '2026-10-19', 'entrega_recibida' => true], 'EQ-7009');
     crearDespachoListo($this->bahia, [], 'EQ-7010');
 
     $respuesta = $this->actingAs($this->admin)

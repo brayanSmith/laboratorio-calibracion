@@ -2,14 +2,16 @@
 
 namespace App\Http\Requests\Calibraciones;
 
+use App\Concerns\ReglasFormularioCalibracion;
 use App\Models\Calibracion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\Rule;
 
 class UpdateCalibracionRequest extends FormRequest
 {
+    use ReglasFormularioCalibracion;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -37,37 +39,8 @@ class UpdateCalibracionRequest extends FormRequest
     {
         /** @var Calibracion $calibracion */
         $calibracion = $this->route('calibracion');
-        $tenantId = $calibracion->tenant_id;
 
-        return [
-            'fecha_calibracion' => ['required', 'date'],
-            'tecnico_id' => ['required', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
-            'laboratorio_id' => [
-                'nullable',
-                Rule::exists('laboratorios', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at'),
-            ],
-            'solicitante_id' => [
-                'nullable',
-                Rule::exists('areas', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at'),
-            ],
-            'procedimiento_id' => [
-                'nullable',
-                Rule::exists('procedimiento_calibracions', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at'),
-            ],
-            'temperatura' => ['nullable', 'numeric'],
-            'humedad' => ['nullable', 'numeric'],
-            'ajustes_requeridos' => ['boolean'],
-            'novedad_id' => [
-                'nullable',
-                Rule::exists('novedads', 'id')->where('tenant_id', $tenantId)->where('categoria', 'CALIBRACION')->whereNull('deleted_at'),
-            ],
-            'detalles' => ['array'],
-            'detalles.*.id' => [
-                'required',
-                Rule::exists('detalle_medicion_calibracions', 'id')->where('calibracion_id', $calibracion->id),
-            ],
-            'detalles.*.valor_instrumento' => ['nullable', 'numeric'],
-        ];
+        return $this->reglasFormulario($calibracion, alFinalizar: false);
     }
 
     /**
@@ -77,15 +50,6 @@ class UpdateCalibracionRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return [
-            'fecha_calibracion' => 'fecha de la calibración',
-            'tecnico_id' => 'técnico',
-            'laboratorio_id' => 'laboratorio',
-            'solicitante_id' => 'solicitante',
-            'procedimiento_id' => 'procedimiento',
-            'temperatura' => 'temperatura',
-            'humedad' => 'humedad',
-            'novedad_id' => 'novedad',
-        ];
+        return $this->atributosFormulario();
     }
 }

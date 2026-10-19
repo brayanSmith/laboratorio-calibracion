@@ -13,7 +13,8 @@ class AreaSeeder extends Seeder
     /**
      * Seed the default areas for every tenant.
      *
-     * The area code is stored in the descripcion column. Running it again does not duplicate areas.
+     * The area code is stored in the nombre column and its full name in descripcion. Running it
+     * again does not duplicate areas.
      */
     public function run(): void
     {
@@ -26,10 +27,10 @@ class AreaSeeder extends Seeder
         ];
 
         Tenant::query()->each(function (Tenant $tenant) use ($areas): void {
-            foreach ($areas as $codigo => $nombre) {
+            foreach ($areas as $codigo => $descripcion) {
                 Area::query()->updateOrCreate(
-                    ['tenant_id' => $tenant->id, 'nombre' => $nombre],
-                    ['descripcion' => $codigo, 'direccion' => self::DIRECCION],
+                    ['tenant_id' => $tenant->id, 'nombre' => $codigo],
+                    ['descripcion' => $descripcion, 'direccion' => self::DIRECCION],
                 );
             }
         });

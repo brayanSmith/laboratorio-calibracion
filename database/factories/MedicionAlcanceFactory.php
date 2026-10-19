@@ -23,6 +23,7 @@ class MedicionAlcanceFactory extends Factory
             'tipo_equipo_id' => fn (array $attributes) => TipoEquipo::factory()->create([
                 'tenant_id' => $attributes['tenant_id'],
             ])->id,
+            'modelo' => fake()->bothify('MOD-###??'),
             'alcance_indicacion' => fake()->unique()->numerify('0 - ### bar'),
             'tenant_id' => Tenant::factory(),
         ];

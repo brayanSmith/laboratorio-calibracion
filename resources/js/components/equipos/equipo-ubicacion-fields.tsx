@@ -43,7 +43,7 @@ export default function EquipoUbicacionFields({
                     onValueChange={handleAreaChange}
                     options={options.areas.map((option) => ({
                         id: option.id,
-                        label: option.nombre,
+                        label: option.etiqueta,
                     }))}
                     placeholder="Selecciona un área"
                     searchPlaceholder="Buscar área..."

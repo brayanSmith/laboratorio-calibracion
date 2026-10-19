@@ -36,7 +36,7 @@ function registrarMedicionAlcanceConUnidadMedida(UnidadMedida $unidadMedida): De
     return DetalleMedicionAlcance::create([
         'medicion_alcance_id' => 1,
         'unidad_medida_id' => $unidadMedida->id,
-        'valor_instrumento' => 1,
+        'valor_referencia' => 1,
         'emp' => 1,
         'incertidumbre' => 1,
         'tenant_id' => $unidadMedida->tenant_id,

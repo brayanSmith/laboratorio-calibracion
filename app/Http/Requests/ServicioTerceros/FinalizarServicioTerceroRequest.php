@@ -36,6 +36,8 @@ class FinalizarServicioTerceroRequest extends FormRequest
             'estado_final_equipo' => ['required', Rule::in(['APROBADO', 'RECHAZADO'])],
             're_agendar' => ['boolean'],
             'pdf_servicio' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            'codigo_compra' => ['nullable', 'string', 'max:50'],
+            'codigo_despacho' => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -50,6 +52,8 @@ class FinalizarServicioTerceroRequest extends FormRequest
             'estado_final_equipo' => 'estado final del equipo',
             're_agendar' => 're-agendar',
             'pdf_servicio' => 'documento del servicio',
+            'codigo_compra' => 'código de compra',
+            'codigo_despacho' => 'código de despacho',
         ];
     }
 }

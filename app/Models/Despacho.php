@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\Storage;
  * @property int $tenant_id
  * @property int $orden_trabajo_id
  * @property int|null $tecnico_entrega_id Se completa al agendar el despacho
- * @property Carbon|null $fecha_despacho Día programado de la entrega; se completa al agendar el despacho
+ * @property Carbon|null $fecha_programada Día programado de la entrega; se completa al agendar el despacho
+ * @property Carbon|null $fecha_despacho Día en que se entregó el equipo; se fija sola cuando la entrega queda recibida y no cambia
  * @property int|null $cliente_recibe_id Se completa cuando se realiza el despacho
  * @property bool $entrega_autorizada Se marca al finalizar la calibración (o el mantenimiento, si no requiere calibración)
  * @property string|null $firma_cliente_recibe
@@ -33,7 +34,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Cliente|null $clienteRecibe
  * @property-read Novedad|null $novedad
  */
-#[Fillable(['tenant_id', 'orden_trabajo_id', 'tecnico_entrega_id', 'fecha_despacho', 'cliente_recibe_id', 'entrega_autorizada', 'firma_cliente_recibe', 'entrega_recibida', 'novedad_id'])]
+#[Fillable(['tenant_id', 'orden_trabajo_id', 'tecnico_entrega_id', 'fecha_programada', 'cliente_recibe_id', 'entrega_autorizada', 'firma_cliente_recibe', 'entrega_recibida', 'novedad_id'])]
 class Despacho extends Model
 {
     use RestringidoAlTecnico;
@@ -57,6 +58,12 @@ class Despacho extends Model
     protected static function booted(): void
     {
         static::saving(function (Despacho $despacho): void {
+            // Día real de la entrega: puede ser distinto del programado (fecha_programada). Se fija
+            // la primera vez que queda recibida y no se vuelve a tocar.
+            if ($despacho->entrega_recibida && $despacho->fecha_despacho === null) {
+                $despacho->fecha_despacho = now()->toDateString();
+            }
+
             $despacho->estado_despacho = match (true) {
                 $despacho->entrega_recibida => 'ENTREGADO',
                 $despacho->entrega_autorizada => 'AUTORIZADO',
@@ -168,6 +175,7 @@ class Despacho extends Model
     protected function casts(): array
     {
         return [
+            'fecha_programada' => 'date',
             'fecha_despacho' => 'date',
             'entrega_autorizada' => 'boolean',
             'entrega_recibida' => 'boolean',

@@ -50,6 +50,16 @@ class MantenimientoController extends Controller
             ->get(['orden_trabajo_id', 'inicio'])
             ->keyBy('orden_trabajo_id');
 
+        // Duración total (suma de los tiempos ya cerrados) de cada orden de trabajo.
+        $duraciones = TiempoServicio::query()
+            ->where('tenant_id', $tenantId)
+            ->where('tipo_servicio', 'MANTENIMIENTO')
+            ->where('es_tercero', false)
+            ->where('estado_tiempo', 'FIN')
+            ->get(['orden_trabajo_id', 'duracion'])
+            ->groupBy('orden_trabajo_id')
+            ->map(fn ($tiempos) => TiempoServicio::formatearDuracion(TiempoServicio::sumarDuraciones($tiempos->pluck('duracion'))));
+
         $mantenimientos = Mantenimiento::query()
             ->where('tenant_id', $tenantId)
             ->visiblesPara($request->user())
@@ -87,6 +97,7 @@ class MantenimientoController extends Controller
                 'novedad_id' => $mantenimiento->novedad_id,
                 'novedad_nombre' => $mantenimiento->novedad?->nombre,
                 'tiempo_servicio_inicio' => $tiemposActivos->get($mantenimiento->orden_trabajo_id)?->inicio->toIso8601String(),
+                'duracion' => $duraciones->get($mantenimiento->orden_trabajo_id),
                 'equipo' => [
                     'codigo' => $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->codigo,
                     'modelo' => $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->modelo,
@@ -117,6 +128,9 @@ class MantenimientoController extends Controller
                     'item_codigo' => $itemUsado->item->codigo,
                     'item_nombre' => $itemUsado->item->nombre,
                     'cantidad' => $itemUsado->cantidad,
+                    'con_stock' => $itemUsado->con_stock,
+                    'precio_unitario' => (float) $itemUsado->precio_unitario,
+                    'subtotal' => (float) $itemUsado->subtotal,
                 ])->values(),
                 'comentarios' => $mantenimiento->comentarioMantenimientos
                     ->sortByDesc('created_at')
@@ -139,7 +153,18 @@ class MantenimientoController extends Controller
             'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'novedadesMantenimiento' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'MANTENIMIENTO')->orderBy('nombre')->get(['id', 'nombre']),
-            'items' => Item::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'codigo', 'nombre']),
+            'items' => Item::query()
+                ->where('tenant_id', $tenantId)
+                ->conMovimientos()
+                ->orderBy('nombre')
+                ->get(['id', 'codigo', 'nombre'])
+                ->map(fn (Item $item) => [
+                    'id' => $item->id,
+                    'codigo' => $item->codigo,
+                    'nombre' => $item->nombre,
+                    'stock' => $item->stock,
+                    'precio_unitario' => (float) $item->precio_unitario,
+                ]),
         ]);
     }
 
@@ -163,6 +188,39 @@ class MantenimientoController extends Controller
         ]);
 
         $mantenimiento->update(['estado_mantenimiento' => 'EN_PROCESO']);
+
+        return back();
+    }
+
+    /**
+     * Revisa los ítems registrados sin stock: los que ya tienen stock suficiente pasan a
+     * contar como usados (descuentan del inventario). Si ya no queda ninguno sin stock,
+     * el mantenimiento deja de estar en FALTA_REPUESTOS.
+     */
+    public function actualizarStock(Mantenimiento $mantenimiento): RedirectResponse
+    {
+        Gate::authorize('update', $mantenimiento);
+
+        $surtidos = 0;
+
+        DB::transaction(function () use ($mantenimiento, &$surtidos): void {
+            $sinStock = $mantenimiento->itemMantenimientos()->where('con_stock', false)->orderBy('id')->get();
+
+            foreach ($sinStock as $itemUsado) {
+                $stock = Item::query()->conMovimientos()->find($itemUsado->item_id)?->stock ?? 0.0;
+
+                if ($stock >= (float) $itemUsado->cantidad) {
+                    $itemUsado->update(['con_stock' => true]);
+                    $surtidos++;
+                }
+            }
+
+            $mantenimiento->sincronizarEstadoRepuestos();
+        });
+
+        if ($surtidos > 0) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count ítem ya tiene stock y quedó registrado como usado.|:count ítems ya tienen stock y quedaron registrados como usados.', $surtidos)]);
+        }
 
         return back();
     }
@@ -242,6 +300,23 @@ class MantenimientoController extends Controller
     }
 
     /**
+     * Vuelve a generar el informe PDF de un mantenimiento finalizado con los datos y el
+     * diseño actuales, reemplazando el archivo guardado.
+     */
+    public function actualizarInforme(Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): RedirectResponse
+    {
+        abort_unless($mantenimiento->estado_mantenimiento === 'FINALIZADO', 404);
+
+        Gate::authorize('verPdf', $mantenimiento);
+
+        $generarInforme->handle($mantenimiento);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Informe actualizado.')]);
+
+        return back();
+    }
+
+    /**
      * Update the specified mantenimiento: sus datos, el checklist completo y, si se
      * llenaron, nuevos defectos identificados, ítems usados, comentarios y/o fotos (se
      * puede agregar más de uno de cada uno). Todo se guarda con una sola solicitud para
@@ -276,13 +351,27 @@ class MantenimientoController extends Controller
                 }
             }
 
-            foreach ($request->validated('nuevos_items_usados', []) as $itemUsado) {
-                if (filled($itemUsado['item_id'] ?? null)) {
-                    $mantenimiento->itemMantenimientos()->create([
-                        ...$itemUsado,
-                        'tenant_id' => $mantenimiento->tenant_id,
-                    ]);
-                }
+            $itemsUsados = collect($request->validated('nuevos_items_usados', []))
+                ->filter(fn (array $itemUsado) => filled($itemUsado['item_id'] ?? null));
+
+            // Un ítem sin stock se registra igual (para saber qué falta) pero no cuenta como salida.
+            $stocks = Item::query()
+                ->whereKey($itemsUsados->pluck('item_id')->all())
+                ->conMovimientos()
+                ->get()
+                ->keyBy('id');
+
+            foreach ($itemsUsados as $itemUsado) {
+                $item = $stocks->get((int) $itemUsado['item_id']);
+                $precioUnitario = (float) $item?->precio_unitario;
+
+                $mantenimiento->itemMantenimientos()->create([
+                    ...$itemUsado,
+                    'con_stock' => ($item?->stock ?? 0.0) > 0,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => round((float) $itemUsado['cantidad'] * $precioUnitario, 2),
+                    'tenant_id' => $mantenimiento->tenant_id,
+                ]);
             }
 
             foreach ($request->validated('nuevos_comentarios', []) as $comentario) {

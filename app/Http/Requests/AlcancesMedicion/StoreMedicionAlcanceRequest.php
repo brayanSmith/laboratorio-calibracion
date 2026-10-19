@@ -26,6 +26,12 @@ class StoreMedicionAlcanceRequest extends FormRequest
     public function rules(): array
     {
         $tenantId = $this->user()->tenant_id;
+        $porcentaje = MedicionAlcance::simboloPrecision(
+            $tenantId,
+            $this->input('tipo_equipo_id'),
+            $this->input('modelo'),
+            $this->input('alcance_indicacion'),
+        ) === '%';
 
         return [
             'tipo_equipo_id' => [
@@ -33,6 +39,15 @@ class StoreMedicionAlcanceRequest extends FormRequest
                 'integer',
                 Rule::exists('tipo_equipos', 'id')
                     ->where('tenant_id', $tenantId)
+                    ->whereNull('deleted_at'),
+            ],
+            'modelo' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::exists('equipos', 'modelo')
+                    ->where('tenant_id', $tenantId)
+                    ->where('tipo_equipo_id', $this->input('tipo_equipo_id'))
                     ->whereNull('deleted_at'),
             ],
             'alcance_indicacion' => [
@@ -45,10 +60,12 @@ class StoreMedicionAlcanceRequest extends FormRequest
                     ->whereIn('equipo_id', fn ($query) => $query->select('id')
                         ->from('equipos')
                         ->where('tipo_equipo_id', $this->input('tipo_equipo_id'))
+                        ->where('modelo', $this->input('modelo'))
                         ->whereNull('deleted_at')),
                 Rule::unique('medicion_alcances', 'alcance_indicacion')
                     ->where('tenant_id', $tenantId)
                     ->where('tipo_equipo_id', $this->input('tipo_equipo_id'))
+                    ->where('modelo', $this->input('modelo'))
                     ->whereNull('deleted_at'),
             ],
             'detalles' => ['nullable', 'array', 'max:50'],
@@ -59,8 +76,9 @@ class StoreMedicionAlcanceRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->whereNull('deleted_at'),
             ],
-            'detalles.*.valor_instrumento' => ['required', 'numeric', 'between:-99999999.99,99999999.99'],
-            'detalles.*.emp' => ['required', 'numeric', 'between:0,99999999.99'],
+            'detalles.*.valor_referencia' => ['required', 'numeric', 'between:-99999999.99,99999999.99'],
+            'detalles.*.emp' => [Rule::requiredIf($porcentaje === false), 'nullable', 'numeric', 'between:0,99999999.99'],
+            'detalles.*.emp_porcentaje' => [Rule::requiredIf($porcentaje), 'nullable', 'numeric', 'between:0,100'],
             'detalles.*.incertidumbre' => ['required', 'numeric', 'between:0,99999999.99'],
         ];
     }
@@ -74,10 +92,12 @@ class StoreMedicionAlcanceRequest extends FormRequest
     {
         return [
             'tipo_equipo_id' => 'tipo de equipo',
+            'modelo' => 'modelo',
             'alcance_indicacion' => 'alcance de indicación',
             'detalles.*.unidad_medida_id' => 'unidad de medida',
-            'detalles.*.valor_instrumento' => 'valor del instrumento',
+            'detalles.*.valor_referencia' => 'valor de referencia',
             'detalles.*.emp' => 'EMP',
+            'detalles.*.emp_porcentaje' => 'EMP (%)',
             'detalles.*.incertidumbre' => 'incertidumbre',
         ];
     }

@@ -8,6 +8,7 @@ import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import Heading from '@/components/heading';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { index } from '@/routes/laboratorios';
@@ -51,6 +52,11 @@ export default function LaboratoriosIndex({ laboratorios }: Props) {
                 columnHelper.accessor('direccion', {
                     header: 'Dirección',
                     cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('principal', {
+                    header: 'Principal',
+                    cell: (info) =>
+                        info.getValue() ? <Badge>Principal</Badge> : '—',
                 }),
                 columnHelper.accessor('calibraciones_count', {
                     header: 'Calibraciones',

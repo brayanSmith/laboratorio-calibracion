@@ -70,6 +70,14 @@ export default function DespachosIndex({
                     header: 'Cliente',
                     cell: ({ row }) => row.original.equipo.cliente.nombre,
                 }),
+                columnHelper.accessor('fecha_programada', {
+                    header: 'Fecha programada',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('fecha_despacho', {
+                    header: 'Fecha de despacho',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
                 columnHelper.accessor('tecnico_entrega_nombre', {
                     header: 'Técnico que entrega',
                     cell: (info) => info.getValue() ?? '—',

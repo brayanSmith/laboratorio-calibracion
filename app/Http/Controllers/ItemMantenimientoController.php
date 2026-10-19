@@ -14,9 +14,12 @@ class ItemMantenimientoController extends Controller
      */
     public function destroy(ItemMantenimiento $itemMantenimiento): RedirectResponse
     {
-        Gate::authorize('update', $itemMantenimiento->mantenimiento);
+        $mantenimiento = $itemMantenimiento->mantenimiento;
+
+        Gate::authorize('update', $mantenimiento);
 
         $itemMantenimiento->delete();
+        $mantenimiento->sincronizarEstadoRepuestos();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Ítem eliminado.')]);
 

@@ -5,17 +5,14 @@ import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type {
-    Calibracion,
-    CalibracionAreaOption,
-    CalibracionOption,
-} from '@/types';
+import type { ValoresInstrumento } from '@/lib/calibracion-resultado';
+import type { Calibracion, CalibracionOption } from '@/types';
 
 type Props = {
     calibracion: Calibracion;
-    tecnicos: CalibracionOption[];
-    laboratorios: CalibracionOption[];
-    areas: CalibracionAreaOption[];
+    laboratorioPrincipal: CalibracionOption | null;
+    valoresInstrumento: ValoresInstrumento;
+    onValorInstrumentoChange: (detalleId: number, valor: string) => void;
     procedimientos: CalibracionOption[];
     novedadesCalibracion: CalibracionOption[];
     errors: Partial<Record<string, string>>;
@@ -25,32 +22,43 @@ function toComboboxOptions(options: CalibracionOption[]) {
     return options.map((option) => ({ id: option.id, label: option.nombre }));
 }
 
+/** Dato que solo se muestra: no es un campo del formulario y no se puede cambiar. */
+function DatoDetalle({
+    etiqueta,
+    valor,
+    vacio = '—',
+    testId,
+}: {
+    etiqueta: string;
+    valor?: string | null;
+    vacio?: string;
+    testId: string;
+}) {
+    return (
+        <div className="grid gap-1">
+            <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
+            <p className="text-sm" data-test={testId}>
+                {valor || vacio}
+            </p>
+        </div>
+    );
+}
+
 export default function CalibracionFormFields({
     calibracion,
-    tecnicos,
-    laboratorios,
-    areas,
+    laboratorioPrincipal,
+    valoresInstrumento,
+    onValorInstrumentoChange,
     procedimientos,
     novedadesCalibracion,
     errors,
 }: Props) {
-    const [tecnicoId, setTecnicoId] = useState(
-        calibracion.tecnico_id.toString(),
-    );
-    const [laboratorioId, setLaboratorioId] = useState(
-        calibracion.laboratorio_id?.toString() ?? '',
-    );
-    const [solicitanteId, setSolicitanteId] = useState(
-        calibracion.solicitante_id?.toString() ?? '',
-    );
     const [procedimientoId, setProcedimientoId] = useState(
         calibracion.procedimiento_id?.toString() ?? '',
     );
     const [novedadId, setNovedadId] = useState(
         calibracion.novedad_id?.toString() ?? '',
     );
-    const areaSeleccionada =
-        areas.find((area) => area.id.toString() === solicitanteId) ?? null;
 
     return (
         <div className="grid gap-6 sm:grid-cols-2">
@@ -122,88 +130,57 @@ export default function CalibracionFormFields({
                 ) : null}
             </div>
 
-            {/* Solicitante */}
+            {/* Solicitante y laboratorio: solo se muestran, no se editan */}
             <div className="space-y-2 rounded-md border p-3 sm:col-span-2">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="solicitante_id">
-                            Solicitante (opcional)
-                        </Label>
-                        <Combobox
-                            id="solicitante_id"
-                            name="solicitante_id"
-                            value={solicitanteId}
-                            onValueChange={setSolicitanteId}
-                            options={toComboboxOptions(areas)}
-                            placeholder="Selecciona un área"
-                            searchPlaceholder="Buscar área..."
-                        />
-                        <InputError message={errors.solicitante_id} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="laboratorio_id">
-                            Laboratorio (opcional)
-                        </Label>
-                        <Combobox
-                            id="laboratorio_id"
-                            name="laboratorio_id"
-                            value={laboratorioId}
-                            onValueChange={setLaboratorioId}
-                            options={toComboboxOptions(laboratorios)}
-                            placeholder="Selecciona un laboratorio"
-                            searchPlaceholder="Buscar laboratorio..."
-                        />
-                        <InputError message={errors.laboratorio_id} />
-                    </div>
+                    <DatoDetalle
+                        etiqueta="Solicitante"
+                        valor={calibracion.equipo.area?.etiqueta}
+                        vacio="El equipo no tiene un área asignada"
+                        testId="calibracion-solicitante"
+                    />
+                    <DatoDetalle
+                        etiqueta="Laboratorio"
+                        valor={
+                            laboratorioPrincipal?.nombre ??
+                            calibracion.laboratorio_nombre
+                        }
+                        vacio="No hay un laboratorio principal definido"
+                        testId="calibracion-laboratorio"
+                    />
                 </div>
 
-                {areaSeleccionada ? (
+                {calibracion.equipo.area ? (
                     <div className="grid gap-2 border-t pt-2 text-xs">
                         <p>
                             <span className="text-muted-foreground">
                                 Dirección:
                             </span>{' '}
-                            {areaSeleccionada.direccion ?? 'Sin dirección'}
+                            {calibracion.equipo.area.direccion ??
+                                'Sin dirección'}
                         </p>
                         <p>
                             <span className="text-muted-foreground">
                                 Descripción:
                             </span>{' '}
-                            {areaSeleccionada.descripcion ?? 'Sin descripción'}
+                            {calibracion.equipo.area.descripcion ??
+                                'Sin descripción'}
                         </p>
                     </div>
                 ) : null}
             </div>
 
-            {/* Fecha de la calibración + Técnico */}
-            <div className="grid gap-2">
-                <Label htmlFor="fecha_calibracion">
-                    Fecha de la calibración
-                </Label>
-                <Input
-                    id="fecha_calibracion"
-                    name="fecha_calibracion"
-                    type="date"
-                    defaultValue={calibracion.fecha_calibracion.slice(0, 10)}
-                    required
-                />
-                <InputError message={errors.fecha_calibracion} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor="tecnico_id">Técnico</Label>
-                <Combobox
-                    id="tecnico_id"
-                    name="tecnico_id"
-                    value={tecnicoId}
-                    onValueChange={setTecnicoId}
-                    options={toComboboxOptions(tecnicos)}
-                    placeholder="Selecciona un técnico"
-                    searchPlaceholder="Buscar técnico..."
-                />
-                <InputError message={errors.tecnico_id} />
-            </div>
+            {/* Fecha de la calibración + Técnico: solo se muestran, no se editan */}
+            <DatoDetalle
+                etiqueta="Fecha de la calibración"
+                valor={calibracion.fecha_calibracion.slice(0, 10)}
+                testId="calibracion-fecha"
+            />
+            <DatoDetalle
+                etiqueta="Técnico"
+                valor={calibracion.tecnico_nombre}
+                testId="calibracion-tecnico"
+            />
 
             {/* Condiciones ambientales */}
             <div className="grid grid-cols-2 gap-4 sm:col-span-2">
@@ -213,7 +190,7 @@ export default function CalibracionFormFields({
                         htmlFor="temperatura"
                         className="text-xs text-muted-foreground"
                     >
-                        Temperatura °C (opcional)
+                        Temperatura °C
                     </Label>
                     <Input
                         id="temperatura"
@@ -221,6 +198,7 @@ export default function CalibracionFormFields({
                         type="number"
                         step="0.01"
                         defaultValue={calibracion.temperatura ?? ''}
+                        required
                     />
                     <InputError message={errors.temperatura} />
                 </div>
@@ -230,7 +208,7 @@ export default function CalibracionFormFields({
                         htmlFor="humedad"
                         className="text-xs text-muted-foreground"
                     >
-                        Humedad % (opcional)
+                        Humedad %
                     </Label>
                     <Input
                         id="humedad"
@@ -238,6 +216,7 @@ export default function CalibracionFormFields({
                         type="number"
                         step="0.01"
                         defaultValue={calibracion.humedad ?? ''}
+                        required
                     />
                     <InputError message={errors.humedad} />
                 </div>
@@ -270,6 +249,8 @@ export default function CalibracionFormFields({
             <div className="min-w-0 sm:col-span-2">
                 <CalibracionResultados
                     detalles={calibracion.detalles_medicion}
+                    valoresInstrumento={valoresInstrumento}
+                    onValorInstrumentoChange={onValorInstrumentoChange}
                     errors={errors}
                 />
             </div>

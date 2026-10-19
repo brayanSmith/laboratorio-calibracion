@@ -137,7 +137,7 @@ function DespachoListoItemRow({
     errors,
 }: DespachoListoItemRowProps) {
     const [tecnicoId, setTecnicoId] = useState('');
-    const [fechaDespacho, setFechaDespacho] = useState('');
+    const [fechaProgramada, setFechaProgramada] = useState('');
     const [entregaAutorizada, setEntregaAutorizada] = useState(
         item.entrega_autorizada,
     );
@@ -149,7 +149,7 @@ function DespachoListoItemRow({
 
         if (!checked) {
             setTecnicoId('');
-            setFechaDespacho('');
+            setFechaProgramada('');
         }
     }
 
@@ -209,19 +209,19 @@ function DespachoListoItemRow({
                             htmlFor={`fecha-despacho-${item.id}`}
                             className="text-xs"
                         >
-                            Fecha del despacho
+                            Fecha programada
                         </Label>
                         <Input
                             id={`fecha-despacho-${item.id}`}
                             type="date"
-                            value={fechaDespacho}
+                            value={fechaProgramada}
                             onChange={(event) =>
-                                setFechaDespacho(event.target.value)
+                                setFechaProgramada(event.target.value)
                             }
                             data-test="fecha-despacho-input"
                         />
                         <InputError
-                            message={errors[`${prefijo}.fecha_despacho`]}
+                            message={errors[`${prefijo}.fecha_programada`]}
                         />
                     </>
                 ) : null}
@@ -234,8 +234,8 @@ function DespachoListoItemRow({
             />
             <input
                 type="hidden"
-                name={`despachos_listos[${item.id}][fecha_despacho]`}
-                value={fechaDespacho}
+                name={`despachos_listos[${item.id}][fecha_programada]`}
+                value={fechaProgramada}
             />
             <input
                 type="hidden"

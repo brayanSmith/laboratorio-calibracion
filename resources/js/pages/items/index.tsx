@@ -1,13 +1,24 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+    History,
+    PackageCheck,
+    PackagePlus,
+    Pencil,
+    Plus,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import Heading from '@/components/heading';
+import CreateEntradaItemModal from '@/components/items/create-entrada-item-modal';
 import CreateItemModal from '@/components/items/create-item-modal';
 import DeleteItemModal from '@/components/items/delete-item-modal';
 import EditItemModal from '@/components/items/edit-item-modal';
+import EntradasPendientesModal from '@/components/items/entradas-pendientes-modal';
+import MovimientosItemModal from '@/components/items/movimientos-item-modal';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { index } from '@/routes/items';
@@ -19,6 +30,29 @@ type Props = {
 
 const columnHelper = createDataTableColumnHelper<Item>();
 
+const STOCK_BAJO = 5;
+
+function estadoStock(stock: number): { etiqueta: string; clases: string } {
+    if (stock <= 0) {
+        return {
+            etiqueta: 'Agotado',
+            clases: 'border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300',
+        };
+    }
+
+    if (stock <= STOCK_BAJO) {
+        return {
+            etiqueta: 'Bajo',
+            clases: 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300',
+        };
+    }
+
+    return {
+        etiqueta: 'Disponible',
+        clases: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300',
+    };
+}
+
 export default function ItemsIndex({ items }: Props) {
     const { can } = usePermissions();
     const canEdit = can('items.editar');
@@ -28,6 +62,21 @@ export default function ItemsIndex({ items }: Props) {
     const [editOpen, setEditOpen] = useState(false);
     const [deletingItem, setDeletingItem] = useState<Item | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [entradaItemId, setEntradaItemId] = useState<number | null>(null);
+    const entradaItem = items.find((item) => item.id === entradaItemId) ?? null;
+    const [entradaOpen, setEntradaOpen] = useState(false);
+    const [pendientesItemId, setPendientesItemId] = useState<number | null>(
+        null,
+    );
+    const pendientesItem =
+        items.find((item) => item.id === pendientesItemId) ?? null;
+    const [pendientesOpen, setPendientesOpen] = useState(false);
+    const [movimientosItemId, setMovimientosItemId] = useState<number | null>(
+        null,
+    );
+    const movimientosItem =
+        items.find((item) => item.id === movimientosItemId) ?? null;
+    const [movimientosOpen, setMovimientosOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -39,12 +88,40 @@ export default function ItemsIndex({ items }: Props) {
                         <span className="font-medium">{info.getValue()}</span>
                     ),
                 }),
-                columnHelper.accessor('descripcion', {
-                    header: 'Descripción',
+                columnHelper.accessor('ubicacion', {
+                    header: 'Ubicación',
                     cell: (info) => info.getValue() ?? '—',
                 }),
-                columnHelper.accessor('usos_count', {
-                    header: 'Usos en mantenimientos',
+                columnHelper.accessor('precio_unitario', {
+                    header: 'Precio unitario',
+                    cell: (info) =>
+                        info.getValue() === null
+                            ? '—'
+                            : info.getValue()!.toLocaleString('es-CO', {
+                                  style: 'currency',
+                                  currency: 'COP',
+                              }),
+                }),
+                columnHelper.accessor('entradas', { header: 'Entradas' }),
+                columnHelper.accessor('salidas', { header: 'Salidas' }),
+                columnHelper.accessor('stock', {
+                    header: 'Stock',
+                    cell: (info) => {
+                        const { etiqueta, clases } = estadoStock(
+                            info.getValue(),
+                        );
+
+                        return (
+                            <Badge
+                                variant="outline"
+                                className={`${clases} px-2.5 py-1 tabular-nums`}
+                                data-test="item-stock-badge"
+                                title={etiqueta}
+                            >
+                                {info.getValue()}
+                            </Badge>
+                        );
+                    },
                 }),
                 columnHelper.display({
                     id: 'acciones',
@@ -52,6 +129,53 @@ export default function ItemsIndex({ items }: Props) {
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Ver entradas y salidas"
+                                data-test="item-movimientos-button"
+                                onClick={() => {
+                                    setMovimientosItemId(row.original.id);
+                                    setMovimientosOpen(true);
+                                }}
+                            >
+                                <History className="h-4 w-4" />
+                            </Button>
+                            {canEdit ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    title="Registrar entrada"
+                                    data-test="item-entrada-button"
+                                    onClick={() => {
+                                        setEntradaItemId(row.original.id);
+                                        setEntradaOpen(true);
+                                    }}
+                                >
+                                    <PackagePlus className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                            {canEdit &&
+                            row.original.entradas_pendientes.length > 0 ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    title="Entradas pendientes de recibir"
+                                    data-test="item-pendientes-button"
+                                    onClick={() => {
+                                        setPendientesItemId(row.original.id);
+                                        setPendientesOpen(true);
+                                    }}
+                                >
+                                    <PackageCheck className="h-4 w-4" />
+                                    <span className="text-xs tabular-nums">
+                                        {
+                                            row.original.entradas_pendientes
+                                                .length
+                                        }
+                                    </span>
+                                </Button>
+                            ) : null}
                             {canEdit ? (
                                 <Button
                                     variant="ghost"
@@ -121,6 +245,21 @@ export default function ItemsIndex({ items }: Props) {
                 item={editingItem}
                 open={editOpen}
                 onOpenChange={setEditOpen}
+            />
+            <MovimientosItemModal
+                item={movimientosItem}
+                open={movimientosOpen}
+                onOpenChange={setMovimientosOpen}
+            />
+            <EntradasPendientesModal
+                item={pendientesItem}
+                open={pendientesOpen}
+                onOpenChange={setPendientesOpen}
+            />
+            <CreateEntradaItemModal
+                item={entradaItem}
+                open={entradaOpen}
+                onOpenChange={setEntradaOpen}
             />
             <DeleteItemModal
                 item={deletingItem}

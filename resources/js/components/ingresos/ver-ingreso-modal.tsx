@@ -86,6 +86,9 @@ export default function VerIngresoModal({
                             )?.label ?? ingreso.estado_ingreso}
                         </Badge>
                     </Dato>
+                    <Dato etiqueta="Fecha de recepción">
+                        {ingreso.fecha_recepcion ?? 'Sin registrar'}
+                    </Dato>
                     <Dato etiqueta="Técnico que recibe">
                         {ingreso.tecnico_recibe_nombre ?? 'Sin asignar'}
                     </Dato>

@@ -241,3 +241,77 @@ test('registra un seguimiento PENDIENTE al agendar un servicio de tercero de cal
 
     expect($programacion->seguimientos()->where('fase', 'CALIBRACION')->pluck('seguimiento')->all())->toBe(['PENDIENTE']);
 });
+
+test('guarda el codigo de compra y de despacho de un servicio de tercero de mantenimiento', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.guardar-codigos', $servicio), ['codigo_compra' => 'OC-100', 'codigo_despacho' => ''])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect($servicio->refresh())
+        ->codigo_compra->toBe('OC-100')
+        ->codigo_despacho->toBeNull()
+        ->estado_servicio->toBe('EN_PROCESO');
+});
+
+test('los codigos no son obligatorios pero tienen un maximo de 50 caracteres', function () {
+    $servicio = crearServicioTercero($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.guardar-codigos', $servicio), [])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.guardar-codigos', $servicio), ['codigo_compra' => str_repeat('a', 51)])
+        ->assertSessionHasErrors('codigo_compra');
+});
+
+test('los codigos no aplican a un servicio de tercero de calibracion', function () {
+    $servicio = crearServicioTercero($this->bahia, ['tipo_servicio' => 'CALIBRACION']);
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.guardar-codigos', $servicio), ['codigo_compra' => 'OC-100'])
+        ->assertNotFound();
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), [
+            'estado_final_equipo' => 'APROBADO',
+            'pdf_servicio' => pdfServicio(),
+            'codigo_compra' => 'OC-100',
+        ])
+        ->assertRedirect();
+
+    expect($servicio->refresh()->codigo_compra)->toBeNull();
+});
+
+test('finalizar un servicio de mantenimiento guarda los codigos y sigue exigiendo el pdf', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'codigo_compra' => 'OC-1'])
+        ->assertSessionHasErrors('pdf_servicio');
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), [
+            'estado_final_equipo' => 'APROBADO',
+            'pdf_servicio' => pdfServicio(),
+            'codigo_compra' => 'OC-1',
+            'codigo_despacho' => 'DS-9',
+        ])
+        ->assertRedirect();
+
+    expect($servicio->refresh())->codigo_compra->toBe('OC-1')->codigo_despacho->toBe('DS-9');
+});
+
+test('un usuario sin permiso de finalizar no puede guardar los codigos', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($sinRol)
+        ->post(route('servicio-terceros.guardar-codigos', $servicio), ['codigo_compra' => 'OC-1'])
+        ->assertForbidden();
+});

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\AreaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +28,18 @@ class Area extends Model
 {
     /** @use HasFactory<AreaFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Texto para los selectores de área: "CRC - Centro de Reparación de Componentes".
+     *
+     * @return Attribute<string, never>
+     */
+    protected function etiqueta(): Attribute
+    {
+        return Attribute::get(fn (): string => filled($this->descripcion)
+            ? "{$this->nombre} - {$this->descripcion}"
+            : $this->nombre);
+    }
 
     /**
      * Get the tenant this area belongs to.

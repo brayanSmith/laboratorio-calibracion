@@ -9,4 +9,6 @@ export type Bahia = {
 export type BahiaAreaOption = {
     id: number;
     nombre: string;
+    /** "CRC - Centro de Reparación de Componentes". */
+    etiqueta: string;
 };

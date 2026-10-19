@@ -4,6 +4,7 @@ import { useResizableColumns } from '@/hooks/use-resizable-columns';
 import type {
     AlcanceMedicionUnidadOpcion,
     DetalleAlcanceMedicion,
+    EspecificacionAlcance,
 } from '@/types';
 
 export type FilaDetalleAlcance = {
@@ -14,13 +15,14 @@ export type FilaDetalleAlcance = {
 type Props = {
     filas: FilaDetalleAlcance[];
     unidadesMedida: AlcanceMedicionUnidadOpcion[];
+    especificacion: EspecificacionAlcance | null;
     errors: Partial<Record<string, string>>;
     onRemove: (key: number) => void;
 };
 
 const columnas = [
     { id: 'unidad', titulo: 'Unidad de medida' },
-    { id: 'valor', titulo: 'Valor del instrumento' },
+    { id: 'valor', titulo: 'Valor de referencia' },
     { id: 'emp', titulo: 'EMP' },
     { id: 'incertidumbre', titulo: 'Incertidumbre' },
 ] as const;
@@ -30,6 +32,7 @@ const columnas = [
 export default function DetallesAlcanceTabla({
     filas,
     unidadesMedida,
+    especificacion,
     errors,
     onRemove,
 }: Props) {
@@ -86,6 +89,7 @@ export default function DetallesAlcanceTabla({
                             detalle={detalle}
                             index={index}
                             unidadesMedida={unidadesMedida}
+                            especificacion={especificacion}
                             errors={errors}
                             onRemove={() => onRemove(key)}
                         />

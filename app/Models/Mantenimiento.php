@@ -150,6 +150,18 @@ class Mantenimiento extends Model
     }
 
     /**
+     * Si estaba en FALTA_REPUESTOS pero ya no tiene ítems registrados sin stock, vuelve a
+     * EN_PROCESO. Así el estado guardado no queda desactualizado al quitar o surtir ítems.
+     */
+    public function sincronizarEstadoRepuestos(): void
+    {
+        if ($this->estado_mantenimiento === 'FALTA_REPUESTOS'
+            && ! $this->itemMantenimientos()->where('con_stock', false)->exists()) {
+            $this->update(['estado_mantenimiento' => 'EN_PROCESO']);
+        }
+    }
+
+    /**
      * Get the items (repuestos/insumos) used during this mantenimiento.
      *
      * @return HasMany<ItemMantenimiento, $this>

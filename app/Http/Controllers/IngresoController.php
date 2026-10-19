@@ -51,6 +51,7 @@ class IngresoController extends Controller
                 'fecha_creacion' => $ingreso->created_at->toDateString(),
                 'desde' => $ingreso->desde->toDateString(),
                 'hasta' => $ingreso->hasta->toDateString(),
+                'fecha_recepcion' => $ingreso->fecha_recepcion?->toDateString(),
                 'tecnico_recibe_id' => $ingreso->tecnico_recibe_id,
                 'tecnico_recibe_nombre' => $ingreso->tecnicoRecibe?->name,
                 'cliente_entrega_id' => $ingreso->cliente_entrega_id,
@@ -144,6 +145,12 @@ class IngresoController extends Controller
         } elseif ($request->boolean('eliminar_firma')) {
             $this->deleteFirma($ingreso);
             $data['firma_cliente_entrega'] = null;
+        }
+
+        // La fecha de recepción no se escribe: se fija el día en que el ingreso pasa a RECIBIDO
+        // y no vuelve a cambiar, aunque luego se edite o se reciba de nuevo.
+        if ($data['estado_ingreso'] === 'RECIBIDO' && $ingreso->fecha_recepcion === null) {
+            $data['fecha_recepcion'] = now()->toDateString();
         }
 
         DB::transaction(function () use ($request, $ingreso, $data) {

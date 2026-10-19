@@ -31,7 +31,7 @@ export default function BahiaFormFields({ bahia, areas, errors }: Props) {
                                 key={area.id}
                                 value={area.id.toString()}
                             >
-                                {area.nombre}
+                                {area.etiqueta}
                             </SelectItem>
                         ))}
                     </SelectContent>

@@ -91,6 +91,16 @@ export default function VerServicioTerceroModal({
                     <Dato etiqueta="Re-agendar">
                         {servicio.re_agendar ? 'Sí' : 'No'}
                     </Dato>
+                    {servicio.tipo_servicio === 'MANTENIMIENTO' ? (
+                        <>
+                            <Dato etiqueta="Código de compra">
+                                {servicio.codigo_compra ?? '—'}
+                            </Dato>
+                            <Dato etiqueta="Código de despacho">
+                                {servicio.codigo_despacho ?? '—'}
+                            </Dato>
+                        </>
+                    ) : null}
                     <Dato etiqueta="Documento del servicio">
                         {servicio.pdf_url ? (
                             <Button variant="outline" size="sm" asChild>
