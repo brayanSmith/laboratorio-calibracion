@@ -52,8 +52,8 @@ class FinalizarServicioTerceroRequest extends FormRequest
             'estado_final_equipo' => 'estado final del equipo',
             're_agendar' => 're-agendar',
             'pdf_servicio' => 'documento del servicio',
-            'codigo_compra' => 'código de compra',
-            'codigo_despacho' => 'código de despacho',
+            'codigo_compra' => 'Solped',
+            'codigo_despacho' => 'OB',
         ];
     }
 }

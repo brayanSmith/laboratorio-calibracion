@@ -37,8 +37,8 @@ class GuardarCodigosServicioTerceroRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'codigo_compra' => 'código de compra',
-            'codigo_despacho' => 'código de despacho',
+            'codigo_compra' => 'Solped',
+            'codigo_despacho' => 'OB',
         ];
     }
 }

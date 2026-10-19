@@ -25,7 +25,7 @@ export default function CodigosServicioFields({
     return (
         <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-                <Label htmlFor="codigo_compra">Código de compra</Label>
+                <Label htmlFor="codigo_compra">Solped</Label>
                 <Input
                     id="codigo_compra"
                     name="codigo_compra"
@@ -43,7 +43,7 @@ export default function CodigosServicioFields({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="codigo_despacho">Código de despacho</Label>
+                <Label htmlFor="codigo_despacho">OB</Label>
                 <Input
                     id="codigo_despacho"
                     name="codigo_despacho"

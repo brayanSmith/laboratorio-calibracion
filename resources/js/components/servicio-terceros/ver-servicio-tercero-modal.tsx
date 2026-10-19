@@ -93,10 +93,10 @@ export default function VerServicioTerceroModal({
                     </Dato>
                     {servicio.tipo_servicio === 'MANTENIMIENTO' ? (
                         <>
-                            <Dato etiqueta="Código de compra">
+                            <Dato etiqueta="Solped">
                                 {servicio.codigo_compra ?? '—'}
                             </Dato>
-                            <Dato etiqueta="Código de despacho">
+                            <Dato etiqueta="OB">
                                 {servicio.codigo_despacho ?? '—'}
                             </Dato>
                         </>
