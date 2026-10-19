@@ -654,6 +654,95 @@ test('solo quien inicio la importacion puede ver su avance', function () {
         ->assertJsonPath('filas_creadas', 1);
 });
 
+test('el historial muestra las ultimas importaciones del usuario con sus errores', function () {
+    importarEquipos($this->admin, csvEquipos(
+        'SN-1,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,',
+        'SN-2,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,',
+    ));
+    importarEquipos($this->admin, csvEquipos('SN-3,EQ-3,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,'));
+    importarEquipos(User::factory()->forTenant($this->tenant)->create(), csvEquipos(
+        'SN-4,EQ-4,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,',
+    ));
+
+    $this->actingAs($this->admin)
+        ->getJson(route('importaciones.equipos.historial'))
+        ->assertOk()
+        ->assertJsonCount(2, 'importaciones')
+        ->assertJsonPath('importaciones.0.filas_creadas', 1)
+        ->assertJsonPath('importaciones.0.filas_con_error', 0)
+        ->assertJsonPath('importaciones.1.filas_creadas', 1)
+        ->assertJsonPath('importaciones.1.errores.0', ['fila' => 3, 'mensaje' => 'Ya existe un equipo con el código EQ-1.']);
+});
+
+/**
+ * @param  array<string, mixed>  $atributos
+ */
+function crearImportacion(User $usuario, array $atributos = []): Importacion
+{
+    return Importacion::create([
+        'tipo' => 'equipos', 'archivo' => 'x.csv', 'nombre_original' => 'equipos.csv', 'delimitador' => ',',
+        'codificacion' => 'UTF-8', 'mapeo' => [], 'estado' => Importacion::ESTADO_COMPLETADA,
+        'user_id' => $usuario->id, 'tenant_id' => $usuario->tenant_id,
+        ...$atributos,
+    ]);
+}
+
+test('marca el resultado de una importacion como leido y como no leido', function () {
+    $importacion = crearImportacion($this->admin);
+
+    $this->actingAs($this->admin)
+        ->patchJson(route('importaciones.leida', $importacion), ['leida' => true])
+        ->assertOk()
+        ->assertJsonPath('leida', true);
+
+    expect($importacion->fresh()->leida_en)->not->toBeNull();
+
+    $this->actingAs($this->admin)
+        ->patchJson(route('importaciones.leida', $importacion), ['leida' => false])
+        ->assertOk()
+        ->assertJsonPath('leida', false);
+
+    expect($importacion->fresh()->leida_en)->toBeNull();
+});
+
+test('solo quien hizo la importacion puede marcarla como leida', function () {
+    $importacion = crearImportacion($this->admin);
+
+    $this->actingAs(User::factory()->forTenant($this->tenant)->create())
+        ->patchJson(route('importaciones.leida', $importacion), ['leida' => true])
+        ->assertForbidden();
+
+    expect($importacion->fresh()->leida_en)->toBeNull();
+});
+
+test('comparte cuantas importaciones terminadas no ha leido el usuario', function () {
+    crearImportacion($this->admin);
+    crearImportacion($this->admin, ['estado' => Importacion::ESTADO_FALLIDA]);
+    crearImportacion($this->admin, ['leida_en' => now()]);
+    crearImportacion($this->admin, ['estado' => Importacion::ESTADO_PROCESANDO]);
+    crearImportacion(User::factory()->forTenant($this->tenant)->create());
+
+    $this->actingAs($this->admin)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page->where('importacionesSinLeer', 2));
+
+    $this->actingAs(User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create())
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page->where('importacionesSinLeer', null));
+});
+
+test('el historial muestra primero las importaciones sin leer', function () {
+    $sinLeer = crearImportacion($this->admin);
+    $leida = crearImportacion($this->admin, ['leida_en' => now()]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('importaciones.equipos.historial'))
+        ->assertJsonPath('importaciones.0.id', $sinLeer->id)
+        ->assertJsonPath('importaciones.0.leida', false)
+        ->assertJsonPath('importaciones.1.id', $leida->id)
+        ->assertJsonPath('importaciones.1.leida', true);
+});
+
 test('devuelve la importacion en curso del usuario', function () {
     $datos = [
         'tipo' => 'equipos', 'archivo' => 'x.csv', 'nombre_original' => 'equipos.csv', 'delimitador' => ',',

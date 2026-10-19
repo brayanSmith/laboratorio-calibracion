@@ -26,6 +26,9 @@ export type ResumenImportacion = {
     id: number;
     estado: EstadoImportacion;
     nombre_original: string;
+    creada_en: string | null;
+    /** Si el usuario ya revisó el resultado (ver el globito del botón Importar). */
+    leida: boolean;
     total_filas: number;
     filas_procesadas: number;
     filas_creadas: number;

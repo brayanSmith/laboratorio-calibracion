@@ -5,6 +5,7 @@ namespace App\Modules\Importaciones\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Importaciones\Http\Requests\LeerEncabezadosImportacionRequest;
+use App\Modules\Importaciones\Http\Requests\MarcarImportacionLeidaRequest;
 use App\Modules\Importaciones\Http\Requests\StoreImportacionEquipoRequest;
 use App\Modules\Importaciones\Jobs\ImportarEquipos;
 use App\Modules\Importaciones\Models\Importacion;
@@ -23,6 +24,8 @@ class ImportacionEquipoController extends Controller
 {
     /** Los CSV que se subieron pero nunca se importaron se borran pasado este tiempo. */
     private const HORAS_ARCHIVOS_HUERFANOS = 24;
+
+    private const IMPORTACIONES_EN_HISTORIAL = 10;
 
     /**
      * Descarga un CSV con los encabezados de todos los campos y una fila de ejemplo. Va
@@ -138,6 +141,36 @@ class ImportacionEquipoController extends Controller
 
         // Se envuelve en una llave porque response()->json(null) responde "{}", no "null".
         return response()->json(['importacion' => $importacion?->resumen()]);
+    }
+
+    /**
+     * Últimas importaciones de equipos del usuario, para revisar su resultado y sus errores
+     * después de que el aviso de "terminada" haya desaparecido.
+     */
+    public function historial(Request $request): JsonResponse
+    {
+        // Las sin leer van primero, para que ninguna quede fuera del límite.
+        $importaciones = Importacion::query()
+            ->where('user_id', $request->user()->id)
+            ->where('tipo', 'equipos')
+            ->orderByRaw('(leida_en IS NULL AND estado IN (?, ?)) DESC', [Importacion::ESTADO_COMPLETADA, Importacion::ESTADO_FALLIDA])
+            ->latest('id')
+            ->limit(self::IMPORTACIONES_EN_HISTORIAL)
+            ->get()
+            ->map(fn (Importacion $importacion): array => $importacion->resumen());
+
+        return response()->json(['importaciones' => $importaciones]);
+    }
+
+    /**
+     * Marca el resultado de la importación como leído o no leído, para llevar el seguimiento
+     * de cuáles ya se revisaron (ver el globito del botón Importar).
+     */
+    public function marcarLeida(MarcarImportacionLeidaRequest $request, Importacion $importacion): JsonResponse
+    {
+        $importacion->update(['leida_en' => $request->boolean('leida') ? now() : null]);
+
+        return response()->json($importacion->resumen());
     }
 
     private function carpeta(Request $request): string

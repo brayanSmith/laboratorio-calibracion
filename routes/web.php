@@ -76,9 +76,11 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::get('importaciones/equipos/plantilla', [ImportacionEquipoController::class, 'plantilla'])->name('importaciones.equipos.plantilla');
     Route::post('importaciones/equipos/encabezados', [ImportacionEquipoController::class, 'encabezados'])->name('importaciones.equipos.encabezados');
+    Route::get('importaciones/equipos/historial', [ImportacionEquipoController::class, 'historial'])->name('importaciones.equipos.historial');
     Route::get('importaciones/equipos/en-curso', [ImportacionEquipoController::class, 'enCurso'])->name('importaciones.equipos.en-curso');
     Route::post('importaciones/equipos', [ImportacionEquipoController::class, 'store'])->name('importaciones.equipos.store');
     Route::get('importaciones/{importacion}', [ImportacionEquipoController::class, 'show'])->name('importaciones.show');
+    Route::patch('importaciones/{importacion}/leida', [ImportacionEquipoController::class, 'marcarLeida'])->name('importaciones.leida');
 
     Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');

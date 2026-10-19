@@ -1,4 +1,6 @@
-import { CircleAlert, CircleCheck } from 'lucide-react';
+import type { ReactNode } from 'react';
+import ErroresImportacion from '@/components/importaciones/errores-importacion';
+import ResultadoImportacion from '@/components/importaciones/resultado-importacion';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -16,7 +18,10 @@ type Props = {
     importacion: ResumenImportacion;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onNueva: () => void;
+    /** Muestra el botón "Nueva importación" al terminar. */
+    onNueva?: () => void;
+    /** Botones extra del pie (ej. marcar como no leída en el detalle). */
+    acciones?: ReactNode;
 };
 
 export function importacionEnCurso(importacion: ResumenImportacion): boolean {
@@ -32,6 +37,7 @@ export default function AvanceImportacionModal({
     open,
     onOpenChange,
     onNueva,
+    acciones,
 }: Props) {
     const enCurso = importacionEnCurso(importacion);
     const porcentaje =
@@ -41,8 +47,6 @@ export default function AvanceImportacionModal({
                       100,
               )
             : 0;
-    const erroresSinDetalle =
-        importacion.filas_con_error - importacion.errores.length;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,68 +84,18 @@ export default function AvanceImportacionModal({
                             avisaremos al terminar.
                         </p>
                     </div>
-                ) : importacion.estado === 'FALLIDA' ? (
-                    <p
-                        className="flex items-center gap-2 text-sm text-destructive"
-                        data-test="importacion-fallida"
-                    >
-                        <CircleAlert className="size-4" />
-                        La importación se detuvo por un error inesperado. Los
-                        equipos importados hasta ese momento se conservan.
-                    </p>
                 ) : (
-                    <div
-                        className="space-y-2"
-                        data-test="importacion-resultado"
-                    >
-                        <p className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                            <CircleCheck className="size-4" />
-                            {importacion.filas_creadas} equipos importados
-                        </p>
-                        {importacion.filas_con_error > 0 ? (
-                            <p className="flex items-center gap-2 text-sm font-medium text-destructive">
-                                <CircleAlert className="size-4" />
-                                {importacion.filas_con_error} filas no se
-                                importaron
-                            </p>
-                        ) : null}
-                    </div>
+                    <ResultadoImportacion importacion={importacion} />
                 )}
 
-                {importacion.errores.length > 0 ? (
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium">Filas con errores</p>
-                        <ul
-                            className="max-h-64 divide-y overflow-y-auto rounded-lg border text-sm"
-                            data-test="importacion-errores"
-                        >
-                            {importacion.errores.map((error) => (
-                                <li
-                                    key={error.fila}
-                                    className="flex gap-3 px-3 py-2"
-                                >
-                                    <span className="shrink-0 font-medium tabular-nums">
-                                        Fila {error.fila}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {error.mensaje}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                        {erroresSinDetalle > 0 ? (
-                            <p className="text-xs text-muted-foreground">
-                                Y {erroresSinDetalle} filas más con errores.
-                            </p>
-                        ) : null}
-                    </div>
-                ) : null}
+                <ErroresImportacion importacion={importacion} />
 
                 <DialogFooter className="gap-2">
+                    {acciones}
                     <DialogClose asChild>
                         <Button variant="secondary">Cerrar</Button>
                     </DialogClose>
-                    {!enCurso ? (
+                    {!enCurso && onNueva ? (
                         <Button
                             type="button"
                             onClick={onNueva}

@@ -34,6 +34,8 @@ declare module '@inertiajs/core' {
                 calibracion: number | null;
                 despachos: number | null;
             } | null;
+            /** Importaciones de equipos terminadas que el usuario no ha revisado (null si no puede importar). */
+            importacionesSinLeer: number | null;
             [key: string]: unknown;
         };
     }

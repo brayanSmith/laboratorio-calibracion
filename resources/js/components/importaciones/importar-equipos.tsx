@@ -1,6 +1,6 @@
-import { router, useHttp } from '@inertiajs/react';
+import { router, useHttp, usePage } from '@inertiajs/react';
 import { Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
     enCurso,
@@ -12,6 +12,7 @@ import AvanceImportacionModal, {
 } from '@/components/importaciones/avance-importacion-modal';
 import RelacionarColumnasModal from '@/components/importaciones/relacionar-columnas-modal';
 import SubirCsvModal from '@/components/importaciones/subir-csv-modal';
+import { useMarcarImportacionLeida } from '@/hooks/use-marcar-importacion-leida';
 import type { ArchivoImportacion, ResumenImportacion } from '@/types';
 
 /** Cada cuánto se consulta el avance de una importación en curso. */
@@ -22,10 +23,20 @@ type Paso = 'archivo' | 'mapeo' | 'avance';
 /**
  * Botón "Importar" del menú superior: sube un CSV de equipos, relaciona sus columnas con
  * los campos y lo importa en segundo plano. Mientras corre, el botón muestra un spinner y
- * al terminar avisa con el resultado, aunque el usuario haya cerrado la ventana.
+ * al terminar avisa con el resultado, aunque el usuario haya cerrado la ventana. El globito
+ * cuenta las importaciones terminadas cuyo resultado el usuario aún no ha revisado.
  */
 export default function ImportarEquipos() {
+    const { importacionesSinLeer } = usePage().props;
     const [paso, setPaso] = useState<Paso | null>(null);
+    // El aviso de "terminada" se arma dentro del intervalo, que no ve el paso actualizado.
+    const pasoActual = useRef<Paso | null>(null);
+
+    useEffect(() => {
+        pasoActual.current = paso;
+    }, [paso]);
+
+    const marcarLeida = useMarcarImportacionLeida();
     const [archivo, setArchivo] = useState<ArchivoImportacion | null>(null);
     const [importacion, setImportacion] = useState<ResumenImportacion | null>(
         null,
@@ -80,10 +91,28 @@ export default function ImportarEquipos() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [importacion?.id, corriendo]);
 
+    const marcarComoLeida = (resultado: ResumenImportacion) => {
+        void marcarLeida(resultado, true).then((actualizada) => {
+            if (actualizada) {
+                setImportacion(actualizada);
+            }
+        });
+    };
+
     const avisarResultado = (resultado: ResumenImportacion) => {
+        // Si la está mirando en la ventana de avance, ya vio el resultado.
+        if (pasoActual.current === 'avance') {
+            marcarComoLeida(resultado);
+        } else {
+            router.reload({ only: ['importacionesSinLeer'], async: true });
+        }
+
         const verDetalle = {
             label: 'Ver detalle',
-            onClick: () => setPaso('avance'),
+            onClick: () => {
+                setPaso('avance');
+                marcarComoLeida(resultado);
+            },
         };
 
         if (resultado.estado === 'FALLIDA') {
@@ -121,6 +150,7 @@ export default function ImportarEquipos() {
             <BotonAtajo
                 icono={Upload}
                 titulo={corriendo ? 'Importando equipos...' : 'Importar'}
+                cantidad={importacionesSinLeer ?? 0}
                 cargando={corriendo}
                 dataTest="importar-button"
                 onClick={abrir}

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Importaciones\Models\Importacion;
 use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -61,6 +62,7 @@ class HandleInertiaRequests extends Middleware
             'empresa' => fn () => $this->brand($user),
             'pendientes' => fn () => $this->pendientes($user),
             'porAgendar' => fn () => $this->porAgendar($user),
+            'importacionesSinLeer' => fn () => $this->importacionesSinLeer($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -153,6 +155,23 @@ class HandleInertiaRequests extends Middleware
             'calibracion' => $puedeCalibracion ? OrdenTrabajo::query()->listosParaCalibracion($tenantId)->count() : null,
             'despachos' => $puedeDespachos ? Despacho::query()->listosParaAgendar($tenantId)->count() : null,
         ];
+    }
+
+    /**
+     * Cuántas importaciones de equipos del usuario terminaron y aún no revisa, para el
+     * globito del botón Importar (null si no puede importar).
+     */
+    private function importacionesSinLeer(?User $user): ?int
+    {
+        if (! $user?->tenant_id || ! $user->can(TenantPermission::EquiposCrear->value)) {
+            return null;
+        }
+
+        return Importacion::query()
+            ->where('user_id', $user->id)
+            ->where('tipo', 'equipos')
+            ->sinLeer()
+            ->count();
     }
 
     /**

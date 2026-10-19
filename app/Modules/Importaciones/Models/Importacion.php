@@ -5,6 +5,7 @@ namespace App\Modules\Importaciones\Models;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property int $filas_creadas
  * @property int $filas_con_error
  * @property list<array{fila: int, mensaje: string}>|null $errores
+ * @property Carbon|null $leida_en Cuándo el usuario revisó el resultado
  * @property int $user_id
  * @property int $tenant_id
  * @property Carbon|null $created_at
@@ -33,7 +35,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'tipo', 'archivo', 'nombre_original', 'delimitador', 'codificacion', 'mapeo', 'estado',
     'total_filas', 'filas_procesadas', 'filas_creadas', 'filas_con_error', 'errores',
-    'user_id', 'tenant_id',
+    'leida_en', 'user_id', 'tenant_id',
 ])]
 class Importacion extends Model
 {
@@ -74,9 +76,20 @@ class Importacion extends Model
     }
 
     /**
+     * Importaciones ya terminadas (bien o con fallo) cuyo resultado el usuario no ha revisado.
+     * Las que siguen en curso no cuentan: todavía no hay resultado que leer.
+     *
+     * @param  Builder<Importacion>  $query
+     */
+    public function scopeSinLeer(Builder $query): void
+    {
+        $query->whereIn('estado', [self::ESTADO_COMPLETADA, self::ESTADO_FALLIDA])->whereNull('leida_en');
+    }
+
+    /**
      * Summary sent to the frontend to show the progress and the result.
      *
-     * @return array{id: int, estado: string, nombre_original: string, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
+     * @return array{id: int, estado: string, nombre_original: string, creada_en: string|null, leida: bool, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
      */
     public function resumen(): array
     {
@@ -84,6 +97,8 @@ class Importacion extends Model
             'id' => $this->id,
             'estado' => $this->estado,
             'nombre_original' => $this->nombre_original,
+            'creada_en' => $this->created_at?->toIso8601String(),
+            'leida' => $this->leida_en !== null,
             'total_filas' => $this->total_filas,
             'filas_procesadas' => $this->filas_procesadas,
             'filas_creadas' => $this->filas_creadas,
@@ -102,6 +117,7 @@ class Importacion extends Model
         return [
             'mapeo' => 'array',
             'errores' => 'array',
+            'leida_en' => 'datetime',
         ];
     }
 }
