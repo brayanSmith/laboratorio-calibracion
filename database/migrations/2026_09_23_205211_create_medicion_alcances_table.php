@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('medicion_alcances', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tipo_equipo_id')->constrained('tipo_equipos')->onDelete('cascade');
+            $table->string('modelo')->default('');
             $table->string('alcance_indicacion');
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();

@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('codigo');
             $table->string('nombre');
             $table->string('descripcion')->nullable();
+            $table->string('ubicacion')->nullable();
+            $table->decimal('precio_unitario', 10, 2)->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

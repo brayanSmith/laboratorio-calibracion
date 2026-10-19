@@ -17,6 +17,9 @@ return new class extends Migration
             $table->enum('tipo_servicio', ['MANTENIMIENTO', 'CALIBRACION']);
             $table->foreignId('empresa_tercero_id')->constrained('empresa_terceros')->onDelete('cascade');
             $table->string('pdf_servicio')->nullable();
+            // Solo en servicios de mantenimiento; ambos opcionales.
+            $table->string('codigo_compra', 50)->nullable();
+            $table->string('codigo_despacho', 50)->nullable();
             $table->enum('estado_servicio', ['PENDIENTE', 'EN_PROCESO', 'FINALIZADO'])->default('PENDIENTE');
             $table->enum('estado_final_equipo', ['APROBADO', 'RECHAZADO'])->nullable();
             $table->boolean('re_agendar')->default(false);

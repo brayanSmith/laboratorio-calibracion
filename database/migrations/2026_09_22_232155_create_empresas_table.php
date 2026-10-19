@@ -23,6 +23,8 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique('tenant_id');
         });
     }
 

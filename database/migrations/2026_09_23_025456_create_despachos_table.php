@@ -18,6 +18,10 @@ return new class extends Migration
             // Nulos al crearse (ver CalibracionController::finalizar()); se completan
             // cuando se agenda y se realiza el despacho.
             $table->foreignId('tecnico_entrega_id')->nullable()->constrained('users')->onDelete('cascade');
+            // Día programado de la entrega; se pide al agendar el despacho.
+            $table->date('fecha_programada')->nullable();
+            // Día en que realmente se entregó el equipo; se fija sola cuando la entrega queda recibida.
+            $table->date('fecha_despacho')->nullable();
             $table->foreignId('cliente_recibe_id')->nullable()->constrained('clientes')->onDelete('cascade');
             $table->boolean('entrega_autorizada')->default(false);
             $table->string('firma_cliente_recibe')->nullable();

@@ -17,7 +17,14 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            $table->timestamp('two_factor_confirmed_at')->nullable();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->boolean('is_platform_admin')->default(false);
+            $table->boolean('must_change_password')->default(false);
             $table->string('firma')->nullable(); // Imagen de la firma del usuario, para los PDF
+            $table->string('foto')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

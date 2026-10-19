@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('medicion_alcance_id')->constrained('medicion_alcances')->onDelete('cascade');
             $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->onDelete('cascade');
-            $table->decimal('valor_instrumento', 10, 2);
-            $table->decimal('emp', 10, 2);
+            $table->decimal('valor_referencia', 10, 2);
+            // El EMP se guarda en `emp` (valor absoluto, precisión "±") o en `emp_porcentaje`
+            // (porcentaje, precisión "%"), según la precisión de los equipos del alcance.
+            $table->decimal('emp', 10, 2)->nullable();
+            $table->decimal('emp_porcentaje', 10, 2)->nullable();
             $table->decimal('incertidumbre', 10, 2);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();

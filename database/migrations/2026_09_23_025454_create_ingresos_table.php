@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignId('bahia_id')->constrained('bahias')->onDelete('cascade');
             $table->date('desde'); // campo de filtro
             $table->date('hasta'); // campo de filtro
+            // Día en que se recibieron los equipos; se fija sola al recibir el ingreso.
+            $table->date('fecha_recepcion')->nullable();
             // Nullable: al crear el ingreso solo se sabe la bahía y el rango de fechas;
             // el técnico y el cliente se completan después, al editar el ingreso.
             $table->foreignId('tecnico_recibe_id')->nullable()->constrained('users')->onDelete('cascade');
