@@ -1,4 +1,4 @@
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, History, Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -6,6 +6,7 @@ import DataTable, {
 import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
 import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import { estadosVencimiento } from '@/components/equipos/equipo-programacion-fields';
+import HistorialEquipoModal from '@/components/equipos/historial-equipo-modal';
 import ViewEquipoModal from '@/components/equipos/view-equipo-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,6 +82,8 @@ export default function EquiposTabla({
     const { can } = usePermissions();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [equipoDeleting, setEquipoDeleting] = useState<Equipo | null>(null);
+    const [historialOpen, setHistorialOpen] = useState(false);
+    const [equipoHistorial, setEquipoHistorial] = useState<Equipo | null>(null);
 
     const columns = useMemo(
         () =>
@@ -164,6 +167,21 @@ export default function EquiposTabla({
                                     </Button>
                                 </ViewEquipoModal>
                             ) : null}
+                            {can('equipos.ver') ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    aria-label="Historial del equipo"
+                                    title="Historial"
+                                    data-test="equipo-historial-button"
+                                    onClick={() => {
+                                        setEquipoHistorial(row.original);
+                                        setHistorialOpen(true);
+                                    }}
+                                >
+                                    <History className="h-4 w-4" />
+                                </Button>
+                            ) : null}
                             {can('equipos.editar') ? (
                                 <EditEquipoModal
                                     equipo={row.original}
@@ -218,6 +236,12 @@ export default function EquiposTabla({
                 equipo={equipoDeleting}
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}
+            />
+
+            <HistorialEquipoModal
+                equipo={equipoHistorial}
+                open={historialOpen}
+                onOpenChange={setHistorialOpen}
             />
         </>
     );

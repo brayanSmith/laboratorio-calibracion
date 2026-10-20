@@ -4,12 +4,19 @@ namespace App\Modules\Equipos\Http\Controllers;
 
 use App\Concerns\ListaEquipos;
 use App\Http\Controllers\Controller;
+use App\Modules\Calibraciones\Http\Controllers\CalibracionController;
+use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Despachos\Http\Controllers\DespachoController;
 use App\Modules\Equipos\Http\Requests\StoreEquipoRequest;
 use App\Modules\Equipos\Http\Requests\UpdateEquipoRequest;
 use App\Modules\Equipos\Models\DocumentoEquipo;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Http\Controllers\IngresoController;
+use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
+use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -112,6 +119,29 @@ class EquipoController extends Controller
         return Inertia::render('equipos/show', [
             'equipo' => $this->conDocumentos($equipo),
             'options' => $this->formOptions($equipo->tenant_id),
+        ]);
+    }
+
+    /**
+     * Historial de servicios del equipo: los ingresos en que llegó y los mantenimientos,
+     * calibraciones, despachos y servicios de terceros de sus órdenes de trabajo, del más
+     * reciente al más antiguo. Cada uno con los mismos datos que su listado, para abrir su
+     * modal "Ver". Los servicios con técnico responsable se limitan a los que el usuario
+     * puede ver.
+     */
+    public function historial(Request $request, Equipo $equipo): JsonResponse
+    {
+        Gate::authorize('view', $equipo);
+
+        $user = $request->user();
+
+        return response()->json([
+            'ingresos' => IngresoController::listar($equipo->tenant_id, $equipo->id),
+            'mantenimientos' => MantenimientoController::listar($user, $equipo->id),
+            'calibraciones' => CalibracionController::listar($user, $equipo->id),
+            'despachos' => DespachoController::listar($user, $equipo->id),
+            'servicios_terceros' => ServicioTerceroController::listar($equipo->tenant_id, null, $equipo->id),
+            'novedadesIngreso' => Novedad::query()->where('tenant_id', $equipo->tenant_id)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 

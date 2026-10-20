@@ -11,6 +11,7 @@ use App\Modules\ServiciosTerceros\Http\Requests\FinalizarServicioTerceroRequest;
 use App\Modules\ServiciosTerceros\Http\Requests\GuardarCodigosServicioTerceroRequest;
 use App\Modules\ServiciosTerceros\Http\Requests\UpdateServicioTerceroRequest;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -22,24 +23,29 @@ class ServicioTerceroController extends Controller
     /**
      * Servicios de tercero del tenant de un tipo (MANTENIMIENTO o CALIBRACION), listos
      * para las tablas "Tercero" de Mantenimientos y Calibraciones, con el tiempo_servicio
-     * abierto de cada uno (si ya se inició).
+     * abierto de cada uno (si ya se inició). Sin tipo trae los de ambos; con equipo, solo
+     * los de ese equipo (ver EquipoController::historial()).
      *
      * @return Collection<int, array<string, mixed>>
      */
-    public static function listar(int $tenantId, string $tipoServicio): Collection
+    public static function listar(int $tenantId, ?string $tipoServicio, ?int $equipoId = null): Collection
     {
         $tiemposActivos = TiempoServicio::query()
             ->where('tenant_id', $tenantId)
-            ->where('tipo_servicio', $tipoServicio)
+            ->when($tipoServicio !== null, fn (Builder $query) => $query->where('tipo_servicio', $tipoServicio))
             ->where('es_tercero', true)
             ->where('estado_tiempo', 'INICIO')
             ->whereNull('fin')
-            ->get(['orden_trabajo_id', 'inicio'])
-            ->keyBy('orden_trabajo_id');
+            ->get(['orden_trabajo_id', 'tipo_servicio', 'inicio'])
+            ->keyBy(fn (TiempoServicio $tiempo): string => "{$tiempo->orden_trabajo_id}-{$tiempo->tipo_servicio}");
 
         return ServicioTercero::query()
             ->where('tenant_id', $tenantId)
-            ->where('tipo_servicio', $tipoServicio)
+            ->when($tipoServicio !== null, fn (Builder $query) => $query->where('tipo_servicio', $tipoServicio))
+            ->when($equipoId !== null, fn (Builder $query) => $query->whereHas(
+                'ordenTrabajo.equipoProgramacion',
+                fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
+            ))
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
@@ -62,7 +68,8 @@ class ServicioTerceroController extends Controller
                 'empresa_tercero_id' => $servicio->empresa_tercero_id,
                 'empresa_tercero_nombre' => $servicio->empresaTercero->nombre,
                 'pdf_url' => $servicio->pdfUrl(),
-                'tiempo_servicio_inicio' => $tiemposActivos->get($servicio->orden_trabajo_id)?->inicio->toIso8601String(),
+                'tiempo_servicio_inicio' => $tiemposActivos->get("{$servicio->orden_trabajo_id}-{$servicio->tipo_servicio}")?->inicio->toIso8601String(),
+                'estado_servicio' => $servicio->estado_servicio,
                 'estado_final_equipo' => $servicio->estado_final_equipo,
                 're_agendar' => $servicio->re_agendar,
             ]);

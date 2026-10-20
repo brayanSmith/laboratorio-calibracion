@@ -13,8 +13,10 @@ use App\Modules\Ingresos\Http\Requests\StoreIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateEstadoIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateIngresoRequest;
 use App\Modules\Ingresos\Models\Ingreso;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -32,8 +34,32 @@ class IngresoController extends Controller
 
         $tenantId = $request->user()->tenant_id;
 
-        $ingresos = Ingreso::query()
+        $ingresos = self::listar($tenantId);
+
+        return Inertia::render('ingresos/index', [
+            'ingresos' => $ingresos,
+            'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
+            'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
+        ]);
+    }
+
+    /**
+     * Ingresos del tenant, listos para la tabla y las modales (ver, editar, recibir);
+     * opcionalmente solo aquellos en que llegó un equipo (ver EquipoController::historial()).
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function listar(int $tenantId, ?int $equipoId = null): Collection
+    {
+
+        return Ingreso::query()
             ->where('tenant_id', $tenantId)
+            ->when($equipoId !== null, fn (Builder $query) => $query->whereHas(
+                'equipoProgramacion',
+                fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
+            ))
             ->with([
                 'bahia:id,nombre',
                 'tecnicoRecibe:id,name',
@@ -84,14 +110,6 @@ class IngresoController extends Controller
                     ],
                 ])->values(),
             ]);
-
-        return Inertia::render('ingresos/index', [
-            'ingresos' => $ingresos,
-            'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
-            'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
-        ]);
     }
 
     /**

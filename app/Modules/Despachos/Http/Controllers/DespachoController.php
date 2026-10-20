@@ -9,8 +9,10 @@ use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Despachos\Http\Requests\UpdateDespachoRequest;
 use App\Modules\Despachos\Models\Despacho;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -28,9 +30,33 @@ class DespachoController extends Controller
 
         $tenantId = $request->user()->tenant_id;
 
-        $despachos = Despacho::query()
+        $despachos = self::listar($request->user());
+
+        return Inertia::render('despachos/index', [
+            'despachos' => $despachos,
+            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
+            'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'novedadesDespacho' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'SALIDA')->orderBy('nombre')->get(['id', 'nombre']),
+        ]);
+    }
+
+    /**
+     * Despachos del tenant que el usuario puede ver, listos para la tabla y las modales (ver,
+     * editar); opcionalmente solo los de un equipo (ver EquipoController::historial()).
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function listar(User $user, ?int $equipoId = null): Collection
+    {
+        $tenantId = $user->tenant_id;
+
+        return Despacho::query()
             ->where('tenant_id', $tenantId)
-            ->visiblesPara($request->user())
+            ->when($equipoId !== null, fn (Builder $query) => $query->whereHas(
+                'ordenTrabajo.equipoProgramacion',
+                fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
+            ))
+            ->visiblesPara($user)
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
@@ -66,13 +92,6 @@ class DespachoController extends Controller
                     'cliente' => ['nombre' => $despacho->ordenTrabajo->equipoProgramacion->equipo->cliente->nombre],
                 ],
             ]);
-
-        return Inertia::render('despachos/index', [
-            'despachos' => $despachos,
-            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
-            'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'novedadesDespacho' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'SALIDA')->orderBy('nombre')->get(['id', 'nombre']),
-        ]);
     }
 
     /**

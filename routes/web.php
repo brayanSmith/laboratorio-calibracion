@@ -64,6 +64,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::get('agenda/eventos', [AgendaController::class, 'eventos'])->name('agenda.eventos');
 
+    Route::get('equipos/{equipo}/historial', [EquipoController::class, 'historial'])->name('equipos.historial');
     Route::resource('equipos', EquipoController::class)->except(['create', 'edit']);
 
     Route::post('equipos/{equipo}/especificacion-tecnica', [EquipoEspecificacionTecnicaController::class, 'store'])->name('equipos.especificacion-tecnica.store');

@@ -36,7 +36,7 @@ function estadoStock(stock: number): { etiqueta: string; clases: string } {
     if (stock <= 0) {
         return {
             etiqueta: 'Agotado',
-            clases: 'border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300',
+            clases: 'border-transparent bg-red-700 text-white',
         };
     }
 
@@ -49,7 +49,7 @@ function estadoStock(stock: number): { etiqueta: string; clases: string } {
 
     return {
         etiqueta: 'Disponible',
-        clases: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300',
+        clases: 'border-transparent bg-emerald-700 text-white',
     };
 }
 

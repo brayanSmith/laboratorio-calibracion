@@ -130,6 +130,7 @@ export type ServicioTerceroListado = {
     empresa_tercero_nombre: string;
     pdf_url: string | null;
     tiempo_servicio_inicio: string | null;
+    estado_servicio: 'PENDIENTE' | 'EN_PROCESO' | 'FINALIZADO';
     estado_final_equipo: 'APROBADO' | 'RECHAZADO' | null;
     re_agendar: boolean;
 };

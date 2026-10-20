@@ -19,9 +19,11 @@ use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -41,6 +43,39 @@ class MantenimientoController extends Controller
         Gate::authorize('viewAny', Mantenimiento::class);
 
         $tenantId = $request->user()->tenant_id;
+
+        $mantenimientos = self::listar($request->user());
+
+        return Inertia::render('mantenimientos/index', [
+            'mantenimientos' => $mantenimientos,
+            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'MANTENIMIENTO'),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
+            'novedadesMantenimiento' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'MANTENIMIENTO')->orderBy('nombre')->get(['id', 'nombre']),
+            'items' => Item::query()
+                ->where('tenant_id', $tenantId)
+                ->conMovimientos()
+                ->orderBy('nombre')
+                ->get(['id', 'codigo', 'nombre'])
+                ->map(fn (Item $item) => [
+                    'id' => $item->id,
+                    'codigo' => $item->codigo,
+                    'nombre' => $item->nombre,
+                    'stock' => $item->stock,
+                    'precio_unitario' => (float) $item->precio_unitario,
+                ]),
+        ]);
+    }
+
+    /**
+     * Mantenimientos del tenant que el usuario puede ver, listos para la tabla y las modales
+     * (ver, editar, gestionar); opcionalmente solo los de un equipo (ver EquipoController::historial()).
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function listar(User $user, ?int $equipoId = null): Collection
+    {
+        $tenantId = $user->tenant_id;
 
         // Para saber si cada mantenimiento ya tiene un tiempo_servicio abierto (y desde
         // cuándo), para que el botón diga "Continuar" en vez de "Iniciar" y el cronómetro
@@ -63,9 +98,13 @@ class MantenimientoController extends Controller
             ->groupBy('orden_trabajo_id')
             ->map(fn ($tiempos) => TiempoServicio::formatearDuracion(TiempoServicio::sumarDuraciones($tiempos->pluck('duracion'))));
 
-        $mantenimientos = Mantenimiento::query()
+        return Mantenimiento::query()
             ->where('tenant_id', $tenantId)
-            ->visiblesPara($request->user())
+            ->when($equipoId !== null, fn (Builder $query) => $query->whereHas(
+                'ordenTrabajo.equipoProgramacion',
+                fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
+            ))
+            ->visiblesPara($user)
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
@@ -149,26 +188,6 @@ class MantenimientoController extends Controller
                     'descripcion' => $foto->descripcion,
                 ])->values(),
             ]);
-
-        return Inertia::render('mantenimientos/index', [
-            'mantenimientos' => $mantenimientos,
-            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'MANTENIMIENTO'),
-            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
-            'novedadesMantenimiento' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'MANTENIMIENTO')->orderBy('nombre')->get(['id', 'nombre']),
-            'items' => Item::query()
-                ->where('tenant_id', $tenantId)
-                ->conMovimientos()
-                ->orderBy('nombre')
-                ->get(['id', 'codigo', 'nombre'])
-                ->map(fn (Item $item) => [
-                    'id' => $item->id,
-                    'codigo' => $item->codigo,
-                    'nombre' => $item->nombre,
-                    'stock' => $item->stock,
-                    'precio_unitario' => (float) $item->precio_unitario,
-                ]),
-        ]);
     }
 
     /**

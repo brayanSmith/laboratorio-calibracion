@@ -3,6 +3,7 @@
 namespace App\Modules\Calibraciones\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Calibraciones\Actions\GenerarCertificadoCalibracion;
 use App\Modules\Calibraciones\Http\Requests\FinalizarCalibracionRequest;
 use App\Modules\Calibraciones\Http\Requests\UpdateCalibracionRequest;
@@ -17,9 +18,11 @@ use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -40,6 +43,28 @@ class CalibracionController extends Controller
 
         $tenantId = $request->user()->tenant_id;
 
+        $calibraciones = self::listar($request->user());
+
+        return Inertia::render('calibraciones/index', [
+            'calibraciones' => $calibraciones,
+            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'CALIBRACION'),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'laboratorioPrincipal' => Laboratorio::principalDelTenant($tenantId)?->only(['id', 'nombre']),
+            'procedimientos' => ProcedimientoCalibracion::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'novedadesCalibracion' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'CALIBRACION')->orderBy('nombre')->get(['id', 'nombre']),
+        ]);
+    }
+
+    /**
+     * Calibraciones del tenant que el usuario puede ver, listas para la tabla y las modales
+     * (ver, editar, gestionar); opcionalmente solo las de un equipo (ver EquipoController::historial()).
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function listar(User $user, ?int $equipoId = null): Collection
+    {
+        $tenantId = $user->tenant_id;
+
         // Para saber si cada calibración ya tiene un tiempo_servicio abierto (y desde
         // cuándo), para mostrar el cronómetro en vez del botón "Iniciar".
         $tiemposActivos = TiempoServicio::query()
@@ -50,9 +75,13 @@ class CalibracionController extends Controller
             ->get(['orden_trabajo_id', 'inicio'])
             ->keyBy('orden_trabajo_id');
 
-        $calibraciones = Calibracion::query()
+        return Calibracion::query()
             ->where('tenant_id', $tenantId)
-            ->visiblesPara($request->user())
+            ->when($equipoId !== null, fn (Builder $query) => $query->whereHas(
+                'ordenTrabajo.equipoProgramacion',
+                fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
+            ))
+            ->visiblesPara($user)
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
@@ -127,15 +156,6 @@ class CalibracionController extends Controller
                         'resultado_calibracion' => $detalle->resultado_calibracion,
                     ])->values(),
             ]);
-
-        return Inertia::render('calibraciones/index', [
-            'calibraciones' => $calibraciones,
-            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'CALIBRACION'),
-            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'laboratorioPrincipal' => Laboratorio::principalDelTenant($tenantId)?->only(['id', 'nombre']),
-            'procedimientos' => ProcedimientoCalibracion::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'novedadesCalibracion' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'CALIBRACION')->orderBy('nombre')->get(['id', 'nombre']),
-        ]);
     }
 
     /**

@@ -1,3 +1,8 @@
+import type { Calibracion } from './calibraciones';
+import type { Despacho } from './despachos';
+import type { Ingreso, IngresoOption } from './ingresos';
+import type { Mantenimiento, ServicioTerceroListado } from './mantenimientos';
+
 export type TipoTecnologia = 'ANALOGICO' | 'DIGITAL';
 
 export type EquipoOption = {
@@ -207,4 +212,18 @@ export type EquipoPaginator = {
     current_page: number;
     last_page: number;
     total: number;
+};
+
+/**
+ * Historial de servicios de un equipo (ver EquipoController::historial()), del más reciente
+ * al más antiguo. Cada registro trae los mismos datos que su listado, para abrir su modal "Ver".
+ */
+export type HistorialEquipo = {
+    ingresos: Ingreso[];
+    mantenimientos: Mantenimiento[];
+    calibraciones: Calibracion[];
+    despachos: Despacho[];
+    servicios_terceros: ServicioTerceroListado[];
+    /** Catálogo de Novedad (categoría INGRESO), que necesita la modal "Ver" del ingreso. */
+    novedadesIngreso: IngresoOption[];
 };
