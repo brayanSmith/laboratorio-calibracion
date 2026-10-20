@@ -29,7 +29,7 @@
         .emision td { padding: 12px 2px 8px; }
         .derecha { text-align: right; }
         .muted { color: #737373; }
-        .chip { padding: 2px 8px; font-weight: bold; font-size: 8.5px; border-radius: 5px; }
+        .icono { display: inline-block; width: 13px; height: 13px; line-height: 13px; border-radius: 7px; color: #ffffff; font-weight: bold; font-size: 8.5px; text-align: center; }
         .badge { padding: 3px 12px; font-weight: bold; font-size: 9px; color: #ffffff; border-radius: 6px; }
         .tarjeta { border: 1px solid #e5e5e5; border-radius: 6px; }
         .tarjeta .titulo { background: #f5f5f5; padding: 8px 12px; font-weight: bold; font-size: 10px; border-bottom: 1px solid #e5e5e5; border-radius: 6px 6px 0 0; }
@@ -159,7 +159,7 @@
                     <td>
                         @if ($detalle->resultado_calibracion)
                             @php $aprobado = $detalle->resultado_calibracion === 'APROBADO'; @endphp
-                            <span class="chip" style="color: #ffffff; background: {{ $aprobado ? '#15803d' : '#b91c1c' }};">{{ $aprobado ? 'Aprobado' : 'No aprobado' }}</span>
+                            <span class="icono" style="background: {{ $aprobado ? '#15803d' : '#b91c1c' }};">{{ $aprobado ? '✓' : '✗' }}</span>
                         @else
                             —
                         @endif

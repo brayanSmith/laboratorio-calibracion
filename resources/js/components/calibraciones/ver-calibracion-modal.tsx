@@ -1,4 +1,4 @@
-import { Printer } from 'lucide-react';
+import { CheckCircle2, Printer, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { certificado } from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import { Badge } from '@/components/ui/badge';
@@ -191,20 +191,28 @@ export default function VerCalibracionModal({
                                                     {detalle.incertidumbre}
                                                 </td>
                                                 <td className="px-3 py-2">
-                                                    {detalle.resultado_calibracion ? (
-                                                        <Badge
-                                                            className={
-                                                                detalle.resultado_calibracion ===
-                                                                'APROBADO'
-                                                                    ? '!border-transparent !bg-emerald-500 !text-white'
-                                                                    : '!border-transparent !bg-red-500 !text-white'
-                                                            }
+                                                    {detalle.resultado_calibracion ===
+                                                    'APROBADO' ? (
+                                                        <CheckCircle2
+                                                            className="h-4 w-4 text-emerald-500"
+                                                            aria-label="Aprobado"
+                                                            data-test="detalle-resultado-aprobado"
                                                         >
-                                                            {detalle.resultado_calibracion ===
-                                                            'APROBADO'
-                                                                ? 'Aprobado'
-                                                                : 'No aprobado'}
-                                                        </Badge>
+                                                            <title>
+                                                                Aprobado
+                                                            </title>
+                                                        </CheckCircle2>
+                                                    ) : detalle.resultado_calibracion ===
+                                                      'NO_APROBADO' ? (
+                                                        <XCircle
+                                                            className="h-4 w-4 text-red-500"
+                                                            aria-label="No aprobado"
+                                                            data-test="detalle-resultado-no-aprobado"
+                                                        >
+                                                            <title>
+                                                                No aprobado
+                                                            </title>
+                                                        </XCircle>
                                                     ) : (
                                                         '—'
                                                     )}

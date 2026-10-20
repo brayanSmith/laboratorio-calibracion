@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Eye, Pencil, Play, Printer, RefreshCw, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -7,7 +7,6 @@ import DataTable, {
 import { certificado } from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
-import ActualizarCertificadoModal from '@/components/calibraciones/actualizar-certificado-modal';
 import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
 import VerCalibracionModal from '@/components/calibraciones/ver-calibracion-modal';
 import Heading from '@/components/heading';
@@ -79,11 +78,6 @@ export default function CalibracionesIndex({
         calibraciones.find((calibracion) => calibracion.id === iniciandoId) ??
         null;
     const [iniciarOpen, setIniciarOpen] = useState(false);
-    const [certificadoId, setCertificadoId] = useState<number | null>(null);
-    const certificadoACtualizar =
-        calibraciones.find((calibracion) => calibracion.id === certificadoId) ??
-        null;
-    const [certificadoOpen, setCertificadoOpen] = useState(false);
     const [iniciadoEn, setIniciadoEn] = useState<Date | null>(null);
     const [viendoId, setViendoId] = useState<number | null>(null);
     const viendo =
@@ -194,21 +188,6 @@ export default function CalibracionesIndex({
                                     >
                                         <Printer className="h-4 w-4" /> PDF
                                     </a>
-                                </Button>
-                            ) : null}
-                            {canPdf &&
-                            row.original.estado_calibracion === 'FINALIZADO' ? (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    data-test="calibracion-actualizar-pdf-button"
-                                    onClick={() => {
-                                        setCertificadoId(row.original.id);
-                                        setCertificadoOpen(true);
-                                    }}
-                                >
-                                    <RefreshCw className="h-4 w-4" /> Actualizar
-                                    PDF
                                 </Button>
                             ) : null}
                             {canEdit &&
@@ -381,11 +360,6 @@ export default function CalibracionesIndex({
                 calibracion={iniciando}
                 open={iniciarOpen}
                 onOpenChange={setIniciarOpen}
-            />
-            <ActualizarCertificadoModal
-                calibracion={certificadoACtualizar}
-                open={certificadoOpen}
-                onOpenChange={setCertificadoOpen}
             />
         </>
     );
