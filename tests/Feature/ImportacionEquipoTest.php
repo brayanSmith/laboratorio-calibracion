@@ -596,7 +596,7 @@ test('reporta las filas con error con su numero y sigue con las demas', function
         ->and($importacion->filas_con_error)->toBe(3)
         ->and(array_column($importacion->errores, 'fila'))->toBe([3, 4, 6])
         ->and($importacion->errores[0]['mensaje'])->toBe('Ya existe un equipo con el código EQ-EXISTE.')
-        ->and($importacion->errores[1]['mensaje'])->toContain('Tipo de tecnología')
+        ->and($importacion->errores[1]['mensaje'])->toContain('Tipo de indicación')
         ->and($importacion->errores[2]['mensaje'])->toContain('Modelo')
         ->and(Equipo::where('codigo', 'EQ-OK')->exists())->toBeTrue();
 });

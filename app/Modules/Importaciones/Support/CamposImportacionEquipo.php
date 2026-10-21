@@ -19,7 +19,7 @@ class CamposImportacionEquipo
             self::campo('codigo', 'Código', true),
             self::campo('tipo_equipo', 'Tipo de equipo', true, 'Si no existe, se crea.'),
             self::campo('tipo_mantenimiento', 'Tipo de mantenimiento', false, 'A o B, solo al crear un tipo de equipo nuevo. Por defecto: A.'),
-            self::campo('tipo_tecnologia', 'Tipo de tecnología', true, 'ANALOGICO o DIGITAL.'),
+            self::campo('tipo_tecnologia', 'Tipo de indicación', true, 'ANALOGICO o DIGITAL.'),
             self::campo('modelo', 'Modelo', true),
             self::campo('fabricante', 'Fabricante', true, 'Si no existe, se crea.'),
             self::campo('numero_serie', 'Número de serie', true),
