@@ -29,7 +29,7 @@ type TarjetaVencimiento = {
     valor: number | null;
     icono: LucideIcon;
     color: string;
-    /** Botón en un tono más oscuro que el de la tarjeta. */
+    /** Botón en un tono más intenso que el fondo suave de la tarjeta. */
     colorBoton: string;
     testId: string;
     /** Estado de vencimiento por el que la tarjeta filtra la tabla; null muestra todos los equipos. */
@@ -53,8 +53,8 @@ export default function Dashboard({
             titulo: 'Todos los equipos',
             valor: total_equipos,
             icono: Boxes,
-            color: 'border-sky-700 bg-sky-600 text-white',
-            colorBoton: 'bg-sky-800 text-white hover:bg-sky-900',
+            color: 'border-sky-200 bg-sky-100 text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200',
+            colorBoton: 'bg-sky-600 text-white hover:bg-sky-700',
             testId: 'tarjeta-todos-los-equipos',
             vencimiento: null,
         },
@@ -62,8 +62,8 @@ export default function Dashboard({
             titulo: 'Equipos al día',
             valor: vencimientos.al_dia,
             icono: CheckCircle2,
-            color: 'border-emerald-600 bg-emerald-500 text-white',
-            colorBoton: 'bg-emerald-700 text-white hover:bg-emerald-800',
+            color: 'border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+            colorBoton: 'bg-emerald-600 text-white hover:bg-emerald-700',
             testId: 'tarjeta-al-dia',
             vencimiento: 'AL_DIA',
         },
@@ -71,8 +71,8 @@ export default function Dashboard({
             titulo: 'Equipos próximos a vencer',
             valor: vencimientos.proximos_a_vencer,
             icono: Clock,
-            color: 'border-amber-500 bg-amber-400 text-amber-950',
-            colorBoton: 'bg-amber-600 text-white hover:bg-amber-700',
+            color: 'border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+            colorBoton: 'bg-amber-500 text-white hover:bg-amber-600',
             testId: 'tarjeta-proximos-a-vencer',
             vencimiento: 'PROXIMO_A_VENCER',
         },
@@ -80,8 +80,8 @@ export default function Dashboard({
             titulo: 'Equipos vencidos',
             valor: vencimientos.vencidos,
             icono: AlertTriangle,
-            color: 'border-red-700 bg-red-500 text-white',
-            colorBoton: 'bg-red-800 text-white hover:bg-red-900',
+            color: 'border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200',
+            colorBoton: 'bg-red-600 text-white hover:bg-red-700',
             testId: 'tarjeta-vencidos',
             vencimiento: 'VENCIDO',
         },

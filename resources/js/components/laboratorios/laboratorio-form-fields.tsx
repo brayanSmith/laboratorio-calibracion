@@ -44,6 +44,28 @@ export default function LaboratorioFormFields({ laboratorio, errors }: Props) {
                 <InputError message={errors.direccion} />
             </div>
 
+            <div className="grid gap-2">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    defaultValue={laboratorio?.email ?? ''}
+                />
+                <InputError message={errors.email} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="telefono">Teléfono</Label>
+                <Input
+                    id="telefono"
+                    name="telefono"
+                    type="tel"
+                    defaultValue={laboratorio?.telefono ?? ''}
+                />
+                <InputError message={errors.telefono} />
+            </div>
+
             <div className="grid gap-1">
                 <div className="flex items-center gap-2">
                     <Checkbox

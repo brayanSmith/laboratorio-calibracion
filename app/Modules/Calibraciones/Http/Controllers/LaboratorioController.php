@@ -25,12 +25,14 @@ class LaboratorioController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->withCount('calibracion as calibraciones_count')
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'descripcion', 'direccion', 'principal'])
+            ->get(['id', 'nombre', 'descripcion', 'direccion', 'email', 'telefono', 'principal'])
             ->map(fn (Laboratorio $laboratorio) => [
                 'id' => $laboratorio->id,
                 'nombre' => $laboratorio->nombre,
                 'descripcion' => $laboratorio->descripcion,
                 'direccion' => $laboratorio->direccion,
+                'email' => $laboratorio->email,
+                'telefono' => $laboratorio->telefono,
                 'principal' => $laboratorio->principal,
                 'calibraciones_count' => (int) $laboratorio->getAttribute('calibraciones_count'),
             ]);

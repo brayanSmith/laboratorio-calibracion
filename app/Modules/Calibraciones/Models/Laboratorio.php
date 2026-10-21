@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\DB;
  * @property string $nombre
  * @property string|null $descripcion
  * @property string|null $direccion
+ * @property string|null $email
+ * @property string|null $telefono
  * @property bool $principal Solo uno por tenant: es el laboratorio de las calibraciones locales
  * @property int $tenant_id
  * @property Carbon|null $created_at
@@ -26,7 +28,7 @@ use Illuminate\Support\Facades\DB;
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['nombre', 'descripcion', 'direccion', 'principal', 'tenant_id'])]
+#[Fillable(['nombre', 'descripcion', 'direccion', 'email', 'telefono', 'principal', 'tenant_id'])]
 #[UseFactory(LaboratorioFactory::class)]
 class Laboratorio extends Model
 {

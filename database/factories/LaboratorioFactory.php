@@ -22,6 +22,8 @@ class LaboratorioFactory extends Factory
             'nombre' => fake()->unique()->words(3, true),
             'descripcion' => fake()->optional()->sentence(),
             'direccion' => fake()->optional()->address(),
+            'email' => fake()->optional()->safeEmail(),
+            'telefono' => fake()->optional()->phoneNumber(),
             'principal' => false,
             'tenant_id' => Tenant::factory(),
         ];

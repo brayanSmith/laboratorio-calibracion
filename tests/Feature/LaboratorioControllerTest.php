@@ -69,6 +69,8 @@ test('crea un laboratorio asignado al tenant del usuario', function () {
             'nombre' => 'Temperatura',
             'descripcion' => 'Termómetros y termocuplas',
             'direccion' => 'Piso 2',
+            'email' => 'temperatura@laboratorio.test',
+            'telefono' => '601 555 1234',
             'tenant_id' => Tenant::factory()->create()->id,
         ])
         ->assertRedirect(route('laboratorios.index'));
@@ -78,21 +80,39 @@ test('crea un laboratorio asignado al tenant del usuario', function () {
     expect($laboratorio->nombre)->toBe('Temperatura')
         ->and($laboratorio->descripcion)->toBe('Termómetros y termocuplas')
         ->and($laboratorio->direccion)->toBe('Piso 2')
+        ->and($laboratorio->email)->toBe('temperatura@laboratorio.test')
+        ->and($laboratorio->telefono)->toBe('601 555 1234')
         ->and($laboratorio->tenant_id)->toBe($this->tenant->id);
 });
 
-test('la descripcion y la direccion son opcionales', function () {
+test('la descripcion, la direccion, el correo y el telefono son opcionales', function () {
     $this->actingAs($this->admin)
         ->post(route('laboratorios.store'), ['nombre' => 'Masa'])
         ->assertSessionHasNoErrors();
 
-    expect(Laboratorio::firstOrFail())->descripcion->toBeNull()->direccion->toBeNull();
+    expect(Laboratorio::firstOrFail())
+        ->descripcion->toBeNull()
+        ->direccion->toBeNull()
+        ->email->toBeNull()
+        ->telefono->toBeNull();
 });
 
 test('rechaza un laboratorio sin nombre', function () {
     $this->actingAs($this->admin)
         ->post(route('laboratorios.store'), [])
         ->assertSessionHasErrors('nombre');
+});
+
+test('rechaza un correo electronico invalido al crear o actualizar un laboratorio', function () {
+    $this->actingAs($this->admin)
+        ->post(route('laboratorios.store'), ['nombre' => 'Masa', 'email' => 'no-es-un-correo'])
+        ->assertSessionHasErrors('email');
+
+    $laboratorio = Laboratorio::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->put(route('laboratorios.update', $laboratorio), ['nombre' => $laboratorio->nombre, 'email' => 'no-es-un-correo'])
+        ->assertSessionHasErrors('email');
 });
 
 test('el nombre es unico dentro del tenant pero puede repetirse en otro', function () {

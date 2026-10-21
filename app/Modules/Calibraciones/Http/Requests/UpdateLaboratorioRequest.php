@@ -48,6 +48,8 @@ class UpdateLaboratorioRequest extends FormRequest
             ],
             'descripcion' => ['nullable', 'string', 'max:255'],
             'direccion' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'email', 'max:255'],
+            'telefono' => ['nullable', 'string', 'max:255'],
             'principal' => ['boolean'],
         ];
     }
@@ -63,6 +65,8 @@ class UpdateLaboratorioRequest extends FormRequest
             'nombre' => 'nombre',
             'descripcion' => 'descripción',
             'direccion' => 'dirección',
+            'email' => 'correo electrónico',
+            'telefono' => 'teléfono',
             'principal' => 'principal',
         ];
     }

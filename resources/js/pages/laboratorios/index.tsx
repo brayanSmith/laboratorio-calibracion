@@ -53,6 +53,14 @@ export default function LaboratoriosIndex({ laboratorios }: Props) {
                     header: 'Dirección',
                     cell: (info) => info.getValue() ?? '—',
                 }),
+                columnHelper.accessor('email', {
+                    header: 'Correo',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('telefono', {
+                    header: 'Teléfono',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
                 columnHelper.accessor('principal', {
                     header: 'Principal',
                     cell: (info) =>
