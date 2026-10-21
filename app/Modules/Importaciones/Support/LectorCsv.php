@@ -2,6 +2,7 @@
 
 namespace App\Modules\Importaciones\Support;
 
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\LazyCollection;
 
 /**
@@ -28,6 +29,25 @@ class LectorCsv
         $muestra = (string) file_get_contents($ruta, length: self::BYTES_MUESTRA);
 
         return new self($ruta, self::detectarDelimitador($muestra), self::detectarCodificacion($muestra));
+    }
+
+    /**
+     * Copia a un archivo temporal el CSV guardado en el disco por defecto, para leerlo desde
+     * una ruta local. En Laravel Cloud ese disco es un bucket: la web y los workers de la
+     * cola no comparten disco, así que el archivo no está en el servidor que lo procesa.
+     * Quien la llame debe borrar la copia al terminar.
+     */
+    public static function copiaTemporal(string $archivo): string
+    {
+        $ruta = (string) tempnam(sys_get_temp_dir(), 'importacion-');
+        $origen = Storage::disk()->readStream($archivo);
+        $destino = fopen($ruta, 'wb');
+
+        stream_copy_to_stream($origen, $destino);
+        fclose($origen);
+        fclose($destino);
+
+        return $ruta;
     }
 
     public function delimitador(): string

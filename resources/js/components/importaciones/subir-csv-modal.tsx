@@ -3,7 +3,7 @@ import { Download } from 'lucide-react';
 import {
     encabezados,
     plantilla,
-} from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionEquipoController';
+} from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
 import HistorialImportaciones from '@/components/importaciones/historial-importaciones';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { ArchivoImportacion } from '@/types';
+import { usePermissions } from '@/hooks/use-permissions';
+import { tiposImportacion } from '@/lib/tipos-importacion';
+import type { ArchivoImportacion, TipoImportacion } from '@/types';
 
 type Props = {
     open: boolean;
@@ -28,14 +37,27 @@ type Props = {
 };
 
 /**
- * Primer paso de la importación: elegir el CSV y leer sus columnas. La pestaña Resultados
- * muestra las últimas importaciones con sus errores, por si el aviso se cerró antes de verlos.
+ * Primer paso de la importación: elegir qué se importa (solo los tipos que el usuario puede
+ * crear), el CSV, y leer sus columnas. La pestaña Resultados muestra las últimas
+ * importaciones con sus errores, por si el aviso se cerró antes de verlos.
  */
 export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
+    const { can } = usePermissions();
+    const tiposPermitidos = tiposImportacion.filter((tipo) =>
+        can(tipo.permiso),
+    );
     const { data, setData, post, processing, progress, errors, reset } =
-        useHttp<{ archivo: File | null }, ArchivoImportacion>({
+        useHttp<
+            { tipo: TipoImportacion; archivo: File | null },
+            ArchivoImportacion
+        >({
+            tipo: tiposPermitidos[0]?.value ?? 'equipos',
             archivo: null,
         });
+
+    const tipoElegido =
+        tiposImportacion.find((tipo) => tipo.value === data.tipo) ??
+        tiposImportacion[0];
 
     const cambiarApertura = (abierta: boolean) => {
         if (!abierta) {
@@ -48,7 +70,7 @@ export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
     const continuar = () => {
         void post(encabezados().url, {
             onSuccess: (archivo) => {
-                reset();
+                reset('archivo');
                 onLeido(archivo);
             },
         });
@@ -58,11 +80,12 @@ export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
         <Dialog open={open} onOpenChange={cambiarApertura}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Importar equipos</DialogTitle>
+                    <DialogTitle>Importar datos</DialogTitle>
                     <DialogDescription>
-                        Sube un archivo CSV con un equipo por fila y los
-                        encabezados en la primera fila. En el siguiente paso
-                        relacionarás cada columna con su campo.
+                        Elige qué quieres importar y sube un archivo CSV con un
+                        registro por fila y los encabezados en la primera fila.
+                        En el siguiente paso relacionarás cada columna con su
+                        campo.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -83,10 +106,42 @@ export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
                     </TabsList>
 
                     <TabsContent value="subir" className="space-y-4 pt-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="tipo-importacion">
+                                ¿Qué quieres importar?
+                            </Label>
+                            <Select
+                                value={data.tipo}
+                                onValueChange={(valor) =>
+                                    setData('tipo', valor as TipoImportacion)
+                                }
+                            >
+                                <SelectTrigger
+                                    id="tipo-importacion"
+                                    className="w-full"
+                                    data-test="importar-tipo"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {tiposPermitidos.map((tipo) => (
+                                        <SelectItem
+                                            key={tipo.value}
+                                            value={tipo.value}
+                                        >
+                                            {tipo.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.tipo} />
+                        </div>
+
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
                             <p className="text-sm text-muted-foreground">
-                                ¿No tienes un archivo? Descarga la plantilla con
-                                todas las columnas y una fila de ejemplo.
+                                ¿No tienes un archivo? Descarga la plantilla de{' '}
+                                {tipoElegido.label.toLowerCase()} con todas las
+                                columnas y una fila de ejemplo.
                             </p>
                             <Button
                                 asChild
@@ -94,7 +149,7 @@ export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
                                 size="sm"
                                 data-test="importar-descargar-plantilla"
                             >
-                                <a href={plantilla().url} download>
+                                <a href={plantilla(data.tipo).url} download>
                                     <Download />
                                     Descargar plantilla
                                 </a>

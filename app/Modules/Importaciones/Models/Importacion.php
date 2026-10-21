@@ -2,6 +2,7 @@
 
 namespace App\Modules\Importaciones\Models;
 
+use App\Enums\TipoImportacion;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +13,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property string $tipo
+ * @property TipoImportacion $tipo
  * @property string $archivo
  * @property string $nombre_original
  * @property string $delimitador
@@ -89,12 +90,14 @@ class Importacion extends Model
     /**
      * Summary sent to the frontend to show the progress and the result.
      *
-     * @return array{id: int, estado: string, nombre_original: string, creada_en: string|null, leida: bool, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
+     * @return array{id: int, tipo: string, tipo_etiqueta: string, estado: string, nombre_original: string, creada_en: string|null, leida: bool, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
      */
     public function resumen(): array
     {
         return [
             'id' => $this->id,
+            'tipo' => $this->tipo->value,
+            'tipo_etiqueta' => $this->tipo->etiqueta(),
             'estado' => $this->estado,
             'nombre_original' => $this->nombre_original,
             'creada_en' => $this->created_at?->toIso8601String(),
@@ -115,6 +118,7 @@ class Importacion extends Model
     protected function casts(): array
     {
         return [
+            'tipo' => TipoImportacion::class,
             'mapeo' => 'array',
             'errores' => 'array',
             'leida_en' => 'datetime',

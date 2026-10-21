@@ -1,3 +1,17 @@
+export type TipoImportacion =
+    | 'equipos'
+    | 'items'
+    | 'clientes'
+    | 'fabricantes'
+    | 'procedimientos-calibracion'
+    | 'novedades'
+    | 'laboratorios'
+    | 'areas'
+    | 'bahias'
+    | 'empresas-terceras'
+    | 'tipos-equipo'
+    | 'checklist-mantenimiento';
+
 export type EstadoImportacion =
     | 'PENDIENTE'
     | 'PROCESANDO'
@@ -14,6 +28,10 @@ export type CampoImportacion = {
 
 /** Respuesta al subir el CSV: sus columnas y lo necesario para relacionarlas. */
 export type ArchivoImportacion = {
+    tipo: TipoImportacion;
+    tipo_etiqueta: string;
+    /** Aviso para la modal de relacionar columnas (ej. qué catálogos se crean solos). */
+    nota: string | null;
     archivo: string;
     nombre_original: string;
     encabezados: string[];
@@ -24,6 +42,8 @@ export type ArchivoImportacion = {
 
 export type ResumenImportacion = {
     id: number;
+    tipo: TipoImportacion;
+    tipo_etiqueta: string;
     estado: EstadoImportacion;
     nombre_original: string;
     creada_en: string | null;

@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { opcionesAgendar } from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import AgendaModal from '@/components/agenda/agenda-modal';
 import BotonAtajo from '@/components/boton-atajo';
-import ImportarEquipos from '@/components/importaciones/importar-equipos';
+import ImportarDatos from '@/components/importaciones/importar-datos';
 import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
 import { usePermissions } from '@/hooks/use-permissions';
+import { tiposImportacion } from '@/lib/tipos-importacion';
 import type { IngresoOption } from '@/types';
 
 type Opciones = {
@@ -33,7 +34,7 @@ export function AgendarAcciones() {
     >();
 
     const puedeVerAgenda = can('agenda.ver');
-    const puedeImportar = can('equipos.crear');
+    const puedeImportar = tiposImportacion.some((tipo) => can(tipo.permiso));
     const contadores = porAgendar ?? null;
 
     if (!contadores && !puedeVerAgenda && !puedeImportar) {
@@ -60,7 +61,7 @@ export function AgendarAcciones() {
             className="ml-auto flex items-center gap-1"
             data-test="agendar-acciones"
         >
-            {puedeImportar ? <ImportarEquipos /> : null}
+            {puedeImportar ? <ImportarDatos /> : null}
             {puedeVerAgenda ? (
                 <BotonAtajo
                     icono={CalendarDays}

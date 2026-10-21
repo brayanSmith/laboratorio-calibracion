@@ -1,6 +1,6 @@
 import { useHttp } from '@inertiajs/react';
 import { toast } from 'sonner';
-import { store } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionEquipoController';
+import { store } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +18,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { ArchivoImportacion, ResumenImportacion } from '@/types';
+import type {
+    ArchivoImportacion,
+    ResumenImportacion,
+    TipoImportacion,
+} from '@/types';
 
 /** Valor del select para un campo que no se toma de ninguna columna. */
 const SIN_COLUMNA = 'ninguna';
@@ -32,13 +36,14 @@ type Props = {
 };
 
 type DatosImportacion = {
+    tipo: TipoImportacion;
     archivo: string;
     nombre_original: string;
     mapeo: Record<string, number | null>;
 };
 
 /**
- * Segundo paso: relacionar cada campo del equipo con una columna del CSV, porque los
+ * Segundo paso: relacionar cada campo del tipo elegido con una columna del CSV, porque los
  * encabezados pueden cambiar de nombre u orden entre archivos. Arranca con las columnas
  * cuyos encabezados se parecen al campo.
  */
@@ -53,6 +58,7 @@ export default function RelacionarColumnasModal({
         DatosImportacion,
         ResumenImportacion
     >({
+        tipo: archivo.tipo,
         archivo: archivo.archivo,
         nombre_original: archivo.nombre_original,
         mapeo: archivo.sugerencias,
@@ -74,13 +80,14 @@ export default function RelacionarColumnasModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>Relacionar columnas</DialogTitle>
+                    <DialogTitle>
+                        Relacionar columnas · {archivo.tipo_etiqueta}
+                    </DialogTitle>
                     <DialogDescription>
                         Elige qué columna de{' '}
                         <strong>{archivo.nombre_original}</strong> corresponde a
-                        cada campo. Los marcados con * son obligatorios. Los
-                        tipos de equipo, fabricantes, clientes, áreas, bahías,
-                        magnitudes y unidades que no existan se crearán.
+                        cada campo. Los marcados con * son obligatorios.
+                        {archivo.nota ? ` ${archivo.nota}` : null}
                     </DialogDescription>
                 </DialogHeader>
 

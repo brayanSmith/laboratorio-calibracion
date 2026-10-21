@@ -12,13 +12,14 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 import type { ResumenImportacion } from '@/types';
 
 type Props = {
     importacion: ResumenImportacion;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    /** Muestra el botón "Nueva importación" al terminar. */
+    /** Muestra el botón "Nueva importación", también mientras esta sigue en curso. */
     onNueva?: () => void;
     /** Botones extra del pie (ej. marcar como no leída en el detalle). */
     acciones?: ReactNode;
@@ -31,15 +32,14 @@ export function importacionEnCurso(importacion: ResumenImportacion): boolean {
     );
 }
 
-/** Avance de la importación mientras corre en segundo plano, y su resultado al terminar. */
-export default function AvanceImportacionModal({
+/** Barra con el porcentaje de filas ya procesadas de una importación en curso. */
+export function BarraAvanceImportacion({
     importacion,
-    open,
-    onOpenChange,
-    onNueva,
-    acciones,
-}: Props) {
-    const enCurso = importacionEnCurso(importacion);
+    className,
+}: {
+    importacion: ResumenImportacion;
+    className?: string;
+}) {
     const porcentaje =
         importacion.total_filas > 0
             ? Math.round(
@@ -49,11 +49,41 @@ export default function AvanceImportacionModal({
             : 0;
 
     return (
+        <div
+            className={cn(
+                'h-2 overflow-hidden rounded-full bg-muted',
+                className,
+            )}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={porcentaje}
+        >
+            <div
+                className="h-full bg-primary transition-[width] duration-500"
+                style={{ width: `${porcentaje}%` }}
+            />
+        </div>
+    );
+}
+
+/** Avance de la importación mientras corre en segundo plano, y su resultado al terminar. */
+export default function AvanceImportacionModal({
+    importacion,
+    open,
+    onOpenChange,
+    onNueva,
+    acciones,
+}: Props) {
+    const enCurso = importacionEnCurso(importacion);
+
+    return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>Importación de equipos</DialogTitle>
+                    <DialogTitle>Importación</DialogTitle>
                     <DialogDescription>
+                        {importacion.tipo_etiqueta} ·{' '}
                         {importacion.nombre_original}
                     </DialogDescription>
                 </DialogHeader>
@@ -66,22 +96,11 @@ export default function AvanceImportacionModal({
                                 ? 'En cola, comenzará en un momento...'
                                 : `Importando ${importacion.filas_procesadas} de ${importacion.total_filas} filas...`}
                         </p>
-                        <div
-                            className="h-2 overflow-hidden rounded-full bg-muted"
-                            role="progressbar"
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-valuenow={porcentaje}
-                        >
-                            <div
-                                className="h-full bg-primary transition-[width] duration-500"
-                                style={{ width: `${porcentaje}%` }}
-                            />
-                        </div>
+                        <BarraAvanceImportacion importacion={importacion} />
                         <p className="text-xs text-muted-foreground">
-                            Puedes cerrar esta ventana y seguir trabajando: la
-                            importación continúa en segundo plano y te
-                            avisaremos al terminar.
+                            Puedes cerrar esta ventana, seguir trabajando o
+                            iniciar otra importación: esta continúa en segundo
+                            plano y te avisaremos al terminar.
                         </p>
                     </div>
                 ) : (
@@ -95,7 +114,7 @@ export default function AvanceImportacionModal({
                     <DialogClose asChild>
                         <Button variant="secondary">Cerrar</Button>
                     </DialogClose>
-                    {!enCurso && onNueva ? (
+                    {onNueva ? (
                         <Button
                             type="button"
                             onClick={onNueva}

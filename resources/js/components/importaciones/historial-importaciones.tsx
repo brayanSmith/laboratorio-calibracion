@@ -1,9 +1,10 @@
 import { useHttp } from '@inertiajs/react';
 import { Eye, Mail, MailOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { historial } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionEquipoController';
+import { historial } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
 import CargandoContenido from '@/components/cargando-contenido';
 import AvanceImportacionModal, {
+    BarraAvanceImportacion,
     importacionEnCurso,
 } from '@/components/importaciones/avance-importacion-modal';
 import ResultadoImportacion from '@/components/importaciones/resultado-importacion';
@@ -13,6 +14,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { useMarcarImportacionLeida } from '@/hooks/use-marcar-importacion-leida';
 import { cn } from '@/lib/utils';
 import type { ResumenImportacion } from '@/types';
+
+/** Cada cuánto se refresca el avance de las importaciones que siguen cargando. */
+const INTERVALO_AVANCE_MS = 2000;
 
 function formatearFecha(fecha: string | null): string {
     return fecha
@@ -65,6 +69,7 @@ function TarjetaImportacion({
                         </span>
                     </p>
                     <p className="text-xs text-muted-foreground">
+                        {importacion.tipo_etiqueta} ·{' '}
                         {formatearFecha(importacion.creada_en)}
                     </p>
                 </div>
@@ -74,12 +79,15 @@ function TarjetaImportacion({
             </div>
 
             {enCurso ? (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Spinner />
-                    {importacion.estado === 'PENDIENTE'
-                        ? 'En cola...'
-                        : `Importando ${importacion.filas_procesadas} de ${importacion.total_filas} filas...`}
-                </p>
+                <div className="space-y-2" data-test="historial-en-curso">
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner />
+                        {importacion.estado === 'PENDIENTE'
+                            ? 'En cola...'
+                            : `Importando ${importacion.filas_procesadas} de ${importacion.total_filas} filas...`}
+                    </p>
+                    <BarraAvanceImportacion importacion={importacion} />
+                </div>
             ) : (
                 <ResultadoImportacion importacion={importacion} />
             )}
@@ -117,7 +125,8 @@ function TarjetaImportacion({
 }
 
 /**
- * Últimas importaciones del usuario, las sin leer primero, para revisarlas aunque el aviso
+ * Últimas importaciones del usuario: las que siguen cargando (con su avance, que se
+ * refresca solo) y luego las sin leer, para revisarlas aunque el aviso
  * de "terminada" ya se haya cerrado. "Ver detalle" abre las filas con error y la marca como
  * leída; también se puede marcar como leída o no leída para llevar el seguimiento.
  */
@@ -132,13 +141,33 @@ export default function HistorialImportaciones() {
         { importaciones: ResumenImportacion[] }
     >();
 
-    useEffect(() => {
+    const cargar = () =>
         get(historial().url)
             .then((respuesta) => setImportaciones(respuesta.importaciones))
-            .catch(() => setImportaciones([]));
+            .catch(() => setImportaciones((actuales) => actuales ?? []));
+
+    useEffect(() => {
+        void cargar();
         // Solo al abrir la pestaña.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const hayEnCurso = importaciones?.some(importacionEnCurso) ?? false;
+
+    // Mientras alguna siga cargando, se refresca su avance (y su resultado al terminar).
+    useEffect(() => {
+        if (!hayEnCurso) {
+            return;
+        }
+
+        const intervalo = window.setInterval(
+            () => void cargar(),
+            INTERVALO_AVANCE_MS,
+        );
+
+        return () => window.clearInterval(intervalo);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hayEnCurso]);
 
     const cambiarLeida = async (
         importacion: ResumenImportacion,
@@ -171,7 +200,7 @@ export default function HistorialImportaciones() {
     if (importaciones.length === 0) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
-                Todavía no has importado equipos.
+                Todavía no has importado datos.
             </p>
         );
     }

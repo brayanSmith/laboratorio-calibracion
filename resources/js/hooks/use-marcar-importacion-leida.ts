@@ -1,5 +1,5 @@
 import { router, useHttp } from '@inertiajs/react';
-import { marcarLeida } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionEquipoController';
+import { marcarLeida } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
 import type { ResumenImportacion } from '@/types';
 
 type MarcarLeida = (

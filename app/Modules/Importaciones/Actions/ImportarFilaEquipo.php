@@ -28,7 +28,7 @@ use Illuminate\Validation\ValidationException;
  * magnitud y unidad de medida) se crean en el tenant, y se recuerdan para no buscarlos de
  * nuevo en cada fila.
  */
-class ImportarFilaEquipo
+class ImportarFilaEquipo extends ImportadorFila
 {
     /** Días de aviso antes del vencimiento cuando el CSV no los trae (el mismo valor por defecto de la tabla). */
     private const DIAS_PLAZO_VENCIMIENTO = 30;
@@ -42,7 +42,20 @@ class ImportarFilaEquipo
     /** @var Collection<int, UnidadMedida>|null */
     private ?Collection $unidades = null;
 
-    public function __construct(private readonly int $tenantId) {}
+    public static function campos(): array
+    {
+        return CamposImportacionEquipo::todos();
+    }
+
+    public static function ejemplo(): array
+    {
+        return CamposImportacionEquipo::ejemplo();
+    }
+
+    public static function nota(): ?string
+    {
+        return 'Los tipos de equipo, fabricantes, clientes, áreas, bahías, magnitudes y unidades que no existan se crearán.';
+    }
 
     /**
      * @param  array<string, string|null>  $valores  campo del sistema => valor de la fila
@@ -51,7 +64,7 @@ class ImportarFilaEquipo
      */
     public function importar(array $valores): Equipo
     {
-        $datos = $this->validar($this->completarEspecificacion($this->normalizar($valores)));
+        $datos = $this->validarFila($this->completarEspecificacion($this->normalizar($valores)));
 
         if (Equipo::withTrashed()->whereRaw('LOWER(codigo) = ?', [Str::lower($datos['codigo'])])->exists()) {
             throw ValidationException::withMessages([
@@ -152,7 +165,7 @@ class ImportarFilaEquipo
     {
         $datos = [];
 
-        foreach (CamposImportacionEquipo::claves() as $clave) {
+        foreach (self::claves() as $clave) {
             $valor = trim((string) ($valores[$clave] ?? ''));
             $datos[$clave] = $valor === '' ? null : $valor;
         }
@@ -306,7 +319,7 @@ class ImportarFilaEquipo
      *
      * @throws ValidationException
      */
-    private function validar(array $datos): array
+    private function validarFila(array $datos): array
     {
         $texto = ['required', 'string', 'max:255'];
         $opcional = ['nullable', 'string', 'max:255'];
@@ -660,14 +673,5 @@ class ImportarFilaEquipo
             'nombre' => $nombre,
             'tenant_id' => $this->tenantId,
         ])->id;
-    }
-
-    /**
-     * Texto para comparar sin importar mayúsculas, tildes ni espacios repetidos:
-     * " ÁREA  Norte " y "area norte" => "area norte".
-     */
-    private static function clave(string $texto): string
-    {
-        return Str::lower(Str::ascii(trim((string) preg_replace('/\s+/u', ' ', $texto))));
     }
 }

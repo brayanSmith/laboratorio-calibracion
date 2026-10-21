@@ -2,19 +2,20 @@
 
 namespace App\Modules\Importaciones\Http\Requests;
 
-use App\Modules\Equipos\Models\Equipo;
+use App\Enums\TipoImportacion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class LeerEncabezadosImportacionRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determine if the user is authorized to make this request. Un tipo que no existe no se
+     * autoriza aquí: lo rechaza la validación.
      */
     public function authorize(): bool
     {
-        return Gate::allows('create', Equipo::class);
+        return $this->tipo()?->permitidoPara($this->user()) ?? true;
     }
 
     /**
@@ -25,6 +26,7 @@ class LeerEncabezadosImportacionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'tipo' => ['required', Rule::enum(TipoImportacion::class)],
             'archivo' => ['required', 'file', 'mimes:csv,txt', 'max:20480'],
         ];
     }
@@ -37,7 +39,16 @@ class LeerEncabezadosImportacionRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'tipo' => 'qué importar',
             'archivo' => 'archivo CSV',
         ];
+    }
+
+    /**
+     * Tipo de importación elegido, o null si no es válido.
+     */
+    public function tipo(): ?TipoImportacion
+    {
+        return TipoImportacion::tryFrom((string) $this->input('tipo'));
     }
 }

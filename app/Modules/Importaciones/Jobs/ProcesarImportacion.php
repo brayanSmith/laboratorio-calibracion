@@ -2,7 +2,6 @@
 
 namespace App\Modules\Importaciones\Jobs;
 
-use App\Modules\Importaciones\Actions\ImportarFilaEquipo;
 use App\Modules\Importaciones\Models\Importacion;
 use App\Modules\Importaciones\Support\LectorCsv;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,13 +12,13 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * Importa los equipos de un CSV en segundo plano, guardando el avance en la importación
+ * Importa los registros de un CSV en segundo plano, guardando el avance en la importación
  * para que el usuario lo vea mientras sigue trabajando.
  *
  * Procesa una tanda de filas y encola la siguiente: así cada job dura poco y no supera el
  * `retry_after` de la cola, que de lo contrario lo daría por perdido y lo volvería a tomar.
  */
-class ImportarEquipos implements ShouldQueue
+class ProcesarImportacion implements ShouldQueue
 {
     use Queueable;
 
@@ -41,12 +40,18 @@ class ImportarEquipos implements ShouldQueue
      */
     public function handle(): void
     {
+        $copia = LectorCsv::copiaTemporal($this->importacion->archivo);
+
+        try {
+            $this->procesarTanda(new LectorCsv($copia, $this->importacion->delimitador, $this->importacion->codificacion));
+        } finally {
+            @unlink($copia);
+        }
+    }
+
+    private function procesarTanda(LectorCsv $lector): void
+    {
         $importacion = $this->importacion;
-        $lector = new LectorCsv(
-            Storage::disk('local')->path($importacion->archivo),
-            $importacion->delimitador,
-            $importacion->codificacion,
-        );
 
         if ($this->desde === 0) {
             $importacion->update([
@@ -55,7 +60,7 @@ class ImportarEquipos implements ShouldQueue
             ]);
         }
 
-        $importador = new ImportarFilaEquipo($importacion->tenant_id);
+        $importador = new ($importacion->tipo->importador())($importacion->tenant_id);
         $errores = $importacion->errores ?? [];
         $procesadas = $creadas = $conError = 0;
 
@@ -69,7 +74,8 @@ class ImportarEquipos implements ShouldQueue
             } catch (Throwable $excepcion) {
                 $conError++;
                 $this->agregarError($errores, $numeroFila, 'No se pudo guardar la fila por un error inesperado.');
-                Log::error('Error al importar una fila de equipos', [
+                Log::error('Error al importar una fila', [
+                    'tipo' => $importacion->tipo->value,
                     'importacion_id' => $importacion->id,
                     'fila' => $numeroFila,
                     'error' => $excepcion->getMessage(),
@@ -95,7 +101,7 @@ class ImportarEquipos implements ShouldQueue
             return;
         }
 
-        Storage::disk('local')->delete($importacion->archivo);
+        Storage::disk()->delete($importacion->archivo);
     }
 
     /**
@@ -105,7 +111,7 @@ class ImportarEquipos implements ShouldQueue
     {
         $this->importacion->update(['estado' => Importacion::ESTADO_FALLIDA]);
 
-        Storage::disk('local')->delete($this->importacion->archivo);
+        Storage::disk()->delete($this->importacion->archivo);
     }
 
     /**

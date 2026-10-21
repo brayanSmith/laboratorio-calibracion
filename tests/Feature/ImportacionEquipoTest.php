@@ -13,7 +13,7 @@ use App\Modules\Catalogos\Models\TipoMagnitud;
 use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
-use App\Modules\Importaciones\Jobs\ImportarEquipos;
+use App\Modules\Importaciones\Jobs\ProcesarImportacion;
 use App\Modules\Importaciones\Models\Importacion;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -59,11 +59,13 @@ function csvEquipos(string ...$filas): UploadedFile
 function importarEquipos(User $usuario, UploadedFile $archivo, ?array $mapeo = null): Importacion
 {
     $subido = test()->actingAs($usuario)
-        ->post(route('importaciones.equipos.encabezados'), ['archivo' => $archivo])
+        ->post(route('importaciones.encabezados'), [
+            'tipo' => 'equipos', 'archivo' => $archivo])
         ->assertOk();
 
     test()->actingAs($usuario)
-        ->postJson(route('importaciones.equipos.store'), [
+        ->postJson(route('importaciones.store'), [
+            'tipo' => 'equipos',
             'archivo' => $subido->json('archivo'),
             'nombre_original' => $subido->json('nombre_original'),
             'mapeo' => $mapeo ?? mapeoEquiposCsv(),
@@ -75,7 +77,7 @@ function importarEquipos(User $usuario, UploadedFile $archivo, ?array $mapeo = n
 
 test('descarga la plantilla con todos los campos y una fila de ejemplo que se puede importar', function () {
     $respuesta = $this->actingAs($this->admin)
-        ->get(route('importaciones.equipos.plantilla'))
+        ->get(route('importaciones.plantilla', 'equipos'))
         ->assertOk()
         ->assertDownload('plantilla-importacion-equipos.csv');
 
@@ -84,7 +86,8 @@ test('descarga la plantilla con todos los campos y una fila de ejemplo que se pu
 
     // La plantilla misma, con sus encabezados sugeridos, debe importarse sin errores.
     $subido = $this->actingAs($this->admin)
-        ->post(route('importaciones.equipos.encabezados'), [
+        ->post(route('importaciones.encabezados'), [
+            'tipo' => 'equipos',
             'archivo' => new UploadedFile($ruta, 'plantilla.csv', 'text/csv', test: true),
         ])
         ->assertOk()
@@ -94,7 +97,8 @@ test('descarga la plantilla con todos los campos y una fila de ejemplo que se pu
     expect(array_filter($subido->json('sugerencias'), fn (?int $indice): bool => $indice === null))->toBe([]);
 
     $this->actingAs($this->admin)
-        ->postJson(route('importaciones.equipos.store'), [
+        ->postJson(route('importaciones.store'), [
+            'tipo' => 'equipos',
             'archivo' => $subido->json('archivo'),
             'nombre_original' => 'plantilla.csv',
             'mapeo' => $subido->json('sugerencias'),
@@ -108,12 +112,13 @@ test('descarga la plantilla con todos los campos y una fila de ejemplo que se pu
 test('un usuario sin permiso de crear equipos no puede descargar la plantilla', function () {
     $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
 
-    $this->actingAs($tecnico)->get(route('importaciones.equipos.plantilla'))->assertForbidden();
+    $this->actingAs($tecnico)->get(route('importaciones.plantilla', 'equipos'))->assertForbidden();
 });
 
 test('lee los encabezados del csv y sugiere la columna de cada campo', function () {
     $respuesta = $this->actingAs($this->admin)
-        ->post(route('importaciones.equipos.encabezados'), [
+        ->post(route('importaciones.encabezados'), [
+            'tipo' => 'equipos',
             'archivo' => csvEquipos('SN-1,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,'),
         ])
         ->assertOk()
@@ -131,7 +136,8 @@ test('lee un csv de excel separado por punto y coma y en windows-1252', function
     $contenido = mb_convert_encoding("Código;Área\nEQ-1;Planta Norte", 'Windows-1252', 'UTF-8');
 
     $this->actingAs($this->admin)
-        ->post(route('importaciones.equipos.encabezados'), [
+        ->post(route('importaciones.encabezados'), [
+            'tipo' => 'equipos',
             'archivo' => UploadedFile::fake()->createWithContent('equipos.csv', $contenido),
         ])
         ->assertOk()
@@ -141,7 +147,8 @@ test('lee un csv de excel separado por punto y coma y en windows-1252', function
 
 test('rechaza un csv sin filas de datos', function () {
     $this->actingAs($this->admin)
-        ->postJson(route('importaciones.equipos.encabezados'), ['archivo' => csvEquipos()])
+        ->postJson(route('importaciones.encabezados'), [
+            'tipo' => 'equipos', 'archivo' => csvEquipos()])
         ->assertJsonValidationErrors([
             'archivo' => 'El archivo no tiene filas para importar (la primera fila debe ser la de encabezados).',
         ]);
@@ -151,11 +158,13 @@ test('un usuario sin permiso de crear equipos no puede importar', function () {
     $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
 
     $this->actingAs($tecnico)
-        ->postJson(route('importaciones.equipos.encabezados'), ['archivo' => csvEquipos('SN-1,EQ-1')])
+        ->postJson(route('importaciones.encabezados'), [
+            'tipo' => 'equipos', 'archivo' => csvEquipos('SN-1,EQ-1')])
         ->assertForbidden();
 
     $this->actingAs($tecnico)
-        ->postJson(route('importaciones.equipos.store'), [
+        ->postJson(route('importaciones.store'), [
+            'tipo' => 'equipos',
             'archivo' => str_repeat('a', 40).'.csv',
             'nombre_original' => 'equipos.csv',
             'mapeo' => mapeoEquiposCsv(),
@@ -593,7 +602,7 @@ test('reporta las filas con error con su numero y sigue con las demas', function
 });
 
 test('importa un archivo grande en varias tandas y acumula el avance', function () {
-    $total = ImportarEquipos::FILAS_POR_TANDA * 2 + 5;
+    $total = ProcesarImportacion::FILAS_POR_TANDA * 2 + 5;
     $filas = array_map(
         fn (int $numero): string => "SN-{$numero},EQ-{$numero},Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,",
         range(1, $total),
@@ -617,7 +626,8 @@ test('exige relacionar los campos obligatorios', function () {
     unset($mapeo['codigo']);
 
     $this->actingAs($this->admin)
-        ->postJson(route('importaciones.equipos.store'), [
+        ->postJson(route('importaciones.store'), [
+            'tipo' => 'equipos',
             'archivo' => str_repeat('a', 40).'.csv',
             'nombre_original' => 'equipos.csv',
             'mapeo' => $mapeo,
@@ -633,7 +643,8 @@ test('rechaza un archivo que no fue subido o es de otro tenant', function () {
     Storage::disk('local')->put("importaciones/{$otroTenant->id}/{$archivo}", ENCABEZADOS_CSV."\nSN-1");
 
     $this->actingAs($this->admin)
-        ->postJson(route('importaciones.equipos.store'), [
+        ->postJson(route('importaciones.store'), [
+            'tipo' => 'equipos',
             'archivo' => $archivo,
             'nombre_original' => 'equipos.csv',
             'mapeo' => mapeoEquiposCsv(),
@@ -665,7 +676,7 @@ test('el historial muestra las ultimas importaciones del usuario con sus errores
     ));
 
     $this->actingAs($this->admin)
-        ->getJson(route('importaciones.equipos.historial'))
+        ->getJson(route('importaciones.historial'))
         ->assertOk()
         ->assertJsonCount(2, 'importaciones')
         ->assertJsonPath('importaciones.0.filas_creadas', 1)
@@ -731,19 +742,22 @@ test('comparte cuantas importaciones terminadas no ha leido el usuario', functio
         ->assertInertia(fn ($page) => $page->where('importacionesSinLeer', null));
 });
 
-test('el historial muestra primero las importaciones sin leer', function () {
+test('el historial muestra primero las importaciones en curso y luego las sin leer', function () {
+    $enCurso = crearImportacion($this->admin, ['estado' => Importacion::ESTADO_PROCESANDO, 'tipo' => 'clientes']);
     $sinLeer = crearImportacion($this->admin);
     $leida = crearImportacion($this->admin, ['leida_en' => now()]);
 
     $this->actingAs($this->admin)
-        ->getJson(route('importaciones.equipos.historial'))
-        ->assertJsonPath('importaciones.0.id', $sinLeer->id)
-        ->assertJsonPath('importaciones.0.leida', false)
-        ->assertJsonPath('importaciones.1.id', $leida->id)
-        ->assertJsonPath('importaciones.1.leida', true);
+        ->getJson(route('importaciones.historial'))
+        ->assertJsonPath('importaciones.0.id', $enCurso->id)
+        ->assertJsonPath('importaciones.0.estado', Importacion::ESTADO_PROCESANDO)
+        ->assertJsonPath('importaciones.1.id', $sinLeer->id)
+        ->assertJsonPath('importaciones.1.leida', false)
+        ->assertJsonPath('importaciones.2.id', $leida->id)
+        ->assertJsonPath('importaciones.2.leida', true);
 });
 
-test('devuelve la importacion en curso del usuario', function () {
+test('devuelve todas las importaciones en curso del usuario, de la mas antigua a la mas nueva', function () {
     $datos = [
         'tipo' => 'equipos', 'archivo' => 'x.csv', 'nombre_original' => 'equipos.csv', 'delimitador' => ',',
         'codificacion' => 'UTF-8', 'mapeo' => [], 'user_id' => $this->admin->id, 'tenant_id' => $this->tenant->id,
@@ -751,14 +765,19 @@ test('devuelve la importacion en curso del usuario', function () {
     Importacion::create([...$datos, 'estado' => Importacion::ESTADO_COMPLETADA]);
 
     $this->actingAs($this->admin)
-        ->getJson(route('importaciones.equipos.en-curso'))
+        ->getJson(route('importaciones.en-curso'))
         ->assertOk()
-        ->assertExactJson(['importacion' => null]);
+        ->assertExactJson(['importaciones' => []]);
 
-    $enCurso = Importacion::create([...$datos, 'estado' => Importacion::ESTADO_PROCESANDO]);
+    $procesando = Importacion::create([...$datos, 'estado' => Importacion::ESTADO_PROCESANDO]);
+    $pendiente = Importacion::create([...$datos, 'tipo' => 'clientes', 'estado' => Importacion::ESTADO_PENDIENTE]);
+    Importacion::create([...$datos, 'estado' => Importacion::ESTADO_PROCESANDO, 'user_id' => User::factory()->forTenant($this->tenant)->create()->id]);
 
     $this->actingAs($this->admin)
-        ->getJson(route('importaciones.equipos.en-curso'))
+        ->getJson(route('importaciones.en-curso'))
         ->assertOk()
-        ->assertJsonPath('importacion.id', $enCurso->id);
+        ->assertJsonCount(2, 'importaciones')
+        ->assertJsonPath('importaciones.0.id', $procesando->id)
+        ->assertJsonPath('importaciones.1.id', $pendiente->id)
+        ->assertJsonPath('importaciones.1.tipo', 'clientes');
 });

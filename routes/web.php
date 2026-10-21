@@ -31,7 +31,7 @@ use App\Modules\Equipos\Http\Controllers\DocumentoEquipoController;
 use App\Modules\Equipos\Http\Controllers\EquipoController;
 use App\Modules\Equipos\Http\Controllers\EquipoEspecificacionTecnicaController;
 use App\Modules\Equipos\Http\Controllers\EquipoProgramacionController;
-use App\Modules\Importaciones\Http\Controllers\ImportacionEquipoController;
+use App\Modules\Importaciones\Http\Controllers\ImportacionController;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
 use App\Modules\Inventario\Http\Controllers\EntradaItemController;
 use App\Modules\Inventario\Http\Controllers\ItemController;
@@ -75,13 +75,13 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::post('equipos/{equipo}/documentos', [DocumentoEquipoController::class, 'store'])->name('equipos.documentos.store');
     Route::delete('documentos/{documentoEquipo}', [DocumentoEquipoController::class, 'destroy'])->name('documentos.destroy');
 
-    Route::get('importaciones/equipos/plantilla', [ImportacionEquipoController::class, 'plantilla'])->name('importaciones.equipos.plantilla');
-    Route::post('importaciones/equipos/encabezados', [ImportacionEquipoController::class, 'encabezados'])->name('importaciones.equipos.encabezados');
-    Route::get('importaciones/equipos/historial', [ImportacionEquipoController::class, 'historial'])->name('importaciones.equipos.historial');
-    Route::get('importaciones/equipos/en-curso', [ImportacionEquipoController::class, 'enCurso'])->name('importaciones.equipos.en-curso');
-    Route::post('importaciones/equipos', [ImportacionEquipoController::class, 'store'])->name('importaciones.equipos.store');
-    Route::get('importaciones/{importacion}', [ImportacionEquipoController::class, 'show'])->name('importaciones.show');
-    Route::patch('importaciones/{importacion}/leida', [ImportacionEquipoController::class, 'marcarLeida'])->name('importaciones.leida');
+    Route::get('importaciones/plantilla/{tipo}', [ImportacionController::class, 'plantilla'])->name('importaciones.plantilla');
+    Route::post('importaciones/encabezados', [ImportacionController::class, 'encabezados'])->name('importaciones.encabezados');
+    Route::get('importaciones/historial', [ImportacionController::class, 'historial'])->name('importaciones.historial');
+    Route::get('importaciones/en-curso', [ImportacionController::class, 'enCurso'])->name('importaciones.en-curso');
+    Route::post('importaciones', [ImportacionController::class, 'store'])->name('importaciones.store');
+    Route::get('importaciones/{importacion}', [ImportacionController::class, 'show'])->name('importaciones.show');
+    Route::patch('importaciones/{importacion}/leida', [ImportacionController::class, 'marcarLeida'])->name('importaciones.leida');
 
     Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');

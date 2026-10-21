@@ -2,10 +2,9 @@
 
 namespace App\Modules\Importaciones\Support;
 
-use Illuminate\Support\Str;
-
 /**
- * Campos del equipo que se pueden relacionar con las columnas de un CSV de importación.
+ * Campos del equipo que se pueden relacionar con las columnas de un CSV de importación
+ * (ver ImportarFilaEquipo).
  */
 class CamposImportacionEquipo
 {
@@ -103,60 +102,6 @@ class CamposImportacionEquipo
             'precision' => '0.5',
             'resolucion' => '0.1',
         ];
-    }
-
-    /**
-     * Claves de todos los campos.
-     *
-     * @return list<string>
-     */
-    public static function claves(): array
-    {
-        return array_column(self::todos(), 'clave');
-    }
-
-    /**
-     * Claves de los campos que deben relacionarse con una columna del CSV.
-     *
-     * @return list<string>
-     */
-    public static function requeridos(): array
-    {
-        return array_column(array_filter(self::todos(), fn (array $campo): bool => $campo['requerido']), 'clave');
-    }
-
-    /**
-     * Sugiere, para cada campo, el índice de la columna del CSV cuyo encabezado se le parece
-     * (por clave o etiqueta), ignorando mayúsculas, tildes, espacios y signos.
-     *
-     * @param  list<string>  $encabezados
-     * @return array<string, int|null>
-     */
-    public static function sugerirMapeo(array $encabezados): array
-    {
-        $porNormalizado = [];
-
-        foreach ($encabezados as $indice => $encabezado) {
-            $porNormalizado[self::normalizar($encabezado)] ??= $indice;
-        }
-
-        $sugerencias = [];
-
-        foreach (self::todos() as $campo) {
-            $sugerencias[$campo['clave']] = $porNormalizado[self::normalizar($campo['clave'])]
-                ?? $porNormalizado[self::normalizar($campo['etiqueta'])]
-                ?? null;
-        }
-
-        return $sugerencias;
-    }
-
-    /**
-     * Normaliza un texto para comparar encabezados: "Número de Serie" => "numerodeserie".
-     */
-    public static function normalizar(string $texto): string
-    {
-        return preg_replace('/[^a-z0-9]/', '', Str::lower(Str::ascii($texto))) ?? '';
     }
 
     /**

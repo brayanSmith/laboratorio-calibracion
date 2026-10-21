@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\TenantPermission;
+use App\Enums\TipoImportacion;
 use App\Models\AjustePlataforma;
 use App\Models\Empresa;
 use App\Models\User;
@@ -158,18 +159,17 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Cuántas importaciones de equipos del usuario terminaron y aún no revisa, para el
-     * globito del botón Importar (null si no puede importar).
+     * Cuántas importaciones del usuario (de cualquier tipo) terminaron y aún no revisa, para
+     * el globito del botón Importar (null si no puede importar nada).
      */
     private function importacionesSinLeer(?User $user): ?int
     {
-        if (! $user?->tenant_id || ! $user->can(TenantPermission::EquiposCrear->value)) {
+        if (! $user?->tenant_id || ! TipoImportacion::algunoPermitidoPara($user)) {
             return null;
         }
 
         return Importacion::query()
             ->where('user_id', $user->id)
-            ->where('tipo', 'equipos')
             ->sinLeer()
             ->count();
     }
