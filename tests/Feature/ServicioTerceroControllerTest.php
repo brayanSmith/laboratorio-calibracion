@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Catalogos\Models\Bahia;
@@ -314,4 +315,21 @@ test('un usuario sin permiso de finalizar no puede guardar los codigos', functio
     $this->actingAs($sinRol)
         ->post(route('servicio-terceros.guardar-codigos', $servicio), ['codigo_compra' => 'OC-1'])
         ->assertForbidden();
+});
+
+test('sin el permiso de terceros del modulo no se ven ni se gestionan sus servicios de tercero', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::MantenimientosVer, TenantPermission::MantenimientosIniciar]);
+
+    $this->actingAs($usuario)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page->has('serviciosTerceros', 0));
+    $this->actingAs($usuario)->post(route('servicio-terceros.iniciar', $servicio))->assertForbidden();
+
+    $usuario->givePermissionTo(TenantPermission::MantenimientosTerceros->value);
+
+    $this->actingAs($usuario)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page->has('serviciosTerceros', 1));
+    $this->actingAs($usuario)->post(route('servicio-terceros.iniciar', $servicio))->assertRedirect();
 });

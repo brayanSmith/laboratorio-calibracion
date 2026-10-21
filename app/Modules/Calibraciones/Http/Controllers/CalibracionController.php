@@ -2,6 +2,7 @@
 
 namespace App\Modules\Calibraciones\Http\Controllers;
 
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Calibraciones\Actions\GenerarCertificadoCalibracion;
@@ -47,7 +48,9 @@ class CalibracionController extends Controller
 
         return Inertia::render('calibraciones/index', [
             'calibraciones' => $calibraciones,
-            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'CALIBRACION'),
+            'serviciosTerceros' => $request->user()->can(TenantPermission::CalibracionesTerceros->value)
+                ? ServicioTerceroController::listar($tenantId, 'CALIBRACION')
+                : [],
             'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'laboratorioPrincipal' => Laboratorio::principalDelTenant($tenantId)?->only(['id', 'nombre']),
             'procedimientos' => ProcedimientoCalibracion::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),

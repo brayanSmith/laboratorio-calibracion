@@ -2,6 +2,7 @@
 
 namespace App\Modules\Equipos\Http\Requests;
 
+use App\Enums\TenantPermission;
 use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Equipos\Models\Equipo;
 use Closure;
@@ -74,14 +75,15 @@ class UpdateEquipoRequest extends FormRequest
             'resolucion' => ['required_with:tipo_magnitud_id', 'string', 'max:50', $this->resolucionConSimbolo()],
 
             // Programaciones de servicio: opcionales, cualquier cantidad, más las que se marquen para eliminar.
-            'programaciones' => ['nullable', 'array'],
+            // Sin el permiso de ver las programaciones no se pueden agregar ni eliminar.
+            'programaciones' => ['nullable', 'array', Rule::prohibitedIf(! $this->user()->can(TenantPermission::EquiposProgramaciones->value))],
             'programaciones.*.tipo_servicio' => ['required', 'array', 'min:1'],
             'programaciones.*.tipo_servicio.*' => [Rule::in(['MANTENIMIENTO', 'CALIBRACION'])],
             'programaciones.*.intervalo_servicio' => ['nullable', 'numeric'],
             'programaciones.*.intervalo_unidad' => ['required_with:programaciones.*.intervalo_servicio', Rule::in(['DIAS', 'SEMANAS', 'MESES'])],
             'programaciones.*.fecha_ultimo_servicio' => ['nullable', 'date'],
             'programaciones.*.dias_plazo_vencimiento' => ['sometimes', 'required', 'integer', 'min:0', 'max:3650'],
-            'programaciones_eliminar' => ['nullable', 'array'],
+            'programaciones_eliminar' => ['nullable', 'array', Rule::prohibitedIf(! $this->user()->can(TenantPermission::EquiposProgramaciones->value))],
             'programaciones_eliminar.*' => [Rule::exists('equipo_programacions', 'id')->where('equipo_id', $equipo->id)->whereNot('estado_programacion', 'RECIBIDO')],
 
             // Documentos: opcionales, cualquier cantidad, más los que se marquen para eliminar.

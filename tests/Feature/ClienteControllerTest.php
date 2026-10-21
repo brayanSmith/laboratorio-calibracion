@@ -68,7 +68,7 @@ function registrarIngresoDeCliente(Cliente $cliente): Ingreso
 test('lista solo los clientes del tenant con la cantidad de equipos asociados', function () {
     $cliente = Cliente::factory()->for($this->tenant)->create([
         'nombre' => 'Acme',
-        'tipo_documento' => TipoDocumentoCliente::Nit,
+        'tipo_documento' => TipoDocumentoCliente::CodigoSap,
         'numero_documento' => '900123456',
     ]);
     crearEquipoDeCliente($cliente);
@@ -81,10 +81,10 @@ test('lista solo los clientes del tenant con la cantidad de equipos asociados', 
             ->component('clientes/index')
             ->has('clientes', 1)
             ->where('clientes.0.nombre', 'Acme')
-            ->where('clientes.0.tipo_documento', 'NIT')
+            ->where('clientes.0.tipo_documento', 'SAP')
             ->where('clientes.0.numero_documento', '900123456')
             ->where('clientes.0.equipos_count', 1)
-            ->where('tiposDocumento.0', ['value' => 'NIT', 'label' => 'NIT']));
+            ->where('tiposDocumento.0', ['value' => 'DNI', 'label' => 'DNI']));
 });
 
 test('un usuario sin permiso de ver clientes no puede acceder', function () {
@@ -111,7 +111,7 @@ test('un tecnico puede ver pero no crear clientes', function () {
  */
 function documentoClienteValido(string $numero = '900123456'): array
 {
-    return ['tipo_documento' => 'NIT', 'numero_documento' => $numero];
+    return ['tipo_documento' => 'SAP', 'numero_documento' => $numero];
 }
 
 test('un invitado es redirigido al inicio de sesion', function () {
@@ -134,7 +134,7 @@ test('crea un cliente asignado al tenant del usuario', function () {
 
     expect($cliente->nombre)->toBe('Acme SAC')
         ->and($cliente->email)->toBe('contacto@acme.test')
-        ->and($cliente->tipo_documento)->toBe(TipoDocumentoCliente::Nit)
+        ->and($cliente->tipo_documento)->toBe(TipoDocumentoCliente::CodigoSap)
         ->and($cliente->numero_documento)->toBe('900123456')
         ->and($cliente->tenant_id)->toBe($this->tenant->id);
 });
@@ -176,7 +176,7 @@ test('actualiza los datos del cliente', function () {
 
     $this->actingAs($this->admin)
         ->put(route('clientes.update', $cliente), [
-            'tipo_documento' => 'CC',
+            'tipo_documento' => 'DNI',
             'numero_documento' => '1020304050',
             'nombre' => 'Nuevo nombre',
             'email' => 'nuevo@example.com',
@@ -187,7 +187,7 @@ test('actualiza los datos del cliente', function () {
 
     expect($cliente->fresh())
         ->nombre->toBe('Nuevo nombre')
-        ->tipo_documento->toBe(TipoDocumentoCliente::Cc)
+        ->tipo_documento->toBe(TipoDocumentoCliente::Dni)
         ->numero_documento->toBe('1020304050')
         ->email->toBe('nuevo@example.com');
 });

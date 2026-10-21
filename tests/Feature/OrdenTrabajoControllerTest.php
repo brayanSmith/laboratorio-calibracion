@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -527,4 +528,24 @@ test('un usuario sin permiso no puede pedir las opciones para agendar', function
     $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
 
     $this->actingAs($sinRol)->getJson(route('orden-trabajos.opciones-agendar'))->assertForbidden();
+});
+
+test('sin el permiso de mantenimientos de terceros no se puede agendar un mantenimiento asignado a un tercero', function () {
+    $programacion = crearEquipoRecibido($this->bahia);
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id]);
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::AgendarMantenimiento]);
+
+    $this->actingAs($usuario)
+        ->post(route('orden-trabajos.store'), [
+            'equipos_listos' => [
+                $programacion->id => [
+                    'listo_para_mantenimiento' => '1',
+                    'mantenimiento_asignado_tercero' => '1',
+                    'empresa_tercero_id' => $empresa->id,
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('equipos_listos.0.mantenimiento_asignado_tercero');
+
+    expect(ServicioTercero::count())->toBe(0);
 });

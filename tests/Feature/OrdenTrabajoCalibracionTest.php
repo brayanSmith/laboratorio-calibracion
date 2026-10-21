@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -303,6 +304,26 @@ test('agenda calibracion asignada a un tercero y crea el servicio_tercero con la
         ->empresa_tercero_id->toBe($empresa->id);
 
     expect(Calibracion::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
+});
+
+test('sin el permiso de calibraciones de terceros no se puede agendar una calibracion asignada a un tercero', function () {
+    $orden = crearOrdenListaParaCalibracion($this->bahia);
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id]);
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::AgendarCalibracion]);
+
+    $this->actingAs($usuario)
+        ->post(route('orden-trabajos.store-calibracion'), [
+            'ordenes_listas' => [
+                $orden->id => [
+                    'listo_para_calibracion' => '1',
+                    'calibracion_asignado_tercero' => '1',
+                    'empresa_tercero_id' => $empresa->id,
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('ordenes_listas.0.calibracion_asignado_tercero');
+
+    expect(ServicioTercero::count())->toBe(0);
 });
 
 test('no agenda una orden que no se marco como lista', function () {

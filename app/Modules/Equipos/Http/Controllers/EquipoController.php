@@ -3,6 +3,7 @@
 namespace App\Modules\Equipos\Http\Controllers;
 
 use App\Concerns\ListaEquipos;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Calibraciones\Http\Controllers\CalibracionController;
 use App\Modules\Catalogos\Models\Novedad;
@@ -127,11 +128,12 @@ class EquipoController extends Controller
      * calibraciones, despachos y servicios de terceros de sus órdenes de trabajo, del más
      * reciente al más antiguo. Cada uno con los mismos datos que su listado, para abrir su
      * modal "Ver". Los servicios con técnico responsable se limitan a los que el usuario
-     * puede ver.
+     * puede ver, y los servicios de terceros a los tipos (mantenimiento o calibración) de
+     * terceros que tiene permitidos.
      */
     public function historial(Request $request, Equipo $equipo): JsonResponse
     {
-        Gate::authorize('view', $equipo);
+        Gate::authorize('verHistorial', $equipo);
 
         $user = $request->user();
 
@@ -140,7 +142,9 @@ class EquipoController extends Controller
             'mantenimientos' => MantenimientoController::listar($user, $equipo->id),
             'calibraciones' => CalibracionController::listar($user, $equipo->id),
             'despachos' => DespachoController::listar($user, $equipo->id),
-            'servicios_terceros' => ServicioTerceroController::listar($equipo->tenant_id, null, $equipo->id),
+            'servicios_terceros' => ServicioTerceroController::listar($equipo->tenant_id, null, $equipo->id)
+                ->filter(fn (array $servicio) => $user->can(TenantPermission::tercerosDe($servicio['tipo_servicio'])->value))
+                ->values(),
             'novedadesIngreso' => Novedad::query()->where('tenant_id', $equipo->tenant_id)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }

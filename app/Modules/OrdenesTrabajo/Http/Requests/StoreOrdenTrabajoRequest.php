@@ -67,7 +67,11 @@ class StoreOrdenTrabajoRequest extends FormRequest
                 Rule::exists('equipo_programacions', 'id')->where('tenant_id', $tenantId)->where('ingresado', true),
             ],
             'equipos_listos.*.listo_para_mantenimiento' => ['boolean'],
-            'equipos_listos.*.mantenimiento_asignado_tercero' => ['boolean'],
+            // Solo quien tiene el permiso de mantenimientos de terceros puede asignarlos a un tercero.
+            'equipos_listos.*.mantenimiento_asignado_tercero' => [
+                'boolean',
+                Rule::when(! $this->user()->can(TenantPermission::MantenimientosTerceros->value), 'declined'),
+            ],
 
             // Si queda listo y NO se asigna a un tercero, lo hace un técnico propio: exige
             // el técnico. La novedad (catálogo de Novedad, categoría MANTENIMIENTO) es

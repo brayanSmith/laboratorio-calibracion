@@ -19,6 +19,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { usePermissions } from '@/hooks/use-permissions';
 import type { IngresoOption, OrdenListaParaCalibracionItem } from '@/types';
 
 type Props = {
@@ -145,6 +146,7 @@ function OrdenListaItem({
         useState(false);
     const [tecnicoId, setTecnicoId] = useState('');
     const [empresaTerceroId, setEmpresaTerceroId] = useState('');
+    const canTerceros = usePermissions().can('calibraciones.terceros');
 
     const prefijo = `ordenes_listas.${item.id}`;
 
@@ -185,23 +187,25 @@ function OrdenListaItem({
                 </Label>
             </div>
 
-            <div className="flex items-center gap-2">
-                <Checkbox
-                    id={`calibracion-asignada-tercero-${item.id}`}
-                    checked={calibracionAsignadaTercero}
-                    disabled={!listoParaCalibracion}
-                    onCheckedChange={(checked) =>
-                        setCalibracionAsignadaTercero(checked === true)
-                    }
-                    data-test="calibracion-asignada-tercero-checkbox"
-                />
-                <Label
-                    htmlFor={`calibracion-asignada-tercero-${item.id}`}
-                    className="text-sm font-normal"
-                >
-                    Calibración asignada a tercero
-                </Label>
-            </div>
+            {canTerceros ? (
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id={`calibracion-asignada-tercero-${item.id}`}
+                        checked={calibracionAsignadaTercero}
+                        disabled={!listoParaCalibracion}
+                        onCheckedChange={(checked) =>
+                            setCalibracionAsignadaTercero(checked === true)
+                        }
+                        data-test="calibracion-asignada-tercero-checkbox"
+                    />
+                    <Label
+                        htmlFor={`calibracion-asignada-tercero-${item.id}`}
+                        className="text-sm font-normal"
+                    >
+                        Calibración asignada a tercero
+                    </Label>
+                </div>
+            ) : null}
 
             <InputError message={errors[`${prefijo}.id`]} />
 

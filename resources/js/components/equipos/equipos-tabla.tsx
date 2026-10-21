@@ -167,7 +167,7 @@ export default function EquiposTabla({
                                     </Button>
                                 </ViewEquipoModal>
                             ) : null}
-                            {can('equipos.ver') ? (
+                            {can('equipos.historial') ? (
                                 <Button
                                     variant="ghost"
                                     size="sm"

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
 import {
     faseLabel,
@@ -77,6 +78,7 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
     const ficha = equipo.ficha_tecnica;
     const documentos = equipo.equipo_documentos ?? [];
     const programaciones = equipo.equipo_programaciones ?? [];
+    const canVerProgramaciones = usePermissions().can('equipos.programaciones');
     const unidad = options.unidadesMedida.find(
         (opcion) => opcion.id === especificacion?.unidad_medida_id,
     );
@@ -97,11 +99,20 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                     </DialogHeader>
 
                     <Tabs defaultValue="general">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList
+                            className={cn(
+                                'grid w-full',
+                                canVerProgramaciones
+                                    ? 'grid-cols-2'
+                                    : 'grid-cols-1',
+                            )}
+                        >
                             <TabsTrigger value="general">General</TabsTrigger>
-                            <TabsTrigger value="programaciones">
-                                Programaciones ({programaciones.length})
-                            </TabsTrigger>
+                            {canVerProgramaciones ? (
+                                <TabsTrigger value="programaciones">
+                                    Programaciones ({programaciones.length})
+                                </TabsTrigger>
+                            ) : null}
                         </TabsList>
 
                         <TabsContent value="general" className="space-y-6 pt-2">

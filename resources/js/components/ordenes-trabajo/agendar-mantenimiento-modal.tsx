@@ -20,6 +20,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { usePermissions } from '@/hooks/use-permissions';
 import type { EquipoListoParaMantenimientoItem, IngresoOption } from '@/types';
 
 type Props = {
@@ -146,6 +147,7 @@ function EquipoListoItem({
         useState(false);
     const [tecnicoId, setTecnicoId] = useState('');
     const [empresaTerceroId, setEmpresaTerceroId] = useState('');
+    const canTerceros = usePermissions().can('mantenimientos.terceros');
 
     const prefijo = `equipos_listos.${item.id}`;
 
@@ -196,23 +198,25 @@ function EquipoListoItem({
                 </Label>
             </div>
 
-            <div className="flex items-center gap-2">
-                <Checkbox
-                    id={`mantenimiento-asignado-tercero-${item.id}`}
-                    checked={mantenimientoAsignadoTercero}
-                    disabled={!listoParaMantenimiento}
-                    onCheckedChange={(checked) =>
-                        setMantenimientoAsignadoTercero(checked === true)
-                    }
-                    data-test="mantenimiento-asignado-tercero-checkbox"
-                />
-                <Label
-                    htmlFor={`mantenimiento-asignado-tercero-${item.id}`}
-                    className="text-sm font-normal"
-                >
-                    Mantenimiento asignado a tercero
-                </Label>
-            </div>
+            {canTerceros ? (
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id={`mantenimiento-asignado-tercero-${item.id}`}
+                        checked={mantenimientoAsignadoTercero}
+                        disabled={!listoParaMantenimiento}
+                        onCheckedChange={(checked) =>
+                            setMantenimientoAsignadoTercero(checked === true)
+                        }
+                        data-test="mantenimiento-asignado-tercero-checkbox"
+                    />
+                    <Label
+                        htmlFor={`mantenimiento-asignado-tercero-${item.id}`}
+                        className="text-sm font-normal"
+                    >
+                        Mantenimiento asignado a tercero
+                    </Label>
+                </div>
+            ) : null}
 
             <InputError message={errors[`${prefijo}.id`]} />
 

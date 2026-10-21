@@ -15,7 +15,7 @@ class StoreTipoEquipoCheckListRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('tipoEquipo'));
+        return Gate::allows('gestionarChecklist', $this->route('tipoEquipo'));
     }
 
     /**

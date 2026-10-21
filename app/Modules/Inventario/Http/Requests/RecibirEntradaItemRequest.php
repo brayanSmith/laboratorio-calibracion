@@ -17,7 +17,7 @@ class RecibirEntradaItemRequest extends FormRequest
         /** @var EntradaItem $entradaItem */
         $entradaItem = $this->route('entradaItem');
 
-        return Gate::allows('update', $entradaItem->item);
+        return Gate::allows('recibirEntradas', $entradaItem->item);
     }
 
     /**

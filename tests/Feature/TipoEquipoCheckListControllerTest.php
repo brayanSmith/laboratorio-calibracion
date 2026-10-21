@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -178,4 +179,24 @@ test('un invitado es redirigido al inicio de sesion al gestionar el checklist', 
     $item = crearItemChecklist(crearTipoEquipo($this->tenant));
 
     $this->put(route('checklist.update', $item), ['nombre' => 'Cambiado'])->assertRedirect(route('login'));
+});
+
+test('gestionar el checklist depende de su propio permiso, no del de editar tipos de equipo', function () {
+    $tipoEquipo = crearTipoEquipo($this->tenant);
+    $item = crearItemChecklist($tipoEquipo);
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::TiposEquipoVer, TenantPermission::TiposEquipoEditar]);
+
+    $this->actingAs($usuario)
+        ->post(route('tipos-equipo.checklist.store', $tipoEquipo), ['nombres' => ['Nuevo']])
+        ->assertForbidden();
+    $this->actingAs($usuario)->delete(route('checklist.destroy', $item))->assertForbidden();
+
+    $usuario->givePermissionTo(TenantPermission::TiposEquipoChecklist->value);
+
+    $this->actingAs($usuario)
+        ->post(route('tipos-equipo.checklist.store', $tipoEquipo), ['nombres' => ['Nuevo']])
+        ->assertRedirect();
+    $this->actingAs($usuario)->delete(route('checklist.destroy', $item))->assertRedirect();
+
+    expect($tipoEquipo->tipoEquipoCheckList()->pluck('nombre')->all())->toBe(['Nuevo']);
 });

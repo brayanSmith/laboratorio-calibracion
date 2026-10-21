@@ -2,6 +2,7 @@
 
 namespace App\Modules\Mantenimientos\Http\Controllers;
 
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Catalogos\Models\Novedad;
@@ -48,7 +49,9 @@ class MantenimientoController extends Controller
 
         return Inertia::render('mantenimientos/index', [
             'mantenimientos' => $mantenimientos,
-            'serviciosTerceros' => ServicioTerceroController::listar($tenantId, 'MANTENIMIENTO'),
+            'serviciosTerceros' => $request->user()->can(TenantPermission::MantenimientosTerceros->value)
+                ? ServicioTerceroController::listar($tenantId, 'MANTENIMIENTO')
+                : [],
             'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'novedadesMantenimiento' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'MANTENIMIENTO')->orderBy('nombre')->get(['id', 'nombre']),

@@ -13,7 +13,7 @@ class StoreEntradaItemRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('item'));
+        return Gate::allows('registrarEntrada', $this->route('item'));
     }
 
     /**

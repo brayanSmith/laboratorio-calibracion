@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -100,4 +101,36 @@ test('no permite ver el historial de un equipo de otro tenant', function () {
     $this->actingAs($this->admin)
         ->getJson(route('equipos.historial', $ajeno->equipo_id))
         ->assertForbidden();
+});
+
+test('ver el historial depende de su propio permiso, no del de ver equipos', function () {
+    $programacion = crearEquipoRecibido($this->bahia, 'EQ-HISTORIAL');
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::EquiposVer]);
+
+    $this->actingAs($usuario)
+        ->getJson(route('equipos.historial', $programacion->equipo_id))
+        ->assertForbidden();
+
+    $usuario->givePermissionTo(TenantPermission::EquiposHistorial->value);
+
+    $this->actingAs($usuario)
+        ->getJson(route('equipos.historial', $programacion->equipo_id))
+        ->assertOk();
+});
+
+test('el historial solo incluye los servicios de terceros del tipo que el usuario tiene permitido', function () {
+    $programacion = crearEquipoRecibido($this->bahia, 'EQ-HISTORIAL');
+    crearServiciosDelEquipo($programacion);
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::EquiposHistorial, TenantPermission::CalibracionesTerceros]);
+
+    $this->actingAs($usuario)
+        ->getJson(route('equipos.historial', $programacion->equipo_id))
+        ->assertOk()
+        ->assertJsonCount(0, 'servicios_terceros');
+
+    $usuario->givePermissionTo(TenantPermission::MantenimientosTerceros->value);
+
+    $this->actingAs($usuario)
+        ->getJson(route('equipos.historial', $programacion->equipo_id))
+        ->assertJsonCount(1, 'servicios_terceros');
 });

@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\TenantPermission;
-use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Calibraciones\Models\Laboratorio;
@@ -18,7 +17,6 @@ use App\Modules\Inventario\Models\Item;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -171,18 +169,16 @@ test('importa tipos de equipo con mantenimiento A por defecto y empresas tercera
         ->and($empresas->errores[0]['mensaje'])->toBe('Ya existe una empresa tercera con el NIT 900555666.');
 });
 
-test('importar el checklist requiere poder editar tipos de equipo', function () {
-    $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
-    app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
-    $usuario->syncRoles([]);
-    $usuario->givePermissionTo(TenantPermission::TiposEquipoCrear->value);
+test('cada tipo se importa con su propio permiso de importacion, no con el de crear', function () {
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::TiposEquipoCrear, TenantPermission::TiposEquipoChecklist]);
 
-    $this->actingAs($usuario)->get(route('importaciones.plantilla', 'tipos-equipo'))->assertOk();
+    $this->actingAs($usuario)->get(route('importaciones.plantilla', 'tipos-equipo'))->assertForbidden();
     $this->actingAs($usuario)->get(route('importaciones.plantilla', 'checklist-mantenimiento'))->assertForbidden();
 
-    $usuario->givePermissionTo(TenantPermission::TiposEquipoEditar->value);
+    $usuario->givePermissionTo(TenantPermission::ImportarChecklistMantenimiento->value);
 
     $this->actingAs($usuario)->get(route('importaciones.plantilla', 'checklist-mantenimiento'))->assertOk();
+    $this->actingAs($usuario)->get(route('importaciones.plantilla', 'tipos-equipo'))->assertForbidden();
 });
 
 test('importa ítems con el precio en formato de excel y omite los códigos repetidos', function () {
@@ -203,23 +199,23 @@ test('importa ítems con el precio en formato de excel y omite los códigos repe
         ->and((float) Item::where('codigo', 'REP-2')->sole()->precio_unitario)->toBe(1250.5);
 });
 
-test('importa clientes aceptando el nombre del tipo de documento y NIT por defecto', function () {
+test('importa clientes aceptando el nombre del tipo de documento y codigo SAP por defecto', function () {
     $importacion = importarCsv($this->admin, 'clientes', [
         'Nombre,Tipo de documento,Número de documento,Correo electrónico',
-        'Ana Pérez,Cédula de ciudadanía,1010,ana@correo.test',
+        'Ana Pérez,Carnet de extranjería,1010,ana@correo.test',
         'ACME,,900111222,acme@correo.test',
-        'Repetido,NIT,900111222,otro@correo.test',
-        'Sin correo válido,CC,2020,no-es-correo',
+        'Repetido,SAP,900111222,otro@correo.test',
+        'Sin correo válido,DNI,2020,no-es-correo',
         'Documento raro,RUT,3030,raro@correo.test',
     ]);
 
     expect($importacion->filas_creadas)->toBe(2)
-        ->and(Cliente::where('numero_documento', '1010')->sole()->tipo_documento->value)->toBe('CC')
-        ->and(Cliente::where('numero_documento', '900111222')->sole()->tipo_documento->value)->toBe('NIT')
+        ->and(Cliente::where('numero_documento', '1010')->sole()->tipo_documento->value)->toBe('CE')
+        ->and(Cliente::where('numero_documento', '900111222')->sole()->tipo_documento->value)->toBe('SAP')
         ->and(array_column($importacion->errores, 'mensaje'))->toBe([
             'Ya existe un cliente con el documento 900111222.',
             'El campo Correo electrónico no es un correo válido.',
-            'El tipo de documento debe ser NIT, CC, CE o PASAPORTE.',
+            'El tipo de documento debe ser DNI, SAP o CE.',
         ]);
 });
 
@@ -257,11 +253,8 @@ test('omite los nombres que ya existen en el tenant sin importar mayusculas ni t
         ->and(array_column($importacion->errores, 'fila'))->toBe([2, 4]);
 });
 
-test('solo se puede importar lo que el usuario puede crear', function () {
-    $usuario = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
-    app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
-    $usuario->syncRoles([]);
-    $usuario->givePermissionTo(TenantPermission::FabricantesCrear->value);
+test('solo se puede importar lo que el usuario tiene permitido importar', function () {
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::ImportarFabricantes]);
 
     $this->actingAs($usuario)->get(route('importaciones.plantilla', 'fabricantes'))->assertOk();
     $this->actingAs($usuario)->get(route('importaciones.plantilla', 'clientes'))->assertForbidden();

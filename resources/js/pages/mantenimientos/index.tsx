@@ -63,6 +63,7 @@ export default function MantenimientosIndex({
     const canDelete = can('mantenimientos.eliminar');
     const canIniciar = can('mantenimientos.iniciar');
     const canPdf = can('mantenimientos.pdf');
+    const canTerceros = can('mantenimientos.terceros');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         mantenimientos.find(
@@ -285,20 +286,22 @@ export default function MantenimientosIndex({
                                 className="bg-blue-500 text-white"
                             />
                         </TabsTrigger>
-                        <TabsTrigger value="tercero">
-                            Tercero
-                            <TabCountBadge
-                                value={
-                                    serviciosTerceros.filter(
-                                        (servicio) =>
-                                            servicio.estado_final_equipo ===
-                                            null,
-                                    ).length
-                                }
-                                label="Pendientes en tercero"
-                                className="bg-amber-500 text-white"
-                            />
-                        </TabsTrigger>
+                        {canTerceros ? (
+                            <TabsTrigger value="tercero">
+                                Tercero
+                                <TabCountBadge
+                                    value={
+                                        serviciosTerceros.filter(
+                                            (servicio) =>
+                                                servicio.estado_final_equipo ===
+                                                null,
+                                        ).length
+                                    }
+                                    label="Pendientes en tercero"
+                                    className="bg-amber-500 text-white"
+                                />
+                            </TabsTrigger>
+                        ) : null}
                     </TabsList>
 
                     <TabsContent value="local">
@@ -311,18 +314,20 @@ export default function MantenimientosIndex({
                         />
                     </TabsContent>
 
-                    <TabsContent value="tercero">
-                        <ServicioTercerosTab
-                            servicios={serviciosTerceros}
-                            empresasTerceras={empresasTerceras}
-                            canEdit={canEdit}
-                            canDelete={canDelete}
-                            canIniciar={canIniciar}
-                            canFinalizar={can('mantenimientos.finalizar')}
-                            searchPlaceholder="Buscar servicio de tercero..."
-                            emptyMessage="Aún no hay mantenimientos asignados a terceros."
-                        />
-                    </TabsContent>
+                    {canTerceros ? (
+                        <TabsContent value="tercero">
+                            <ServicioTercerosTab
+                                servicios={serviciosTerceros}
+                                empresasTerceras={empresasTerceras}
+                                canEdit={canEdit}
+                                canDelete={canDelete}
+                                canIniciar={canIniciar}
+                                canFinalizar={can('mantenimientos.finalizar')}
+                                searchPlaceholder="Buscar servicio de tercero..."
+                                emptyMessage="Aún no hay mantenimientos asignados a terceros."
+                            />
+                        </TabsContent>
+                    ) : null}
                 </Tabs>
             </div>
 

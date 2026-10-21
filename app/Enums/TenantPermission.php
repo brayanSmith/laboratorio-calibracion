@@ -31,6 +31,8 @@ enum TenantPermission: string
     case EquiposCrear = 'equipos.crear';
     case EquiposEditar = 'equipos.editar';
     case EquiposEliminar = 'equipos.eliminar';
+    case EquiposHistorial = 'equipos.historial';
+    case EquiposProgramaciones = 'equipos.programaciones';
 
     case IngresosVer = 'ingresos.ver';
     case IngresosCrear = 'ingresos.crear';
@@ -46,6 +48,7 @@ enum TenantPermission: string
     case MantenimientosIniciar = 'mantenimientos.iniciar';
     case MantenimientosFinalizar = 'mantenimientos.finalizar';
     case MantenimientosPdf = 'mantenimientos.pdf';
+    case MantenimientosTerceros = 'mantenimientos.terceros';
 
     // Sin "crear": una calibración solo se origina desde "Agendar Calibraciones" (ver
     // OrdenTrabajoController), no tiene un formulario de creación propio.
@@ -56,6 +59,7 @@ enum TenantPermission: string
     case CalibracionesIniciar = 'calibraciones.iniciar';
     case CalibracionesFinalizar = 'calibraciones.finalizar';
     case CalibracionesPdf = 'calibraciones.pdf';
+    case CalibracionesTerceros = 'calibraciones.terceros';
 
     // Sin "crear": un despacho solo se origina al finalizar una calibración (ver
     // CalibracionController::finalizar()), no tiene un formulario de creación propio.
@@ -68,6 +72,7 @@ enum TenantPermission: string
     case TiposEquipoCrear = 'tipos-equipo.crear';
     case TiposEquipoEditar = 'tipos-equipo.editar';
     case TiposEquipoEliminar = 'tipos-equipo.eliminar';
+    case TiposEquipoChecklist = 'tipos-equipo.checklist';
 
     case AreasVer = 'areas.ver';
     case AreasCrear = 'areas.crear';
@@ -88,6 +93,9 @@ enum TenantPermission: string
     case ItemsCrear = 'items.crear';
     case ItemsEditar = 'items.editar';
     case ItemsEliminar = 'items.eliminar';
+    case ItemsRegistrarEntrada = 'items.registrar-entrada';
+    case ItemsVerEntradas = 'items.ver-entradas';
+    case ItemsRecibirEntradas = 'items.recibir-entradas';
 
     case EmpresasTercerasVer = 'empresas-terceras.ver';
     case EmpresasTercerasCrear = 'empresas-terceras.crear';
@@ -129,6 +137,21 @@ enum TenantPermission: string
     case EmpresaEditar = 'empresa.editar';
     case EmpresaEliminar = 'empresa.eliminar';
 
+    // Qué se puede importar desde un CSV (ver TipoImportacion): uno por tipo, con el valor
+    // "importaciones.{tipo}".
+    case ImportarEquipos = 'importaciones.equipos';
+    case ImportarItems = 'importaciones.items';
+    case ImportarClientes = 'importaciones.clientes';
+    case ImportarFabricantes = 'importaciones.fabricantes';
+    case ImportarProcedimientosCalibracion = 'importaciones.procedimientos-calibracion';
+    case ImportarNovedades = 'importaciones.novedades';
+    case ImportarLaboratorios = 'importaciones.laboratorios';
+    case ImportarAreas = 'importaciones.areas';
+    case ImportarBahias = 'importaciones.bahias';
+    case ImportarEmpresasTerceras = 'importaciones.empresas-terceras';
+    case ImportarTiposEquipo = 'importaciones.tipos-equipo';
+    case ImportarChecklistMantenimiento = 'importaciones.checklist-mantenimiento';
+
     case RolesGestionar = 'roles.gestionar';
     case UsuariosGestionar = 'usuarios.gestionar';
 
@@ -157,7 +180,9 @@ enum TenantPermission: string
             self::EquiposVer,
             self::EquiposCrear,
             self::EquiposEditar,
-            self::EquiposEliminar => 'Equipos',
+            self::EquiposEliminar,
+            self::EquiposHistorial,
+            self::EquiposProgramaciones => 'Equipos',
             self::IngresosVer,
             self::IngresosCrear,
             self::IngresosEditar,
@@ -168,14 +193,16 @@ enum TenantPermission: string
             self::MantenimientosVerTodos,
             self::MantenimientosIniciar,
             self::MantenimientosFinalizar,
-            self::MantenimientosPdf => 'Mantenimientos',
+            self::MantenimientosPdf,
+            self::MantenimientosTerceros => 'Mantenimientos',
             self::CalibracionesVer,
             self::CalibracionesEditar,
             self::CalibracionesEliminar,
             self::CalibracionesVerTodos,
             self::CalibracionesIniciar,
             self::CalibracionesFinalizar,
-            self::CalibracionesPdf => 'Calibraciones',
+            self::CalibracionesPdf,
+            self::CalibracionesTerceros => 'Calibraciones',
             self::DespachosVer,
             self::DespachosEditar,
             self::DespachosEliminar,
@@ -183,7 +210,8 @@ enum TenantPermission: string
             self::TiposEquipoVer,
             self::TiposEquipoCrear,
             self::TiposEquipoEditar,
-            self::TiposEquipoEliminar => 'Tipos de equipo',
+            self::TiposEquipoEliminar,
+            self::TiposEquipoChecklist => 'Tipos de equipo',
             self::AreasVer,
             self::AreasCrear,
             self::AreasEditar,
@@ -199,7 +227,10 @@ enum TenantPermission: string
             self::ItemsVer,
             self::ItemsCrear,
             self::ItemsEditar,
-            self::ItemsEliminar => 'Ítems',
+            self::ItemsEliminar,
+            self::ItemsRegistrarEntrada,
+            self::ItemsVerEntradas,
+            self::ItemsRecibirEntradas => 'Ítems',
             self::EmpresasTercerasVer,
             self::EmpresasTercerasCrear,
             self::EmpresasTercerasEditar,
@@ -232,6 +263,18 @@ enum TenantPermission: string
             self::EmpresaCrear,
             self::EmpresaEditar,
             self::EmpresaEliminar => 'Empresa',
+            self::ImportarEquipos,
+            self::ImportarItems,
+            self::ImportarClientes,
+            self::ImportarFabricantes,
+            self::ImportarProcedimientosCalibracion,
+            self::ImportarNovedades,
+            self::ImportarLaboratorios,
+            self::ImportarAreas,
+            self::ImportarBahias,
+            self::ImportarEmpresasTerceras,
+            self::ImportarTiposEquipo,
+            self::ImportarChecklistMantenimiento => 'Importaciones',
             self::RolesGestionar => 'Roles',
             self::UsuariosGestionar => 'Usuarios',
         };
@@ -245,6 +288,14 @@ enum TenantPermission: string
     public static function verTodosCases(): array
     {
         return [self::AgendaVerTodos, self::MantenimientosVerTodos, self::CalibracionesVerTodos, self::DespachosVerTodos];
+    }
+
+    /**
+     * Get the permission that gives access to the servicios de terceros of the given tipo de servicio.
+     */
+    public static function tercerosDe(string $tipoServicio): self
+    {
+        return $tipoServicio === 'MANTENIMIENTO' ? self::MantenimientosTerceros : self::CalibracionesTerceros;
     }
 
     /**
@@ -291,6 +342,8 @@ enum TenantPermission: string
             self::EquiposCrear => 'Crear equipos',
             self::EquiposEditar => 'Editar equipos',
             self::EquiposEliminar => 'Eliminar equipos',
+            self::EquiposHistorial => 'Ver el historial de equipos',
+            self::EquiposProgramaciones => 'Ver las programaciones de equipos',
             self::IngresosVer => 'Ver ingresos',
             self::IngresosCrear => 'Registrar ingresos',
             self::IngresosEditar => 'Editar ingresos',
@@ -302,6 +355,7 @@ enum TenantPermission: string
             self::MantenimientosIniciar => 'Iniciar mantenimientos',
             self::MantenimientosFinalizar => 'Finalizar mantenimientos',
             self::MantenimientosPdf => 'Ver PDF de mantenimientos',
+            self::MantenimientosTerceros => 'Mantenimientos de terceros',
             self::CalibracionesVer => 'Ver calibraciones',
             self::CalibracionesEditar => 'Editar calibraciones',
             self::CalibracionesEliminar => 'Eliminar calibraciones',
@@ -309,6 +363,7 @@ enum TenantPermission: string
             self::CalibracionesIniciar => 'Iniciar calibraciones',
             self::CalibracionesFinalizar => 'Finalizar calibraciones',
             self::CalibracionesPdf => 'Ver PDF de calibraciones',
+            self::CalibracionesTerceros => 'Calibraciones de terceros',
             self::DespachosVer => 'Ver despachos',
             self::DespachosEditar => 'Editar despachos',
             self::DespachosEliminar => 'Eliminar despachos',
@@ -317,6 +372,7 @@ enum TenantPermission: string
             self::TiposEquipoCrear => 'Crear tipos de equipo',
             self::TiposEquipoEditar => 'Editar tipos de equipo',
             self::TiposEquipoEliminar => 'Eliminar tipos de equipo',
+            self::TiposEquipoChecklist => 'Agregar checklist a tipos de equipo',
             self::AreasVer => 'Ver áreas',
             self::AreasCrear => 'Crear áreas',
             self::AreasEditar => 'Editar áreas',
@@ -333,6 +389,9 @@ enum TenantPermission: string
             self::ItemsCrear => 'Crear ítems',
             self::ItemsEditar => 'Editar ítems',
             self::ItemsEliminar => 'Eliminar ítems',
+            self::ItemsRegistrarEntrada => 'Registrar entradas de ítems',
+            self::ItemsVerEntradas => 'Ver entradas y salidas de ítems',
+            self::ItemsRecibirEntradas => 'Recibir entradas pendientes de ítems',
             self::EmpresasTercerasVer => 'Ver empresas terceras',
             self::EmpresasTercerasCrear => 'Crear empresas terceras',
             self::EmpresasTercerasEditar => 'Editar empresas terceras',
@@ -365,6 +424,18 @@ enum TenantPermission: string
             self::EmpresaCrear => 'Registrar empresa',
             self::EmpresaEditar => 'Editar empresa',
             self::EmpresaEliminar => 'Eliminar empresa',
+            self::ImportarEquipos => 'Importar equipos',
+            self::ImportarItems => 'Importar ítems',
+            self::ImportarClientes => 'Importar clientes',
+            self::ImportarFabricantes => 'Importar fabricantes',
+            self::ImportarProcedimientosCalibracion => 'Importar procedimientos de calibración',
+            self::ImportarNovedades => 'Importar novedades',
+            self::ImportarLaboratorios => 'Importar laboratorios',
+            self::ImportarAreas => 'Importar áreas',
+            self::ImportarBahias => 'Importar bahías',
+            self::ImportarEmpresasTerceras => 'Importar empresas terceras',
+            self::ImportarTiposEquipo => 'Importar tipos de equipo',
+            self::ImportarChecklistMantenimiento => 'Importar checklist de mantenimiento',
             self::RolesGestionar => 'Gestionar roles',
             self::UsuariosGestionar => 'Gestionar usuarios',
         };

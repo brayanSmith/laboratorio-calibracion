@@ -59,10 +59,9 @@ class ItemController extends Controller
     /**
      * List the entradas and salidas that make up the stock of the item.
      */
-    public function movimientos(Request $request, Item $item): JsonResponse
+    public function movimientos(Item $item): JsonResponse
     {
-        Gate::authorize('viewAny', Item::class);
-        abort_unless($item->tenant_id === $request->user()->tenant_id, 403);
+        Gate::authorize('verEntradas', $item);
 
         $entradas = $item->entradas()
             ->orderByDesc('id')

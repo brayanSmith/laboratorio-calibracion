@@ -16,7 +16,7 @@ class ImportarFilaCliente extends ImportadorFila
     {
         return [
             self::campo('nombre', 'Nombre', true),
-            self::campo('tipo_documento', 'Tipo de documento', false, 'NIT, CC, CE o PASAPORTE. Por defecto: NIT.'),
+            self::campo('tipo_documento', 'Tipo de documento', false, 'DNI, SAP (código SAP) o CE (carnet de extranjería). Por defecto: SAP.'),
             self::campo('numero_documento', 'Número de documento', true, 'Único: si ya existe un cliente con este documento, la fila se omite.'),
             self::campo('email', 'Correo electrónico', true, 'Único entre los clientes.'),
             self::campo('telefono', 'Teléfono'),
@@ -28,7 +28,7 @@ class ImportarFilaCliente extends ImportadorFila
     {
         return [
             'nombre' => 'Cliente de ejemplo',
-            'tipo_documento' => 'NIT',
+            'tipo_documento' => 'SAP',
             'numero_documento' => '900123456',
             'email' => 'cliente@ejemplo.com',
             'telefono' => '601 555 1234',
@@ -62,7 +62,7 @@ class ImportarFilaCliente extends ImportadorFila
             'telefono' => ['nullable', 'string', 'max:255'],
             'direccion' => ['nullable', 'string', 'max:255'],
         ], [
-            'tipo_documento.enum' => 'El tipo de documento debe ser NIT, CC, CE o PASAPORTE.',
+            'tipo_documento.enum' => 'El tipo de documento debe ser DNI, SAP o CE.',
             'numero_documento.unique' => 'Ya existe un cliente con el documento :input.',
             'email.unique' => 'Ya existe un cliente con el correo :input.',
         ]);
@@ -71,14 +71,14 @@ class ImportarFilaCliente extends ImportadorFila
     }
 
     /**
-     * Acepta el código o el nombre del tipo de documento ("cc", "Cédula de ciudadanía");
-     * vacío es NIT. Un valor que no se reconoce se deja tal cual para que la validación lo
-     * rechace.
+     * Acepta el código o el nombre del tipo de documento ("ce", "Carnet de extranjería");
+     * vacío es código SAP. Un valor que no se reconoce se deja tal cual para que la
+     * validación lo rechace.
      */
     private function tipoDocumento(?string $valor): string
     {
         if ($valor === null) {
-            return TipoDocumentoCliente::Nit->value;
+            return TipoDocumentoCliente::CodigoSap->value;
         }
 
         foreach (TipoDocumentoCliente::cases() as $tipo) {

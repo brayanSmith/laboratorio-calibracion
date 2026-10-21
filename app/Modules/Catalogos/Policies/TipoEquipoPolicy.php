@@ -34,6 +34,15 @@ class TipoEquipoPolicy
     }
 
     /**
+     * Determine whether the user can add items to the check list of the model.
+     */
+    public function gestionarChecklist(User $user, TipoEquipo $tipoEquipo): bool
+    {
+        return $user->tenant_id === $tipoEquipo->tenant_id
+            && $user->can(TenantPermission::TiposEquipoChecklist->value);
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, TipoEquipo $tipoEquipo): bool

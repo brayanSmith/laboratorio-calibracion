@@ -72,7 +72,7 @@ class HandleInertiaRequests extends Middleware
      * Get the trabajos que siguen pendientes (sin finalizar), para los badges del menú:
      * ingresos por recibir, mantenimientos y calibraciones, locales (aún sin terminar) y de tercero (servicio
      * sin estado final), y los despachos cuya entrega no se ha recibido. Cada grupo es
-     * null si el usuario no tiene permiso para verlo.
+     * null si el usuario no tiene permiso para verlo; los de tercero son 0 sin el permiso de terceros.
      *
      * @return array{
      *     mantenimientos: array{local: int, tercero: int}|null,
@@ -89,11 +89,13 @@ class HandleInertiaRequests extends Middleware
 
         $tenantId = $user->tenant_id;
 
-        $tercerosPendientes = fn (string $tipoServicio): int => ServicioTercero::query()
-            ->where('tenant_id', $tenantId)
-            ->where('tipo_servicio', $tipoServicio)
-            ->whereNull('estado_final_equipo')
-            ->count();
+        $tercerosPendientes = fn (string $tipoServicio): int => $user->can(TenantPermission::tercerosDe($tipoServicio)->value)
+            ? ServicioTercero::query()
+                ->where('tenant_id', $tenantId)
+                ->where('tipo_servicio', $tipoServicio)
+                ->whereNull('estado_final_equipo')
+                ->count()
+            : 0;
 
         return [
             'mantenimientos' => $user->can(TenantPermission::MantenimientosVer->value) ? [

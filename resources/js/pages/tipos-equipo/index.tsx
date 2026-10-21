@@ -26,6 +26,7 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
     const { can } = usePermissions();
     const canEdit = can('tipos-equipo.editar');
     const canDelete = can('tipos-equipo.eliminar');
+    const canChecklist = can('tipos-equipo.checklist');
     const [editingTipoEquipoId, setEditingTipoEquipoId] = useState<
         number | null
     >(null);
@@ -83,7 +84,7 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            {canEdit ? (
+                            {canChecklist ? (
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -129,7 +130,7 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                     ),
                 }),
             ]),
-        [canEdit, canDelete],
+        [canEdit, canDelete, canChecklist],
     );
 
     return (

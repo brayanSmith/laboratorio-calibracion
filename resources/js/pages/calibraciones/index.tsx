@@ -66,6 +66,7 @@ export default function CalibracionesIndex({
     const canDelete = can('calibraciones.eliminar');
     const canIniciar = can('calibraciones.iniciar');
     const canPdf = can('calibraciones.pdf');
+    const canTerceros = can('calibraciones.terceros');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         calibraciones.find((calibracion) => calibracion.id === editingId) ??
@@ -296,20 +297,22 @@ export default function CalibracionesIndex({
                                 className="bg-blue-500 text-white"
                             />
                         </TabsTrigger>
-                        <TabsTrigger value="tercero">
-                            Tercero
-                            <TabCountBadge
-                                value={
-                                    serviciosTerceros.filter(
-                                        (servicio) =>
-                                            servicio.estado_final_equipo ===
-                                            null,
-                                    ).length
-                                }
-                                label="Pendientes en tercero"
-                                className="bg-amber-500 text-white"
-                            />
-                        </TabsTrigger>
+                        {canTerceros ? (
+                            <TabsTrigger value="tercero">
+                                Tercero
+                                <TabCountBadge
+                                    value={
+                                        serviciosTerceros.filter(
+                                            (servicio) =>
+                                                servicio.estado_final_equipo ===
+                                                null,
+                                        ).length
+                                    }
+                                    label="Pendientes en tercero"
+                                    className="bg-amber-500 text-white"
+                                />
+                            </TabsTrigger>
+                        ) : null}
                     </TabsList>
 
                     <TabsContent value="local">
@@ -322,18 +325,20 @@ export default function CalibracionesIndex({
                         />
                     </TabsContent>
 
-                    <TabsContent value="tercero">
-                        <ServicioTercerosTab
-                            servicios={serviciosTerceros}
-                            empresasTerceras={empresasTerceras}
-                            canEdit={canEdit}
-                            canDelete={canDelete}
-                            canIniciar={canIniciar}
-                            canFinalizar={can('calibraciones.finalizar')}
-                            searchPlaceholder="Buscar servicio de tercero..."
-                            emptyMessage="Aún no hay calibraciones asignadas a terceros."
-                        />
-                    </TabsContent>
+                    {canTerceros ? (
+                        <TabsContent value="tercero">
+                            <ServicioTercerosTab
+                                servicios={serviciosTerceros}
+                                empresasTerceras={empresasTerceras}
+                                canEdit={canEdit}
+                                canDelete={canDelete}
+                                canIniciar={canIniciar}
+                                canFinalizar={can('calibraciones.finalizar')}
+                                searchPlaceholder="Buscar servicio de tercero..."
+                                emptyMessage="Aún no hay calibraciones asignadas a terceros."
+                            />
+                        </TabsContent>
+                    ) : null}
                 </Tabs>
             </div>
 

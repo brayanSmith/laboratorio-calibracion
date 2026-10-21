@@ -193,7 +193,7 @@ test('importa los equipos y crea los catalogos que no existen', function () {
         ->and($equipo->fabricante->nombre)->toBe('Fluke')
         ->and($equipo->cliente->nombre)->toBe('ACME')
         ->and($equipo->cliente->numero_documento)->toBe('900111222')
-        ->and($equipo->cliente->tipo_documento)->toBe(TipoDocumentoCliente::Nit)
+        ->and($equipo->cliente->tipo_documento)->toBe(TipoDocumentoCliente::CodigoSap)
         ->and($equipo->cliente->email)->toBe('doc-900111222@sin-correo.local')
         ->and($equipo->area_id)->toBe($area->id)
         ->and($equipo->bahia->nombre)->toBe('B1')
@@ -352,14 +352,14 @@ test('asigna el documento al cliente sin documento que tenga el mismo nombre', f
 
     $importacion = importarEquipos(
         $this->admin,
-        csvEquipos('SN-1,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,,CC'),
+        csvEquipos('SN-1,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,,DNI'),
         [...mapeoEquiposCsv(), 'cliente_tipo_documento' => 19],
     );
 
     expect($importacion->filas_creadas)->toBe(1)
         ->and(Equipo::sole()->cliente_id)->toBe($antiguo->id)
         ->and($antiguo->fresh()->numero_documento)->toBe('900111222')
-        ->and($antiguo->fresh()->tipo_documento)->toBe(TipoDocumentoCliente::Cc)
+        ->and($antiguo->fresh()->tipo_documento)->toBe(TipoDocumentoCliente::Dni)
         ->and(Cliente::count())->toBe(1);
 });
 

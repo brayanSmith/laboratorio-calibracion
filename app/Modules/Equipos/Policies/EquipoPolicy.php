@@ -26,6 +26,15 @@ class EquipoPolicy
     }
 
     /**
+     * Determine whether the user can view the historial de servicios of the model.
+     */
+    public function verHistorial(User $user, Equipo $equipo): bool
+    {
+        return $user->tenant_id === $equipo->tenant_id
+            && $user->can(TenantPermission::EquiposHistorial->value);
+    }
+
+    /**
      * Determine whether the user can create models.
      */
     public function create(User $user): bool

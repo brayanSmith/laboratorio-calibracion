@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
-import { tiposImportacion } from '@/lib/tipos-importacion';
+import { permisoImportacion, tiposImportacion } from '@/lib/tipos-importacion';
 import type { ArchivoImportacion, TipoImportacion } from '@/types';
 
 type Props = {
@@ -37,14 +37,14 @@ type Props = {
 };
 
 /**
- * Primer paso de la importación: elegir qué se importa (solo los tipos que el usuario puede
- * crear), el CSV, y leer sus columnas. La pestaña Resultados muestra las últimas
- * importaciones con sus errores, por si el aviso se cerró antes de verlos.
+ * Primer paso de la importación: elegir qué se importa (solo los tipos que el usuario tiene
+ * permitido importar), el CSV, y leer sus columnas. La pestaña Resultados muestra las
+ * últimas importaciones con sus errores, por si el aviso se cerró antes de verlos.
  */
 export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
     const { can } = usePermissions();
     const tiposPermitidos = tiposImportacion.filter((tipo) =>
-        can(tipo.permiso),
+        can(permisoImportacion(tipo.value)),
     );
     const { data, setData, post, processing, progress, errors, reset } =
         useHttp<

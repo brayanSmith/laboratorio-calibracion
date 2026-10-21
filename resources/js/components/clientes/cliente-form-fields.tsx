@@ -24,10 +24,14 @@ export default function ClienteFormFields({ cliente, errors }: Props) {
     return (
         <div className="grid gap-6 sm:grid-cols-2">
             <div className="grid gap-2">
-                <Label htmlFor="tipo_documento">Tipo de documento</Label>
+                <Label htmlFor="tipo_documento">
+                    Tipo de documento{' '}
+                    <span className="text-destructive">*</span>
+                </Label>
                 <Select
                     name="tipo_documento"
                     defaultValue={cliente?.tipo_documento ?? undefined}
+                    required
                 >
                     <SelectTrigger
                         id="tipo_documento"
@@ -48,7 +52,10 @@ export default function ClienteFormFields({ cliente, errors }: Props) {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="numero_documento">Número de documento</Label>
+                <Label htmlFor="numero_documento">
+                    Número de documento{' '}
+                    <span className="text-destructive">*</span>
+                </Label>
                 <Input
                     id="numero_documento"
                     name="numero_documento"
@@ -59,7 +66,9 @@ export default function ClienteFormFields({ cliente, errors }: Props) {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="nombre">Nombre</Label>
+                <Label htmlFor="nombre">
+                    Nombre <span className="text-destructive">*</span>
+                </Label>
                 <Input
                     id="nombre"
                     name="nombre"
@@ -70,7 +79,10 @@ export default function ClienteFormFields({ cliente, errors }: Props) {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="email">Correo electrónico</Label>
+                <Label htmlFor="email">
+                    Correo electrónico{' '}
+                    <span className="text-destructive">*</span>
+                </Label>
                 <Input
                     id="email"
                     name="email"

@@ -3,16 +3,6 @@
 namespace App\Enums;
 
 use App\Models\User;
-use App\Modules\Calibraciones\Models\Laboratorio;
-use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
-use App\Modules\Catalogos\Models\Area;
-use App\Modules\Catalogos\Models\Bahia;
-use App\Modules\Catalogos\Models\Cliente;
-use App\Modules\Catalogos\Models\Fabricante;
-use App\Modules\Catalogos\Models\Novedad;
-use App\Modules\Catalogos\Models\TipoEquipo;
-use App\Modules\Catalogos\Models\TipoEquipoCheckList;
-use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Importaciones\Actions\ImportadorFila;
 use App\Modules\Importaciones\Actions\ImportarFilaArea;
 use App\Modules\Importaciones\Actions\ImportarFilaBahia;
@@ -26,14 +16,10 @@ use App\Modules\Importaciones\Actions\ImportarFilaLaboratorio;
 use App\Modules\Importaciones\Actions\ImportarFilaNovedad;
 use App\Modules\Importaciones\Actions\ImportarFilaProcedimientoCalibracion;
 use App\Modules\Importaciones\Actions\ImportarFilaTipoEquipo;
-use App\Modules\Inventario\Models\Item;
-use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Gate;
 
 /**
- * Lo que se puede importar desde un CSV. Quien puede crear registros de un tipo puede
- * importarlos.
+ * Lo que se puede importar desde un CSV. Cada tipo tiene su permiso de importación (ver
+ * permiso()), que se asigna por rol.
  */
 enum TipoImportacion: string
 {
@@ -72,29 +58,6 @@ enum TipoImportacion: string
     }
 
     /**
-     * Modelo que se crea.
-     *
-     * @return class-string<Model>
-     */
-    public function modelo(): string
-    {
-        return match ($this) {
-            self::Equipos => Equipo::class,
-            self::Items => Item::class,
-            self::Clientes => Cliente::class,
-            self::Fabricantes => Fabricante::class,
-            self::ProcedimientosCalibracion => ProcedimientoCalibracion::class,
-            self::Novedades => Novedad::class,
-            self::Laboratorios => Laboratorio::class,
-            self::Areas => Area::class,
-            self::Bahias => Bahia::class,
-            self::EmpresasTerceras => EmpresaTercero::class,
-            self::TiposEquipo => TipoEquipo::class,
-            self::ChecklistMantenimiento => TipoEquipoCheckList::class,
-        };
-    }
-
-    /**
      * @return class-string<ImportadorFila>
      */
     public function importador(): string
@@ -116,17 +79,20 @@ enum TipoImportacion: string
     }
 
     /**
-     * Si el usuario puede importar registros de este tipo: el permiso "create" de la policy
-     * del modelo, salvo el checklist, que se gestiona al editar el tipo de equipo (ver
-     * StoreTipoEquipoCheckListRequest).
+     * Permiso del grupo "Importaciones" que habilita importar este tipo.
+     */
+    public function permiso(): TenantPermission
+    {
+        return TenantPermission::from("importaciones.{$this->value}");
+    }
+
+    /**
+     * Si el usuario puede importar registros de este tipo: cada tipo tiene su propio permiso
+     * en el grupo "Importaciones", independiente del de crear en su módulo.
      */
     public function permitidoPara(User $user): bool
     {
-        if ($this === self::ChecklistMantenimiento) {
-            return $user->can(TenantPermission::TiposEquipoEditar->value);
-        }
-
-        return Gate::forUser($user)->allows('create', $this->modelo());
+        return $user->can($this->permiso()->value);
     }
 
     /**

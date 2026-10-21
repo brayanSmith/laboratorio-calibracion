@@ -4,10 +4,9 @@ namespace App\Enums;
 
 enum TipoDocumentoCliente: string
 {
-    case Nit = 'NIT';
-    case Cc = 'CC';
-    case Ce = 'CE';
-    case Pasaporte = 'PASAPORTE';
+    case Dni = 'DNI';
+    case CodigoSap = 'SAP';
+    case CarnetExtranjeria = 'CE';
 
     /**
      * Get the label shown in the selectors.
@@ -15,10 +14,9 @@ enum TipoDocumentoCliente: string
     public function label(): string
     {
         return match ($this) {
-            self::Nit => 'NIT',
-            self::Cc => 'Cédula de ciudadanía',
-            self::Ce => 'Cédula de extranjería',
-            self::Pasaporte => 'Pasaporte',
+            self::Dni => 'DNI',
+            self::CodigoSap => 'Código SAP',
+            self::CarnetExtranjeria => 'Carnet de extranjería',
         };
     }
 }

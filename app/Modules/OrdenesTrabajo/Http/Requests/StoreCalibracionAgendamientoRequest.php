@@ -73,7 +73,11 @@ class StoreCalibracionAgendamientoRequest extends FormRequest
                     ->where('listo_para_calibracion', 0),
             ],
             'ordenes_listas.*.listo_para_calibracion' => ['boolean'],
-            'ordenes_listas.*.calibracion_asignado_tercero' => ['boolean'],
+            // Solo quien tiene el permiso de calibraciones de terceros puede asignarlas a un tercero.
+            'ordenes_listas.*.calibracion_asignado_tercero' => [
+                'boolean',
+                Rule::when(! $this->user()->can(TenantPermission::CalibracionesTerceros->value), 'declined'),
+            ],
 
             // Si queda lista y NO se asigna a un tercero, la hace un técnico propio:
             // exige el técnico. La novedad (catálogo de Novedad, categoría CALIBRACION)

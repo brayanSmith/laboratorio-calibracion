@@ -9,7 +9,7 @@ import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-cali
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
 import { usePermissions } from '@/hooks/use-permissions';
-import { tiposImportacion } from '@/lib/tipos-importacion';
+import { permisoImportacion, tiposImportacion } from '@/lib/tipos-importacion';
 import type { IngresoOption } from '@/types';
 
 type Opciones = {
@@ -34,7 +34,9 @@ export function AgendarAcciones() {
     >();
 
     const puedeVerAgenda = can('agenda.ver');
-    const puedeImportar = tiposImportacion.some((tipo) => can(tipo.permiso));
+    const puedeImportar = tiposImportacion.some((tipo) =>
+        can(permisoImportacion(tipo.value)),
+    );
     const contadores = porAgendar ?? null;
 
     if (!contadores && !puedeVerAgenda && !puedeImportar) {

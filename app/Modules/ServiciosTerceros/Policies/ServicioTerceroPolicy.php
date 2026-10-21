@@ -18,8 +18,7 @@ class ServicioTerceroPolicy
             ? TenantPermission::MantenimientosEditar
             : TenantPermission::CalibracionesEditar;
 
-        return $user->tenant_id === $servicioTercero->tenant_id
-            && $user->can($permiso->value);
+        return $this->gestiona($user, $servicioTercero, $permiso);
     }
 
     /**
@@ -31,8 +30,7 @@ class ServicioTerceroPolicy
             ? TenantPermission::MantenimientosIniciar
             : TenantPermission::CalibracionesIniciar;
 
-        return $user->tenant_id === $servicioTercero->tenant_id
-            && $user->can($permiso->value);
+        return $this->gestiona($user, $servicioTercero, $permiso);
     }
 
     /**
@@ -44,8 +42,7 @@ class ServicioTerceroPolicy
             ? TenantPermission::MantenimientosFinalizar
             : TenantPermission::CalibracionesFinalizar;
 
-        return $user->tenant_id === $servicioTercero->tenant_id
-            && $user->can($permiso->value);
+        return $this->gestiona($user, $servicioTercero, $permiso);
     }
 
     /**
@@ -57,7 +54,16 @@ class ServicioTerceroPolicy
             ? TenantPermission::MantenimientosEliminar
             : TenantPermission::CalibracionesEliminar;
 
+        return $this->gestiona($user, $servicioTercero, $permiso);
+    }
+
+    /**
+     * Además del permiso de la acción, exige el de terceros del módulo del servicio.
+     */
+    private function gestiona(User $user, ServicioTercero $servicioTercero, TenantPermission $permiso): bool
+    {
         return $user->tenant_id === $servicioTercero->tenant_id
-            && $user->can($permiso->value);
+            && $user->can($permiso->value)
+            && $user->can(TenantPermission::tercerosDe($servicioTercero->tipo_servicio)->value);
     }
 }

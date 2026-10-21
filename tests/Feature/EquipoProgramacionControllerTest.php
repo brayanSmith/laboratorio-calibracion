@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -496,4 +497,19 @@ test('rechaza dias de aviso negativos o no numericos', function () {
     $this->actingAs($this->admin)
         ->post(route('equipos.programaciones.store', $this->equipo), datosProgramacion(['dias_plazo_vencimiento' => -5]))
         ->assertSessionHasErrors('dias_plazo_vencimiento');
+});
+
+test('sin el permiso de ver programaciones no se pueden agregar ni eliminar programaciones', function () {
+    $this->actingAs($this->admin)->post(route('equipos.programaciones.store', $this->equipo), datosProgramacion());
+    $programacion = EquipoProgramacion::where('equipo_id', $this->equipo->id)->firstOrFail();
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::EquiposVer, TenantPermission::EquiposEditar]);
+
+    $this->actingAs($usuario)
+        ->post(route('equipos.programaciones.store', $this->equipo), datosProgramacion())
+        ->assertForbidden();
+    $this->actingAs($usuario)
+        ->delete(route('programaciones.destroy', $programacion))
+        ->assertForbidden();
+
+    expect(EquipoProgramacion::where('equipo_id', $this->equipo->id)->count())->toBe(1);
 });

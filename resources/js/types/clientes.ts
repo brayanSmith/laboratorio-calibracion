@@ -1,4 +1,4 @@
-export type TipoDocumentoCliente = 'NIT' | 'CC' | 'CE' | 'PASAPORTE';
+export type TipoDocumentoCliente = 'DNI' | 'SAP' | 'CE';
 
 export type TipoDocumentoClienteOption = {
     value: TipoDocumentoCliente;

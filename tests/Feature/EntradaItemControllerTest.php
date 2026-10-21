@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -162,4 +163,25 @@ test('la fecha de recibido es obligatoria al marcar una entrada', function () {
     $this->actingAs($this->admin)
         ->patch(route('entradas-item.recibir', $entrada), [])
         ->assertSessionHasErrors('fecha_recibido');
+});
+
+test('registrar, ver y recibir entradas dependen de su propio permiso, no del de editar items', function () {
+    $entrada = EntradaItem::factory()->create(['item_id' => $this->item->id]);
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::ItemsVer, TenantPermission::ItemsEditar]);
+
+    $this->actingAs($usuario)->post(route('items.entradas.store', $this->item), ['cantidad' => 1, 'precio_unitario' => 1])->assertForbidden();
+    $this->actingAs($usuario)->getJson(route('items.movimientos', $this->item))->assertForbidden();
+    $this->actingAs($usuario)->patch(route('entradas-item.recibir', $entrada), ['fecha_recibido' => '2026-10-01'])->assertForbidden();
+
+    $usuario->givePermissionTo([
+        TenantPermission::ItemsRegistrarEntrada->value,
+        TenantPermission::ItemsVerEntradas->value,
+        TenantPermission::ItemsRecibirEntradas->value,
+    ]);
+
+    $this->actingAs($usuario)->post(route('items.entradas.store', $this->item), ['cantidad' => 1, 'precio_unitario' => 1])->assertRedirect(route('items.index'));
+    $this->actingAs($usuario)->getJson(route('items.movimientos', $this->item))->assertOk();
+    $this->actingAs($usuario)->patch(route('entradas-item.recibir', $entrada), ['fecha_recibido' => '2026-10-01'])->assertRedirect(route('items.index'));
+
+    expect($entrada->fresh()->recibido)->toBeTrue();
 });

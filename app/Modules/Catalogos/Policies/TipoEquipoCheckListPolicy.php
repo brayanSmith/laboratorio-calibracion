@@ -11,7 +11,7 @@ class TipoEquipoCheckListPolicy
     /**
      * Determine whether the user can update the check list item.
      *
-     * The check list is managed as part of the tipo de equipo, so it requires the same permission.
+     * The check list has its own permission, separate from editing the tipo de equipo.
      */
     public function update(User $user, TipoEquipoCheckList $tipoEquipoCheckList): bool
     {
@@ -29,6 +29,6 @@ class TipoEquipoCheckListPolicy
     private function manages(User $user, TipoEquipoCheckList $tipoEquipoCheckList): bool
     {
         return $user->tenant_id === $tipoEquipoCheckList->tenant_id
-            && $user->can(TenantPermission::TiposEquipoEditar->value);
+            && $user->can(TenantPermission::TiposEquipoChecklist->value);
     }
 }

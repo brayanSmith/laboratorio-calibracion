@@ -57,6 +57,9 @@ export default function ItemsIndex({ items }: Props) {
     const { can } = usePermissions();
     const canEdit = can('items.editar');
     const canDelete = can('items.eliminar');
+    const canRegistrarEntrada = can('items.registrar-entrada');
+    const canVerEntradas = can('items.ver-entradas');
+    const canRecibirEntradas = can('items.recibir-entradas');
     const [editingItemId, setEditingItemId] = useState<number | null>(null);
     const editingItem = items.find((item) => item.id === editingItemId) ?? null;
     const [editOpen, setEditOpen] = useState(false);
@@ -129,19 +132,21 @@ export default function ItemsIndex({ items }: Props) {
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Ver entradas y salidas"
-                                data-test="item-movimientos-button"
-                                onClick={() => {
-                                    setMovimientosItemId(row.original.id);
-                                    setMovimientosOpen(true);
-                                }}
-                            >
-                                <History className="h-4 w-4" />
-                            </Button>
-                            {canEdit ? (
+                            {canVerEntradas ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    title="Ver entradas y salidas"
+                                    data-test="item-movimientos-button"
+                                    onClick={() => {
+                                        setMovimientosItemId(row.original.id);
+                                        setMovimientosOpen(true);
+                                    }}
+                                >
+                                    <History className="h-4 w-4" />
+                                </Button>
+                            ) : null}
+                            {canRegistrarEntrada ? (
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -155,7 +160,7 @@ export default function ItemsIndex({ items }: Props) {
                                     <PackagePlus className="h-4 w-4" />
                                 </Button>
                             ) : null}
-                            {canEdit &&
+                            {canRecibirEntradas &&
                             row.original.entradas_pendientes.length > 0 ? (
                                 <Button
                                     variant="ghost"
@@ -206,7 +211,13 @@ export default function ItemsIndex({ items }: Props) {
                     ),
                 }),
             ]),
-        [canEdit, canDelete],
+        [
+            canEdit,
+            canDelete,
+            canRegistrarEntrada,
+            canVerEntradas,
+            canRecibirEntradas,
+        ],
     );
 
     return (

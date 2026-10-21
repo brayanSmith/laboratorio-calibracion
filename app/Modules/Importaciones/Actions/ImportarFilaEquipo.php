@@ -76,7 +76,7 @@ class ImportarFilaEquipo extends ImportadorFila
         $clienteId = $this->cliente(
             $datos['cliente_numero_documento'],
             $datos['cliente'],
-            $datos['cliente_tipo_documento'] ?? TipoDocumentoCliente::Nit->value,
+            $datos['cliente_tipo_documento'] ?? TipoDocumentoCliente::CodigoSap->value,
             $datos['cliente_email'] ?? null,
         );
         $areaId = $this->area($datos['area']);

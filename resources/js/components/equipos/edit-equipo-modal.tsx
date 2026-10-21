@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePermissions } from '@/hooks/use-permissions';
+import { cn } from '@/lib/utils';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
 type Props = PropsWithChildren<{
@@ -32,6 +34,7 @@ type Props = PropsWithChildren<{
 
 export default function EditEquipoModal({ equipo, options, children }: Props) {
     const [open, setOpen] = useState(false);
+    const canVerProgramaciones = usePermissions().can('equipos.programaciones');
     const [tipoEquipoId, setTipoEquipoId] = useState<string | undefined>(
         equipo.tipo_equipo_id.toString(),
     );
@@ -69,16 +72,25 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                             </DialogHeader>
 
                             <Tabs defaultValue="general">
-                                <TabsList className="grid w-full grid-cols-2">
+                                <TabsList
+                                    className={cn(
+                                        'grid w-full',
+                                        canVerProgramaciones
+                                            ? 'grid-cols-2'
+                                            : 'grid-cols-1',
+                                    )}
+                                >
                                     <TabsTrigger type="button" value="general">
                                         General
                                     </TabsTrigger>
-                                    <TabsTrigger
-                                        type="button"
-                                        value="programaciones"
-                                    >
-                                        Programaciones
-                                    </TabsTrigger>
+                                    {canVerProgramaciones ? (
+                                        <TabsTrigger
+                                            type="button"
+                                            value="programaciones"
+                                        >
+                                            Programaciones
+                                        </TabsTrigger>
+                                    ) : null}
                                 </TabsList>
 
                                 <TabsContent
@@ -170,27 +182,29 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent
-                                    value="programaciones"
-                                    forceMount
-                                    className="data-[state=inactive]:hidden"
-                                >
-                                    <div className="space-y-4">
-                                        <Heading
-                                            variant="small"
-                                            title="Programación de servicio"
-                                            description="Marca las que quieras eliminar o agrega nuevas"
-                                        />
-                                        <EquipoProgramacionesEditarFields
-                                            programaciones={
-                                                equipo.equipo_programaciones ??
-                                                []
-                                            }
-                                            errors={errors}
-                                            tiposSugeridos={tiposSugeridos}
-                                        />
-                                    </div>
-                                </TabsContent>
+                                {canVerProgramaciones ? (
+                                    <TabsContent
+                                        value="programaciones"
+                                        forceMount
+                                        className="data-[state=inactive]:hidden"
+                                    >
+                                        <div className="space-y-4">
+                                            <Heading
+                                                variant="small"
+                                                title="Programación de servicio"
+                                                description="Marca las que quieras eliminar o agrega nuevas"
+                                            />
+                                            <EquipoProgramacionesEditarFields
+                                                programaciones={
+                                                    equipo.equipo_programaciones ??
+                                                    []
+                                                }
+                                                errors={errors}
+                                                tiposSugeridos={tiposSugeridos}
+                                            />
+                                        </div>
+                                    </TabsContent>
+                                ) : null}
                             </Tabs>
 
                             <DialogFooter className="gap-2">

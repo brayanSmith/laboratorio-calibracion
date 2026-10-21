@@ -2,6 +2,7 @@
 
 namespace App\Modules\Equipos\Http\Requests;
 
+use App\Enums\TenantPermission;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -14,7 +15,8 @@ class StoreEquipoProgramacionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('equipo'));
+        return Gate::allows('update', $this->route('equipo'))
+            && $this->user()->can(TenantPermission::EquiposProgramaciones->value);
     }
 
     /**

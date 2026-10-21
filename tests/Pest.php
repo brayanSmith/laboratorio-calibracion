@@ -1,11 +1,15 @@
 <?php
 
+use App\Enums\TenantPermission;
+use App\Enums\TenantRole;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /*
@@ -61,6 +65,21 @@ function crearTipoEquipo(Tenant $tenant, string $nombre = 'Manómetro', string $
         'tipo_mantenimiento' => $tipoMantenimiento,
         'tenant_id' => $tenant->id,
     ]);
+}
+
+/**
+ * Usuario del tenant sin rol, solo con los permisos dados.
+ *
+ * @param  array<int, TenantPermission>  $permisos
+ */
+function usuarioConPermisos(Tenant $tenant, array $permisos): User
+{
+    $usuario = User::factory()->forTenant($tenant, TenantRole::Recepcion)->create();
+    app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+    $usuario->syncRoles([]);
+    $usuario->givePermissionTo(array_map(fn (TenantPermission $permiso) => $permiso->value, $permisos));
+
+    return $usuario;
 }
 
 function crearArea(Tenant $tenant, string $nombre = 'Laboratorio de presión'): Area
