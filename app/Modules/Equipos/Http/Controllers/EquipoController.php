@@ -12,6 +12,7 @@ use App\Modules\Equipos\Http\Requests\StoreEquipoRequest;
 use App\Modules\Equipos\Http\Requests\UpdateEquipoRequest;
 use App\Modules\Equipos\Models\DocumentoEquipo;
 use App\Modules\Equipos\Models\Equipo;
+use App\Modules\Equipos\Models\EquipoHistorico;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
@@ -129,7 +130,7 @@ class EquipoController extends Controller
      * reciente al más antiguo. Cada uno con los mismos datos que su listado, para abrir su
      * modal "Ver". Los servicios con técnico responsable se limitan a los que el usuario
      * puede ver, y los servicios de terceros a los tipos (mantenimiento o calibración) de
-     * terceros que tiene permitidos.
+     * terceros que tiene permitidos. Incluye también los servicios históricos importados.
      */
     public function historial(Request $request, Equipo $equipo): JsonResponse
     {
@@ -145,6 +146,11 @@ class EquipoController extends Controller
             'servicios_terceros' => ServicioTerceroController::listar($equipo->tenant_id, null, $equipo->id)
                 ->filter(fn (array $servicio) => $user->can(TenantPermission::tercerosDe($servicio['tipo_servicio'])->value))
                 ->values(),
+            'historicos' => $equipo->equipoHistoricos()
+                ->orderByDesc('fecha_servicio')
+                ->orderByDesc('id')
+                ->get()
+                ->map(fn (EquipoHistorico $historico) => $historico->resumen()),
             'novedadesIngreso' => Novedad::query()->where('tenant_id', $equipo->tenant_id)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }

@@ -48,6 +48,7 @@ use Illuminate\Support\Carbon;
  * @property-read Tenant $tenant
  * @property-read EquipoEspecificacionTecnica|null $equipoEspecificacionTecnica
  * @property-read Collection<int, EquipoProgramacion> $equipoProgramaciones
+ * @property-read Collection<int, EquipoHistorico> $equipoHistoricos
  */
 #[Fillable([
     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
@@ -159,6 +160,16 @@ class Equipo extends Model
     public function equipoDocumentos(): HasMany
     {
         return $this->hasMany(DocumentoEquipo::class);
+    }
+
+    /**
+     * Get the servicios históricos of this equipo, imported from other systems.
+     *
+     * @return HasMany<EquipoHistorico, $this>
+     */
+    public function equipoHistoricos(): HasMany
+    {
+        return $this->hasMany(EquipoHistorico::class);
     }
 
     /**

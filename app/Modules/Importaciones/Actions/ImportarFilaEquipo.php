@@ -13,7 +13,6 @@ use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Importaciones\Support\CamposImportacionEquipo;
-use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -402,46 +401,6 @@ class ImportarFilaEquipo extends ImportadorFila
             'MES', 'MESES' => 'MESES',
             default => $unidad,
         };
-    }
-
-    /**
-     * Interpreta "Sí/No", "1/0", "true/false" y "x"; cualquier otro texto se deja tal cual
-     * para que la validación lo reporte.
-     */
-    private function booleano(string $valor): bool|string
-    {
-        return match (Str::lower(Str::ascii($valor))) {
-            'si', 's', 'yes', 'y', '1', 'true', 'verdadero', 'x' => true,
-            'no', 'n', '0', 'false', 'falso' => false,
-            default => $valor,
-        };
-    }
-
-    /**
-     * Convierte la fecha a "AAAA-MM-DD". Acepta cómo suele exportarla Excel: día primero
-     * ("15/06/2025", "5/6/2025", "15-06-25", "15.06.2025"), año primero ("2025-06-15"), con
-     * hora al final ("15/06/2025 0:00") o como número de serie de Excel ("45823"). Si no se
-     * reconoce o no existe (ej. 31/02), se deja tal cual para que la validación la reporte.
-     */
-    private function fecha(string $valor): string
-    {
-        $fecha = trim((string) preg_replace('/\s+\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?\s?m\.?)?$/iu', '', trim($valor)));
-
-        if (preg_match('/^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})$/', $fecha, $partes) === 1) {
-            [, $anio, $mes, $dia] = $partes;
-        } elseif (preg_match('/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/', $fecha, $partes) === 1) {
-            [, $dia, $mes, $anio] = $partes;
-            $anio = strlen($anio) === 2 ? "20{$anio}" : $anio;
-        } elseif (preg_match('/^\d{5}$/', $fecha) === 1) {
-            // Excel cuenta los días desde el 30/12/1899.
-            return CarbonImmutable::create(1899, 12, 30)->addDays((int) $fecha)->format('Y-m-d');
-        } else {
-            return $valor;
-        }
-
-        return checkdate((int) $mes, (int) $dia, (int) $anio)
-            ? sprintf('%04d-%02d-%02d', $anio, $mes, $dia)
-            : $valor;
     }
 
     /**

@@ -224,6 +224,18 @@ export type HistorialEquipo = {
     calibraciones: Calibracion[];
     despachos: Despacho[];
     servicios_terceros: ServicioTerceroListado[];
+    historicos: EquipoHistorico[];
     /** Catálogo de Novedad (categoría INGRESO), que necesita la modal "Ver" del ingreso. */
     novedadesIngreso: IngresoOption[];
+};
+
+/** Servicio anterior al sistema (o de otro sistema), importado desde un CSV. */
+export type EquipoHistorico = {
+    id: number;
+    tipo_servicio: 'MANTENIMIENTO' | 'CALIBRACION';
+    fecha_servicio: string;
+    nombre_laboratorio: string;
+    es_tercero: boolean;
+    adjunto_url: string | null;
+    adjunto_nombre: string | null;
 };

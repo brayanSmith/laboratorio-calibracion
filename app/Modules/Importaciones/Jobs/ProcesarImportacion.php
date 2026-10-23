@@ -60,7 +60,8 @@ class ProcesarImportacion implements ShouldQueue
             ]);
         }
 
-        $importador = new ($importacion->tipo->importador())($importacion->tenant_id);
+        $importador = (new ($importacion->tipo->importador())($importacion->tenant_id))
+            ->conAdjuntos($importacion->carpetaAdjuntos());
         $errores = $importacion->errores ?? [];
         $procesadas = $creadas = $conError = 0;
 
@@ -101,7 +102,7 @@ class ProcesarImportacion implements ShouldQueue
             return;
         }
 
-        Storage::disk()->delete($importacion->archivo);
+        $this->borrarArchivos();
     }
 
     /**
@@ -111,7 +112,19 @@ class ProcesarImportacion implements ShouldQueue
     {
         $this->importacion->update(['estado' => Importacion::ESTADO_FALLIDA]);
 
+        $this->borrarArchivos();
+    }
+
+    /**
+     * Borra el CSV y los adjuntos subidos: los adjuntos que se usaron ya se copiaron a su registro.
+     */
+    private function borrarArchivos(): void
+    {
         Storage::disk()->delete($this->importacion->archivo);
+
+        if ($this->importacion->carpetaAdjuntos() !== null) {
+            Storage::disk()->deleteDirectory($this->importacion->carpetaAdjuntos());
+        }
     }
 
     /**

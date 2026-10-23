@@ -32,6 +32,7 @@ enum TenantPermission: string
     case EquiposEditar = 'equipos.editar';
     case EquiposEliminar = 'equipos.eliminar';
     case EquiposHistorial = 'equipos.historial';
+    case EquiposHistoricoAgregar = 'equipos.historico-agregar';
     case EquiposProgramaciones = 'equipos.programaciones';
 
     case IngresosVer = 'ingresos.ver';
@@ -145,6 +146,7 @@ enum TenantPermission: string
     case ImportarEmpresasTerceras = 'importaciones.empresas-terceras';
     case ImportarTiposEquipo = 'importaciones.tipos-equipo';
     case ImportarChecklistMantenimiento = 'importaciones.checklist-mantenimiento';
+    case ImportarEquipoHistoricos = 'importaciones.equipo-historicos';
 
     case RolesGestionar = 'roles.gestionar';
     case UsuariosGestionar = 'usuarios.gestionar';
@@ -176,6 +178,7 @@ enum TenantPermission: string
             self::EquiposEditar,
             self::EquiposEliminar,
             self::EquiposHistorial,
+            self::EquiposHistoricoAgregar,
             self::EquiposProgramaciones => 'Equipos',
             self::IngresosVer,
             self::IngresosCrear,
@@ -263,7 +266,8 @@ enum TenantPermission: string
             self::ImportarBahias,
             self::ImportarEmpresasTerceras,
             self::ImportarTiposEquipo,
-            self::ImportarChecklistMantenimiento => 'Importaciones',
+            self::ImportarChecklistMantenimiento,
+            self::ImportarEquipoHistoricos => 'Importaciones',
             self::RolesGestionar => 'Roles',
             self::UsuariosGestionar => 'Usuarios',
         };
@@ -332,6 +336,7 @@ enum TenantPermission: string
             self::EquiposEditar => 'Editar equipos',
             self::EquiposEliminar => 'Eliminar equipos',
             self::EquiposHistorial => 'Ver el historial de equipos',
+            self::EquiposHistoricoAgregar => 'Agregar histórico a equipos',
             self::EquiposProgramaciones => 'Ver las programaciones de equipos',
             self::IngresosVer => 'Ver ingresos',
             self::IngresosCrear => 'Registrar ingresos',
@@ -420,6 +425,7 @@ enum TenantPermission: string
             self::ImportarEmpresasTerceras => 'Importar laboratorios terceros',
             self::ImportarTiposEquipo => 'Importar tipos de equipo',
             self::ImportarChecklistMantenimiento => 'Importar checklist de mantenimiento',
+            self::ImportarEquipoHistoricos => 'Importar histórico de equipos',
             self::RolesGestionar => 'Gestionar roles',
             self::UsuariosGestionar => 'Gestionar usuarios',
         };

@@ -1,5 +1,5 @@
 import { useHttp } from '@inertiajs/react';
-import { Eye, Printer } from 'lucide-react';
+import { Eye, Paperclip, Plus, Printer } from 'lucide-react';
 import {
     type PropsWithChildren,
     type ReactNode,
@@ -12,6 +12,7 @@ import { historial } from '@/actions/App/Modules/Equipos/Http/Controllers/Equipo
 import { informe } from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import VerCalibracionModal from '@/components/calibraciones/ver-calibracion-modal';
 import CargandoContenido from '@/components/cargando-contenido';
+import AgregarHistoricoModal from '@/components/equipos/agregar-historico-modal';
 import VerDespachoModal from '@/components/despachos/ver-despacho-modal';
 import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fields';
 import VerIngresoModal from '@/components/ingresos/ver-ingreso-modal';
@@ -76,6 +77,7 @@ const HISTORIAL_VACIO: HistorialEquipo = {
     calibraciones: [],
     despachos: [],
     servicios_terceros: [],
+    historicos: [],
     novedadesIngreso: [],
 };
 
@@ -140,7 +142,8 @@ function Tarjeta({
     titulo: string;
     badge: ReactNode;
     acciones?: ReactNode;
-    onVer: () => void;
+    /** Abre la modal "Ver" del registro; sin ella no se muestra el botón. */
+    onVer?: () => void;
 }>) {
     return (
         <li
@@ -152,15 +155,17 @@ function Tarjeta({
                 <div className="flex items-center gap-2">
                     {badge}
                     {acciones}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={onVer}
-                        data-test="historial-equipo-ver"
-                    >
-                        <Eye className="h-4 w-4" /> Ver
-                    </Button>
+                    {onVer ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onVer}
+                            data-test="historial-equipo-ver"
+                        >
+                            <Eye className="h-4 w-4" /> Ver
+                        </Button>
+                    ) : null}
                 </div>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -213,6 +218,8 @@ export default function HistorialEquipoModal({
         desde: '',
         hasta: '',
     });
+    const [pestana, setPestana] = useState('ingresos');
+    const [agregarOpen, setAgregarOpen] = useState(false);
     const { get } = useHttp<Record<string, never>, HistorialEquipo>();
 
     useEffect(() => {
@@ -221,6 +228,7 @@ export default function HistorialEquipoModal({
         }
 
         setDatos(null);
+        setPestana('ingresos');
         setPeriodo('TODO');
         setPersonalizado({ desde: '', hasta: '' });
         get(historial.url(equipo.id))
@@ -257,6 +265,9 @@ export default function HistorialEquipoModal({
             servicios_terceros: historialCompleto.servicios_terceros.filter(
                 (servicio) => fechaEnRango(servicio.fecha, rango),
             ),
+            historicos: historialCompleto.historicos.filter((historico) =>
+                fechaEnRango(historico.fecha_servicio, rango),
+            ),
         };
     }, [datos, periodo, personalizado]);
 
@@ -278,6 +289,40 @@ export default function HistorialEquipoModal({
     const abiertoSi = (tipo: Detalle['tipo']) =>
         detalleOpen && detalle?.tipo === tipo;
 
+    /** Secciones del historial, en el orden de las pestañas (o del desplegable en el celular). */
+    const secciones = [
+        {
+            value: 'ingresos',
+            etiqueta: 'Ingresos',
+            cantidad: filtrados.ingresos.length,
+        },
+        {
+            value: 'mantenimientos',
+            etiqueta: 'Mantenimientos',
+            cantidad: filtrados.mantenimientos.length,
+        },
+        {
+            value: 'calibraciones',
+            etiqueta: 'Calibraciones',
+            cantidad: filtrados.calibraciones.length,
+        },
+        {
+            value: 'despachos',
+            etiqueta: 'Despachos',
+            cantidad: filtrados.despachos.length,
+        },
+        {
+            value: 'terceros',
+            etiqueta: 'Terceros',
+            cantidad: filtrados.servicios_terceros.length,
+        },
+        {
+            value: 'historico',
+            etiqueta: 'Histórico',
+            cantidad: filtrados.historicos.length,
+        },
+    ];
+
     const estadoDelEquipoEnIngreso = (
         ingreso: HistorialEquipo['ingresos'][number],
     ) =>
@@ -297,8 +342,9 @@ export default function HistorialEquipoModal({
                             Historial del equipo {equipo?.codigo}
                         </DialogTitle>
                         <DialogDescription>
-                            Ingresos, mantenimientos, calibraciones, despachos y
-                            servicios de terceros realizados al equipo.
+                            Ingresos, mantenimientos, calibraciones, despachos,
+                            servicios de terceros e histórico importado del
+                            equipo.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -307,39 +353,53 @@ export default function HistorialEquipoModal({
                     ) : (
                         <div className="space-y-4">
                             <div
-                                className="flex flex-wrap items-end gap-3"
+                                className="space-y-3"
                                 data-test="historial-equipo-filtro"
                             >
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="historial-periodo">
-                                        Periodo
-                                    </Label>
-                                    <Select
-                                        value={periodo}
-                                        onValueChange={(valor) =>
-                                            setPeriodo(valor as Periodo)
-                                        }
-                                    >
-                                        <SelectTrigger
-                                            id="historial-periodo"
-                                            className="w-48"
+                                {/* Periodo y "Agregar historial" siempre en la misma fila, también en el celular. */}
+                                <div className="flex items-end gap-3">
+                                    <div className="grid min-w-0 flex-1 gap-1.5 sm:flex-none">
+                                        <Label htmlFor="historial-periodo">
+                                            Periodo
+                                        </Label>
+                                        <Select
+                                            value={periodo}
+                                            onValueChange={(valor) =>
+                                                setPeriodo(valor as Periodo)
+                                            }
                                         >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {periodos.map((opcion) => (
-                                                <SelectItem
-                                                    key={opcion.value}
-                                                    value={opcion.value}
-                                                >
-                                                    {opcion.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                            <SelectTrigger
+                                                id="historial-periodo"
+                                                className="w-full sm:w-48"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {periodos.map((opcion) => (
+                                                    <SelectItem
+                                                        key={opcion.value}
+                                                        value={opcion.value}
+                                                    >
+                                                        {opcion.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {can('equipos.historico-agregar') ? (
+                                        <Button
+                                            type="button"
+                                            className="ml-auto shrink-0"
+                                            onClick={() => setAgregarOpen(true)}
+                                            data-test="historial-agregar-historico"
+                                        >
+                                            <Plus className="h-4 w-4" /> Agregar
+                                            historial
+                                        </Button>
+                                    ) : null}
                                 </div>
                                 {periodo === 'PERSONALIZADO' ? (
-                                    <>
+                                    <div className="grid grid-cols-2 gap-3 sm:flex">
                                         <div className="grid gap-1.5">
                                             <Label htmlFor="historial-desde">
                                                 Desde
@@ -347,7 +407,7 @@ export default function HistorialEquipoModal({
                                             <Input
                                                 id="historial-desde"
                                                 type="date"
-                                                className="w-40"
+                                                className="w-full sm:w-40"
                                                 value={personalizado.desde}
                                                 max={
                                                     personalizado.hasta ||
@@ -371,7 +431,7 @@ export default function HistorialEquipoModal({
                                             <Input
                                                 id="historial-hasta"
                                                 type="date"
-                                                className="w-40"
+                                                className="w-full sm:w-40"
                                                 value={personalizado.hasta}
                                                 min={
                                                     personalizado.desde ||
@@ -388,29 +448,50 @@ export default function HistorialEquipoModal({
                                                 }
                                             />
                                         </div>
-                                    </>
+                                    </div>
                                 ) : null}
                             </div>
-                            <Tabs defaultValue="ingresos">
-                                <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-5">
-                                    <TabsTrigger value="ingresos">
-                                        Ingresos ({filtrados.ingresos.length})
-                                    </TabsTrigger>
-                                    <TabsTrigger value="mantenimientos">
-                                        Mantenimientos (
-                                        {filtrados.mantenimientos.length})
-                                    </TabsTrigger>
-                                    <TabsTrigger value="calibraciones">
-                                        Calibraciones (
-                                        {filtrados.calibraciones.length})
-                                    </TabsTrigger>
-                                    <TabsTrigger value="despachos">
-                                        Despachos ({filtrados.despachos.length})
-                                    </TabsTrigger>
-                                    <TabsTrigger value="terceros">
-                                        Terceros (
-                                        {filtrados.servicios_terceros.length})
-                                    </TabsTrigger>
+                            <Tabs value={pestana} onValueChange={setPestana}>
+                                {/* En el celular las secciones no caben como pestañas: se elige en un desplegable. */}
+                                <div className="grid gap-1.5 sm:hidden">
+                                    <Label htmlFor="historial-seccion">
+                                        Sección
+                                    </Label>
+                                    <Select
+                                        value={pestana}
+                                        onValueChange={setPestana}
+                                    >
+                                        <SelectTrigger
+                                            id="historial-seccion"
+                                            className="w-full"
+                                            data-test="historial-seccion"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {secciones.map((seccion) => (
+                                                <SelectItem
+                                                    key={seccion.value}
+                                                    value={seccion.value}
+                                                >
+                                                    {seccion.etiqueta} (
+                                                    {seccion.cantidad})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <TabsList className="hidden h-auto w-full justify-start overflow-x-auto sm:flex">
+                                    {secciones.map((seccion) => (
+                                        <TabsTrigger
+                                            key={seccion.value}
+                                            value={seccion.value}
+                                            className="shrink-0"
+                                        >
+                                            {seccion.etiqueta} (
+                                            {seccion.cantidad})
+                                        </TabsTrigger>
+                                    ))}
                                 </TabsList>
 
                                 <TabsContent value="ingresos" className="pt-2">
@@ -728,6 +809,60 @@ export default function HistorialEquipoModal({
                                         )}
                                     </Lista>
                                 </TabsContent>
+
+                                <TabsContent value="historico" className="pt-2">
+                                    <Lista vacio="El equipo no tiene servicios históricos importados.">
+                                        {filtrados.historicos.map(
+                                            (historico) => (
+                                                <Tarjeta
+                                                    key={historico.id}
+                                                    titulo={`${historico.tipo_servicio === 'MANTENIMIENTO' ? 'Mantenimiento' : 'Calibración'} · ${historico.fecha_servicio}`}
+                                                    badge={
+                                                        <Badge variant="secondary">
+                                                            {historico.es_tercero
+                                                                ? 'Tercero'
+                                                                : 'Propio'}
+                                                        </Badge>
+                                                    }
+                                                    acciones={
+                                                        historico.adjunto_url ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                asChild
+                                                            >
+                                                                <a
+                                                                    href={
+                                                                        historico.adjunto_url
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    data-test="historico-adjunto"
+                                                                >
+                                                                    <Paperclip className="h-4 w-4" />{' '}
+                                                                    Adjunto
+                                                                </a>
+                                                            </Button>
+                                                        ) : null
+                                                    }
+                                                >
+                                                    <Dato
+                                                        label="Laboratorio"
+                                                        value={
+                                                            historico.nombre_laboratorio
+                                                        }
+                                                    />
+                                                    <Dato
+                                                        label="Archivo"
+                                                        value={
+                                                            historico.adjunto_nombre
+                                                        }
+                                                    />
+                                                </Tarjeta>
+                                            ),
+                                        )}
+                                    </Lista>
+                                </TabsContent>
                             </Tabs>
                         </div>
                     )}
@@ -774,6 +909,32 @@ export default function HistorialEquipoModal({
                 open={abiertoSi('servicio_tercero')}
                 onOpenChange={setDetalleOpen}
             />
+            {equipo ? (
+                <AgregarHistoricoModal
+                    equipo={equipo}
+                    open={agregarOpen}
+                    onOpenChange={setAgregarOpen}
+                    onAgregado={(historico) => {
+                        // Se inserta en su lugar (del más reciente al más antiguo) y se muestra.
+                        setDatos((actuales) =>
+                            actuales
+                                ? {
+                                      ...actuales,
+                                      historicos: [
+                                          ...actuales.historicos,
+                                          historico,
+                                      ].sort((a, b) =>
+                                          b.fecha_servicio.localeCompare(
+                                              a.fecha_servicio,
+                                          ),
+                                      ),
+                                  }
+                                : actuales,
+                        );
+                        setPestana('historico');
+                    }}
+                />
+            ) : null}
         </>
     );
 }

@@ -6,7 +6,11 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
 use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Catalogos\Models\Fabricante;
 use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Equipos\Models\Equipo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
@@ -80,6 +84,28 @@ function usuarioConPermisos(Tenant $tenant, array $permisos): User
     $usuario->givePermissionTo(array_map(fn (TenantPermission $permiso) => $permiso->value, $permisos));
 
     return $usuario;
+}
+
+/**
+ * Equipo del tenant con ese código, con su propio tipo, área, bahía, fabricante y cliente.
+ */
+function crearEquipo(Tenant $tenant, string $codigo = 'EQ-0001'): Equipo
+{
+    $area = Area::create(['nombre' => "Área {$codigo}", 'tenant_id' => $tenant->id]);
+
+    return Equipo::create([
+        'codigo' => $codigo,
+        'tipo_equipo_id' => crearTipoEquipo($tenant, "Tipo {$codigo}")->id,
+        'tipo_tecnologia' => 'DIGITAL',
+        'modelo' => 'Modelo X',
+        'fabricante_id' => Fabricante::create(['nombre' => "Fabricante {$codigo}", 'tenant_id' => $tenant->id])->id,
+        'numero_serie' => "SN-{$codigo}",
+        'area_id' => $area->id,
+        'bahia_id' => Bahia::create(['nombre' => 'Bahía 1', 'area_id' => $area->id, 'tenant_id' => $tenant->id])->id,
+        'condicion_actual' => 'Bueno',
+        'cliente_id' => Cliente::create(['nombre' => "Cliente {$codigo}", 'email' => strtolower($codigo).'@cliente.test', 'tenant_id' => $tenant->id])->id,
+        'tenant_id' => $tenant->id,
+    ]);
 }
 
 function crearArea(Tenant $tenant, string $nombre = 'Laboratorio de presión'): Area

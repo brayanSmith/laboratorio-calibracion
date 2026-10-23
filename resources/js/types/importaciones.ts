@@ -9,7 +9,8 @@ export type TipoImportacion =
     | 'bahias'
     | 'empresas-terceras'
     | 'tipos-equipo'
-    | 'checklist-mantenimiento';
+    | 'checklist-mantenimiento'
+    | 'equipo-historicos';
 
 export type EstadoImportacion =
     | 'PENDIENTE'
@@ -37,6 +38,15 @@ export type ArchivoImportacion = {
     vista_previa: string[][];
     campos: CampoImportacion[];
     sugerencias: Record<string, number | null>;
+    /** Si el tipo acepta una carpeta de adjuntos (las filas los nombran), sus límites; si no, null. */
+    adjuntos: ConfiguracionAdjuntos | null;
+};
+
+/** Cómo se suben los adjuntos de una importación (ver SubirAdjuntosImportacionRequest). */
+export type ConfiguracionAdjuntos = {
+    extensiones: string[];
+    archivos_por_tanda: number;
+    tamanio_maximo_kb: number;
 };
 
 export type ResumenImportacion = {

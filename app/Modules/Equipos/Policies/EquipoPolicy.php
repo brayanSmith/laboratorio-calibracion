@@ -35,6 +35,15 @@ class EquipoPolicy
     }
 
     /**
+     * Determine whether the user can add a servicio histórico to the model by hand.
+     */
+    public function agregarHistorico(User $user, Equipo $equipo): bool
+    {
+        return $user->tenant_id === $equipo->tenant_id
+            && $user->can(TenantPermission::EquiposHistoricoAgregar->value);
+    }
+
+    /**
      * Determine whether the user can create models.
      */
     public function create(User $user): bool

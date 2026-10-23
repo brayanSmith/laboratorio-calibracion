@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $delimitador
  * @property string $codificacion
  * @property array<string, int> $mapeo campo del sistema => índice de la columna del CSV
+ * @property string|null $lote_adjuntos Lote de archivos subidos junto al CSV (ver carpetaAdjuntos())
  * @property string $estado
  * @property int $total_filas
  * @property int $filas_procesadas
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property-read Tenant $tenant
  */
 #[Fillable([
-    'tipo', 'archivo', 'nombre_original', 'delimitador', 'codificacion', 'mapeo', 'estado',
+    'tipo', 'archivo', 'nombre_original', 'delimitador', 'codificacion', 'mapeo', 'lote_adjuntos', 'estado',
     'total_filas', 'filas_procesadas', 'filas_creadas', 'filas_con_error', 'errores',
     'leida_en', 'user_id', 'tenant_id',
 ])]
@@ -66,6 +67,22 @@ class Importacion extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Carpeta (disco por defecto) donde se guardan los archivos de un lote de adjuntos.
+     */
+    public static function carpetaDeLote(int $tenantId, string $lote): string
+    {
+        return "importaciones/{$tenantId}/adjuntos/{$lote}";
+    }
+
+    /**
+     * Carpeta con los adjuntos subidos junto al CSV, o null si no se subieron.
+     */
+    public function carpetaAdjuntos(): ?string
+    {
+        return $this->lote_adjuntos === null ? null : self::carpetaDeLote($this->tenant_id, $this->lote_adjuntos);
     }
 
     /**

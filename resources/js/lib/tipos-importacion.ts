@@ -12,6 +12,11 @@ export const tiposImportacion: {
     ruta: string;
 }[] = [
     { value: 'equipos', label: 'Equipos', ruta: '/equipos' },
+    {
+        value: 'equipo-historicos',
+        label: 'Histórico de equipos',
+        ruta: '/equipos',
+    },
     { value: 'areas', label: 'Áreas', ruta: '/areas' },
     { value: 'bahias', label: 'Bahías', ruta: '/bahias' },
     {

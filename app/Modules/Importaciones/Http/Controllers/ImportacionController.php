@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Importaciones\Http\Requests\LeerEncabezadosImportacionRequest;
 use App\Modules\Importaciones\Http\Requests\MarcarImportacionLeidaRequest;
 use App\Modules\Importaciones\Http\Requests\StoreImportacionRequest;
+use App\Modules\Importaciones\Http\Requests\SubirAdjuntosImportacionRequest;
 use App\Modules\Importaciones\Jobs\ProcesarImportacion;
 use App\Modules\Importaciones\Models\Importacion;
 use App\Modules\Importaciones\Support\LectorCsv;
@@ -88,7 +89,28 @@ class ImportacionController extends Controller
             'vista_previa' => $lector->filas()->take(3)->values()->all(),
             'campos' => $importador::campos(),
             'sugerencias' => $importador::sugerirMapeo($encabezados),
+            'adjuntos' => $importador::aceptaAdjuntos() ? [
+                'extensiones' => SubirAdjuntosImportacionRequest::EXTENSIONES,
+                'archivos_por_tanda' => SubirAdjuntosImportacionRequest::ARCHIVOS_POR_TANDA,
+                'tamanio_maximo_kb' => SubirAdjuntosImportacionRequest::TAMANIO_MAXIMO_KB,
+            ] : null,
         ]);
+    }
+
+    /**
+     * Guarda una tanda de los archivos de la carpeta de adjuntos que se eligió junto al CSV.
+     * El navegador sube la carpeta en varias tandas con el mismo lote; luego la importación
+     * busca en el lote el archivo que nombra cada fila.
+     */
+    public function adjuntos(SubirAdjuntosImportacionRequest $request): JsonResponse
+    {
+        $carpeta = Importacion::carpetaDeLote($request->user()->tenant_id, $request->validated('lote'));
+
+        foreach ($request->file('adjuntos') as $adjunto) {
+            $adjunto->storeAs($carpeta, basename(str_replace('\\', '/', $adjunto->getClientOriginalName())));
+        }
+
+        return response()->json(['subidos' => count($request->file('adjuntos'))]);
     }
 
     /**
@@ -119,6 +141,7 @@ class ImportacionController extends Controller
             'delimitador' => $lector->delimitador(),
             'codificacion' => $lector->codificacion(),
             'mapeo' => array_map(intval(...), array_filter($request->validated('mapeo'), fn (mixed $indice): bool => $indice !== null)),
+            'lote_adjuntos' => $request->validated('lote_adjuntos'),
             'estado' => Importacion::ESTADO_PENDIENTE,
             'user_id' => $request->user()->id,
             'tenant_id' => $request->user()->tenant_id,
@@ -202,6 +225,22 @@ class ImportacionController extends Controller
         foreach (Storage::disk()->files($carpeta) as $archivo) {
             if (! in_array($archivo, $enUso, true) && Storage::disk()->lastModified($archivo) < $limite) {
                 Storage::disk()->delete($archivo);
+            }
+        }
+
+        // Lotes de adjuntos de importaciones que nunca se iniciaron (las iniciadas los borran al terminar).
+        $lotesEnUso = Importacion::query()
+            ->whereIn('estado', [Importacion::ESTADO_PENDIENTE, Importacion::ESTADO_PROCESANDO])
+            ->whereNotNull('lote_adjuntos')
+            ->pluck('lote_adjuntos')
+            ->all();
+
+        foreach (Storage::disk()->directories("{$carpeta}/adjuntos") as $lote) {
+            $archivos = Storage::disk()->files($lote);
+            $ultimoCambio = $archivos === [] ? 0 : max(array_map(Storage::disk()->lastModified(...), $archivos));
+
+            if (! in_array(basename($lote), $lotesEnUso, true) && $ultimoCambio < $limite) {
+                Storage::disk()->deleteDirectory($lote);
             }
         }
     }

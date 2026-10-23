@@ -46,6 +46,11 @@ class StoreImportacionRequest extends FormRequest
             $reglas["mapeo.{$clave}"] = ['required', 'integer', 'min:0'];
         }
 
+        // Lote con el que se subió la carpeta de adjuntos (ver ImportacionController::adjuntos()).
+        $reglas['lote_adjuntos'] = $importador::aceptaAdjuntos()
+            ? ['nullable', 'string', 'regex:/^[A-Za-z0-9]{40}$/']
+            : ['prohibited'];
+
         return $reglas;
     }
 

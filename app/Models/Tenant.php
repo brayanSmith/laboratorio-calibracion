@@ -20,6 +20,7 @@ use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\DocumentoEquipo;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
+use App\Modules\Equipos\Models\EquipoHistorico;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\Inventario\Models\Item;
@@ -72,6 +73,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, EquipoEspecificacionTecnica> $equiposEspecificacionesTecnicas
  * @property-read Collection<int, EquipoProgramacion> $equiposProgramaciones
  * @property-read Collection<int, DocumentoEquipo> $documentosEquipo
+ * @property-read Collection<int, EquipoHistorico> $equipoHistoricos
  * @property-read Collection<int, Ingreso> $ingresos
  * @property-read Collection<int, Novedad> $novedades
  * @property-read Collection<int, OrdenTrabajo> $ordenesTrabajo
@@ -269,6 +271,14 @@ class Tenant extends Model
     public function documentosEquipo(): HasMany
     {
         return $this->hasMany(DocumentoEquipo::class);
+    }
+
+    /**
+     * @return HasMany<EquipoHistorico, $this>
+     */
+    public function equipoHistoricos(): HasMany
+    {
+        return $this->hasMany(EquipoHistorico::class);
     }
 
     /**

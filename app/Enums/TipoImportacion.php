@@ -10,6 +10,7 @@ use App\Modules\Importaciones\Actions\ImportarFilaChecklistMantenimiento;
 use App\Modules\Importaciones\Actions\ImportarFilaCliente;
 use App\Modules\Importaciones\Actions\ImportarFilaEmpresaTercero;
 use App\Modules\Importaciones\Actions\ImportarFilaEquipo;
+use App\Modules\Importaciones\Actions\ImportarFilaEquipoHistorico;
 use App\Modules\Importaciones\Actions\ImportarFilaFabricante;
 use App\Modules\Importaciones\Actions\ImportarFilaItem;
 use App\Modules\Importaciones\Actions\ImportarFilaNovedad;
@@ -33,6 +34,7 @@ enum TipoImportacion: string
     case EmpresasTerceras = 'empresas-terceras';
     case TiposEquipo = 'tipos-equipo';
     case ChecklistMantenimiento = 'checklist-mantenimiento';
+    case EquipoHistoricos = 'equipo-historicos';
 
     /**
      * Nombre en plural, para los títulos y los avisos.
@@ -51,6 +53,7 @@ enum TipoImportacion: string
             self::EmpresasTerceras => 'Laboratorios terceros',
             self::TiposEquipo => 'Tipos de equipo',
             self::ChecklistMantenimiento => 'Checklist de mantenimiento',
+            self::EquipoHistoricos => 'Histórico de equipos',
         };
     }
 
@@ -71,6 +74,7 @@ enum TipoImportacion: string
             self::EmpresasTerceras => ImportarFilaEmpresaTercero::class,
             self::TiposEquipo => ImportarFilaTipoEquipo::class,
             self::ChecklistMantenimiento => ImportarFilaChecklistMantenimiento::class,
+            self::EquipoHistoricos => ImportarFilaEquipoHistorico::class,
         };
     }
 

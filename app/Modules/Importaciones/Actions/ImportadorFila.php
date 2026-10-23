@@ -2,7 +2,9 @@
 
 namespace App\Modules\Importaciones\Actions;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +22,33 @@ abstract class ImportadorFila
     /** @var array<class-string<Model>, array<string, int>> modelo => nombre normalizado => id */
     private array $ids = [];
 
+    /** Carpeta (disco por defecto) con los archivos subidos junto al CSV, si el tipo los acepta. */
+    protected ?string $carpetaAdjuntos = null;
+
+    /** @var array<string, string>|null nombre de archivo normalizado => ruta, en la carpeta de adjuntos */
+    private ?array $adjuntos = null;
+
     public function __construct(protected readonly int $tenantId) {}
+
+    /**
+     * Si al importar este tipo se puede subir una carpeta de archivos que las filas
+     * referencian por su nombre (ver archivoAdjunto()).
+     */
+    public static function aceptaAdjuntos(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Usa los archivos de esta carpeta como los adjuntos de la importación.
+     */
+    public function conAdjuntos(?string $carpeta): static
+    {
+        $this->carpetaAdjuntos = $carpeta;
+        $this->adjuntos = null;
+
+        return $this;
+    }
 
     /**
      * Campos disponibles en el orden en que se muestran en la modal de relacionar columnas.
@@ -235,5 +263,73 @@ abstract class ImportadorFila
 
         return $this->ids[$modelo][self::clave($nombre)]
             ?? throw ValidationException::withMessages([$campo => $mensaje]);
+    }
+
+    /**
+     * Ruta (disco por defecto) del archivo subido con ese nombre, sin importar mayúsculas ni
+     * tildes. Se busca solo por el nombre: las subcarpetas de la carpeta elegida no cuentan.
+     *
+     * @throws ValidationException si no se subió una carpeta o no está el archivo
+     */
+    protected function archivoAdjunto(string $nombre, string $campo): string
+    {
+        if ($this->carpetaAdjuntos === null) {
+            throw ValidationException::withMessages([
+                $campo => "La fila indica el adjunto {$nombre}, pero no se seleccionó la carpeta de adjuntos.",
+            ]);
+        }
+
+        if ($this->adjuntos === null) {
+            $this->adjuntos = [];
+
+            foreach (Storage::disk()->files($this->carpetaAdjuntos) as $ruta) {
+                $this->adjuntos[self::clave(basename($ruta))] ??= $ruta;
+            }
+        }
+
+        return $this->adjuntos[self::clave(basename(str_replace('\\', '/', $nombre)))]
+            ?? throw ValidationException::withMessages([
+                $campo => "No se encontró el archivo {$nombre} en la carpeta de adjuntos.",
+            ]);
+    }
+
+    /**
+     * Interpreta "Sí/No", "1/0", "true/false" y "x"; cualquier otro texto se deja tal cual
+     * para que la validación lo reporte.
+     */
+    protected function booleano(string $valor): bool|string
+    {
+        return match (Str::lower(Str::ascii($valor))) {
+            'si', 's', 'yes', 'y', '1', 'true', 'verdadero', 'x' => true,
+            'no', 'n', '0', 'false', 'falso' => false,
+            default => $valor,
+        };
+    }
+
+    /**
+     * Convierte la fecha a "AAAA-MM-DD". Acepta cómo suele exportarla Excel: día primero
+     * ("15/06/2025", "5/6/2025", "15-06-25", "15.06.2025"), año primero ("2025-06-15"), con
+     * hora al final ("15/06/2025 0:00") o como número de serie de Excel ("45823"). Si no se
+     * reconoce o no existe (ej. 31/02), se deja tal cual para que la validación la reporte.
+     */
+    protected function fecha(string $valor): string
+    {
+        $fecha = trim((string) preg_replace('/\s+\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?\s?m\.?)?$/iu', '', trim($valor)));
+
+        if (preg_match('/^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})$/', $fecha, $partes) === 1) {
+            [, $anio, $mes, $dia] = $partes;
+        } elseif (preg_match('/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/', $fecha, $partes) === 1) {
+            [, $dia, $mes, $anio] = $partes;
+            $anio = strlen($anio) === 2 ? "20{$anio}" : $anio;
+        } elseif (preg_match('/^\d{5}$/', $fecha) === 1) {
+            // Excel cuenta los días desde el 30/12/1899.
+            return CarbonImmutable::create(1899, 12, 30)->addDays((int) $fecha)->format('Y-m-d');
+        } else {
+            return $valor;
+        }
+
+        return checkdate((int) $mes, (int) $dia, (int) $anio)
+            ? sprintf('%04d-%02d-%02d', $anio, $mes, $dia)
+            : $valor;
     }
 }

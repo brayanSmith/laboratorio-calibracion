@@ -1,5 +1,5 @@
 import { useHttp } from '@inertiajs/react';
-import { Eye, Mail, MailOpen } from 'lucide-react';
+import { Eye, Mail, MailOpen, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { historial } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
 import CargandoContenido from '@/components/cargando-contenido';
@@ -135,6 +135,7 @@ export default function HistorialImportaciones() {
         ResumenImportacion[] | null
     >(null);
     const [detalleId, setDetalleId] = useState<number | null>(null);
+    const [actualizando, setActualizando] = useState(false);
     const marcarLeida = useMarcarImportacionLeida();
     const { get } = useHttp<
         Record<string, never>,
@@ -151,6 +152,12 @@ export default function HistorialImportaciones() {
         // Solo al abrir la pestaña.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    /** Vuelve a pedir la lista a mano, por si un resultado aún no aparece. */
+    const actualizar = () => {
+        setActualizando(true);
+        void cargar().finally(() => setActualizando(false));
+    };
 
     const hayEnCurso = importaciones?.some(importacionEnCurso) ?? false;
 
@@ -197,11 +204,30 @@ export default function HistorialImportaciones() {
         return <CargandoContenido mensaje="Cargando importaciones..." />;
     }
 
+    const botonActualizar = (
+        <div className="flex justify-end">
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={actualizar}
+                loading={actualizando}
+                data-test="historial-actualizar"
+            >
+                {!actualizando && <RefreshCw />}
+                Actualizar
+            </Button>
+        </div>
+    );
+
     if (importaciones.length === 0) {
         return (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-                Todavía no has importado datos.
-            </p>
+            <>
+                {botonActualizar}
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                    Todavía no has importado datos.
+                </p>
+            </>
         );
     }
 
@@ -211,6 +237,7 @@ export default function HistorialImportaciones() {
 
     return (
         <>
+            {botonActualizar}
             <div
                 className="max-h-[50vh] space-y-2 overflow-y-auto"
                 data-test="historial-importaciones"

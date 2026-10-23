@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\EquipoHistorico;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -133,4 +134,30 @@ test('el historial solo incluye los servicios de terceros del tipo que el usuari
     $this->actingAs($usuario)
         ->getJson(route('equipos.historial', $programacion->equipo_id))
         ->assertJsonCount(1, 'servicios_terceros');
+});
+
+test('el historial incluye los servicios historicos importados del equipo, del mas reciente al mas antiguo', function () {
+    $programacion = crearEquipoRecibido($this->bahia, 'EQ-HISTORIAL');
+    EquipoHistorico::factory()->for($programacion->equipo)->create(['fecha_servicio' => '2022-03-01', 'tipo_servicio' => 'MANTENIMIENTO']);
+    EquipoHistorico::factory()->for($programacion->equipo)->create([
+        'fecha_servicio' => '2024-06-15',
+        'tipo_servicio' => 'CALIBRACION',
+        'nombre_laboratorio' => 'SEIMET',
+        'es_tercero' => true,
+        'adjunto' => 'historicos/1/1/abcd1234-certificado.pdf',
+    ]);
+    EquipoHistorico::factory()->for(crearEquipoRecibido($this->bahia, 'EQ-OTRO')->equipo)->create();
+
+    $this->actingAs($this->admin)
+        ->getJson(route('equipos.historial', $programacion->equipo_id))
+        ->assertOk()
+        ->assertJsonCount(2, 'historicos')
+        ->assertJsonPath('historicos.0.fecha_servicio', '2024-06-15')
+        ->assertJsonPath('historicos.0.tipo_servicio', 'CALIBRACION')
+        ->assertJsonPath('historicos.0.nombre_laboratorio', 'SEIMET')
+        ->assertJsonPath('historicos.0.es_tercero', true)
+        ->assertJsonPath('historicos.0.adjunto_nombre', 'certificado.pdf')
+        ->assertJsonPath('historicos.0.adjunto_url', '/storage/historicos/1/1/abcd1234-certificado.pdf')
+        ->assertJsonPath('historicos.1.fecha_servicio', '2022-03-01')
+        ->assertJsonPath('historicos.1.adjunto_url', null);
 });
