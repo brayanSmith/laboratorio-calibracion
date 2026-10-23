@@ -4,6 +4,7 @@ import {
     encabezados,
     plantilla,
 } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
+import Combobox from '@/components/combobox';
 import HistorialImportaciones from '@/components/importaciones/historial-importaciones';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -18,13 +19,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
 import { permisoImportacion, tiposImportacion } from '@/lib/tipos-importacion';
@@ -110,30 +104,19 @@ export default function SubirCsvModal({ open, onOpenChange, onLeido }: Props) {
                             <Label htmlFor="tipo-importacion">
                                 ¿Qué quieres importar?
                             </Label>
-                            <Select
+                            <Combobox
+                                id="tipo-importacion"
                                 value={data.tipo}
                                 onValueChange={(valor) =>
                                     setData('tipo', valor as TipoImportacion)
                                 }
-                            >
-                                <SelectTrigger
-                                    id="tipo-importacion"
-                                    className="w-full"
-                                    data-test="importar-tipo"
-                                >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {tiposPermitidos.map((tipo) => (
-                                        <SelectItem
-                                            key={tipo.value}
-                                            value={tipo.value}
-                                        >
-                                            {tipo.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                options={tiposPermitidos.map((tipo) => ({
+                                    id: tipo.value,
+                                    label: tipo.label,
+                                }))}
+                                placeholder="Selecciona qué importar"
+                                searchPlaceholder="Buscar qué importar..."
+                            />
                             <InputError message={errors.tipo} />
                         </div>
 
