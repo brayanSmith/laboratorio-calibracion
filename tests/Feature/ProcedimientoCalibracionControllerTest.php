@@ -19,7 +19,6 @@ function registrarCalibracionConProcedimiento(ProcedimientoCalibracion $procedim
     return Calibracion::create([
         'orden_trabajo_id' => 1,
         'fecha_calibracion' => now()->toDateString(),
-        'laboratorio_id' => 1,
         'solicitante_id' => 1,
         'tecnico_id' => 1,
         'procedimiento_id' => $procedimiento->id,

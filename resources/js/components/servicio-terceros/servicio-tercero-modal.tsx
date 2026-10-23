@@ -67,7 +67,7 @@ export default function ServicioTerceroModal({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="empresa_tercero_id">
-                                        Empresa tercera
+                                        Laboratorio tercero
                                     </Label>
                                     <Combobox
                                         id="empresa_tercero_id"
@@ -79,8 +79,8 @@ export default function ServicioTerceroModal({
                                                 label: empresa.nombre,
                                             }),
                                         )}
-                                        placeholder="Selecciona una empresa"
-                                        searchPlaceholder="Buscar empresa..."
+                                        placeholder="Selecciona un laboratorio"
+                                        searchPlaceholder="Buscar laboratorio..."
                                     />
                                     <input
                                         type="hidden"

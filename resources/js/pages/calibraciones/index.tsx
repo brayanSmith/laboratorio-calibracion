@@ -57,7 +57,7 @@ export default function CalibracionesIndex({
     calibraciones,
     serviciosTerceros,
     empresasTerceras,
-    laboratorioPrincipal,
+    laboratorioPropio,
     procedimientos,
     novedadesCalibracion,
 }: Props) {
@@ -344,7 +344,7 @@ export default function CalibracionesIndex({
 
             <EditCalibracionModal
                 calibracion={editing}
-                laboratorioPrincipal={laboratorioPrincipal}
+                laboratorioPropio={laboratorioPropio}
                 procedimientos={procedimientos}
                 novedadesCalibracion={novedadesCalibracion}
                 iniciadoEn={iniciadoEn}

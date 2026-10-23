@@ -66,7 +66,7 @@ export default function VerServicioTerceroModal({
                     <Dato etiqueta="Orden de trabajo">
                         {servicio.orden_trabajo_codigo}
                     </Dato>
-                    <Dato etiqueta="Empresa tercera">
+                    <Dato etiqueta="Laboratorio tercero">
                         {servicio.empresa_tercero_nombre}
                     </Dato>
                     <Dato etiqueta="Estado final del equipo">

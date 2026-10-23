@@ -12,7 +12,6 @@ use App\Modules\Importaciones\Actions\ImportarFilaEmpresaTercero;
 use App\Modules\Importaciones\Actions\ImportarFilaEquipo;
 use App\Modules\Importaciones\Actions\ImportarFilaFabricante;
 use App\Modules\Importaciones\Actions\ImportarFilaItem;
-use App\Modules\Importaciones\Actions\ImportarFilaLaboratorio;
 use App\Modules\Importaciones\Actions\ImportarFilaNovedad;
 use App\Modules\Importaciones\Actions\ImportarFilaProcedimientoCalibracion;
 use App\Modules\Importaciones\Actions\ImportarFilaTipoEquipo;
@@ -29,7 +28,6 @@ enum TipoImportacion: string
     case Fabricantes = 'fabricantes';
     case ProcedimientosCalibracion = 'procedimientos-calibracion';
     case Novedades = 'novedades';
-    case Laboratorios = 'laboratorios';
     case Areas = 'areas';
     case Bahias = 'bahias';
     case EmpresasTerceras = 'empresas-terceras';
@@ -48,10 +46,9 @@ enum TipoImportacion: string
             self::Fabricantes => 'Fabricantes',
             self::ProcedimientosCalibracion => 'Procedimientos de calibración',
             self::Novedades => 'Novedades',
-            self::Laboratorios => 'Laboratorios',
             self::Areas => 'Áreas',
             self::Bahias => 'Bahías',
-            self::EmpresasTerceras => 'Empresas terceras',
+            self::EmpresasTerceras => 'Laboratorios terceros',
             self::TiposEquipo => 'Tipos de equipo',
             self::ChecklistMantenimiento => 'Checklist de mantenimiento',
         };
@@ -69,7 +66,6 @@ enum TipoImportacion: string
             self::Fabricantes => ImportarFilaFabricante::class,
             self::ProcedimientosCalibracion => ImportarFilaProcedimientoCalibracion::class,
             self::Novedades => ImportarFilaNovedad::class,
-            self::Laboratorios => ImportarFilaLaboratorio::class,
             self::Areas => ImportarFilaArea::class,
             self::Bahias => ImportarFilaBahia::class,
             self::EmpresasTerceras => ImportarFilaEmpresaTercero::class,

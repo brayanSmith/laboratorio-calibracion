@@ -15,7 +15,6 @@ use App\Modules\Agenda\Http\Controllers\AgendaController;
 use App\Modules\AlcancesMedicion\Http\Controllers\DetalleMedicionAlcanceController;
 use App\Modules\AlcancesMedicion\Http\Controllers\MedicionAlcanceController;
 use App\Modules\Calibraciones\Http\Controllers\CalibracionController;
-use App\Modules\Calibraciones\Http\Controllers\LaboratorioController;
 use App\Modules\Calibraciones\Http\Controllers\ProcedimientoCalibracionController;
 use App\Modules\Catalogos\Http\Controllers\AreaController;
 use App\Modules\Catalogos\Http\Controllers\BahiaController;
@@ -140,8 +139,6 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::get('items/{item}/movimientos', [ItemController::class, 'movimientos'])->name('items.movimientos');
     Route::post('items/{item}/entradas', [EntradaItemController::class, 'store'])->name('items.entradas.store');
     Route::patch('entradas-item/{entradaItem}/recibir', [EntradaItemController::class, 'recibir'])->name('entradas-item.recibir');
-
-    Route::resource('laboratorios', LaboratorioController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('empresas-terceras', EmpresaTerceroController::class)
         ->parameters(['empresas-terceras' => 'empresaTercero'])

@@ -24,7 +24,6 @@ return new class extends Migration
             'fabricantes.crear' => TenantPermission::ImportarFabricantes,
             'procedimientos-calibracion.crear' => TenantPermission::ImportarProcedimientosCalibracion,
             'novedades.crear' => TenantPermission::ImportarNovedades,
-            'laboratorios.crear' => TenantPermission::ImportarLaboratorios,
             'areas.crear' => TenantPermission::ImportarAreas,
             'bahias.crear' => TenantPermission::ImportarBahias,
             'empresas-terceras.crear' => TenantPermission::ImportarEmpresasTerceras,

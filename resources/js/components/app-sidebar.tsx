@@ -7,7 +7,6 @@ import {
     Contact,
     DoorOpen,
     Factory,
-    FlaskConical,
     Gauge,
     Handshake,
     Settings,
@@ -50,7 +49,6 @@ import { index as equiposIndex } from '@/routes/equipos';
 import { index as fabricantesIndex } from '@/routes/fabricantes';
 import { index as ingresosIndex } from '@/routes/ingresos';
 import { index as itemsIndex } from '@/routes/items';
-import { index as laboratoriosIndex } from '@/routes/laboratorios';
 import { index as mantenimientosIndex } from '@/routes/mantenimientos';
 import { dashboard as platformDashboard } from '@/routes/plataforma';
 import { edit as ajustesEdit } from '@/routes/plataforma/ajustes';
@@ -246,19 +244,10 @@ export function AppSidebar() {
                                 },
                             ]
                           : []),
-                      ...(can('laboratorios.ver')
-                          ? [
-                                {
-                                    title: 'Laboratorios',
-                                    href: laboratoriosIndex(),
-                                    icon: FlaskConical,
-                                },
-                            ]
-                          : []),
                       ...(can('empresas-terceras.ver')
                           ? [
                                 {
-                                    title: 'Empresas terceras',
+                                    title: 'Laboratorios terceros',
                                     href: empresasTercerasIndex(),
                                     icon: Handshake,
                                 },

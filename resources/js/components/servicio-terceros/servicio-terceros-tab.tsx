@@ -93,7 +93,7 @@ export default function ServicioTercerosTab({
                     cell: ({ row }) => row.original.cliente_nombre ?? '—',
                 }),
                 columnHelper.accessor('empresa_tercero_nombre', {
-                    header: 'Empresa tercera',
+                    header: 'Laboratorio tercero',
                 }),
                 columnHelper.accessor('estado_final_equipo', {
                     meta: {

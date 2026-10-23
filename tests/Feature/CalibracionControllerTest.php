@@ -2,13 +2,13 @@
 
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
+use App\Models\Empresa;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
 use App\Modules\Calibraciones\Actions\GraficoErrorCalibracion;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
-use App\Modules\Calibraciones\Models\Laboratorio;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\UnidadMedida;
@@ -507,39 +507,51 @@ test('el solicitante es el area del equipo y no se puede cambiar', function () {
     expect($calibracion->refresh()->solicitante_id)->toBe($areaDelEquipo);
 });
 
-test('el laboratorio es el principal del tenant y no se puede cambiar', function () {
+/** Empresa del tenant con su laboratorio propio configurado. */
+function registrarLaboratorioPropio(Tenant $tenant, string $nombre = 'Laboratorio propio'): Empresa
+{
+    return Empresa::create([
+        'nit' => '20123456789',
+        'nombre' => 'Empresa',
+        'direccion' => 'Av. Principal 123',
+        'telefono' => '01 555 1234',
+        'laboratorio_nombre' => $nombre,
+        'tenant_id' => $tenant->id,
+    ]);
+}
+
+test('el lugar de calibracion es el laboratorio propio de la empresa y no se puede cambiar', function () {
     $calibracion = crearCalibracion($this->bahia);
-    $principal = Laboratorio::factory()->for($this->tenant)->create(['principal' => true]);
-    $otro = Laboratorio::factory()->for($this->tenant)->create();
+    registrarLaboratorioPropio($this->tenant, 'Laboratorio La Joya');
 
     $this->actingAs($this->admin)
-        ->put(route('calibraciones.update', $calibracion), ['laboratorio_id' => $otro->id, 'temperatura' => 20, 'humedad' => 50])
+        ->put(route('calibraciones.update', $calibracion), ['lugar_calibracion' => 'Otro', 'temperatura' => 20, 'humedad' => 50])
         ->assertSessionHasNoErrors();
 
-    expect($calibracion->refresh()->laboratorio_id)->toBe($principal->id);
+    expect($calibracion->refresh()->lugar_calibracion)->toBe('Laboratorio La Joya');
 });
 
-test('sin laboratorio principal la calibracion conserva su laboratorio', function () {
+test('sin laboratorio propio la calibracion conserva su lugar de calibracion', function () {
     $calibracion = crearCalibracion($this->bahia);
+    $calibracion->update(['lugar_calibracion' => 'Laboratorio anterior']);
 
     $this->actingAs($this->admin)
         ->put(route('calibraciones.update', $calibracion), ['temperatura' => 20, 'humedad' => 50])
         ->assertSessionHasNoErrors();
 
-    expect($calibracion->refresh()->laboratorio_id)->toBeNull();
+    expect($calibracion->refresh()->lugar_calibracion)->toBe('Laboratorio anterior');
 });
 
-test('el listado de calibraciones incluye el area del equipo y el laboratorio principal', function () {
+test('el listado de calibraciones incluye el area del equipo y el laboratorio propio', function () {
     $calibracion = crearCalibracion($this->bahia);
     $calibracion->ordenTrabajo->equipoProgramacion->equipo->area->update(['nombre' => 'CRC', 'descripcion' => 'Centro de Reparación de Componentes']);
-    $principal = Laboratorio::factory()->for($this->tenant)->create(['principal' => true]);
+    registrarLaboratorioPropio($this->tenant, 'Laboratorio La Joya');
 
     $this->actingAs($this->admin)
         ->get(route('calibraciones.index'))
         ->assertInertia(fn ($page) => $page
             ->where('calibraciones.0.equipo.area.etiqueta', 'CRC - Centro de Reparación de Componentes')
-            ->where('laboratorioPrincipal.id', $principal->id)
-            ->where('laboratorioPrincipal.nombre', $principal->nombre));
+            ->where('laboratorioPropio', 'Laboratorio La Joya'));
 });
 
 test('un tecnico con permiso de editar calibraciones puede verlas y actualizarlas, pero no eliminarlas', function () {

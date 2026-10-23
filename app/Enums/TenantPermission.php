@@ -102,11 +102,6 @@ enum TenantPermission: string
     case EmpresasTercerasEditar = 'empresas-terceras.editar';
     case EmpresasTercerasEliminar = 'empresas-terceras.eliminar';
 
-    case LaboratoriosVer = 'laboratorios.ver';
-    case LaboratoriosCrear = 'laboratorios.crear';
-    case LaboratoriosEditar = 'laboratorios.editar';
-    case LaboratoriosEliminar = 'laboratorios.eliminar';
-
     case ProcedimientosCalibracionVer = 'procedimientos-calibracion.ver';
     case ProcedimientosCalibracionCrear = 'procedimientos-calibracion.crear';
     case ProcedimientosCalibracionEditar = 'procedimientos-calibracion.editar';
@@ -145,7 +140,6 @@ enum TenantPermission: string
     case ImportarFabricantes = 'importaciones.fabricantes';
     case ImportarProcedimientosCalibracion = 'importaciones.procedimientos-calibracion';
     case ImportarNovedades = 'importaciones.novedades';
-    case ImportarLaboratorios = 'importaciones.laboratorios';
     case ImportarAreas = 'importaciones.areas';
     case ImportarBahias = 'importaciones.bahias';
     case ImportarEmpresasTerceras = 'importaciones.empresas-terceras';
@@ -234,11 +228,7 @@ enum TenantPermission: string
             self::EmpresasTercerasVer,
             self::EmpresasTercerasCrear,
             self::EmpresasTercerasEditar,
-            self::EmpresasTercerasEliminar => 'Empresas terceras',
-            self::LaboratoriosVer,
-            self::LaboratoriosCrear,
-            self::LaboratoriosEditar,
-            self::LaboratoriosEliminar => 'Laboratorios',
+            self::EmpresasTercerasEliminar => 'Laboratorios terceros',
             self::ProcedimientosCalibracionVer,
             self::ProcedimientosCalibracionCrear,
             self::ProcedimientosCalibracionEditar,
@@ -269,7 +259,6 @@ enum TenantPermission: string
             self::ImportarFabricantes,
             self::ImportarProcedimientosCalibracion,
             self::ImportarNovedades,
-            self::ImportarLaboratorios,
             self::ImportarAreas,
             self::ImportarBahias,
             self::ImportarEmpresasTerceras,
@@ -392,14 +381,10 @@ enum TenantPermission: string
             self::ItemsRegistrarEntrada => 'Registrar entradas de ítems',
             self::ItemsVerEntradas => 'Ver entradas y salidas de ítems',
             self::ItemsRecibirEntradas => 'Recibir entradas pendientes de ítems',
-            self::EmpresasTercerasVer => 'Ver empresas terceras',
-            self::EmpresasTercerasCrear => 'Crear empresas terceras',
-            self::EmpresasTercerasEditar => 'Editar empresas terceras',
-            self::EmpresasTercerasEliminar => 'Eliminar empresas terceras',
-            self::LaboratoriosVer => 'Ver laboratorios',
-            self::LaboratoriosCrear => 'Crear laboratorios',
-            self::LaboratoriosEditar => 'Editar laboratorios',
-            self::LaboratoriosEliminar => 'Eliminar laboratorios',
+            self::EmpresasTercerasVer => 'Ver laboratorios terceros',
+            self::EmpresasTercerasCrear => 'Crear laboratorios terceros',
+            self::EmpresasTercerasEditar => 'Editar laboratorios terceros',
+            self::EmpresasTercerasEliminar => 'Eliminar laboratorios terceros',
             self::ProcedimientosCalibracionVer => 'Ver procedimientos de calibración',
             self::ProcedimientosCalibracionCrear => 'Crear procedimientos de calibración',
             self::ProcedimientosCalibracionEditar => 'Editar procedimientos de calibración',
@@ -430,10 +415,9 @@ enum TenantPermission: string
             self::ImportarFabricantes => 'Importar fabricantes',
             self::ImportarProcedimientosCalibracion => 'Importar procedimientos de calibración',
             self::ImportarNovedades => 'Importar novedades',
-            self::ImportarLaboratorios => 'Importar laboratorios',
             self::ImportarAreas => 'Importar áreas',
             self::ImportarBahias => 'Importar bahías',
-            self::ImportarEmpresasTerceras => 'Importar empresas terceras',
+            self::ImportarEmpresasTerceras => 'Importar laboratorios terceros',
             self::ImportarTiposEquipo => 'Importar tipos de equipo',
             self::ImportarChecklistMantenimiento => 'Importar checklist de mantenimiento',
             self::RolesGestionar => 'Gestionar roles',

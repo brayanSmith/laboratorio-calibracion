@@ -12,7 +12,6 @@ export type * from './fabricantes';
 export type * from './importaciones';
 export type * from './ingresos';
 export type * from './items';
-export type * from './laboratorios';
 export type * from './mantenimientos';
 export type * from './novedades';
 export type * from './navigation';

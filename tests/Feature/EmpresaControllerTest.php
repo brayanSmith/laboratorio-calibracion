@@ -294,3 +294,32 @@ test('comparte los colores de la empresa con la interfaz', function () {
             ->where('empresa.color_tema', '#1d4ed8')
             ->where('empresa.color_nav', '#0f172a'));
 });
+
+test('guarda y muestra los datos del laboratorio propio de la empresa', function () {
+    registrarEmpresa($this->tenant);
+
+    $this->actingAs($this->admin)
+        ->put(route('empresa.update'), datosEmpresa([
+            'laboratorio_nombre' => 'Laboratorio La Joya',
+            'laboratorio_direccion' => 'Km 5 La Joya',
+            'laboratorio_email' => 'lab@empresa.pe',
+            'laboratorio_telefono' => '054 555 123',
+        ]))
+        ->assertRedirect(route('empresa.show'));
+
+    $this->actingAs($this->admin)
+        ->get(route('empresa.show'))
+        ->assertInertia(fn ($page) => $page
+            ->where('empresa.laboratorio_nombre', 'Laboratorio La Joya')
+            ->where('empresa.laboratorio_direccion', 'Km 5 La Joya')
+            ->where('empresa.laboratorio_email', 'lab@empresa.pe')
+            ->where('empresa.laboratorio_telefono', '054 555 123'));
+});
+
+test('el correo del laboratorio propio debe ser valido', function () {
+    registrarEmpresa($this->tenant);
+
+    $this->actingAs($this->admin)
+        ->put(route('empresa.update'), datosEmpresa(['laboratorio_email' => 'no-es-correo']))
+        ->assertSessionHasErrors('laboratorio_email');
+});

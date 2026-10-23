@@ -22,12 +22,11 @@ export const tiposImportacion: {
     { value: 'clientes', label: 'Clientes', ruta: '/clientes' },
     {
         value: 'empresas-terceras',
-        label: 'Empresas terceras',
+        label: 'Laboratorios terceros',
         ruta: '/empresas-terceras',
     },
     { value: 'fabricantes', label: 'Fabricantes', ruta: '/fabricantes' },
     { value: 'items', label: 'Ítems', ruta: '/items' },
-    { value: 'laboratorios', label: 'Laboratorios', ruta: '/laboratorios' },
     { value: 'novedades', label: 'Novedades', ruta: '/novedades' },
     {
         value: 'procedimientos-calibracion',

@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\Storage;
  * @property string $nombre
  * @property string $direccion
  * @property string $telefono
+ * @property string|null $laboratorio_nombre Laboratorio propio: el lugar de las calibraciones locales
+ * @property string|null $laboratorio_direccion
+ * @property string|null $laboratorio_email
+ * @property string|null $laboratorio_telefono
  * @property string|null $logo
  * @property string|null $color_tema
  * @property string|null $color_nav
@@ -24,10 +28,22 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['nit', 'nombre', 'direccion', 'telefono', 'logo', 'color_tema', 'color_nav', 'tenant_id'])]
+#[Fillable([
+    'nit', 'nombre', 'direccion', 'telefono',
+    'laboratorio_nombre', 'laboratorio_direccion', 'laboratorio_email', 'laboratorio_telefono',
+    'logo', 'color_tema', 'color_nav', 'tenant_id',
+])]
 class Empresa extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Get the name of the laboratorio propio of the tenant, where the calibraciones locales are done.
+     */
+    public static function laboratorioDelTenant(int $tenantId): ?string
+    {
+        return static::query()->where('tenant_id', $tenantId)->value('laboratorio_nombre');
+    }
 
     /**
      * Get the tenant this empresa belongs to.

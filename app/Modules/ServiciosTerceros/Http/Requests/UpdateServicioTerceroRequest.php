@@ -43,7 +43,7 @@ class UpdateServicioTerceroRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'empresa_tercero_id' => 'empresa tercera',
+            'empresa_tercero_id' => 'laboratorio tercero',
             'pdf_servicio' => 'documento del servicio',
         ];
     }

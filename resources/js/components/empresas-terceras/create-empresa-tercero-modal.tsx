@@ -33,7 +33,7 @@ export default function CreateEmpresaTerceroModal({
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Nueva empresa tercera</DialogTitle>
+                                <DialogTitle>Nuevo laboratorio tercero</DialogTitle>
                                 <DialogDescription>
                                     Registra una empresa que presta servicios
                                     externos
@@ -54,7 +54,7 @@ export default function CreateEmpresaTerceroModal({
                                     loading={processing}
                                     data-test="empresaTercero-create-submit"
                                 >
-                                    Guardar empresa tercera
+                                    Guardar laboratorio tercero
                                 </Button>
                             </DialogFooter>
                         </>

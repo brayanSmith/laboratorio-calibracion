@@ -52,7 +52,6 @@ export type Calibracion = {
     orden_trabajo_id: number;
     orden_trabajo_codigo: string;
     fecha_calibracion: string;
-    laboratorio_id: number | null;
     laboratorio_nombre: string | null;
     solicitante_id: number | null;
     solicitante_nombre: string | null;
@@ -86,8 +85,8 @@ export type Calibracion = {
 };
 
 export type CalibracionOptions = {
-    /** Laboratorio marcado como principal: es el de las calibraciones locales. */
-    laboratorioPrincipal: CalibracionOption | null;
+    /** Nombre del laboratorio propio (configurado en Empresa): el de las calibraciones locales. */
+    laboratorioPropio: string | null;
     procedimientos: CalibracionOption[];
     novedadesCalibracion: CalibracionOption[];
 };

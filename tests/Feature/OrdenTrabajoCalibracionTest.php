@@ -97,7 +97,7 @@ test('agenda calibracion con un tecnico propio y crea la calibracion con la nove
         ->tecnico_id->toBe($this->admin->id)
         ->novedad_id->toBe($this->novedadCalibracion->id)
         ->estado_calibracion->toBe('PENDIENTE')
-        ->laboratorio_id->toBeNull()
+        ->lugar_calibracion->toBeNull()
         ->solicitante_id->toBeNull()
         ->procedimiento_id->toBeNull();
 

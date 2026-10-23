@@ -10,7 +10,7 @@ import type { Calibracion, CalibracionOption } from '@/types';
 
 type Props = {
     calibracion: Calibracion;
-    laboratorioPrincipal: CalibracionOption | null;
+    laboratorioPropio: string | null;
     valoresInstrumento: ValoresInstrumento;
     onValorInstrumentoChange: (detalleId: number, valor: string) => void;
     procedimientos: CalibracionOption[];
@@ -46,7 +46,7 @@ function DatoDetalle({
 
 export default function CalibracionFormFields({
     calibracion,
-    laboratorioPrincipal,
+    laboratorioPropio,
     valoresInstrumento,
     onValorInstrumentoChange,
     procedimientos,
@@ -142,10 +142,9 @@ export default function CalibracionFormFields({
                     <DatoDetalle
                         etiqueta="Laboratorio"
                         valor={
-                            laboratorioPrincipal?.nombre ??
-                            calibracion.laboratorio_nombre
+                            laboratorioPropio ?? calibracion.laboratorio_nombre
                         }
-                        vacio="No hay un laboratorio principal definido"
+                        vacio="No hay un laboratorio propio configurado en Empresa"
                         testId="calibracion-laboratorio"
                     />
                 </div>

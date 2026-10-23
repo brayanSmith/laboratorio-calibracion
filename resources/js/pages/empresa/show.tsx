@@ -108,6 +108,22 @@ export default function EmpresaShow({ empresa }: Props) {
                             />
                             <Field label="Teléfono" value={empresa.telefono} />
                             <Field
+                                label="Laboratorio propio"
+                                value={empresa.laboratorio_nombre ?? '—'}
+                            />
+                            <Field
+                                label="Dirección del laboratorio"
+                                value={empresa.laboratorio_direccion ?? '—'}
+                            />
+                            <Field
+                                label="Correo del laboratorio"
+                                value={empresa.laboratorio_email ?? '—'}
+                            />
+                            <Field
+                                label="Teléfono del laboratorio"
+                                value={empresa.laboratorio_telefono ?? '—'}
+                            />
+                            <Field
                                 label="Color del tema"
                                 value={
                                     <ColorSwatch color={empresa.color_tema} />

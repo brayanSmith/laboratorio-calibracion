@@ -3,7 +3,6 @@
 use App\Enums\TenantPermission;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\Calibraciones\Models\Laboratorio;
 use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
@@ -97,7 +96,6 @@ test('la plantilla de cada tipo se importa sin errores', function (string $tipo,
     'fabricantes' => ['fabricantes', Fabricante::class],
     'procedimientos de calibración' => ['procedimientos-calibracion', ProcedimientoCalibracion::class],
     'novedades' => ['novedades', Novedad::class],
-    'laboratorios' => ['laboratorios', Laboratorio::class],
     'áreas' => ['areas', Area::class],
     'bahías' => ['bahias', Bahia::class],
     'empresas terceras' => ['empresas-terceras', EmpresaTercero::class],
@@ -166,7 +164,7 @@ test('importa tipos de equipo con mantenimiento A por defecto y empresas tercera
     ]);
 
     expect($empresas->filas_creadas)->toBe(1)
-        ->and($empresas->errores[0]['mensaje'])->toBe('Ya existe una empresa tercera con el NIT 900555666.');
+        ->and($empresas->errores[0]['mensaje'])->toBe('Ya existe un laboratorio tercero con el número de documento 900555666.');
 });
 
 test('cada tipo se importa con su propio permiso de importacion, no con el de crear', function () {

@@ -114,7 +114,7 @@
                 <div class="tarjeta">
                     <div class="titulo">Información General</div>
                     <div class="cuerpo"><table>
-                        <tr><td class="etiqueta">Lugar de Calibración:</td><td class="valor">{{ $calibracion->laboratorio?->nombre ?? '—' }}</td></tr>
+                        <tr><td class="etiqueta">Lugar de Calibración:</td><td class="valor">{{ $calibracion->lugar_calibracion ?? '—' }}</td></tr>
                         <tr><td class="etiqueta">Fecha de Calibración:</td><td class="valor">{{ $fecha($calibracion->fecha_calibracion) }}</td></tr>
                         <tr><td class="etiqueta">Condiciones ambientales (°C y % HR):</td><td class="valor">{{ $calibracion->temperatura !== null ? rtrim(rtrim((string) $calibracion->temperatura, '0'), '.') : '—' }} / {{ $calibracion->humedad !== null ? rtrim(rtrim((string) $calibracion->humedad, '0'), '.') : '—' }}</td></tr>
                         <tr><td class="etiqueta">Técnico de Laboratorio</td><td class="valor">{{ $calibracion->tecnico->name }}</td></tr>

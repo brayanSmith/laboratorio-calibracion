@@ -28,7 +28,7 @@ type Props = {
 
 export default function EditCalibracionModal({
     calibracion,
-    laboratorioPrincipal,
+    laboratorioPropio,
     procedimientos,
     novedadesCalibracion,
     iniciadoEn,
@@ -45,7 +45,7 @@ export default function EditCalibracionModal({
                 <EditCalibracionFormulario
                     key={`${calibracion.id}-${String(open)}`}
                     calibracion={calibracion}
-                    laboratorioPrincipal={laboratorioPrincipal}
+                    laboratorioPropio={laboratorioPropio}
                     procedimientos={procedimientos}
                     novedadesCalibracion={novedadesCalibracion}
                     iniciadoEn={iniciadoEn}
@@ -64,7 +64,7 @@ type FormularioProps = {
 
 function EditCalibracionFormulario({
     calibracion,
-    laboratorioPrincipal,
+    laboratorioPropio,
     procedimientos,
     novedadesCalibracion,
     iniciadoEn,
@@ -130,7 +130,7 @@ function EditCalibracionFormulario({
 
                         <CalibracionFormFields
                             calibracion={calibracion}
-                            laboratorioPrincipal={laboratorioPrincipal}
+                            laboratorioPropio={laboratorioPropio}
                             valoresInstrumento={valoresInstrumento}
                             onValorInstrumentoChange={(detalleId, valor) =>
                                 setValoresInstrumento((prev) => ({

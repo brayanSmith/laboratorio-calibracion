@@ -6,7 +6,6 @@ use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
 use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
-use App\Modules\Calibraciones\Models\Laboratorio;
 use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
@@ -61,7 +60,6 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Area> $areas
  * @property-read Collection<int, Bahia> $bahias
  * @property-read Collection<int, Fabricante> $fabricantes
- * @property-read Collection<int, Laboratorio> $laboratorios
  * @property-read Collection<int, Tercero> $terceros
  * @property-read Collection<int, EmpresaTercero> $empresaTerceros
  * @property-read Collection<int, TipoEquipo> $tiposEquipo
@@ -175,14 +173,6 @@ class Tenant extends Model
     public function fabricantes(): HasMany
     {
         return $this->hasMany(Fabricante::class);
-    }
-
-    /**
-     * @return HasMany<Laboratorio, $this>
-     */
-    public function laboratorios(): HasMany
-    {
-        return $this->hasMany(Laboratorio::class);
     }
 
     /**

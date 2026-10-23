@@ -44,7 +44,7 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
                         <span className="font-medium">{info.getValue()}</span>
                     ),
                 }),
-                columnHelper.accessor('nit', { header: 'NIT' }),
+                columnHelper.accessor('nit', { header: 'N.° de documento' }),
                 columnHelper.accessor('telefono', {
                     header: 'Teléfono',
                     cell: (info) => info.getValue() ?? '—',
@@ -99,22 +99,22 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
 
     return (
         <>
-            <Head title="Empresas terceras" />
+            <Head title="Laboratorios terceros" />
 
-            <h1 className="sr-only">Empresas terceras</h1>
+            <h1 className="sr-only">Laboratorios terceros</h1>
 
             <div className="flex flex-col space-y-6 p-4">
                 <div className="flex items-center justify-between">
                     <Heading
                         variant="small"
-                        title="Empresas terceras"
-                        description="Administra las empresas externas que prestan servicios de mantenimiento o calibración"
+                        title="Laboratorios terceros"
+                        description="Administra los laboratorios externos que prestan servicios de mantenimiento o calibración"
                     />
 
                     {can('empresas-terceras.crear') ? (
                         <CreateEmpresaTerceroModal>
                             <Button data-test="empresas-terceras-new-button">
-                                <Plus /> Nueva empresa tercera
+                                <Plus /> Nuevo laboratorio tercero
                             </Button>
                         </CreateEmpresaTerceroModal>
                     ) : null}
@@ -123,8 +123,8 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
                 <DataTable
                     data={empresasTerceras}
                     columns={columns}
-                    searchPlaceholder="Buscar empresa..."
-                    emptyMessage="Aún no has registrado empresas terceras."
+                    searchPlaceholder="Buscar laboratorio..."
+                    emptyMessage="Aún no has registrado laboratorios terceros."
                     rowTestId="empresa-tercero-row"
                 />
             </div>
@@ -146,7 +146,7 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
 EmpresasTercerasIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Empresas terceras',
+            title: 'Laboratorios terceros',
             href: index(),
         },
     ],

@@ -48,7 +48,7 @@ class StoreEmpresaTerceroRequest extends FormRequest
     {
         return [
             'nombre' => 'nombre',
-            'nit' => 'NIT',
+            'nit' => 'número de documento',
             'direccion' => 'dirección',
             'telefono' => 'teléfono',
             'email' => 'correo electrónico',

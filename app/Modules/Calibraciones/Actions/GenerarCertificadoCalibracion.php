@@ -27,7 +27,6 @@ class GenerarCertificadoCalibracion
             'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo',
             'ordenTrabajo.equipoProgramacion.equipo.fabricante',
             'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica.unidadMedida',
-            'laboratorio',
             'solicitante',
             'tecnico',
             'procedimiento',

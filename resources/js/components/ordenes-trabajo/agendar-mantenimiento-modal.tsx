@@ -243,15 +243,15 @@ function EquipoListoItem({
                         htmlFor={`empresa-tercero-${item.id}`}
                         className="text-xs"
                     >
-                        Empresa tercero
+                        Laboratorio tercero
                     </Label>
                     <Combobox
                         id={`empresa-tercero-${item.id}`}
                         value={empresaTerceroId}
                         onValueChange={setEmpresaTerceroId}
                         options={toComboboxOptions(empresasTerceras)}
-                        placeholder="Selecciona una empresa"
-                        searchPlaceholder="Buscar empresa..."
+                        placeholder="Selecciona un laboratorio"
+                        searchPlaceholder="Buscar laboratorio..."
                     />
                     <InputError
                         message={errors[`${prefijo}.empresa_tercero_id`]}

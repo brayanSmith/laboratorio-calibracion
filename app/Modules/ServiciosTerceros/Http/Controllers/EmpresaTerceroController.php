@@ -51,7 +51,7 @@ class EmpresaTerceroController extends Controller
             'tenant_id' => $request->user()->tenant_id,
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Empresa tercera creada.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Laboratorio tercero creado.')]);
 
         return to_route('empresas-terceras.index');
     }
@@ -63,7 +63,7 @@ class EmpresaTerceroController extends Controller
     {
         $empresaTercero->update($request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Empresa tercera actualizada.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Laboratorio tercero actualizado.')]);
 
         return to_route('empresas-terceras.index');
     }
@@ -78,7 +78,7 @@ class EmpresaTerceroController extends Controller
         if ($empresaTercero->servicioTercero()->exists()) {
             Inertia::flash('toast', [
                 'type' => 'error',
-                'message' => __('No se puede eliminar una empresa tercera que tiene servicios asociados.'),
+                'message' => __('No se puede eliminar un laboratorio tercero que tiene servicios asociados.'),
             ]);
 
             return back();
@@ -86,7 +86,7 @@ class EmpresaTerceroController extends Controller
 
         $empresaTercero->delete();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Empresa tercera eliminada.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Laboratorio tercero eliminado.')]);
 
         return to_route('empresas-terceras.index');
     }

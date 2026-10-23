@@ -15,6 +15,17 @@ use Inertia\Response;
 class EmpresaController extends Controller
 {
     /**
+     * Fields saved as sent by the form (the logo is handled apart).
+     *
+     * @var list<string>
+     */
+    private const CAMPOS = [
+        'nit', 'nombre', 'direccion', 'telefono',
+        'laboratorio_nombre', 'laboratorio_direccion', 'laboratorio_email', 'laboratorio_telefono',
+        'color_tema', 'color_nav',
+    ];
+
+    /**
      * Display the empresa of the tenant, or the option to register it.
      */
     public function show(Request $request): Response
@@ -30,6 +41,10 @@ class EmpresaController extends Controller
                 'nombre' => $empresa->nombre,
                 'direccion' => $empresa->direccion,
                 'telefono' => $empresa->telefono,
+                'laboratorio_nombre' => $empresa->laboratorio_nombre,
+                'laboratorio_direccion' => $empresa->laboratorio_direccion,
+                'laboratorio_email' => $empresa->laboratorio_email,
+                'laboratorio_telefono' => $empresa->laboratorio_telefono,
                 'logo_url' => $empresa->logoUrl(),
                 'color_tema' => $empresa->color_tema,
                 'color_nav' => $empresa->color_nav,
@@ -56,7 +71,7 @@ class EmpresaController extends Controller
         }
 
         $data = [
-            ...$request->safe()->only(['nit', 'nombre', 'direccion', 'telefono', 'color_tema', 'color_nav']),
+            ...$request->safe()->only(self::CAMPOS),
             'logo' => $request->file('logo')?->store("logos/{$tenantId}", 'public') ?: null,
         ];
 
@@ -81,7 +96,7 @@ class EmpresaController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->firstOrFail();
 
-        $data = $request->safe()->only(['nit', 'nombre', 'direccion', 'telefono', 'color_tema', 'color_nav']);
+        $data = $request->safe()->only(self::CAMPOS);
 
         if ($request->hasFile('logo')) {
             $this->deleteLogo($empresa);

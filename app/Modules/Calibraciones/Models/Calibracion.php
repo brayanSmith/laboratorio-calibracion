@@ -21,7 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $orden_trabajo_id
  * @property Carbon $fecha_calibracion
- * @property int|null $laboratorio_id Se completa cuando se realiza la calibración
+ * @property string|null $lugar_calibracion Nombre del laboratorio propio al realizar la calibración (ver Empresa)
  * @property int|null $solicitante_id Se completa cuando se realiza la calibración
  * @property int $tecnico_id
  * @property string|null $temperatura
@@ -38,7 +38,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read OrdenTrabajo $ordenTrabajo
- * @property-read Laboratorio|null $laboratorio
  * @property-read Area|null $solicitante
  * @property-read User $tecnico
  * @property-read ProcedimientoCalibracion|null $procedimiento
@@ -47,7 +46,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, DetalleMedicionCalibracion> $detalleMedicionCalibracion
  */
 #[Fillable([
-    'orden_trabajo_id', 'fecha_calibracion', 'laboratorio_id', 'solicitante_id', 'tecnico_id',
+    'orden_trabajo_id', 'fecha_calibracion', 'lugar_calibracion', 'solicitante_id', 'tecnico_id',
     'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion', 'resultado_calibracion',
     'firmado', 'novedad_id', 'pdf_certificado', 'tenant_id',
 ])]
@@ -103,16 +102,6 @@ class Calibracion extends Model
     public function ordenTrabajo(): BelongsTo
     {
         return $this->belongsTo(OrdenTrabajo::class);
-    }
-
-    /**
-     * Get the laboratorio where this calibracion was performed.
-     *
-     * @return BelongsTo<Laboratorio, $this>
-     */
-    public function laboratorio(): BelongsTo
-    {
-        return $this->belongsTo(Laboratorio::class);
     }
 
     /**

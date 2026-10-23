@@ -14,7 +14,7 @@ class ImportarFilaEmpresaTercero extends ImportadorFila
     {
         return [
             self::campo('nombre', 'Nombre', true),
-            self::campo('nit', 'NIT', true, 'Único: si ya existe una empresa con este NIT, la fila se omite.'),
+            self::campo('nit', 'Número de documento', true, 'Único: si ya existe una empresa con este número de documento, la fila se omite.'),
             self::campo('direccion', 'Dirección'),
             self::campo('telefono', 'Teléfono'),
             self::campo('email', 'Correo electrónico'),
@@ -47,7 +47,7 @@ class ImportarFilaEmpresaTercero extends ImportadorFila
             'telefono' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'string', 'email', 'max:255'],
         ], [
-            'nit.unique' => 'Ya existe una empresa tercera con el NIT :input.',
+            'nit.unique' => 'Ya existe un laboratorio tercero con el número de documento :input.',
         ]);
 
         return EmpresaTercero::create([...$datos, 'tenant_id' => $this->tenantId]);

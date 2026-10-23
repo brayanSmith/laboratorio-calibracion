@@ -5,7 +5,6 @@ export type TipoImportacion =
     | 'fabricantes'
     | 'procedimientos-calibracion'
     | 'novedades'
-    | 'laboratorios'
     | 'areas'
     | 'bahias'
     | 'empresas-terceras'

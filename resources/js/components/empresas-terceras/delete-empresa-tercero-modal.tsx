@@ -39,10 +39,10 @@ export default function DeleteEmpresaTerceroModal({
                         <>
                             <DialogHeader>
                                 <DialogTitle>
-                                    ¿Eliminar empresa tercera?
+                                    ¿Eliminar laboratorio tercero?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Esta acción eliminará la empresa tercera{' '}
+                                    Esta acción eliminará el laboratorio tercero{' '}
                                     <strong>"{empresaTercero.nombre}"</strong>.
                                     Solo es posible si no tiene servicios
                                     asociados.
@@ -62,7 +62,7 @@ export default function DeleteEmpresaTerceroModal({
                                     data-test="empresaTercero-delete-confirm"
                                     loading={processing}
                                 >
-                                    Eliminar empresa tercera
+                                    Eliminar laboratorio tercero
                                 </Button>
                             </DialogFooter>
                         </>

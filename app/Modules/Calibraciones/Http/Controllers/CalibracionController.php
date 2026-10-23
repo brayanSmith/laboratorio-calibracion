@@ -4,13 +4,13 @@ namespace App\Modules\Calibraciones\Http\Controllers;
 
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
+use App\Models\Empresa;
 use App\Models\User;
 use App\Modules\Calibraciones\Actions\GenerarCertificadoCalibracion;
 use App\Modules\Calibraciones\Http\Requests\FinalizarCalibracionRequest;
 use App\Modules\Calibraciones\Http\Requests\UpdateCalibracionRequest;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
-use App\Modules\Calibraciones\Models\Laboratorio;
 use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Despachos\Models\Despacho;
@@ -52,7 +52,7 @@ class CalibracionController extends Controller
                 ? ServicioTerceroController::listar($tenantId, 'CALIBRACION')
                 : [],
             'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'laboratorioPrincipal' => Laboratorio::principalDelTenant($tenantId)?->only(['id', 'nombre']),
+            'laboratorioPropio' => Empresa::laboratorioDelTenant($tenantId),
             'procedimientos' => ProcedimientoCalibracion::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'novedadesCalibracion' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'CALIBRACION')->orderBy('nombre')->get(['id', 'nombre']),
         ]);
@@ -93,7 +93,6 @@ class CalibracionController extends Controller
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.fabricante:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
-                'laboratorio:id,nombre',
                 'solicitante:id,nombre',
                 'tecnico:id,name',
                 'procedimiento:id,nombre',
@@ -107,8 +106,7 @@ class CalibracionController extends Controller
                 'orden_trabajo_id' => $calibracion->orden_trabajo_id,
                 'orden_trabajo_codigo' => $calibracion->ordenTrabajo->codigo,
                 'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
-                'laboratorio_id' => $calibracion->laboratorio_id,
-                'laboratorio_nombre' => $calibracion->laboratorio?->nombre,
+                'laboratorio_nombre' => $calibracion->lugar_calibracion,
                 'solicitante_id' => $calibracion->solicitante_id,
                 'solicitante_nombre' => $calibracion->solicitante?->nombre,
                 'tecnico_id' => $calibracion->tecnico_id,
@@ -208,11 +206,11 @@ class CalibracionController extends Controller
     private function guardarFormulario(FormRequest $request, Calibracion $calibracion): void
     {
         // La fecha y el técnico no se editan aquí. El solicitante es el área del equipo y el
-        // laboratorio es el principal del tenant: se asignan en el servidor, no los envía el cliente.
+        // lugar es el laboratorio propio de la Empresa: se asignan en el servidor, no los envía el cliente.
         $calibracion->update([
             ...$request->safe()->only(['temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'novedad_id']),
             'solicitante_id' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area_id ?? $calibracion->solicitante_id,
-            'laboratorio_id' => Laboratorio::principalDelTenant($calibracion->tenant_id)?->id ?? $calibracion->laboratorio_id,
+            'lugar_calibracion' => Empresa::laboratorioDelTenant($calibracion->tenant_id) ?? $calibracion->lugar_calibracion,
         ]);
 
         $detalles = DetalleMedicionCalibracion::query()
