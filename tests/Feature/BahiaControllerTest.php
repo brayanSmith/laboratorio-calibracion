@@ -39,14 +39,16 @@ function registrarIngresoEnBahia(Bahia $bahia): Ingreso
 {
     DB::statement('PRAGMA defer_foreign_keys = ON');
 
-    return Ingreso::create([
-        'bahia_id' => $bahia->id,
+    $ingreso = Ingreso::create([
         'desde' => now()->toDateString(),
         'hasta' => now()->toDateString(),
         'tecnico_recibe_id' => 1,
         'cliente_entrega_id' => 1,
         'tenant_id' => $bahia->tenant_id,
     ]);
+    $ingreso->bahias()->attach($bahia);
+
+    return $ingreso;
 }
 
 test('lista solo las bahias del tenant con su area y la cantidad de equipos', function () {

@@ -90,13 +90,15 @@ export default function CalibracionFormFields({
                     </p>
                     <p>
                         <span className="text-muted-foreground">
-                            Tecnología:
+                            Indicación:
                         </span>{' '}
-                        {calibracion.equipo.tipo_tecnologia}
+                        {calibracion.equipo.tipo_tecnologia === 'DIGITAL'
+                            ? 'Digital'
+                            : 'Analógico'}
                     </p>
                     <p>
                         <span className="text-muted-foreground">
-                            Tipo de mantenimiento:
+                            Tipo de servicio:
                         </span>{' '}
                         {calibracion.equipo.tipo_equipo.tipo_mantenimiento}
                     </p>

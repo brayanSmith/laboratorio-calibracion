@@ -68,6 +68,19 @@ function Seccion({
 
 const siNo = (valor: boolean) => (valor ? 'Sí' : 'No');
 
+/** Separa con un espacio el símbolo de la unidad que se guarda pegado al valor
+ * ("0.005pulg" se muestra como "0.005 pulg"). */
+function conEspacioAntesDelSimbolo(
+    valor: string | null | undefined,
+    simbolo?: string,
+): string | null | undefined {
+    if (!valor || !simbolo || !valor.endsWith(simbolo)) {
+        return valor;
+    }
+
+    return `${valor.slice(0, -simbolo.length).trimEnd()} ${simbolo}`;
+}
+
 /** Vista de detalle (solo lectura) de un equipo, para quien no puede editarlo: sus datos,
  * documentos y programaciones, con el seguimiento de cada una. */
 export default function ViewEquipoModal({ equipo, options, children }: Props) {
@@ -261,9 +274,10 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                         />
                                         <Dato
                                             label="Alcance / indicación"
-                                            value={
-                                                especificacion.alcance_indicacion
-                                            }
+                                            value={conEspacioAntesDelSimbolo(
+                                                especificacion.alcance_indicacion,
+                                                unidad?.simbolo,
+                                            )}
                                         />
                                         <Dato
                                             label="Precisión"
@@ -271,7 +285,10 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                         />
                                         <Dato
                                             label="Resolución"
-                                            value={especificacion.resolucion}
+                                            value={conEspacioAntesDelSimbolo(
+                                                especificacion.resolucion,
+                                                unidad?.simbolo,
+                                            )}
                                         />
                                     </div>
                                 ) : (

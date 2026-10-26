@@ -28,7 +28,8 @@ class BuscarEquipoProgramacionRequest extends FormRequest
         return [
             'desde' => ['required', 'date'],
             'hasta' => ['required', 'date', 'after_or_equal:desde'],
-            'bahia_id' => ['required', Rule::exists('bahias', 'id')->where('tenant_id', $this->user()->tenant_id)->whereNull('deleted_at')],
+            'bahia_ids' => ['required', 'array', 'min:1'],
+            'bahia_ids.*' => ['integer', Rule::exists('bahias', 'id')->where('tenant_id', $this->user()->tenant_id)->whereNull('deleted_at')],
         ];
     }
 
@@ -42,7 +43,8 @@ class BuscarEquipoProgramacionRequest extends FormRequest
         return [
             'desde' => 'fecha desde',
             'hasta' => 'fecha hasta',
-            'bahia_id' => 'bahía',
+            'bahia_ids' => 'bahías',
+            'bahia_ids.*' => 'bahía',
         ];
     }
 }

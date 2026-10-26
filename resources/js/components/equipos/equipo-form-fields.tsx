@@ -13,6 +13,8 @@ type Props = {
     variant?: 'create' | 'edit';
     /** Avisa al padre cuando cambia el tipo de equipo (id como texto). */
     onTipoEquipoChange?: (tipoEquipoId: string | undefined) => void;
+    /** Avisa al padre cuando cambia el modelo. */
+    onModeloChange?: (modelo: string) => void;
 };
 
 const OPCIONES_TECNOLOGIA = [
@@ -30,6 +32,7 @@ export default function EquipoFormFields({
     errors,
     variant = 'edit',
     onTipoEquipoChange,
+    onModeloChange,
 }: Props) {
     const isCreate = variant === 'create';
 
@@ -99,6 +102,7 @@ export default function EquipoFormFields({
                     id="modelo"
                     name="modelo"
                     defaultValue={equipo?.modelo}
+                    onChange={(event) => onModeloChange?.(event.target.value)}
                     required
                 />
                 <InputError message={errors.modelo} />

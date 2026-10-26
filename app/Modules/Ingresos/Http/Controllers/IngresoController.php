@@ -42,7 +42,32 @@ class IngresoController extends Controller
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
+            'programacionesPendientes' => self::programacionesPendientes($tenantId),
         ]);
+    }
+
+    /**
+     * Programaciones preventivas todavía PENDIENTE (las que encuentra el buscador del
+     * ingreso), con la bahía de su equipo y su fecha, para que el selector de bahías
+     * muestre cuántos equipos de cada una tienen servicio en el Desde/Hasta elegido.
+     *
+     * @return Collection<int, array{bahia_id: int, equipo_id: int, fecha: string}>
+     */
+    private static function programacionesPendientes(int $tenantId): Collection
+    {
+        return EquipoProgramacion::query()
+            ->join('equipos', 'equipos.id', '=', 'equipo_programacions.equipo_id')
+            ->whereNull('equipos.deleted_at')
+            ->where('equipo_programacions.tenant_id', $tenantId)
+            ->where('equipo_programacions.tipo_mantenimiento', 'PREVENTIVO')
+            ->where('equipo_programacions.estado_programacion', 'PENDIENTE')
+            ->whereNotNull('equipo_programacions.fecha_proximo_servicio')
+            ->get(['equipos.bahia_id', 'equipo_programacions.equipo_id', 'equipo_programacions.fecha_proximo_servicio'])
+            ->map(fn (EquipoProgramacion $programacion) => [
+                'bahia_id' => (int) $programacion->getAttribute('bahia_id'),
+                'equipo_id' => $programacion->equipo_id,
+                'fecha' => $programacion->fecha_proximo_servicio->toDateString(),
+            ]);
     }
 
     /**
@@ -61,7 +86,7 @@ class IngresoController extends Controller
                 fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
             ))
             ->with([
-                'bahia:id,nombre',
+                'bahias:id,nombre',
                 'tecnicoRecibe:id,name',
                 'clienteEntrega:id,nombre',
                 'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
@@ -73,8 +98,8 @@ class IngresoController extends Controller
             ->get()
             ->map(fn (Ingreso $ingreso) => [
                 'id' => $ingreso->id,
-                'bahia_id' => $ingreso->bahia_id,
-                'bahia_nombre' => $ingreso->bahia->nombre,
+                'bahia_ids' => $ingreso->bahias->pluck('id')->values(),
+                'bahias_nombre' => $ingreso->bahias->sortBy('nombre')->pluck('nombre')->implode(', '),
                 'fecha_creacion' => $ingreso->created_at->toDateString(),
                 'desde' => $ingreso->desde->toDateString(),
                 'hasta' => $ingreso->hasta->toDateString(),
@@ -121,9 +146,10 @@ class IngresoController extends Controller
 
         DB::transaction(function () use ($request, $tenantId) {
             $ingreso = Ingreso::create([
-                ...$request->safe()->except(['programaciones_actualizadas', 'programaciones_correctivas']),
+                ...$request->safe()->except(['bahia_ids', 'programaciones_actualizadas', 'programaciones_correctivas']),
                 'tenant_id' => $tenantId,
             ]);
+            $ingreso->bahias()->sync($request->validated('bahia_ids'));
 
             $this->guardarCambiosDeEquipos($request, $ingreso, $tenantId);
         });
@@ -134,12 +160,13 @@ class IngresoController extends Controller
     }
 
     /**
-     * Update the bahía, fechas y equipos of the specified ingreso.
+     * Update the bahías, fechas y equipos of the specified ingreso.
      */
     public function update(UpdateIngresoRequest $request, Ingreso $ingreso): RedirectResponse
     {
         DB::transaction(function () use ($request, $ingreso) {
-            $ingreso->update($request->safe()->except(['programaciones_actualizadas', 'programaciones_correctivas']));
+            $ingreso->update($request->safe()->except(['bahia_ids', 'programaciones_actualizadas', 'programaciones_correctivas']));
+            $ingreso->bahias()->sync($request->validated('bahia_ids'));
 
             $this->guardarCambiosDeEquipos($request, $ingreso, $ingreso->tenant_id);
         });

@@ -4,6 +4,7 @@ namespace App\Modules\Importaciones\Actions;
 
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoHistorico;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -28,8 +29,8 @@ class ImportarFilaEquipoHistorico extends ImportadorFila
             self::campo('equipo', 'Código del equipo', true, 'Código de un equipo ya registrado.'),
             self::campo('tipo_servicio', 'Tipo de servicio', true, 'Mantenimiento o Calibración.'),
             self::campo('fecha_servicio', 'Fecha del servicio', true, 'DD/MM/AAAA (ej. 15/06/2024).'),
-            self::campo('nombre_laboratorio', 'Laboratorio', true, 'Nombre del laboratorio o empresa que hizo el servicio.'),
             self::campo('es_tercero', 'Es tercero', false, 'Sí si lo hizo un tercero; No si fue el laboratorio propio. Por defecto: No.'),
+            self::campo('empresa_tercero', 'Empresa tercera', false, 'Nombre de una empresa tercera ya registrada. Obligatoria si Es tercero es Sí; si es No, se ignora.'),
             self::campo('adjunto', 'Adjunto', false, 'Nombre del archivo (ej. certificado-001.pdf), que debe estar en la carpeta de adjuntos.'),
         ];
     }
@@ -40,8 +41,8 @@ class ImportarFilaEquipoHistorico extends ImportadorFila
             'equipo' => 'EQ-0001',
             'tipo_servicio' => 'Calibración',
             'fecha_servicio' => '15/06/2024',
-            'nombre_laboratorio' => 'Laboratorio de ejemplo',
             'es_tercero' => 'Sí',
+            'empresa_tercero' => 'Empresa tercera de ejemplo',
             'adjunto' => 'certificado-001.pdf',
         ];
     }
@@ -70,14 +71,19 @@ class ImportarFilaEquipoHistorico extends ImportadorFila
 
         $datos['es_tercero'] = $datos['es_tercero'] === null ? false : $this->booleano($datos['es_tercero']);
 
+        if ($datos['es_tercero'] !== true) {
+            $datos['empresa_tercero'] = null;
+        }
+
         $datos = $this->validar($datos, [
             'equipo' => ['required', 'string', 'max:255'],
             'tipo_servicio' => ['required', Rule::in(EquipoHistorico::TIPOS_SERVICIO)],
             'fecha_servicio' => ['bail', 'required', 'date_format:Y-m-d', 'before_or_equal:today'],
-            'nombre_laboratorio' => ['required', 'string', 'max:255'],
             'es_tercero' => ['boolean'],
+            'empresa_tercero' => ['nullable', Rule::requiredIf($datos['es_tercero'] === true), 'string', 'max:255'],
             'adjunto' => ['nullable', 'string', 'max:255'],
         ], [
+            'empresa_tercero.required' => 'Indica la empresa tercera que hizo el servicio.',
             'tipo_servicio.in' => 'El tipo de servicio debe ser Mantenimiento o Calibración.',
             'fecha_servicio.date_format' => 'La fecha del servicio no es válida: usa DD/MM/AAAA (ej. 15/06/2024).',
             'fecha_servicio.before_or_equal' => 'La fecha del servicio no puede ser futura.',
@@ -85,15 +91,21 @@ class ImportarFilaEquipoHistorico extends ImportadorFila
         ]);
 
         $equipoId = $this->equipoId($datos['equipo']);
+        $empresaTerceroId = $datos['empresa_tercero'] === null ? null : $this->idExistente(
+            EmpresaTercero::class,
+            $datos['empresa_tercero'],
+            'empresa_tercero',
+            "No existe la empresa tercera {$datos['empresa_tercero']}; créala o impórtala primero.",
+        );
         $adjunto = $datos['adjunto'] === null ? null : $this->archivoAdjunto($datos['adjunto'], 'adjunto');
-        $this->reservarServicio($equipoId, $datos);
+        $this->reservarServicio($equipoId, $empresaTerceroId, $datos);
 
         return EquipoHistorico::create([
             'equipo_id' => $equipoId,
             'tipo_servicio' => $datos['tipo_servicio'],
             'fecha_servicio' => $datos['fecha_servicio'],
-            'nombre_laboratorio' => $datos['nombre_laboratorio'],
             'es_tercero' => $datos['es_tercero'],
+            'empresa_tercero_id' => $empresaTerceroId,
             'adjunto' => $adjunto === null ? null : $this->guardarAdjunto($adjunto, $equipoId),
             'tenant_id' => $this->tenantId,
         ]);
@@ -117,33 +129,36 @@ class ImportarFilaEquipoHistorico extends ImportadorFila
     }
 
     /**
-     * Falla si el equipo ya tiene ese servicio (mismo tipo, fecha y laboratorio), registrado
-     * antes o en otra fila del archivo: así volver a importar el mismo CSV no lo duplica.
+     * Falla si el equipo ya tiene ese servicio (mismo tipo, fecha y empresa tercera, o propio),
+     * registrado antes o en otra fila del archivo: así volver a importar el mismo CSV no lo
+     * duplica.
      *
      * @param  array<string, mixed>  $datos
      *
      * @throws ValidationException
      */
-    private function reservarServicio(int $equipoId, array $datos): void
+    private function reservarServicio(int $equipoId, ?int $empresaTerceroId, array $datos): void
     {
-        $llave = fn (string $tipo, string $fecha, string $laboratorio): string => implode('|', [$tipo, $fecha, self::clave($laboratorio)]);
+        $llave = fn (string $tipo, string $fecha, ?int $empresa): string => implode('|', [$tipo, $fecha, $empresa ?? 'propio']);
 
         if (! isset($this->registrados[$equipoId])) {
             $this->registrados[$equipoId] = [];
 
             EquipoHistorico::query()
                 ->where('equipo_id', $equipoId)
-                ->get(['tipo_servicio', 'fecha_servicio', 'nombre_laboratorio'])
+                ->get(['tipo_servicio', 'fecha_servicio', 'empresa_tercero_id'])
                 ->each(function (EquipoHistorico $historico) use ($equipoId, $llave): void {
-                    $this->registrados[$equipoId][$llave($historico->tipo_servicio, $historico->fecha_servicio->toDateString(), $historico->nombre_laboratorio)] = true;
+                    $this->registrados[$equipoId][$llave($historico->tipo_servicio, $historico->fecha_servicio->toDateString(), $historico->empresa_tercero_id)] = true;
                 });
         }
 
-        $actual = $llave($datos['tipo_servicio'], $datos['fecha_servicio'], $datos['nombre_laboratorio']);
+        $actual = $llave($datos['tipo_servicio'], $datos['fecha_servicio'], $empresaTerceroId);
 
         if (isset($this->registrados[$equipoId][$actual])) {
+            $lugar = $datos['empresa_tercero'] ?? 'el laboratorio propio';
+
             throw ValidationException::withMessages([
-                'equipo' => "El equipo {$datos['equipo']} ya tiene registrado ese servicio del {$datos['fecha_servicio']} en {$datos['nombre_laboratorio']}.",
+                'equipo' => "El equipo {$datos['equipo']} ya tiene registrado ese servicio del {$datos['fecha_servicio']} en {$lugar}.",
             ]);
         }
 

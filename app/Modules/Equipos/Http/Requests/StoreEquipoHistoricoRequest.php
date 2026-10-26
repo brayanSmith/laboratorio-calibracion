@@ -19,11 +19,16 @@ class StoreEquipoHistoricoRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
+     * Prepare the data for validation. La empresa tercera solo se guarda si lo hizo un tercero.
      */
     protected function prepareForValidation(): void
     {
-        $this->merge(['es_tercero' => $this->boolean('es_tercero')]);
+        $esTercero = $this->boolean('es_tercero');
+
+        $this->merge([
+            'es_tercero' => $esTercero,
+            'empresa_tercero_id' => $esTercero ? $this->input('empresa_tercero_id') : null,
+        ]);
     }
 
     /**
@@ -36,8 +41,15 @@ class StoreEquipoHistoricoRequest extends FormRequest
         return [
             'tipo_servicio' => ['required', Rule::in(EquipoHistorico::TIPOS_SERVICIO)],
             'fecha_servicio' => ['required', 'date', 'before_or_equal:today'],
-            'nombre_laboratorio' => ['required', 'string', 'max:255'],
             'es_tercero' => ['boolean'],
+            'empresa_tercero_id' => [
+                'nullable',
+                'required_if:es_tercero,true',
+                'integer',
+                Rule::exists('empresa_terceros', 'id')
+                    ->where('tenant_id', $this->route('equipo')->tenant_id)
+                    ->withoutTrashed(),
+            ],
             'adjunto' => [
                 'nullable',
                 'file',
@@ -57,6 +69,7 @@ class StoreEquipoHistoricoRequest extends FormRequest
         return [
             'tipo_servicio.in' => 'El tipo de servicio debe ser Mantenimiento o Calibración.',
             'fecha_servicio.before_or_equal' => 'La fecha del servicio no puede ser futura.',
+            'empresa_tercero_id.required_if' => 'Selecciona la empresa tercera que hizo el servicio.',
             'adjunto.extensions' => 'El adjunto debe ser un archivo '.implode(', ', EquipoHistorico::EXTENSIONES_ADJUNTO).'.',
         ];
     }
@@ -71,8 +84,8 @@ class StoreEquipoHistoricoRequest extends FormRequest
         return [
             'tipo_servicio' => 'tipo de servicio',
             'fecha_servicio' => 'fecha del servicio',
-            'nombre_laboratorio' => 'laboratorio',
             'es_tercero' => 'es tercero',
+            'empresa_tercero_id' => 'empresa tercera',
             'adjunto' => 'adjunto',
         ];
     }

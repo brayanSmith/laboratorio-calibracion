@@ -2,6 +2,7 @@
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
@@ -433,6 +434,22 @@ test('el listado de equipos incluye el historial de seguimiento de cada programa
             ->where('equipos.0.equipo_programaciones.0.seguimientos.0.fase', 'MANTENIMIENTO')
             ->where('equipos.0.equipo_programaciones.0.seguimientos.0.seguimiento', 'EN_PROCESO')
             ->where('equipos.0.equipo_programaciones.0.seguimientos.0.usuario.name', $this->admin->name));
+});
+
+test('el listado de equipos incluye los alcances de medicion registrados del tenant, para saber que equipos ya tienen el suyo', function () {
+    $alcance = MedicionAlcance::factory()->create(['tenant_id' => $this->tenant->id, 'modelo' => 'Modelo X', 'alcance_indicacion' => '0 - 10 bar']);
+    MedicionAlcance::factory()->create();
+
+    $this->actingAs($this->admin)
+        ->get(route('equipos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('options.alcancesMedicion', 1)
+            ->where('options.alcancesMedicion.0', [
+                'tipo_equipo_id' => $alcance->tipo_equipo_id,
+                'modelo' => 'Modelo X',
+                'alcance_indicacion' => '0 - 10 bar',
+            ]));
 });
 
 test('rechaza eliminar una programacion cuyo servicio ya se gestiono', function () {

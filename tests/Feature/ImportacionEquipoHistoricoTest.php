@@ -5,6 +5,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Equipos\Models\EquipoHistorico;
 use App\Modules\Importaciones\Models\Importacion;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,6 +18,8 @@ beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
     $this->admin = User::factory()->forTenant($this->tenant)->create();
     $this->equipo = crearEquipo($this->tenant, 'EQ-0001');
+    $this->seimet = EmpresaTercero::factory()->create(['nombre' => 'SEIMET', 'tenant_id' => $this->tenant->id]);
+    EmpresaTercero::factory()->create(['nombre' => 'BHU', 'tenant_id' => $this->tenant->id]);
 });
 
 /**
@@ -54,13 +57,13 @@ function importarHistorico(User $usuario, array $filas, array $adjuntos = []): I
     return Importacion::latest('id')->firstOrFail();
 }
 
-const ENCABEZADOS_HISTORICO = 'Código del equipo;Tipo de servicio;Fecha del servicio;Laboratorio;Es tercero;Adjunto';
+const ENCABEZADOS_HISTORICO = 'Código del equipo;Tipo de servicio;Fecha del servicio;Es tercero;Empresa tercera;Adjunto';
 
-test('importa el historico de un equipo existente interpretando tipo, fecha y tercero', function () {
+test('importa el historico de un equipo existente interpretando tipo, fecha, tercero y su empresa', function () {
     $importacion = importarHistorico($this->admin, [
         ENCABEZADOS_HISTORICO,
-        'eq-0001;Calibración;15/06/2024;SEIMET;Sí;',
-        'EQ-0001;mantenimiento;2023-01-10;Laboratorio propio;;',
+        'eq-0001;Calibración;15/06/2024;Sí;seimet;',
+        'EQ-0001;mantenimiento;2023-01-10;;Laboratorio propio;',
     ]);
 
     expect($importacion->filas_creadas)->toBe(2)
@@ -68,23 +71,26 @@ test('importa el historico de un equipo existente interpretando tipo, fecha y te
 
     $historicos = EquipoHistorico::orderBy('fecha_servicio')->get();
 
-    expect($historicos->map->only(['equipo_id', 'tipo_servicio', 'nombre_laboratorio', 'es_tercero', 'tenant_id'])->all())->toBe([
-        ['equipo_id' => $this->equipo->id, 'tipo_servicio' => 'MANTENIMIENTO', 'nombre_laboratorio' => 'Laboratorio propio', 'es_tercero' => false, 'tenant_id' => $this->tenant->id],
-        ['equipo_id' => $this->equipo->id, 'tipo_servicio' => 'CALIBRACION', 'nombre_laboratorio' => 'SEIMET', 'es_tercero' => true, 'tenant_id' => $this->tenant->id],
+    expect($historicos->map->only(['equipo_id', 'tipo_servicio', 'es_tercero', 'empresa_tercero_id', 'tenant_id'])->all())->toBe([
+        ['equipo_id' => $this->equipo->id, 'tipo_servicio' => 'MANTENIMIENTO', 'es_tercero' => false, 'empresa_tercero_id' => null, 'tenant_id' => $this->tenant->id],
+        ['equipo_id' => $this->equipo->id, 'tipo_servicio' => 'CALIBRACION', 'es_tercero' => true, 'empresa_tercero_id' => $this->seimet->id, 'tenant_id' => $this->tenant->id],
     ])->and($historicos->map(fn (EquipoHistorico $historico) => $historico->fecha_servicio->toDateString())->all())->toBe(['2023-01-10', '2024-06-15']);
 });
 
 test('rechaza las filas de equipos inexistentes o de otro tenant y los datos invalidos', function () {
     crearEquipo(Tenant::factory()->create(), 'EQ-AJENO');
+    EmpresaTercero::factory()->create(['nombre' => 'AJENA']);
 
     $importacion = importarHistorico($this->admin, [
         ENCABEZADOS_HISTORICO,
-        'EQ-9999;Calibración;15/06/2024;SEIMET;No;',
-        'EQ-AJENO;Calibración;15/06/2024;SEIMET;No;',
-        'EQ-0001;Verificación;15/06/2024;SEIMET;No;',
-        'EQ-0001;Calibración;31/02/2024;SEIMET;No;',
-        'EQ-0001;Calibración;'.now()->addDay()->format('d/m/Y').';SEIMET;No;',
-        'EQ-0001;Calibración;15/06/2024;SEIMET;Tal vez;',
+        'EQ-9999;Calibración;15/06/2024;No;;',
+        'EQ-AJENO;Calibración;15/06/2024;No;;',
+        'EQ-0001;Verificación;15/06/2024;No;;',
+        'EQ-0001;Calibración;31/02/2024;No;;',
+        'EQ-0001;Calibración;'.now()->addDay()->format('d/m/Y').';No;;',
+        'EQ-0001;Calibración;15/06/2024;Tal vez;;',
+        'EQ-0001;Calibración;15/06/2024;Sí;;',
+        'EQ-0001;Calibración;15/06/2024;Sí;AJENA;',
     ]);
 
     expect($importacion->filas_creadas)->toBe(0)
@@ -95,21 +101,22 @@ test('rechaza las filas de equipos inexistentes o de otro tenant y los datos inv
             'La fecha del servicio no es válida: usa DD/MM/AAAA (ej. 15/06/2024).',
             'La fecha del servicio no puede ser futura.',
             'Es tercero debe ser Sí o No.',
+            'Indica la empresa tercera que hizo el servicio.',
+            'No existe la empresa tercera AJENA; créala o impórtala primero.',
         ]);
 });
 
 test('no duplica un servicio ya registrado ni repetido dentro del archivo', function () {
-    EquipoHistorico::factory()->for($this->equipo)->create([
+    EquipoHistorico::factory()->for($this->equipo)->deTercero($this->seimet)->create([
         'tipo_servicio' => 'CALIBRACION',
         'fecha_servicio' => '2024-06-15',
-        'nombre_laboratorio' => 'SEIMET',
     ]);
 
     $importacion = importarHistorico($this->admin, [
         ENCABEZADOS_HISTORICO,
-        'EQ-0001;Calibración;15/06/2024;seimet;Sí;',
-        'EQ-0001;Mantenimiento;01/02/2024;BHU;Sí;',
-        'EQ-0001;Mantenimiento;01/02/2024;BHU;Sí;',
+        'EQ-0001;Calibración;15/06/2024;Sí;seimet;',
+        'EQ-0001;Mantenimiento;01/02/2024;Sí;BHU;',
+        'EQ-0001;Mantenimiento;01/02/2024;Sí;BHU;',
     ]);
 
     expect($importacion->filas_creadas)->toBe(1)
@@ -120,9 +127,9 @@ test('no duplica un servicio ya registrado ni repetido dentro del archivo', func
 test('adjunta a cada fila el archivo de la carpeta subida con el mismo nombre', function () {
     $importacion = importarHistorico($this->admin, [
         ENCABEZADOS_HISTORICO,
-        'EQ-0001;Calibración;15/06/2024;SEIMET;Sí;CERTIFICADO-001.PDF',
-        'EQ-0001;Mantenimiento;10/01/2024;BHU;Sí;certificado-001.pdf',
-        'EQ-0001;Mantenimiento;11/01/2024;BHU;Sí;no-esta.pdf',
+        'EQ-0001;Calibración;15/06/2024;Sí;SEIMET;CERTIFICADO-001.PDF',
+        'EQ-0001;Mantenimiento;10/01/2024;Sí;BHU;certificado-001.pdf',
+        'EQ-0001;Mantenimiento;11/01/2024;Sí;BHU;no-esta.pdf',
     ], [
         UploadedFile::fake()->createWithContent('certificado-001.pdf', 'contenido del certificado'),
         UploadedFile::fake()->createWithContent('otro.pdf', 'otro'),
@@ -144,7 +151,7 @@ test('adjunta a cada fila el archivo de la carpeta subida con el mismo nombre', 
 test('una fila con adjunto falla si no se selecciono la carpeta de adjuntos', function () {
     $importacion = importarHistorico($this->admin, [
         ENCABEZADOS_HISTORICO,
-        'EQ-0001;Calibración;15/06/2024;SEIMET;Sí;certificado-001.pdf',
+        'EQ-0001;Calibración;15/06/2024;Sí;SEIMET;certificado-001.pdf',
     ]);
 
     expect($importacion->filas_creadas)->toBe(0)
@@ -156,7 +163,7 @@ test('el adjunto solo se busca por su nombre dentro del lote, no por una ruta', 
 
     $importacion = importarHistorico($this->admin, [
         ENCABEZADOS_HISTORICO,
-        'EQ-0001;Calibración;15/06/2024;SEIMET;Sí;../../../secreto.pdf',
+        'EQ-0001;Calibración;15/06/2024;Sí;SEIMET;../../../secreto.pdf',
     ], [UploadedFile::fake()->createWithContent('otro.pdf', 'otro')]);
 
     expect($importacion->filas_creadas)->toBe(0)

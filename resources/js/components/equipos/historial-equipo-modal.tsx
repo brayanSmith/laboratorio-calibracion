@@ -79,7 +79,13 @@ const HISTORIAL_VACIO: HistorialEquipo = {
     servicios_terceros: [],
     historicos: [],
     novedadesIngreso: [],
+    laboratorioPropio: null,
+    empresasTerceras: [],
 };
+
+/** Colores para distinguir de un vistazo los históricos propios de los de terceros. */
+const BADGE_PROPIO = '!border-transparent !bg-sky-600 !text-white';
+const BADGE_TERCERO = '!border-transparent !bg-violet-600 !text-white';
 
 const etiquetasEstadoCalibracion: Record<string, string> = {
     PENDIENTE: 'Pendiente',
@@ -526,8 +532,10 @@ export default function HistorialEquipoModal({
                                                     }
                                                 />
                                                 <Dato
-                                                    label="Bahía"
-                                                    value={ingreso.bahia_nombre}
+                                                    label="Bahías"
+                                                    value={
+                                                        ingreso.bahias_nombre
+                                                    }
                                                 />
                                                 <Dato
                                                     label="Equipo"
@@ -818,7 +826,13 @@ export default function HistorialEquipoModal({
                                                     key={historico.id}
                                                     titulo={`${historico.tipo_servicio === 'MANTENIMIENTO' ? 'Mantenimiento' : 'Calibración'} · ${historico.fecha_servicio}`}
                                                     badge={
-                                                        <Badge variant="secondary">
+                                                        <Badge
+                                                            className={
+                                                                historico.es_tercero
+                                                                    ? BADGE_TERCERO
+                                                                    : BADGE_PROPIO
+                                                            }
+                                                        >
                                                             {historico.es_tercero
                                                                 ? 'Tercero'
                                                                 : 'Propio'}
@@ -846,12 +860,22 @@ export default function HistorialEquipoModal({
                                                         ) : null
                                                     }
                                                 >
-                                                    <Dato
-                                                        label="Laboratorio"
-                                                        value={
-                                                            historico.nombre_laboratorio
-                                                        }
-                                                    />
+                                                    {historico.es_tercero ? (
+                                                        <Dato
+                                                            label="Empresa tercera"
+                                                            value={
+                                                                historico.empresa_tercero
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <Dato
+                                                            label="Laboratorio"
+                                                            value={
+                                                                datos?.laboratorioPropio ??
+                                                                'Laboratorio propio'
+                                                            }
+                                                        />
+                                                    )}
                                                     <Dato
                                                         label="Archivo"
                                                         value={
@@ -912,6 +936,7 @@ export default function HistorialEquipoModal({
             {equipo ? (
                 <AgregarHistoricoModal
                     equipo={equipo}
+                    empresasTerceras={datos?.empresasTerceras ?? []}
                     open={agregarOpen}
                     onOpenChange={setAgregarOpen}
                     onAgregado={(historico) => {

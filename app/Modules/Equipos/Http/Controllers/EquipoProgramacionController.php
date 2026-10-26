@@ -34,11 +34,12 @@ class EquipoProgramacionController extends Controller
                 $request->validated('desde'),
                 $request->validated('hasta'),
             ])
-            ->whereHas('equipo', fn ($query) => $query->where('bahia_id', $request->validated('bahia_id')))
+            ->whereHas('equipo', fn ($query) => $query->whereIn('bahia_id', $request->validated('bahia_ids')))
             ->with(
-                'equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
+                'equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,bahia_id',
                 'equipo.cliente:id,nombre',
                 'equipo.tipoEquipo:id,nombre',
+                'equipo.bahia:id,nombre',
             )
             ->orderBy('fecha_proximo_servicio')
             ->get();
@@ -47,15 +48,17 @@ class EquipoProgramacionController extends Controller
     }
 
     /**
-     * List equipos available at a bahía, to schedule a mantenimiento correctivo from an ingreso.
+     * List equipos available at the bahías of an ingreso, to schedule a mantenimiento
+     * correctivo from it.
      */
     public function equiposDisponibles(ListarEquiposPorBahiaRequest $request): JsonResponse
     {
         $equipos = Equipo::query()
             ->where('tenant_id', $request->user()->tenant_id)
-            ->where('bahia_id', $request->validated('bahia_id'))
+            ->whereIn('bahia_id', $request->validated('bahia_ids'))
+            ->with('bahia:id,nombre')
             ->orderBy('codigo')
-            ->get(['id', 'codigo', 'modelo']);
+            ->get(['id', 'codigo', 'modelo', 'bahia_id']);
 
         return response()->json($equipos);
     }

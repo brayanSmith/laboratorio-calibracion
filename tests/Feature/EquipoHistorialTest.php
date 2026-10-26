@@ -139,11 +139,11 @@ test('el historial solo incluye los servicios de terceros del tipo que el usuari
 test('el historial incluye los servicios historicos importados del equipo, del mas reciente al mas antiguo', function () {
     $programacion = crearEquipoRecibido($this->bahia, 'EQ-HISTORIAL');
     EquipoHistorico::factory()->for($programacion->equipo)->create(['fecha_servicio' => '2022-03-01', 'tipo_servicio' => 'MANTENIMIENTO']);
-    EquipoHistorico::factory()->for($programacion->equipo)->create([
+    $seimet = EmpresaTercero::factory()->create(['nombre' => 'SEIMET', 'tenant_id' => $programacion->equipo->tenant_id]);
+    registrarLaboratorioPropio($this->tenant, 'Laboratorio La Joya');
+    EquipoHistorico::factory()->for($programacion->equipo)->deTercero($seimet)->create([
         'fecha_servicio' => '2024-06-15',
         'tipo_servicio' => 'CALIBRACION',
-        'nombre_laboratorio' => 'SEIMET',
-        'es_tercero' => true,
         'adjunto' => 'historicos/1/1/abcd1234-certificado.pdf',
     ]);
     EquipoHistorico::factory()->for(crearEquipoRecibido($this->bahia, 'EQ-OTRO')->equipo)->create();
@@ -154,10 +154,14 @@ test('el historial incluye los servicios historicos importados del equipo, del m
         ->assertJsonCount(2, 'historicos')
         ->assertJsonPath('historicos.0.fecha_servicio', '2024-06-15')
         ->assertJsonPath('historicos.0.tipo_servicio', 'CALIBRACION')
-        ->assertJsonPath('historicos.0.nombre_laboratorio', 'SEIMET')
+        ->assertJsonPath('historicos.0.empresa_tercero_id', $seimet->id)
+        ->assertJsonPath('historicos.0.empresa_tercero', 'SEIMET')
         ->assertJsonPath('historicos.0.es_tercero', true)
         ->assertJsonPath('historicos.0.adjunto_nombre', 'certificado.pdf')
         ->assertJsonPath('historicos.0.adjunto_url', '/storage/historicos/1/1/abcd1234-certificado.pdf')
         ->assertJsonPath('historicos.1.fecha_servicio', '2022-03-01')
-        ->assertJsonPath('historicos.1.adjunto_url', null);
+        ->assertJsonPath('historicos.1.empresa_tercero', null)
+        ->assertJsonPath('historicos.1.adjunto_url', null)
+        ->assertJsonPath('laboratorioPropio', 'Laboratorio La Joya')
+        ->assertJsonPath('empresasTerceras.0.nombre', 'SEIMET');
 });

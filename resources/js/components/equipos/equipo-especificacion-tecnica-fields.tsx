@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ type Props = {
     options: EquipoFormOptions;
     errors: Partial<Record<string, string>>;
     required?: boolean;
+    /** Avisa al padre cuando cambia el alcance de indicación (con el símbolo de la unidad). */
+    onAlcanceIndicacionChange?: (alcanceIndicacion: string) => void;
 };
 
 type PrecisionSimbolo = '±' | '%';
@@ -86,6 +88,7 @@ export default function EquipoEspecificacionTecnicaFields({
     options,
     errors,
     required = false,
+    onAlcanceIndicacionChange,
 }: Props) {
     const inicial = parsePrecision(especificacion?.precision);
     const [precisionNumero, setPrecisionNumero] = useState(inicial.numero);
@@ -122,6 +125,11 @@ export default function EquipoEspecificacionTecnicaFields({
     const alcanceIndicacionValor = alcanceIndicacionTexto
         ? `${alcanceIndicacionTexto}${unidadSeleccionada?.simbolo ?? ''}`
         : '';
+
+    // Depende del texto y de la unidad elegida, así que se avisa cuando cambia el resultado.
+    useEffect(() => {
+        onAlcanceIndicacionChange?.(alcanceIndicacionValor);
+    }, [alcanceIndicacionValor, onAlcanceIndicacionChange]);
 
     const [resolucionNumero, setResolucionNumero] = useState(() =>
         parseValorConSimbolo(

@@ -3,6 +3,7 @@
 namespace App\Modules\Equipos\Models;
 
 use App\Models\Tenant;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Database\Factories\EquipoHistoricoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -22,17 +23,18 @@ use Illuminate\Support\Str;
  * @property int $equipo_id
  * @property string $tipo_servicio MANTENIMIENTO o CALIBRACION
  * @property Carbon $fecha_servicio
- * @property string $nombre_laboratorio
  * @property bool $es_tercero
+ * @property int|null $empresa_tercero_id Solo si lo hizo un tercero
  * @property string|null $adjunto Ruta del archivo en el disco público
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Equipo $equipo
+ * @property-read EmpresaTercero|null $empresaTercero
  * @property-read Tenant $tenant
  */
-#[Fillable(['equipo_id', 'tipo_servicio', 'fecha_servicio', 'nombre_laboratorio', 'es_tercero', 'adjunto', 'tenant_id'])]
+#[Fillable(['equipo_id', 'tipo_servicio', 'fecha_servicio', 'es_tercero', 'empresa_tercero_id', 'adjunto', 'tenant_id'])]
 #[UseFactory(EquipoHistoricoFactory::class)]
 class EquipoHistorico extends Model
 {
@@ -67,7 +69,7 @@ class EquipoHistorico extends Model
     /**
      * Datos que se muestran en la pestaña Histórico del historial del equipo.
      *
-     * @return array{id: int, tipo_servicio: string, fecha_servicio: string, nombre_laboratorio: string, es_tercero: bool, adjunto_url: string|null, adjunto_nombre: string|null}
+     * @return array{id: int, tipo_servicio: string, fecha_servicio: string, es_tercero: bool, empresa_tercero_id: int|null, empresa_tercero: string|null, adjunto_url: string|null, adjunto_nombre: string|null}
      */
     public function resumen(): array
     {
@@ -75,8 +77,9 @@ class EquipoHistorico extends Model
             'id' => $this->id,
             'tipo_servicio' => $this->tipo_servicio,
             'fecha_servicio' => $this->fecha_servicio->toDateString(),
-            'nombre_laboratorio' => $this->nombre_laboratorio,
             'es_tercero' => $this->es_tercero,
+            'empresa_tercero_id' => $this->empresa_tercero_id,
+            'empresa_tercero' => $this->empresaTercero?->nombre,
             'adjunto_url' => $this->adjuntoUrl(),
             'adjunto_nombre' => $this->adjuntoNombre(),
         ];
@@ -90,6 +93,16 @@ class EquipoHistorico extends Model
     public function equipo(): BelongsTo
     {
         return $this->belongsTo(Equipo::class);
+    }
+
+    /**
+     * Get the empresa tercera that did the servicio, if it was a tercero.
+     *
+     * @return BelongsTo<EmpresaTercero, $this>
+     */
+    public function empresaTercero(): BelongsTo
+    {
+        return $this->belongsTo(EmpresaTercero::class)->withTrashed();
     }
 
     /**

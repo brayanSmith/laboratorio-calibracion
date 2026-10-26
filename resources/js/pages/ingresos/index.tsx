@@ -29,6 +29,7 @@ export default function IngresosIndex({
     tecnicos,
     clientes,
     novedadesIngreso,
+    programacionesPendientes,
 }: Props) {
     const { can } = usePermissions();
     const canEdit = can('ingresos.editar');
@@ -38,6 +39,7 @@ export default function IngresosIndex({
         tecnicos,
         clientes,
         novedadesIngreso,
+        programacionesPendientes,
     };
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
@@ -56,10 +58,9 @@ export default function IngresosIndex({
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                
                 columnHelper.accessor('desde', { header: 'Desde' }),
                 columnHelper.accessor('hasta', { header: 'Hasta' }),
-                columnHelper.accessor('bahia_nombre', { header: 'Bahía' }),
+                columnHelper.accessor('bahias_nombre', { header: 'Bahías' }),
                 columnHelper.accessor('cliente_entrega_nombre', {
                     header: 'Cliente',
                     cell: (info) => (

@@ -1,6 +1,7 @@
 import { useHttp } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { store } from '@/actions/App/Modules/Equipos/Http/Controllers/EquipoHistoricoController';
+import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,13 +23,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { MOTIVO_SIN_CONEXION, motivoErrorHttp } from '@/lib/motivo-error-http';
-import type { Equipo, EquipoHistorico } from '@/types';
+import type { Equipo, EquipoHistorico, IngresoOption } from '@/types';
 
 /** Extensiones del adjunto (ver EquipoHistorico::EXTENSIONES_ADJUNTO). */
 const EXTENSIONES_ADJUNTO = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx';
 
 type Props = {
     equipo: Equipo;
+    empresasTerceras: IngresoOption[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onAgregado: (historico: EquipoHistorico) => void;
@@ -37,8 +39,8 @@ type Props = {
 type DatosHistorico = {
     tipo_servicio: string;
     fecha_servicio: string;
-    nombre_laboratorio: string;
     es_tercero: boolean;
+    empresa_tercero_id: string;
     adjunto: File | null;
 };
 
@@ -56,6 +58,7 @@ function hoy(): string {
  */
 export default function AgregarHistoricoModal({
     equipo,
+    empresasTerceras,
     open,
     onOpenChange,
     onAgregado,
@@ -64,8 +67,8 @@ export default function AgregarHistoricoModal({
         useHttp<DatosHistorico, EquipoHistorico>({
             tipo_servicio: '',
             fecha_servicio: '',
-            nombre_laboratorio: '',
             es_tercero: false,
+            empresa_tercero_id: '',
             adjunto: null,
         });
 
@@ -159,33 +162,17 @@ export default function AgregarHistoricoModal({
                         <InputError message={errors.fecha_servicio} />
                     </div>
 
-                    <div className="grid gap-2 sm:col-span-2">
-                        <Label htmlFor="historico-laboratorio">
-                            Laboratorio{' '}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="historico-laboratorio"
-                            value={data.nombre_laboratorio}
-                            onChange={(event) =>
-                                setData(
-                                    'nombre_laboratorio',
-                                    event.target.value,
-                                )
-                            }
-                            placeholder="Laboratorio o empresa que hizo el servicio"
-                            data-test="historico-laboratorio"
-                        />
-                        <InputError message={errors.nombre_laboratorio} />
-                    </div>
-
                     <div className="flex items-center gap-2 sm:col-span-2">
                         <Checkbox
                             id="historico-tercero"
                             checked={data.es_tercero}
-                            onCheckedChange={(marcado) =>
-                                setData('es_tercero', marcado === true)
-                            }
+                            onCheckedChange={(marcado) => {
+                                setData('es_tercero', marcado === true);
+
+                                if (marcado !== true) {
+                                    setData('empresa_tercero_id', '');
+                                }
+                            }}
                             data-test="historico-tercero"
                         />
                         <Label
@@ -195,6 +182,30 @@ export default function AgregarHistoricoModal({
                             Lo hizo un tercero
                         </Label>
                     </div>
+
+                    {data.es_tercero ? (
+                        <div className="grid gap-2 sm:col-span-2">
+                            <Label htmlFor="historico-empresa-tercero">
+                                Empresa tercera{' '}
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Combobox
+                                id="historico-empresa-tercero"
+                                value={data.empresa_tercero_id}
+                                onValueChange={(valor) =>
+                                    setData('empresa_tercero_id', valor)
+                                }
+                                options={empresasTerceras.map((empresa) => ({
+                                    id: empresa.id,
+                                    label: empresa.nombre,
+                                }))}
+                                placeholder="Selecciona una empresa tercera"
+                                searchPlaceholder="Buscar empresa tercera..."
+                                emptyMessage="No hay empresas terceras registradas."
+                            />
+                            <InputError message={errors.empresa_tercero_id} />
+                        </div>
+                    ) : null}
 
                     <div className="grid gap-2 sm:col-span-2">
                         <Label htmlFor="historico-adjunto">Adjunto</Label>

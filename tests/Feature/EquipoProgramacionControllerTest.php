@@ -268,7 +268,7 @@ test('busca programaciones cuya fecha de proximo servicio cae en el rango y bahi
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertOk()
         ->assertJson([
@@ -295,7 +295,7 @@ test('no incluye programaciones fuera del rango de fechas', function () {
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertOk()
         ->assertJsonCount(0);
@@ -314,10 +314,31 @@ test('no incluye programaciones de otra bahia ni de otro tenant', function () {
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertOk()
         ->assertJsonCount(0);
+});
+
+test('busca a la vez en todas las bahias dadas, con la bahia de cada equipo', function () {
+    $bahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id, 'nombre' => 'Bahía Norte']);
+    $otraBahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id, 'nombre' => 'Bahía Sur']);
+    crearProgramacion(crearEquipoParaBusqueda($bahia, 'EQ-NORTE'), ['fecha_proximo_servicio' => '2026-06-10']);
+    crearProgramacion(crearEquipoParaBusqueda($otraBahia, 'EQ-SUR'), ['fecha_proximo_servicio' => '2026-06-20']);
+    crearProgramacion(crearEquipoParaBusqueda(Bahia::factory()->create(['tenant_id' => $this->tenant->id]), 'EQ-FUERA'), ['fecha_proximo_servicio' => '2026-06-15']);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('equipo-programaciones.buscar', [
+            'desde' => '2026-06-01',
+            'hasta' => '2026-06-30',
+            'bahia_ids' => [$bahia->id, $otraBahia->id],
+        ]))
+        ->assertOk()
+        ->assertJsonCount(2)
+        ->assertJsonPath('0.equipo.codigo', 'EQ-NORTE')
+        ->assertJsonPath('0.equipo.bahia.nombre', 'Bahía Norte')
+        ->assertJsonPath('1.equipo.codigo', 'EQ-SUR')
+        ->assertJsonPath('1.equipo.bahia.nombre', 'Bahía Sur');
 });
 
 test('no incluye programaciones agendadas, canceladas ni eliminadas', function () {
@@ -331,7 +352,7 @@ test('no incluye programaciones agendadas, canceladas ni eliminadas', function (
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertOk()
         ->assertJsonCount(0);
@@ -349,7 +370,7 @@ test('no incluye programaciones de mantenimiento correctivo', function () {
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertOk()
         ->assertJsonCount(0);
@@ -365,7 +386,7 @@ test('ordena los resultados por fecha de proximo servicio', function () {
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertOk()
         ->assertJsonPath('0.id', $temprano->id)
@@ -376,7 +397,7 @@ test('rechaza la busqueda sin desde, hasta o bahia', function () {
     $this->actingAs($this->admin)
         ->getJson(route('equipo-programaciones.buscar'))
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['desde', 'hasta', 'bahia_id']);
+        ->assertJsonValidationErrors(['desde', 'hasta', 'bahia_ids']);
 });
 
 test('rechaza la busqueda cuando hasta es anterior a desde', function () {
@@ -384,7 +405,7 @@ test('rechaza la busqueda cuando hasta es anterior a desde', function () {
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-30',
             'hasta' => '2026-06-01',
-            'bahia_id' => Bahia::factory()->create(['tenant_id' => $this->tenant->id])->id,
+            'bahia_ids' => [Bahia::factory()->create(['tenant_id' => $this->tenant->id])->id],
         ]))
         ->assertUnprocessable()
         ->assertJsonValidationErrors('hasta');
@@ -397,10 +418,10 @@ test('rechaza la busqueda con una bahia de otro tenant', function () {
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahiaAjena->id,
+            'bahia_ids' => [$bahiaAjena->id],
         ]))
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('bahia_id');
+        ->assertJsonValidationErrors('bahia_ids.0');
 });
 
 test('un usuario sin permiso de ver equipos no puede buscar programaciones', function () {
@@ -411,7 +432,7 @@ test('un usuario sin permiso de ver equipos no puede buscar programaciones', fun
         ->getJson(route('equipo-programaciones.buscar', [
             'desde' => '2026-06-01',
             'hasta' => '2026-06-30',
-            'bahia_id' => $bahia->id,
+            'bahia_ids' => [$bahia->id],
         ]))
         ->assertForbidden();
 });
@@ -425,11 +446,26 @@ test('lista los equipos de una bahia para agendar un mantenimiento correctivo', 
     $equipo = crearEquipoParaBusqueda($bahia);
 
     $this->actingAs($this->admin)
-        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_id' => $bahia->id]))
+        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_ids' => [$bahia->id]]))
         ->assertOk()
         ->assertJson([
-            ['id' => $equipo->id, 'codigo' => $equipo->codigo, 'modelo' => $equipo->modelo],
+            ['id' => $equipo->id, 'codigo' => $equipo->codigo, 'modelo' => $equipo->modelo, 'bahia' => ['nombre' => $bahia->nombre]],
         ]);
+});
+
+test('lista los equipos de varias bahias a la vez para agendar un mantenimiento correctivo', function () {
+    $bahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id]);
+    $otraBahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id]);
+    crearEquipoParaBusqueda($bahia, 'EQ-A');
+    crearEquipoParaBusqueda($otraBahia, 'EQ-B');
+    crearEquipoParaBusqueda(Bahia::factory()->create(['tenant_id' => $this->tenant->id]), 'EQ-C');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_ids' => [$bahia->id, $otraBahia->id]]))
+        ->assertOk()
+        ->assertJsonCount(2)
+        ->assertJsonPath('0.codigo', 'EQ-A')
+        ->assertJsonPath('1.codigo', 'EQ-B');
 });
 
 test('no incluye equipos de otra bahia ni de otro tenant en los disponibles', function () {
@@ -442,7 +478,7 @@ test('no incluye equipos de otra bahia ni de otro tenant en los disponibles', fu
     crearEquipoParaBusqueda($bahiaAjena, 'EQ-AJENO');
 
     $this->actingAs($this->admin)
-        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_id' => $bahia->id]))
+        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_ids' => [$bahia->id]]))
         ->assertOk()
         ->assertJsonCount(0);
 });
@@ -451,9 +487,9 @@ test('rechaza listar equipos disponibles de una bahia de otro tenant', function 
     $bahiaAjena = Bahia::factory()->create(['tenant_id' => Tenant::factory()->create()->id]);
 
     $this->actingAs($this->admin)
-        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_id' => $bahiaAjena->id]))
+        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_ids' => [$bahiaAjena->id]]))
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('bahia_id');
+        ->assertJsonValidationErrors('bahia_ids.0');
 });
 
 test('un usuario sin permiso de ver equipos no puede listar equipos disponibles', function () {
@@ -461,7 +497,7 @@ test('un usuario sin permiso de ver equipos no puede listar equipos disponibles'
     $bahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id]);
 
     $this->actingAs($sinPermiso)
-        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_id' => $bahia->id]))
+        ->getJson(route('equipo-programaciones.equipos-disponibles', ['bahia_ids' => [$bahia->id]]))
         ->assertForbidden();
 });
 

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -64,12 +65,12 @@ class Bahia extends Model
     }
 
     /**
-     * Get the ingresos received in this bahia.
+     * Get the ingresos that receive equipos from this bahia (an ingreso can cover several).
      *
-     * @return HasMany<Ingreso, $this>
+     * @return BelongsToMany<Ingreso, $this>
      */
-    public function ingreso(): HasMany
+    public function ingreso(): BelongsToMany
     {
-        return $this->hasMany(Ingreso::class);
+        return $this->belongsToMany(Ingreso::class)->withTimestamps();
     }
 }

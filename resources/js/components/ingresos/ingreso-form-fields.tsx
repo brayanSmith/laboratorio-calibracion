@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import Combobox from '@/components/combobox';
+import { useMemo, useState } from 'react';
 import EquipoProgramacionesBuscador from '@/components/ingresos/equipo-programaciones-buscador';
 import InputError from '@/components/input-error';
+import MultiCombobox from '@/components/multi-combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Ingreso, IngresoOption, IngresoOptions } from '@/types';
+import { equiposPorBahia } from '@/lib/equipos-por-bahia';
+import type { Ingreso, IngresoOptions } from '@/types';
 
 type Props = {
     ingreso?: Ingreso;
@@ -14,12 +15,18 @@ type Props = {
     mostrarBuscador?: boolean;
 };
 
-function toComboboxOptions(options: IngresoOption[]) {
-    return options.map((option) => ({ id: option.id, label: option.nombre }));
+/** Primer error de los campos que empiezan con el prefijo (ej. una bahía inválida). */
+function primerError(
+    errors: Partial<Record<string, string>>,
+    prefijo: string,
+): string | undefined {
+    return Object.entries(errors).find(([campo]) =>
+        campo.startsWith(prefijo),
+    )?.[1];
 }
 
 /**
- * Bahía, fechas y equipos del ingreso. El técnico que recibe, el cliente que entrega,
+ * Bahías, fechas y equipos del ingreso. El técnico que recibe, el cliente que entrega,
  * la firma, la novedad y el motivo de cancelación se manejan aparte, desde "Recibir"
  * (ver recibir-ingreso-modal.tsx), no desde este formulario.
  */
@@ -31,7 +38,14 @@ export default function IngresoFormFields({
 }: Props) {
     const [desde, setDesde] = useState(ingreso?.desde ?? '');
     const [hasta, setHasta] = useState(ingreso?.hasta ?? '');
-    const [bahiaId, setBahiaId] = useState(ingreso?.bahia_id.toString());
+    const [bahiaIds, setBahiaIds] = useState<string[]>(
+        () => ingreso?.bahia_ids.map(String) ?? [],
+    );
+    const conteoPorBahia = useMemo(
+        () => equiposPorBahia(options.programacionesPendientes, desde, hasta),
+        [options.programacionesPendientes, desde, hasta],
+    );
+    const conRango = desde !== '' && hasta !== '';
 
     return (
         <div className="grid gap-6 sm:grid-cols-2">
@@ -73,17 +87,39 @@ export default function IngresoFormFields({
             </div>
 
             <div className="grid gap-2 sm:col-span-2">
-                <Label htmlFor="bahia_id">Bahía</Label>
-                <Combobox
-                    id="bahia_id"
-                    name="bahia_id"
-                    value={bahiaId}
-                    onValueChange={setBahiaId}
-                    options={toComboboxOptions(options.bahias)}
-                    placeholder="Selecciona una bahía"
+                <Label htmlFor="bahia_ids">Bahías</Label>
+                <MultiCombobox
+                    id="bahia_ids"
+                    name="bahia_ids"
+                    value={bahiaIds}
+                    onValueChange={setBahiaIds}
+                    options={options.bahias.map((bahia) => ({
+                        id: bahia.id,
+                        label: bahia.nombre,
+                        contador: conteoPorBahia.get(bahia.id) ?? 0,
+                    }))}
+                    tituloContador={
+                        conRango
+                            ? 'Equipos con servicio programado entre Desde y Hasta'
+                            : 'Equipos con servicio programado pendiente (elige Desde y Hasta para filtrar)'
+                    }
+                    placeholder="Selecciona una o varias bahías"
                     searchPlaceholder="Buscar bahía..."
+                    emptyMessage="Ninguna bahía coincide."
+                    plural="bahías"
                 />
-                <InputError message={errors.bahia_id} />
+                <p className="text-xs text-muted-foreground">
+                    El número de cada bahía es cuántos equipos tienen servicio
+                    programado{' '}
+                    {conRango
+                        ? 'entre Desde y Hasta.'
+                        : 'pendiente; elige Desde y Hasta para ver los del rango.'}
+                </p>
+                <InputError
+                    message={
+                        errors.bahia_ids ?? primerError(errors, 'bahia_ids.')
+                    }
+                />
             </div>
 
             {mostrarBuscador ? (
@@ -91,7 +127,7 @@ export default function IngresoFormFields({
                     <EquipoProgramacionesBuscador
                         desde={desde}
                         hasta={hasta}
-                        bahiaId={bahiaId}
+                        bahiaIds={bahiaIds}
                         resultadosIniciales={ingreso?.equipo_programaciones}
                         errors={errors}
                     />

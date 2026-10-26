@@ -121,6 +121,8 @@ export type EquipoProgramacionBusquedaItem = {
         modelo: string;
         tipo_equipo: { nombre: string };
         cliente: { nombre: string } | null;
+        /** Solo en la búsqueda del ingreso, que puede abarcar varias bahías. */
+        bahia?: { nombre: string };
     };
 };
 
@@ -129,6 +131,7 @@ export type EquipoDisponibleItem = {
     id: number;
     codigo: string;
     modelo: string;
+    bahia: { nombre: string };
 };
 
 /** Equipo ya recibido (ingresado) y sin orden de trabajo agendada, para "Agendar
@@ -204,6 +207,15 @@ export type EquipoFormOptions = {
     clientes: EquipoOption[];
     tiposMagnitud: EquipoOption[];
     unidadesMedida: EquipoUnidadMedidaOption[];
+    /** Alcances de medición registrados, para saber si un equipo ya tiene el suyo. */
+    alcancesMedicion: EquipoAlcanceMedicionClave[];
+};
+
+/** Lo que identifica un alcance de medición: tipo de equipo, modelo y alcance de indicación. */
+export type EquipoAlcanceMedicionClave = {
+    tipo_equipo_id: number;
+    modelo: string;
+    alcance_indicacion: string;
 };
 
 export type EquipoPaginator = {
@@ -227,6 +239,10 @@ export type HistorialEquipo = {
     historicos: EquipoHistorico[];
     /** Catálogo de Novedad (categoría INGRESO), que necesita la modal "Ver" del ingreso. */
     novedadesIngreso: IngresoOption[];
+    /** Laboratorio propio de la Empresa, el de los históricos que no hizo un tercero. */
+    laboratorioPropio: string | null;
+    /** Empresas terceras, para elegirla al agregar un histórico de un tercero. */
+    empresasTerceras: IngresoOption[];
 };
 
 /** Servicio anterior al sistema (o de otro sistema), importado desde un CSV. */
@@ -234,8 +250,10 @@ export type EquipoHistorico = {
     id: number;
     tipo_servicio: 'MANTENIMIENTO' | 'CALIBRACION';
     fecha_servicio: string;
-    nombre_laboratorio: string;
     es_tercero: boolean;
+    /** Solo si lo hizo un tercero. */
+    empresa_tercero_id: number | null;
+    empresa_tercero: string | null;
     adjunto_url: string | null;
     adjunto_nombre: string | null;
 };

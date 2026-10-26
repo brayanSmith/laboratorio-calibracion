@@ -19,7 +19,7 @@ class EquipoHistoricoController extends Controller
         $adjunto = $request->file('adjunto');
 
         $historico = $equipo->equipoHistoricos()->create([
-            ...$request->safe()->only(['tipo_servicio', 'fecha_servicio', 'nombre_laboratorio', 'es_tercero']),
+            ...$request->safe()->only(['tipo_servicio', 'fecha_servicio', 'es_tercero', 'empresa_tercero_id']),
             'adjunto' => $adjunto?->storeAs(
                 EquipoHistorico::carpetaAdjuntos($equipo->tenant_id, $equipo->id),
                 EquipoHistorico::nombreArchivoAdjunto($adjunto->getClientOriginalName()),

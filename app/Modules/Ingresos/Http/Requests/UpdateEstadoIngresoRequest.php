@@ -100,7 +100,7 @@ class UpdateEstadoIngresoRequest extends FormRequest
             'equipos_correctivos_recibidos' => ['array'],
             'equipos_correctivos_recibidos.*.equipo_id' => [
                 'required',
-                Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->where('bahia_id', $ingreso->bahia_id)->whereNull('deleted_at'),
+                Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->whereIn('bahia_id', $ingreso->bahias()->pluck('bahias.id')->all())->whereNull('deleted_at'),
             ],
             'equipos_correctivos_recibidos.*.falla_detectada' => ['required', 'string', 'max:2000'],
         ];

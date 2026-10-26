@@ -27,7 +27,7 @@ beforeEach(function () {
 function crearEquipoRecibido(Bahia $bahia, string $codigo = 'EQ-5001'): EquipoProgramacion
 {
     $equipo = crearEquipoParaBusqueda($bahia, $codigo);
-    $ingreso = Ingreso::factory()->create(['bahia_id' => $bahia->id, 'estado_ingreso' => 'RECIBIDO']);
+    $ingreso = Ingreso::factory()->conBahias($bahia)->create(['estado_ingreso' => 'RECIBIDO']);
 
     return crearProgramacion($equipo, [
         'ingreso_id' => $ingreso->id,

@@ -61,7 +61,8 @@ class StoreIngresoRequest extends FormRequest
         $tenantId = $this->user()->tenant_id;
 
         return [
-            'bahia_id' => ['required', Rule::exists('bahias', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at')],
+            'bahia_ids' => ['required', 'array', 'min:1'],
+            'bahia_ids.*' => ['integer', 'distinct', Rule::exists('bahias', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at')],
             'desde' => ['required', 'date'],
             'hasta' => ['required', 'date', 'after_or_equal:desde'],
             // El técnico, el cliente, la firma y el estado se completan después, desde
@@ -78,7 +79,7 @@ class StoreIngresoRequest extends FormRequest
             'programaciones_correctivas' => ['array'],
             'programaciones_correctivas.*.equipo_id' => [
                 'required',
-                Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->where('bahia_id', $this->input('bahia_id'))->whereNull('deleted_at'),
+                Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->whereIn('bahia_id', $this->bahiaIds())->whereNull('deleted_at'),
             ],
             'programaciones_correctivas.*.falla_detectada' => ['required', 'string', 'max:2000'],
         ];
@@ -92,9 +93,20 @@ class StoreIngresoRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'bahia_id' => 'bahía',
+            'bahia_ids' => 'bahías',
+            'bahia_ids.*' => 'bahía',
             'desde' => 'fecha desde',
             'hasta' => 'fecha hasta',
         ];
+    }
+
+    /**
+     * Ids of the bahías sent in the request; the equipos correctivos must be in one of them.
+     *
+     * @return list<int>
+     */
+    private function bahiaIds(): array
+    {
+        return array_values(array_map('intval', array_filter((array) $this->input('bahia_ids', []), 'is_numeric')));
     }
 }

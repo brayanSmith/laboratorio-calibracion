@@ -12,6 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
+    BADGE_ALCANCE_MEDICION,
+    ETIQUETA_ALCANCE_MEDICION,
+    estadoAlcanceMedicion,
+} from '@/lib/alcance-medicion-equipo';
+import {
     BADGE_VENCIMIENTO,
     vencimientoDelEquipo,
 } from '@/lib/vencimiento-programacion';
@@ -129,6 +134,40 @@ export default function EquiposTabla({
                         <VencimientoEquipo equipo={row.original} />
                     ),
                 }),
+                columnHelper.accessor(
+                    (row) =>
+                        estadoAlcanceMedicion(
+                            options.alcancesMedicion,
+                            row.tipo_equipo_id,
+                            row.modelo,
+                            row.equipo_especificacion_tecnica
+                                ?.alcance_indicacion,
+                        ),
+                    {
+                        id: 'alcance_medicion',
+                        header: 'Alcance de medición',
+                        meta: {
+                            filterOptions: Object.entries(
+                                ETIQUETA_ALCANCE_MEDICION,
+                            ).map(([value, label]) => ({ value, label })),
+                        },
+                        cell: (info) =>
+                            info.getValue() === 'SIN_DATOS' ? (
+                                <span className="text-xs text-muted-foreground">
+                                    {ETIQUETA_ALCANCE_MEDICION.SIN_DATOS}
+                                </span>
+                            ) : (
+                                <Badge
+                                    className={
+                                        BADGE_ALCANCE_MEDICION[info.getValue()]
+                                    }
+                                    data-test="equipo-alcance-medicion"
+                                >
+                                    {ETIQUETA_ALCANCE_MEDICION[info.getValue()]}
+                                </Badge>
+                            ),
+                    },
+                ),
                 columnHelper.accessor('activo', {
                     header: 'Estado',
                     meta: {

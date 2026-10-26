@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { type PropsWithChildren, useState } from 'react';
 import EquipoController from '@/actions/App/Modules/Equipos/Http/Controllers/EquipoController';
+import EquipoAlcanceMedicionAviso from '@/components/equipos/equipo-alcance-medicion-aviso';
 import EquipoDocumentosEditarFields from '@/components/equipos/equipo-documentos-editar-fields';
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
@@ -38,6 +39,10 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
     const [tipoEquipoId, setTipoEquipoId] = useState<string | undefined>(
         equipo.tipo_equipo_id.toString(),
     );
+    const [modelo, setModelo] = useState(equipo.modelo);
+    const [alcanceIndicacion, setAlcanceIndicacion] = useState(
+        equipo.equipo_especificacion_tecnica?.alcance_indicacion ?? '',
+    );
 
     const tiposSugeridos = tiposServicioDelTipoEquipo(
         options.tipoEquipos.find((tipo) => tipo.id.toString() === tipoEquipoId)
@@ -50,6 +55,11 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
             onOpenChange={(value) => {
                 setOpen(value);
                 setTipoEquipoId(equipo.tipo_equipo_id.toString());
+                setModelo(equipo.modelo);
+                setAlcanceIndicacion(
+                    equipo.equipo_especificacion_tecnica?.alcance_indicacion ??
+                        '',
+                );
             }}
         >
             <DialogTrigger asChild>{children}</DialogTrigger>
@@ -101,6 +111,7 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                                     <EquipoFormFields
                                         equipo={equipo}
                                         onTipoEquipoChange={setTipoEquipoId}
+                                        onModeloChange={setModelo}
                                         options={options}
                                         errors={errors}
                                     />
@@ -162,6 +173,17 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                                             }
                                             options={options}
                                             errors={errors}
+                                            onAlcanceIndicacionChange={
+                                                setAlcanceIndicacion
+                                            }
+                                        />
+                                        <EquipoAlcanceMedicionAviso
+                                            alcances={options.alcancesMedicion}
+                                            tipoEquipoId={tipoEquipoId}
+                                            modelo={modelo}
+                                            alcanceIndicacion={
+                                                alcanceIndicacion
+                                            }
                                         />
                                     </div>
 

@@ -2,6 +2,7 @@ import { Form } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
 import EquipoController from '@/actions/App/Modules/Equipos/Http/Controllers/EquipoController';
+import EquipoAlcanceMedicionAviso from '@/components/equipos/equipo-alcance-medicion-aviso';
 import EquipoDocumentosFields from '@/components/equipos/equipo-documentos-fields';
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
 import EquipoFichaTecnicaFields from '@/components/equipos/equipo-ficha-tecnica-fields';
@@ -32,6 +33,8 @@ type Props = PropsWithChildren<{
 export default function CreateEquipoModal({ options, children }: Props) {
     const [open, setOpen] = useState(false);
     const [tipoEquipoId, setTipoEquipoId] = useState<string | undefined>();
+    const [modelo, setModelo] = useState('');
+    const [alcanceIndicacion, setAlcanceIndicacion] = useState('');
 
     const tiposSugeridos = tiposServicioDelTipoEquipo(
         options.tipoEquipos.find((tipo) => tipo.id.toString() === tipoEquipoId)
@@ -44,6 +47,8 @@ export default function CreateEquipoModal({ options, children }: Props) {
             onOpenChange={(value) => {
                 setOpen(value);
                 setTipoEquipoId(undefined);
+                setModelo('');
+                setAlcanceIndicacion('');
             }}
         >
             <DialogTrigger asChild>{children}</DialogTrigger>
@@ -68,6 +73,7 @@ export default function CreateEquipoModal({ options, children }: Props) {
                                 errors={errors}
                                 variant="create"
                                 onTipoEquipoChange={setTipoEquipoId}
+                                onModeloChange={setModelo}
                             />
 
                             <Separator />
@@ -106,6 +112,15 @@ export default function CreateEquipoModal({ options, children }: Props) {
                                 <EquipoEspecificacionTecnicaFields
                                     options={options}
                                     errors={errors}
+                                    onAlcanceIndicacionChange={
+                                        setAlcanceIndicacion
+                                    }
+                                />
+                                <EquipoAlcanceMedicionAviso
+                                    alcances={options.alcancesMedicion}
+                                    tipoEquipoId={tipoEquipoId}
+                                    modelo={modelo}
+                                    alcanceIndicacion={alcanceIndicacion}
                                 />
                             </div>
 

@@ -53,7 +53,7 @@ class UpdateEmpresaTerceroRequest extends FormRequest
     {
         return [
             'nombre' => 'nombre',
-            'nit' => 'número de documento',
+            'nit' => 'RUC',
             'direccion' => 'dirección',
             'telefono' => 'teléfono',
             'email' => 'correo electrónico',

@@ -24,7 +24,7 @@ import type {
 type Props = {
     desde: string;
     hasta: string;
-    bahiaId: string | undefined;
+    bahiaIds: string[];
     /** Equipos ya enlazados a este ingreso, solo al editar. */
     resultadosIniciales?: EquipoProgramacionBusquedaItem[];
     errors: Partial<Record<string, string>>;
@@ -105,6 +105,9 @@ function ProgramacionResultado({ item, puedeEditar, errors }: ResultadoProps) {
                             {item.equipo.cliente
                                 ? ` · ${item.equipo.cliente.nombre}`
                                 : ''}
+                            {item.equipo.bahia
+                                ? ` · ${item.equipo.bahia.nombre}`
+                                : ''}
                             {item.fecha_proximo_servicio
                                 ? ` · Próximo servicio: ${item.fecha_proximo_servicio.slice(0, 10)}`
                                 : item.falla_detectada
@@ -141,7 +144,7 @@ function ProgramacionResultado({ item, puedeEditar, errors }: ResultadoProps) {
 
 /**
  * Vista previa de los equipos cuya próxima programación de servicio cae dentro del
- * Desde/Hasta/Bahía que se lleven en el formulario del ingreso (o ya enlazados a este
+ * Desde/Hasta/Bahías que se lleven en el formulario del ingreso (o ya enlazados a este
  * ingreso, al editar). Cada fila de un preventivo permite marcar si se agenda o no, y
  * se puede agregar equipos correctivos aparte; nada de esto llama al servidor por su
  * cuenta: todo viaja en la misma petición que el ingreso, al guardar, mediante inputs
@@ -150,7 +153,7 @@ function ProgramacionResultado({ item, puedeEditar, errors }: ResultadoProps) {
 export default function EquipoProgramacionesBuscador({
     desde,
     hasta,
-    bahiaId,
+    bahiaIds,
     resultadosIniciales,
     errors,
 }: Props) {
@@ -168,7 +171,7 @@ export default function EquipoProgramacionesBuscador({
         processing,
         errors: erroresBusqueda,
     } = useHttp<
-        { desde: string; hasta: string; bahia_id: string },
+        { desde: string; hasta: string; bahia_ids: string[] },
         EquipoProgramacionBusquedaItem[]
     >();
 
@@ -187,14 +190,14 @@ export default function EquipoProgramacionesBuscador({
         }
     }, [response]);
 
-    const puedeBuscar = desde !== '' && hasta !== '' && !!bahiaId;
+    const puedeBuscar = desde !== '' && hasta !== '' && bahiaIds.length > 0;
 
     const handleBuscar = () => {
         if (!puedeBuscar) {
             return;
         }
 
-        void get(buscar({ query: { desde, hasta, bahia_id: bahiaId } }).url);
+        void get(buscar({ query: { desde, hasta, bahia_ids: bahiaIds } }).url);
     };
 
     const equiposProgramados = (resultados ?? []).filter(
@@ -212,7 +215,7 @@ export default function EquipoProgramacionesBuscador({
                         Equipos próximos a vencer
                     </p>
                     <p className="text-xs text-muted-foreground">
-                        Busca, con el Desde, Hasta y Bahía de arriba, qué
+                        Busca, con el Desde, Hasta y Bahías de arriba, qué
                         equipos tienen servicio programado en ese rango.
                     </p>
                 </div>
@@ -231,11 +234,11 @@ export default function EquipoProgramacionesBuscador({
 
             {erroresBusqueda.desde ||
             erroresBusqueda.hasta ||
-            erroresBusqueda.bahia_id ? (
+            erroresBusqueda.bahia_ids ? (
                 <p className="text-sm text-red-600 dark:text-red-400">
                     {erroresBusqueda.desde ??
                         erroresBusqueda.hasta ??
-                        erroresBusqueda.bahia_id}
+                        erroresBusqueda.bahia_ids}
                 </p>
             ) : null}
 
@@ -258,8 +261,8 @@ export default function EquipoProgramacionesBuscador({
                         </ul>
                     ) : (
                         <p className="text-sm text-muted-foreground">
-                            Ningún equipo de esa bahía tiene servicio programado
-                            en ese rango.
+                            Ningún equipo de esas bahías tiene servicio
+                            programado en ese rango.
                         </p>
                     )}
                 </div>
@@ -306,10 +309,10 @@ export default function EquipoProgramacionesBuscador({
                 </div>
             ) : null}
 
-            {can('equipos.editar') && bahiaId ? (
+            {can('equipos.editar') && bahiaIds.length > 0 ? (
                 mostrarAgregar ? (
                     <AgregarEquipoCorrectivo
-                        bahiaId={bahiaId}
+                        bahiaIds={bahiaIds}
                         onCancelar={() => setMostrarAgregar(false)}
                         onAgregar={(pendiente) => {
                             setCorrectivosPendientes((actuales) => [

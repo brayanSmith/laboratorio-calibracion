@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
@@ -83,7 +84,9 @@ trait ListaEquipos
     }
 
     /**
-     * Get the select options for the equipo form, scoped to the given tenant.
+     * Get the select options for the equipo form, scoped to the given tenant. Includes the
+     * alcances de medición registrados (tipo de equipo, modelo y alcance de indicación), to
+     * show whether each equipo already has one.
      *
      * @return array{
      *     tipoEquipos: Collection<int, TipoEquipo>,
@@ -93,6 +96,7 @@ trait ListaEquipos
      *     clientes: Collection<int, Cliente>,
      *     tiposMagnitud: Collection<int, TipoMagnitud>,
      *     unidadesMedida: Collection<int, UnidadMedida>,
+     *     alcancesMedicion: Collection<int, MedicionAlcance>,
      * }
      */
     private function formOptions(int $tenantId): array
@@ -109,6 +113,7 @@ trait ListaEquipos
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tiposMagnitud' => TipoMagnitud::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'unidadesMedida' => UnidadMedida::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'simbolo']),
+            'alcancesMedicion' => MedicionAlcance::query()->where('tenant_id', $tenantId)->get(['tipo_equipo_id', 'modelo', 'alcance_indicacion']),
         ];
     }
 }

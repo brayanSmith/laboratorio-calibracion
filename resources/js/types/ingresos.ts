@@ -4,8 +4,10 @@ export type EstadoIngreso = 'PENDIENTE' | 'RECIBIDO' | 'CANCELADO';
 
 export type Ingreso = {
     id: number;
-    bahia_id: number;
-    bahia_nombre: string;
+    /** Bahías cuyos equipos recibe el ingreso (una o varias). */
+    bahia_ids: number[];
+    /** Nombres de sus bahías, separados por comas. */
+    bahias_nombre: string;
     fecha_creacion: string;
     desde: string;
     hasta: string;
@@ -38,4 +40,13 @@ export type IngresoOptions = {
     clientes: IngresoOption[];
     /** Catálogo de Novedad (categoría INGRESO), para el motivo cuando se cancela un equipo. */
     novedadesIngreso: IngresoOption[];
+    /** Programaciones preventivas pendientes, para contar los equipos de cada bahía. */
+    programacionesPendientes: ProgramacionPendienteBahia[];
+};
+
+export type ProgramacionPendienteBahia = {
+    bahia_id: number;
+    equipo_id: number;
+    /** Fecha del próximo servicio, AAAA-MM-DD. */
+    fecha: string;
 };

@@ -22,19 +22,20 @@ export type CorrectivoPendiente = {
 const colorBadgeAgendado = '!border-transparent !bg-emerald-500 !text-white';
 
 type AgregarEquipoCorrectivoProps = {
-    bahiaId: string;
+    /** Bahías del ingreso, de las que se puede elegir el equipo. */
+    bahiaIds: string[];
     onAgregar: (pendiente: Omit<CorrectivoPendiente, 'tempId'>) => void;
     onCancelar: () => void;
 };
 
 /**
  * Formulario para anotar, localmente, un equipo que falló "de la nada" (no tenía
- * servicio programado) en la bahía del ingreso. No llama al servidor: solo junta el
+ * servicio programado) en alguna de las bahías del ingreso. No llama al servidor: solo junta el
  * equipo y la falla detectada en la lista de pendientes, que se guarda junto con el
  * resto del formulario (del ingreso, o de "Recibir equipos") al enviarlo.
  */
 export function AgregarEquipoCorrectivo({
-    bahiaId,
+    bahiaIds,
     onAgregar,
     onCancelar,
 }: AgregarEquipoCorrectivoProps) {
@@ -44,15 +45,16 @@ export function AgregarEquipoCorrectivo({
         get: cargarEquipos,
         response: equipos,
         processing: cargandoEquipos,
-    } = useHttp<{ bahia_id: string }, EquipoDisponibleItem[]>();
+    } = useHttp<{ bahia_ids: string[] }, EquipoDisponibleItem[]>();
+    const clavesBahias = bahiaIds.join(',');
 
     useEffect(() => {
         void cargarEquipos(
-            equiposDisponiblesRoute({ query: { bahia_id: bahiaId } }).url,
+            equiposDisponiblesRoute({ query: { bahia_ids: bahiaIds } }).url,
         );
-        // Solo se vuelve a cargar si cambia la bahía del ingreso.
+        // Solo se vuelve a cargar si cambian las bahías del ingreso.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [bahiaId]);
+    }, [clavesBahias]);
 
     const equipoSeleccionado = (equipos ?? []).find(
         (equipo) => equipo.id.toString() === equipoId,
@@ -65,7 +67,7 @@ export function AgregarEquipoCorrectivo({
 
         onAgregar({
             equipoId,
-            equipoLabel: `${equipoSeleccionado.codigo} · ${equipoSeleccionado.modelo}`,
+            equipoLabel: `${equipoSeleccionado.codigo} · ${equipoSeleccionado.modelo} · ${equipoSeleccionado.bahia.nombre}`,
             fallaDetectada,
         });
         setEquipoId('');
@@ -85,11 +87,11 @@ export function AgregarEquipoCorrectivo({
                     onValueChange={setEquipoId}
                     options={(equipos ?? []).map((equipo) => ({
                         id: equipo.id,
-                        label: `${equipo.codigo} · ${equipo.modelo}`,
+                        label: `${equipo.codigo} · ${equipo.modelo} · ${equipo.bahia.nombre}`,
                     }))}
                     placeholder="Selecciona un equipo"
                     searchPlaceholder="Buscar equipo..."
-                    emptyMessage="Sin equipos en esta bahía."
+                    emptyMessage="Sin equipos en estas bahías."
                     loading={cargandoEquipos}
                 />
             </div>
