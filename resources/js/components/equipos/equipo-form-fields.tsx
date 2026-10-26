@@ -4,7 +4,10 @@ import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Equipo, EquipoFormOptions } from '@/types';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { criticidadesEquipo } from '@/lib/criticidad-equipo';
+import { cn } from '@/lib/utils';
+import type { CriticidadEquipo, Equipo, EquipoFormOptions } from '@/types';
 
 type Props = {
     equipo?: Equipo;
@@ -21,6 +24,13 @@ const OPCIONES_TECNOLOGIA = [
     { id: 'ANALOGICO', label: 'Analógico' },
     { id: 'DIGITAL', label: 'Digital' },
 ];
+
+/** Color de cada opción de criticidad al seleccionarla: alta en rojo, media en amarillo, baja en verde. */
+const COLOR_TOGGLE_CRITICIDAD: Record<CriticidadEquipo, string> = {
+    ALTA: 'data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white',
+    MEDIA: 'data-[state=on]:!border-amber-500 data-[state=on]:!bg-amber-500 data-[state=on]:!text-white',
+    BAJA: 'data-[state=on]:!border-emerald-500 data-[state=on]:!bg-emerald-500 data-[state=on]:!text-white',
+};
 
 /**
  * Datos generales del equipo. The caller is responsible for its own
@@ -41,6 +51,9 @@ export default function EquipoFormFields({
     );
     const [tipoTecnologia, setTipoTecnologia] = useState(
         equipo?.tipo_tecnologia,
+    );
+    const [criticidad, setCriticidad] = useState(
+        equipo?.criticidad ?? undefined,
     );
     const [fabricanteId, setFabricanteId] = useState(
         equipo?.fabricante_id?.toString(),
@@ -154,6 +167,44 @@ export default function EquipoFormFields({
                     <InputError message={errors.condicion_actual} />
                 </div>
             )}
+
+            <div className="grid gap-2">
+                <Label id="criticidad-label">Criticidad</Label>
+                <input
+                    type="hidden"
+                    name="criticidad"
+                    value={criticidad ?? ''}
+                />
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    value={criticidad ?? ''}
+                    onValueChange={(value) =>
+                        setCriticidad(
+                            (value || undefined) as
+                                | CriticidadEquipo
+                                | undefined,
+                        )
+                    }
+                    className="w-full"
+                    aria-labelledby="criticidad-label"
+                    data-test="equipo-criticidad-toggle"
+                >
+                    {criticidadesEquipo.map((opcion) => (
+                        <ToggleGroupItem
+                            key={opcion.value}
+                            value={opcion.value}
+                            className={cn(
+                                'grow basis-0',
+                                COLOR_TOGGLE_CRITICIDAD[opcion.value],
+                            )}
+                        >
+                            {opcion.label}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+                <InputError message={errors.criticidad} />
+            </div>
 
             <div className="grid gap-2">
                 <Label htmlFor="cliente_id">Cliente</Label>

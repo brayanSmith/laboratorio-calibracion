@@ -5,6 +5,8 @@ import type { Mantenimiento, ServicioTerceroListado } from './mantenimientos';
 
 export type TipoTecnologia = 'ANALOGICO' | 'DIGITAL';
 
+export type CriticidadEquipo = 'ALTA' | 'MEDIA' | 'BAJA';
+
 export type EquipoOption = {
     id: number;
     nombre: string;
@@ -183,8 +185,11 @@ export type Equipo = {
     area_id: number;
     bahia_id: number;
     condicion_actual: string;
+    criticidad: CriticidadEquipo | null;
     notas: string | null;
     activo: boolean;
+    /** Por qué el sistema lo dejó inactivo; nulo si está activo o se inactivó a mano. */
+    motivo_inactivo: string | null;
     patron_referencia: boolean;
     requiere_programacion: boolean;
     cliente_id: number;

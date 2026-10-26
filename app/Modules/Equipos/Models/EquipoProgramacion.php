@@ -80,6 +80,10 @@ class EquipoProgramacion extends Model
     protected static function booted(): void
     {
         static::saved(function (EquipoProgramacion $programacion): void {
+            if ($programacion->novedad_ingreso_id !== null && ($programacion->wasRecentlyCreated || $programacion->wasChanged('novedad_ingreso_id'))) {
+                $programacion->equipo?->inactivarSiLaNovedadLoPide($programacion->novedad_ingreso_id, 'ingreso');
+            }
+
             if (! $programacion->wasRecentlyCreated && ! $programacion->wasChanged(['agendar', 'estado_programacion'])) {
                 return;
             }

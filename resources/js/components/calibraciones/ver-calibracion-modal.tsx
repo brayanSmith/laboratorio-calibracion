@@ -27,6 +27,7 @@ const etiquetasEstado: Record<string, string> = {
     EN_PROCESO: 'En proceso',
     FINALIZADO: 'Finalizado',
     DEVOLVER_MANTENIMIENTO: 'Devolver a mantenimiento',
+    FUERA_DE_SERVICIO: 'Fuera de servicio',
 };
 
 function Dato({

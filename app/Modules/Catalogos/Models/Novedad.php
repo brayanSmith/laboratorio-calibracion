@@ -21,13 +21,14 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $nombre
  * @property string $categoria
+ * @property bool $inactivar_equipo Si al reportarla el equipo queda inactivo (ver Equipo::inactivarSiLaNovedadLoPide())
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['nombre', 'categoria', 'tenant_id'])]
+#[Fillable(['nombre', 'categoria', 'inactivar_equipo', 'tenant_id'])]
 #[UseFactory(NovedadFactory::class)]
 class Novedad extends Model
 {
@@ -89,5 +90,17 @@ class Novedad extends Model
     public function equipoProgramacion(): HasMany
     {
         return $this->hasMany(EquipoProgramacion::class, 'novedad_ingreso_id');
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'inactivar_equipo' => 'boolean',
+        ];
     }
 }

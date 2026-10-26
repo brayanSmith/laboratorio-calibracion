@@ -7,6 +7,7 @@ use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Fabricante;
+use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -30,8 +31,10 @@ use Illuminate\Support\Carbon;
  * @property int $area_id
  * @property int $bahia_id
  * @property string $condicion_actual
+ * @property string|null $criticidad ALTA, MEDIA o BAJA; nula si aún no se asignó
  * @property string|null $notas
  * @property bool $activo
+ * @property string|null $motivo_inactivo Por qué el sistema lo inactivó (ver inactivar()); nulo si está activo o se inactivó a mano
  * @property bool $patron_referencia
  * @property-read string $codigo_nombre Calculado: "Tipo de equipo - código" (requiere tipoEquipo)
  * @property bool $requiere_programacion
@@ -52,12 +55,46 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
-    'numero_serie', 'ficha_tecnica', 'area_id', 'bahia_id', 'condicion_actual',
-    'notas', 'activo', 'patron_referencia', 'requiere_programacion', 'cliente_id', 'tenant_id',
+    'numero_serie', 'ficha_tecnica', 'area_id', 'bahia_id', 'condicion_actual', 'criticidad',
+    'notas', 'activo', 'motivo_inactivo', 'patron_referencia', 'requiere_programacion', 'cliente_id', 'tenant_id',
 ])]
 class Equipo extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Al volver a activar el equipo se olvida por qué estaba inactivo.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Equipo $equipo): void {
+            if ($equipo->activo) {
+                $equipo->motivo_inactivo = null;
+            }
+        });
+    }
+
+    /**
+     * Deja el equipo inactivo, guardando el motivo para mostrarlo en el listado de equipos
+     * (ej. "Calibración: Fuera de servicio").
+     */
+    public function inactivar(string $motivo): void
+    {
+        $this->update(['activo' => false, 'motivo_inactivo' => $motivo]);
+    }
+
+    /**
+     * Inactiva el equipo si la novedad reportada en el módulo está marcada para hacerlo
+     * (ver Novedad::$inactivar_equipo).
+     */
+    public function inactivarSiLaNovedadLoPide(?int $novedadId, string $modulo): void
+    {
+        $novedad = $novedadId === null ? null : Novedad::query()->find($novedadId);
+
+        if ($novedad?->inactivar_equipo) {
+            $this->inactivar("Novedad en {$modulo}: {$novedad->nombre}");
+        }
+    }
 
     /**
      * Código y nombre del equipo concatenados, ej. "Manómetro - EQ-0001". Se calcula en vez

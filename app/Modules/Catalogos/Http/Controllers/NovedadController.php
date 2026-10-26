@@ -31,11 +31,12 @@ class NovedadController extends Controller
             ])
             ->orderBy('categoria')
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'categoria'])
+            ->get(['id', 'nombre', 'categoria', 'inactivar_equipo'])
             ->map(fn (Novedad $novedad) => [
                 'id' => $novedad->id,
                 'nombre' => $novedad->nombre,
                 'categoria' => $novedad->categoria,
+                'inactivar_equipo' => $novedad->inactivar_equipo,
                 'usos_count' => (int) $novedad->getAttribute('calibraciones_count')
                     + (int) $novedad->getAttribute('mantenimientos_count')
                     + (int) $novedad->getAttribute('despachos_count')

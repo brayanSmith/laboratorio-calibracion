@@ -16,6 +16,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
+import {
+    estadoFinalEquipoCalibracion,
+    estadosFinalesEquipoCalibracion,
+} from '@/lib/estado-final-equipo';
 import { colorEstadoCalibracion } from '@/lib/estados-calibracion';
 import { index } from '@/routes/calibraciones';
 import type {
@@ -43,13 +47,15 @@ const estadosCalibracionLabel: Record<string, string> = {
     EN_PROCESO: 'En proceso',
     FINALIZADO: 'Finalizado',
     DEVOLVER_MANTENIMIENTO: 'Devolver a mantenimiento',
+    FUERA_DE_SERVICIO: 'Fuera de servicio',
 };
 
-/** Una calibración finalizada o devuelta a mantenimiento ya se realizó: no se vuelve a iniciar. */
+/** Una calibración finalizada, devuelta a mantenimiento o fuera de servicio ya se realizó: no se vuelve a iniciar. */
 function terminada(calibracion: Calibracion): boolean {
     return (
         calibracion.estado_calibracion === 'FINALIZADO' ||
-        calibracion.estado_calibracion === 'DEVOLVER_MANTENIMIENTO'
+        calibracion.estado_calibracion === 'DEVOLVER_MANTENIMIENTO' ||
+        calibracion.estado_calibracion === 'FUERA_DE_SERVICIO'
     );
 }
 
@@ -159,6 +165,48 @@ export default function CalibracionesIndex({
                             </Badge>
                         ),
                 }),
+                columnHelper.accessor(
+                    (row) => estadoFinalEquipoCalibracion(row) ?? 'null',
+                    {
+                        id: 'estado_final_equipo',
+                        meta: {
+                            filterOptions: [
+                                ...Object.entries(
+                                    estadosFinalesEquipoCalibracion,
+                                ).map(([value, { label }]) => ({
+                                    value,
+                                    label,
+                                })),
+                                { value: 'null', label: 'Sin finalizar' },
+                            ],
+                        },
+                        header: 'Estado final del equipo',
+                        cell: ({ row }) => {
+                            const estadoFinal = estadoFinalEquipoCalibracion(
+                                row.original,
+                            );
+
+                            return estadoFinal ? (
+                                <Badge
+                                    className={
+                                        estadosFinalesEquipoCalibracion[
+                                            estadoFinal
+                                        ].className
+                                    }
+                                    data-test="calibracion-estado-final-equipo"
+                                >
+                                    {
+                                        estadosFinalesEquipoCalibracion[
+                                            estadoFinal
+                                        ].label
+                                    }
+                                </Badge>
+                            ) : (
+                                <span className="text-muted-foreground">—</span>
+                            );
+                        },
+                    },
+                ),
                 columnHelper.display({
                     id: 'acciones',
                     header: '',

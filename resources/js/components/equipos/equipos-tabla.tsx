@@ -17,9 +17,18 @@ import {
     estadoAlcanceMedicion,
 } from '@/lib/alcance-medicion-equipo';
 import {
+    colorCriticidadEquipo,
+    criticidadesEquipo,
+    etiquetaCriticidadEquipo,
+} from '@/lib/criticidad-equipo';
+import {
     BADGE_VENCIMIENTO,
     vencimientoDelEquipo,
 } from '@/lib/vencimiento-programacion';
+import {
+    BADGE_EQUIPO_ACTIVO,
+    BADGE_EQUIPO_INACTIVO,
+} from '@/lib/estado-final-equipo';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
 type Props = {
@@ -40,6 +49,14 @@ const GRAVEDAD: Record<string, number> = {
     AL_DIA: 1,
     PROXIMO_A_VENCER: 2,
     VENCIDO: 3,
+};
+
+/** Orden de la columna de criticidad: sin criticidad < baja < media < alta. */
+const GRAVEDAD_CRITICIDAD: Record<string, number> = {
+    NINGUNA: 0,
+    BAJA: 1,
+    MEDIA: 2,
+    ALTA: 3,
 };
 
 /** Estado de vencimiento más urgente del equipo, o `NINGUNO` si no tiene programación pendiente. */
@@ -115,6 +132,40 @@ export default function EquiposTabla({
                     header: 'Cliente',
                     cell: (info) => info.getValue() || '—',
                 }),
+                columnHelper.accessor((row) => row.criticidad ?? 'NINGUNA', {
+                    id: 'criticidad',
+                    header: 'Criticidad',
+                    meta: {
+                        filterOptions: [
+                            ...criticidadesEquipo,
+                            { value: 'NINGUNA', label: 'Sin criticidad' },
+                        ],
+                    },
+                    sortFn: (filaA, filaB, columnaId) =>
+                        (GRAVEDAD_CRITICIDAD[
+                            filaA.getValue(columnaId) as string
+                        ] ?? 0) -
+                        (GRAVEDAD_CRITICIDAD[
+                            filaB.getValue(columnaId) as string
+                        ] ?? 0),
+                    cell: ({ row }) =>
+                        row.original.criticidad ? (
+                            <Badge
+                                className={
+                                    colorCriticidadEquipo[
+                                        row.original.criticidad
+                                    ]
+                                }
+                                data-test="equipo-criticidad"
+                            >
+                                {etiquetaCriticidadEquipo(
+                                    row.original.criticidad,
+                                )}
+                            </Badge>
+                        ) : (
+                            <span className="text-muted-foreground">—</span>
+                        ),
+                }),
                 columnHelper.accessor(estadoVencimientoDelEquipo, {
                     id: 'vencimiento',
                     header: 'Vencimiento',
@@ -176,12 +227,27 @@ export default function EquiposTabla({
                             { value: 'false', label: 'Inactivo' },
                         ],
                     },
-                    cell: (info) => (
-                        <Badge
-                            variant={info.getValue() ? 'default' : 'secondary'}
-                        >
-                            {info.getValue() ? 'Activo' : 'Inactivo'}
-                        </Badge>
+                    cell: ({ row }) => (
+                        <div className="max-w-56 space-y-1">
+                            <Badge
+                                className={
+                                    row.original.activo
+                                        ? BADGE_EQUIPO_ACTIVO
+                                        : BADGE_EQUIPO_INACTIVO
+                                }
+                            >
+                                {row.original.activo ? 'Activo' : 'Inactivo'}
+                            </Badge>
+                            {!row.original.activo &&
+                            row.original.motivo_inactivo ? (
+                                <p
+                                    className="text-xs whitespace-normal text-muted-foreground"
+                                    data-test="equipo-motivo-inactivo"
+                                >
+                                    {row.original.motivo_inactivo}
+                                </p>
+                            ) : null}
+                        </div>
                     ),
                 }),
                 columnHelper.display({

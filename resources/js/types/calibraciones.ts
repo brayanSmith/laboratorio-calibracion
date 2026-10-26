@@ -4,7 +4,8 @@ export type EstadoCalibracion =
     | 'PENDIENTE'
     | 'EN_PROCESO'
     | 'FINALIZADO'
-    | 'DEVOLVER_MANTENIMIENTO';
+    | 'DEVOLVER_MANTENIMIENTO'
+    | 'FUERA_DE_SERVICIO';
 
 export type CalibracionOption = {
     id: number;

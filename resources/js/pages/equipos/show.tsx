@@ -5,6 +5,7 @@ import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { etiquetaCriticidadEquipo } from '@/lib/criticidad-equipo';
 import { index, show } from '@/routes/equipos';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
@@ -54,6 +55,10 @@ export default function EquiposShow({ equipo, options }: Props) {
                     <Field
                         label="Condición actual"
                         value={equipo.condicion_actual}
+                    />
+                    <Field
+                        label="Criticidad"
+                        value={etiquetaCriticidadEquipo(equipo.criticidad)}
                     />
                     <Field
                         label="Tipo de tecnología"

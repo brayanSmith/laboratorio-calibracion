@@ -254,8 +254,9 @@ class CalibracionController extends Controller
     }
 
     /**
-     * Finish the calibracion: guarda el estado final (Finalizado o Devolver a
-     * mantenimiento). Si quedó finalizada, marca la orden de trabajo como
+     * Finish the calibracion: guarda el estado final (Finalizado, Devolver a mantenimiento
+     * o Fuera de servicio; este último deja el equipo inactivo, ver
+     * Calibracion::inactivarEquipoSiCorresponde(), y no crea despacho). Si quedó finalizada, marca la orden de trabajo como
      * calibracion_finalizado. Si se devuelve a mantenimiento, crea una nueva orden de
      * trabajo para el mismo equipo_programacion (sin agendar todavía), para que el equipo
      * vuelva a aparecer en "Agendar Mantenimiento" (ver

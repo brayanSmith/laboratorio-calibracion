@@ -91,6 +91,7 @@ class ImportarFilaEquipo extends ImportadorFila
             'area_id' => $areaId,
             'bahia_id' => $this->bahia($datos['bahia'], $areaId),
             'condicion_actual' => $datos['condicion_actual'],
+            'criticidad' => $datos['criticidad'] ?? null,
             'notas' => $datos['notas'] ?? null,
             'activo' => $datos['activo'],
             'patron_referencia' => $datos['patron_referencia'],
@@ -155,7 +156,7 @@ class ImportarFilaEquipo extends ImportadorFila
 
     /**
      * Limpia los valores: recorta espacios, deja vacíos como null y unifica formatos
-     * (tecnología, tipo de mantenimiento, costo, fechas, intervalo y los campos Sí/No).
+     * (tecnología, criticidad, tipo de mantenimiento, costo, fechas, intervalo y los campos Sí/No).
      *
      * @param  array<string, string|null>  $valores
      * @return array<string, mixed>
@@ -171,6 +172,10 @@ class ImportarFilaEquipo extends ImportadorFila
 
         if ($datos['tipo_tecnologia'] !== null) {
             $datos['tipo_tecnologia'] = Str::upper(Str::ascii($datos['tipo_tecnologia']));
+        }
+
+        if ($datos['criticidad'] !== null) {
+            $datos['criticidad'] = Str::upper(Str::ascii($datos['criticidad']));
         }
 
         if ($datos['cliente_tipo_documento'] !== null) {
@@ -342,6 +347,7 @@ class ImportarFilaEquipo extends ImportadorFila
             'area' => $texto,
             'bahia' => $texto,
             'condicion_actual' => $texto,
+            'criticidad' => ['nullable', 'in:ALTA,MEDIA,BAJA'],
             'notas' => $opcional,
             'activo' => ['boolean'],
             'patron_referencia' => ['boolean'],

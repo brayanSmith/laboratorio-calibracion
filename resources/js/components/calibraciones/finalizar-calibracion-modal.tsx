@@ -16,7 +16,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-type EstadoFinalCalibracion = 'FINALIZADO' | 'DEVOLVER_MANTENIMIENTO';
+type EstadoFinalCalibracion =
+    'FINALIZADO' | 'DEVOLVER_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
 
 type Props = {
     calibracionId: number;
@@ -31,7 +32,8 @@ type Props = {
 };
 
 /** Modal que se abre al presionar "Finalizar" al editar la calibración: pide el estado
- * final (Finalizado o Devolver a mantenimiento) y si queda firmada. Al confirmar envía, en
+ * final (Finalizado, Devolver a mantenimiento o Fuera de servicio, que deja el equipo
+ * inactivo) y si queda firmada. Al confirmar envía, en
  * una sola petición, el formulario de edición y la finalización: el servidor guarda
  * primero los datos, calcula el resultado (Aprobado o No aprobado) a partir de los
  * resultados de la medición y cierra el tiempo_servicio en curso (ver
@@ -73,7 +75,7 @@ export default function FinalizarCalibracionModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-xl">
                 <form key={String(open)} onSubmit={finalizar}>
                     <>
                         <DialogHeader>
@@ -102,14 +104,20 @@ export default function FinalizarCalibracionModal({
                                 data-test="estado-calibracion-final-toggle"
                             >
                                 <ToggleGroupItem
+                                    value="FUERA_DE_SERVICIO"
+                                    className="h-auto grow basis-0 py-2 whitespace-normal data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
+                                >
+                                    Fuera de servicio
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
                                     value="DEVOLVER_MANTENIMIENTO"
-                                    className="grow basis-0 data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
+                                    className="h-auto grow basis-0 py-2 whitespace-normal data-[state=on]:!border-yellow-400 data-[state=on]:!bg-yellow-400 data-[state=on]:!text-yellow-950"
                                 >
                                     Devolver a mantenimiento
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="FINALIZADO"
-                                    className="grow basis-0 data-[state=on]:!border-emerald-500 data-[state=on]:!bg-emerald-500 data-[state=on]:!text-white"
+                                    className="h-auto grow basis-0 py-2 whitespace-normal data-[state=on]:!border-emerald-500 data-[state=on]:!bg-emerald-500 data-[state=on]:!text-white"
                                 >
                                     Finalizado
                                 </ToggleGroupItem>

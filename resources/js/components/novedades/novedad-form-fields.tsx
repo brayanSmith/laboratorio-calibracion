@@ -1,5 +1,6 @@
 import { categoriasNovedad } from '@/components/novedades/categoria-novedad';
 import InputError from '@/components/input-error';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -49,6 +50,25 @@ export default function NovedadFormFields({ novedad, errors }: Props) {
                     required
                 />
                 <InputError message={errors.nombre} />
+            </div>
+
+            <div className="grid gap-1 sm:col-span-2">
+                <div className="flex items-center gap-3">
+                    <Checkbox
+                        id="inactivar_equipo"
+                        name="inactivar_equipo"
+                        defaultChecked={novedad?.inactivar_equipo ?? false}
+                    />
+                    <Label htmlFor="inactivar_equipo">
+                        Inactivar el equipo
+                    </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    Si se reporta esta novedad en un ingreso, mantenimiento,
+                    calibración o despacho, el equipo queda inactivo
+                    automáticamente.
+                </p>
+                <InputError message={errors.inactivar_equipo} />
             </div>
         </div>
     );

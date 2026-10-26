@@ -1,4 +1,11 @@
-import { CheckCircle2, Eye, FastForward, Pencil, Play, Trash2 } from 'lucide-react';
+import {
+    CheckCircle2,
+    Eye,
+    FastForward,
+    Pencil,
+    Play,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -15,6 +22,26 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MantenimientoOption, ServicioTerceroListado } from '@/types';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
+import { estadosFinalesEquipoTercero } from '@/lib/estado-final-equipo';
+
+/** Pendiente en ámbar, en proceso en azul, finalizado en verde, como en mantenimiento y calibración. */
+const estadosServicioTercero: Record<
+    ServicioTerceroListado['estado_servicio'],
+    { label: string; className: string }
+> = {
+    PENDIENTE: {
+        label: 'Pendiente',
+        className: '!border-transparent !bg-amber-500 !text-white',
+    },
+    EN_PROCESO: {
+        label: 'En proceso',
+        className: '!border-transparent !bg-blue-500 !text-white',
+    },
+    FINALIZADO: {
+        label: 'Finalizado',
+        className: '!border-transparent !bg-emerald-500 !text-white',
+    },
+};
 
 type Props = {
     servicios: ServicioTerceroListado[];
@@ -95,41 +122,58 @@ export default function ServicioTercerosTab({
                 columnHelper.accessor('empresa_tercero_nombre', {
                     header: 'Laboratorio tercero',
                 }),
-                columnHelper.accessor('estado_final_equipo', {
+                columnHelper.accessor('estado_servicio', {
                     meta: {
-                        filterOptions: [
-                            { value: 'APROBADO', label: 'Aprobado' },
-                            { value: 'RECHAZADO', label: 'Rechazado' },
-                            { value: 'null', label: 'Sin finalizar' },
-                        ],
+                        filterOptions: Object.entries(
+                            estadosServicioTercero,
+                        ).map(([value, { label }]) => ({ value, label })),
                     },
                     header: 'Estado',
                     cell: ({ row }) => {
-                        const { estado_final_equipo, tiempo_servicio_inicio } =
+                        const { estado_servicio, tiempo_servicio_inicio } =
                             row.original;
+                        const estado = estadosServicioTercero[estado_servicio];
 
-                        if (estado_final_equipo) {
-                            return (
-                                <Badge
-                                    className={
-                                        estado_final_equipo === 'APROBADO'
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-red-500 text-white'
-                                    }
-                                >
-                                    {estado_final_equipo === 'APROBADO'
-                                        ? 'Aprobado'
-                                        : 'Rechazado'}
+                        return (
+                            <div className="space-y-1">
+                                <Badge className={estado.className}>
+                                    {estado.label}
                                 </Badge>
-                            );
-                        }
+                                {estado_servicio === 'EN_PROCESO' &&
+                                tiempo_servicio_inicio ? (
+                                    <TiempoTranscurrido
+                                        desde={tiempo_servicio_inicio}
+                                    />
+                                ) : null}
+                            </div>
+                        );
+                    },
+                }),
+                columnHelper.accessor('estado_final_equipo', {
+                    meta: {
+                        filterOptions: [
+                            ...Object.entries(estadosFinalesEquipoTercero).map(
+                                ([value, { label }]) => ({ value, label }),
+                            ),
+                            { value: 'null', label: 'Sin finalizar' },
+                        ],
+                    },
+                    header: 'Estado final del equipo',
+                    cell: (info) => {
+                        const estadoFinal = info.getValue();
 
-                        return tiempo_servicio_inicio ? (
-                            <TiempoTranscurrido
-                                desde={tiempo_servicio_inicio}
-                            />
+                        return estadoFinal ? (
+                            <Badge
+                                className={
+                                    estadosFinalesEquipoTercero[estadoFinal]
+                                        .className
+                                }
+                                data-test="servicio-tercero-estado-final-equipo"
+                            >
+                                {estadosFinalesEquipoTercero[estadoFinal].label}
+                            </Badge>
                         ) : (
-                            '—'
+                            <span className="text-muted-foreground">—</span>
                         );
                     },
                 }),

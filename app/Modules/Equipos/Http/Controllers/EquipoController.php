@@ -56,7 +56,7 @@ class EquipoController extends Controller
             $equipo = Equipo::create([
                 ...$request->safe()->only([
                     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
-                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'notas', 'activo',
+                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'criticidad', 'notas', 'activo',
                     'patron_referencia', 'requiere_programacion', 'cliente_id',
                 ]),
                 'ficha_tecnica' => $this->fichaTecnica($request),
@@ -172,7 +172,7 @@ class EquipoController extends Controller
             $equipo->update([
                 ...$request->safe()->only([
                     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
-                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'notas', 'activo',
+                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'criticidad', 'notas', 'activo',
                     'patron_referencia', 'requiere_programacion', 'cliente_id',
                 ]),
                 'ficha_tecnica' => $this->fichaTecnica($request),

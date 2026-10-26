@@ -49,6 +49,21 @@ export default function NovedadesIndex({ novedades }: Props) {
                         </Badge>
                     ),
                 }),
+                columnHelper.accessor('inactivar_equipo', {
+                    header: 'Inactiva el equipo',
+                    meta: {
+                        filterOptions: [
+                            { value: 'true', label: 'Sí' },
+                            { value: 'false', label: 'No' },
+                        ],
+                    },
+                    cell: (info) =>
+                        info.getValue() ? (
+                            <Badge variant="destructive">Sí</Badge>
+                        ) : (
+                            <span className="text-muted-foreground">No</span>
+                        ),
+                }),
                 columnHelper.accessor('usos_count', { header: 'Usos' }),
                 columnHelper.display({
                     id: 'acciones',

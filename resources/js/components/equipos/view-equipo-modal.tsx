@@ -23,6 +23,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
+import { etiquetaCriticidadEquipo } from '@/lib/criticidad-equipo';
 import { cn } from '@/lib/utils';
 import {
     faseLabel,
@@ -33,6 +34,10 @@ import {
     BADGE_VENCIMIENTO,
     estaGestionada,
 } from '@/lib/vencimiento-programacion';
+import {
+    BADGE_EQUIPO_ACTIVO,
+    BADGE_EQUIPO_INACTIVO,
+} from '@/lib/estado-final-equipo';
 import type { Equipo, EquipoFormOptions, EquipoProgramacion } from '@/types';
 
 type Props = PropsWithChildren<{
@@ -161,13 +166,19 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                     value={equipo.condicion_actual}
                                 />
                                 <Dato
+                                    label="Criticidad"
+                                    value={etiquetaCriticidadEquipo(
+                                        equipo.criticidad,
+                                    )}
+                                />
+                                <Dato
                                     label="Estado"
                                     value={
                                         <Badge
-                                            variant={
+                                            className={
                                                 equipo.activo
-                                                    ? 'default'
-                                                    : 'secondary'
+                                                    ? BADGE_EQUIPO_ACTIVO
+                                                    : BADGE_EQUIPO_INACTIVO
                                             }
                                         >
                                             {equipo.activo
@@ -176,6 +187,12 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                         </Badge>
                                     }
                                 />
+                                {!equipo.activo && equipo.motivo_inactivo ? (
+                                    <Dato
+                                        label="Motivo de inactividad"
+                                        value={equipo.motivo_inactivo}
+                                    />
+                                ) : null}
                                 <Dato
                                     label="Patrón de referencia"
                                     value={siNo(equipo.patron_referencia)}

@@ -98,6 +98,36 @@ test('crea un equipo con solo los campos base', function () {
         ->and(DocumentoEquipo::where('equipo_id', $equipo->id)->exists())->toBeFalse();
 });
 
+test('guarda la criticidad del equipo al crearlo y al editarlo, y la deja vacia si no se indica', function () {
+    $this->actingAs($this->admin)
+        ->post(route('equipos.store'), datosEquipoBase($this->tenant, ['criticidad' => 'ALTA']))
+        ->assertSessionHasNoErrors();
+
+    $equipo = Equipo::sole();
+
+    expect($equipo->criticidad)->toBe('ALTA');
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, ['codigo' => $equipo->codigo, 'criticidad' => 'BAJA']))
+        ->assertSessionHasNoErrors();
+
+    expect($equipo->fresh()->criticidad)->toBe('BAJA');
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, ['codigo' => $equipo->codigo, 'criticidad' => null]))
+        ->assertSessionHasNoErrors();
+
+    expect($equipo->fresh()->criticidad)->toBeNull();
+});
+
+test('rechaza una criticidad que no sea alta, media o baja', function () {
+    $this->actingAs($this->admin)
+        ->post(route('equipos.store'), datosEquipoBase($this->tenant, ['criticidad' => 'URGENTE']))
+        ->assertSessionHasErrors('criticidad');
+
+    expect(Equipo::count())->toBe(0);
+});
+
 test('crea un equipo con su ficha tecnica', function () {
     $this->actingAs($this->admin)
         ->post(route('equipos.store'), datosEquipoBase($this->tenant, [

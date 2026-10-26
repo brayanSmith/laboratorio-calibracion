@@ -63,7 +63,7 @@ class FinalizarCalibracionRequest extends FormRequest
         $calibracion = $this->route('calibracion');
 
         return [
-            'estado_calibracion' => ['required', Rule::in(['FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])],
+            'estado_calibracion' => ['required', Rule::in(['FINALIZADO', 'DEVOLVER_MANTENIMIENTO', 'FUERA_DE_SERVICIO'])],
             'firmado' => ['boolean'],
             ...($this->guardaFormulario() ? $this->reglasFormulario($calibracion, alFinalizar: true) : []),
         ];

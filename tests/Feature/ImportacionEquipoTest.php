@@ -433,6 +433,26 @@ test('marca el tipo de servicio segun las columnas mantenimiento y calibracion y
         ->and($programacion('EQ-AMBOS')->fecha_proximo_servicio->toDateString())->toBe('2027-01-15');
 });
 
+test('importa la criticidad sin distinguir mayusculas ni tildes y reporta una que no existe', function () {
+    $mapeo = [...mapeoEquiposCsv(), 'criticidad' => 19];
+
+    $importacion = importarEquipos($this->admin, csvEquipos(
+        'SN-1,EQ-ALTA,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,,alta',
+        'SN-2,EQ-MEDIA,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,,Média',
+        'SN-3,EQ-SIN,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,,',
+        'SN-4,EQ-MALA,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,,,,,,,,,Urgente',
+    ), $mapeo);
+
+    $criticidad = fn (string $codigo) => Equipo::where('codigo', $codigo)->sole()->criticidad;
+
+    expect($importacion->filas_creadas)->toBe(3)
+        ->and($criticidad('EQ-ALTA'))->toBe('ALTA')
+        ->and($criticidad('EQ-MEDIA'))->toBe('MEDIA')
+        ->and($criticidad('EQ-SIN'))->toBeNull()
+        ->and($importacion->errores[0]['mensaje'])->toContain('Criticidad')
+        ->and(Equipo::where('codigo', 'EQ-MALA')->exists())->toBeFalse();
+});
+
 test('reporta un tipo de servicio sin marcar o un proximo servicio anterior al ultimo', function () {
     $mapeo = [
         ...mapeoEquiposCsv(),

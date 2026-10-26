@@ -17,7 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
-import { colorEstadoMantenimiento } from '@/lib/estados-mantenimiento';
+import {
+    colorEstadoEquipoMantenimiento,
+    colorEstadoMantenimiento,
+    estadosEquipoMantenimiento,
+} from '@/lib/estados-mantenimiento';
 import { index } from '@/routes/mantenimientos';
 import type {
     Mantenimiento,
@@ -151,6 +155,33 @@ export default function MantenimientosIndex({
                                 info.getValue()}
                         </Badge>
                     ),
+                }),
+                columnHelper.accessor('estado_final_equipo', {
+                    meta: {
+                        filterOptions: [
+                            ...estadosEquipoMantenimiento,
+                            { value: 'null', label: 'Sin finalizar' },
+                        ],
+                    },
+                    header: 'Estado final del equipo',
+                    cell: (info) => {
+                        const estadoFinal = info.getValue();
+
+                        return estadoFinal ? (
+                            <Badge
+                                className={
+                                    colorEstadoEquipoMantenimiento[estadoFinal]
+                                }
+                                data-test="mantenimiento-estado-final-equipo"
+                            >
+                                {estadosEquipoMantenimiento.find(
+                                    (estado) => estado.value === estadoFinal,
+                                )?.label ?? estadoFinal}
+                            </Badge>
+                        ) : (
+                            <span className="text-muted-foreground">—</span>
+                        );
+                    },
                 }),
                 columnHelper.display({
                     id: 'acciones',

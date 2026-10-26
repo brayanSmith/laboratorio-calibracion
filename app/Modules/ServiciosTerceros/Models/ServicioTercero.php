@@ -52,6 +52,18 @@ class ServicioTercero extends Model
     protected static function booted(): void
     {
         static::saved(function (ServicioTercero $servicio): void {
+            // Rechazado sin volver a agendarlo: el equipo no tiene arreglo, queda inactivo.
+            $rechazadoSinReAgendar = $servicio->estado_servicio === 'FINALIZADO'
+                && $servicio->estado_final_equipo === 'RECHAZADO'
+                && ! $servicio->re_agendar
+                && ($servicio->wasRecentlyCreated || $servicio->wasChanged(['estado_servicio', 'estado_final_equipo', 're_agendar']));
+
+            if ($rechazadoSinReAgendar) {
+                $modulo = $servicio->tipo_servicio === 'CALIBRACION' ? 'Calibración' : 'Mantenimiento';
+
+                $servicio->ordenTrabajo?->equipoProgramacion?->equipo?->inactivar("{$modulo} de tercero: Rechazado");
+            }
+
             if (! $servicio->wasRecentlyCreated && ! $servicio->wasChanged('estado_servicio')) {
                 return;
             }

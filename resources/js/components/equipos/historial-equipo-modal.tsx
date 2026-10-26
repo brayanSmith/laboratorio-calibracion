@@ -92,6 +92,7 @@ const etiquetasEstadoCalibracion: Record<string, string> = {
     EN_PROCESO: 'En proceso',
     FINALIZADO: 'Finalizado',
     DEVOLVER_MANTENIMIENTO: 'Devolver a mantenimiento',
+    FUERA_DE_SERVICIO: 'Fuera de servicio',
 };
 
 const etiquetasEstadoDespacho: Record<string, string> = {

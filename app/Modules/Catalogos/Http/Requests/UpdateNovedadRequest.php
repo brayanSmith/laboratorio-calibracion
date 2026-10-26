@@ -19,6 +19,14 @@ class UpdateNovedadRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['inactivar_equipo' => $this->boolean('inactivar_equipo')]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -30,6 +38,7 @@ class UpdateNovedadRequest extends FormRequest
 
         return [
             'categoria' => ['required', 'string', Rule::in(Novedad::CATEGORIAS)],
+            'inactivar_equipo' => ['boolean'],
             'nombre' => [
                 'required',
                 'string',
@@ -52,6 +61,7 @@ class UpdateNovedadRequest extends FormRequest
     {
         return [
             'categoria' => 'categoría',
+            'inactivar_equipo' => 'inactivar equipo',
             'nombre' => 'nombre',
         ];
     }

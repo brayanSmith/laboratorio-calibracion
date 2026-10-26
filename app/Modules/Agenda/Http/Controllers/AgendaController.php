@@ -56,7 +56,7 @@ class AgendaController extends Controller
             $eventos = $eventos->concat(
                 Calibracion::query()
                     ->where('tenant_id', $tenantId)
-                    ->whereNotIn('estado_calibracion', ['FINALIZADO', 'DEVOLVER_MANTENIMIENTO'])
+                    ->whereNotIn('estado_calibracion', ['FINALIZADO', 'DEVOLVER_MANTENIMIENTO', 'FUERA_DE_SERVICIO'])
                     ->when($soloPropias, fn ($query) => $query->where('tecnico_id', $usuario->id))
                     ->with(['tecnico:id,name', 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre'])
                     ->get()

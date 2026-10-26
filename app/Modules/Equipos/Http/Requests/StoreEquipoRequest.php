@@ -51,6 +51,7 @@ class StoreEquipoRequest extends FormRequest
             'area_id' => ['required', Rule::exists('areas', 'id')->where('tenant_id', $tenantId)],
             'bahia_id' => ['required', Rule::exists('bahias', 'id')->where('tenant_id', $tenantId)],
             'condicion_actual' => ['required', 'string', 'max:255'],
+            'criticidad' => ['nullable', Rule::in(['ALTA', 'MEDIA', 'BAJA'])],
             'notas' => ['nullable', 'string'],
             'activo' => ['boolean'],
             'patron_referencia' => ['boolean'],

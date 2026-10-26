@@ -78,9 +78,36 @@ class Mantenimiento extends Model
      * Registra un seguimiento de fase MANTENIMIENTO al crearse el mantenimiento o cambiar
      * su estado, siempre que la orden de trabajo esté lista para mantenimiento.
      */
+    /**
+     * Deja el equipo inactivo si se le reportó una novedad que lo pide, o si el mantenimiento
+     * finalizó con el equipo fuera de servicio.
+     */
+    private function inactivarEquipoSiCorresponde(): void
+    {
+        $equipo = $this->ordenTrabajo?->equipoProgramacion?->equipo;
+
+        if ($equipo === null) {
+            return;
+        }
+
+        if ($this->novedad_id !== null && ($this->wasRecentlyCreated || $this->wasChanged('novedad_id'))) {
+            $equipo->inactivarSiLaNovedadLoPide($this->novedad_id, 'mantenimiento');
+        }
+
+        $finalizoFueraDeServicio = $this->estado_mantenimiento === 'FINALIZADO'
+            && $this->estado_final_equipo === 'FUERA_DE_SERVICIO'
+            && ($this->wasRecentlyCreated || $this->wasChanged(['estado_mantenimiento', 'estado_final_equipo']));
+
+        if ($finalizoFueraDeServicio) {
+            $equipo->inactivar('Mantenimiento: Fuera de servicio');
+        }
+    }
+
     protected static function booted(): void
     {
         static::saved(function (Mantenimiento $mantenimiento): void {
+            $mantenimiento->inactivarEquipoSiCorresponde();
+
             if (! $mantenimiento->wasRecentlyCreated && ! $mantenimiento->wasChanged('estado_mantenimiento')) {
                 return;
             }

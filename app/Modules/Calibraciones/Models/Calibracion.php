@@ -79,9 +79,32 @@ class Calibracion extends Model
      * Registra un seguimiento de fase CALIBRACION al crearse la calibración o cambiar
      * su estado, siempre que la orden de trabajo esté lista para calibración.
      */
+    /**
+     * Deja el equipo inactivo si se le reportó una novedad que lo pide, o si la calibración
+     * terminó con el equipo fuera de servicio.
+     */
+    private function inactivarEquipoSiCorresponde(): void
+    {
+        $equipo = $this->ordenTrabajo?->equipoProgramacion?->equipo;
+
+        if ($equipo === null) {
+            return;
+        }
+
+        if ($this->novedad_id !== null && ($this->wasRecentlyCreated || $this->wasChanged('novedad_id'))) {
+            $equipo->inactivarSiLaNovedadLoPide($this->novedad_id, 'calibración');
+        }
+
+        if ($this->estado_calibracion === 'FUERA_DE_SERVICIO' && ($this->wasRecentlyCreated || $this->wasChanged('estado_calibracion'))) {
+            $equipo->inactivar('Calibración: Fuera de servicio');
+        }
+    }
+
     protected static function booted(): void
     {
         static::saved(function (Calibracion $calibracion): void {
+            $calibracion->inactivarEquipoSiCorresponde();
+
             if (! $calibracion->wasRecentlyCreated && ! $calibracion->wasChanged('estado_calibracion')) {
                 return;
             }

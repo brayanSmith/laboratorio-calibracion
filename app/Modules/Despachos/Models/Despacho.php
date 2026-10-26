@@ -77,6 +77,10 @@ class Despacho extends Model
         });
 
         static::saved(function (Despacho $despacho): void {
+            if ($despacho->novedad_id !== null && ($despacho->wasRecentlyCreated || $despacho->wasChanged('novedad_id'))) {
+                $despacho->ordenTrabajo?->equipoProgramacion?->equipo?->inactivarSiLaNovedadLoPide($despacho->novedad_id, 'despacho');
+            }
+
             if ($despacho->entrega_recibida && $despacho->wasChanged('entrega_recibida')) {
                 $despacho->ordenTrabajo->equipoProgramacion->crearSiguienteProgramacionPreventiva(now());
             }
