@@ -269,7 +269,7 @@ function RecibirIngresoFormulario({
                     {aprobado && can('equipos.editar') ? (
                         mostrarAgregar ? (
                             <AgregarEquipoCorrectivo
-                                bahiaIds={ingreso.bahia_ids.map(String)}
+                                bahiaIds={[ingreso.bahia_id.toString()]}
                                 onCancelar={() => setMostrarAgregar(false)}
                                 onAgregar={(pendiente) => {
                                     setCorrectivosPendientes((actuales) => [

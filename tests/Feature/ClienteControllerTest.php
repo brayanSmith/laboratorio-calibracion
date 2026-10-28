@@ -56,6 +56,7 @@ function registrarIngresoDeCliente(Cliente $cliente): Ingreso
     DB::statement('PRAGMA defer_foreign_keys = ON');
 
     return Ingreso::create([
+        'bahia_id' => 1,
         'desde' => now()->toDateString(),
         'hasta' => now()->toDateString(),
         'tecnico_recibe_id' => 1,

@@ -3,12 +3,15 @@
 namespace App\Modules\Catalogos\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Modules\Catalogos\Http\Requests\AsignarUsuariosBahiasRequest;
 use App\Modules\Catalogos\Http\Requests\StoreBahiaRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateBahiaRequest;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +29,7 @@ class BahiaController extends Controller
 
         $bahias = Bahia::query()
             ->where('tenant_id', $tenantId)
-            ->with('area:id,nombre')
+            ->with(['area:id,nombre', 'usuarios:id'])
             ->withCount('equipo as equipos_count')
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'area_id'])
@@ -36,10 +39,14 @@ class BahiaController extends Controller
                 'area_id' => $bahia->area_id,
                 'area_nombre' => $bahia->area->nombre,
                 'equipos_count' => (int) $bahia->getAttribute('equipos_count'),
+                'usuario_ids' => $bahia->usuarios->pluck('id')->values(),
             ]);
 
         return Inertia::render('bahias/index', [
             'bahias' => $bahias,
+            'usuarios' => $request->user()->can('asignarUsuarios', Bahia::class)
+                ? User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email'])
+                : [],
             'areas' => Area::query()
                 ->where('tenant_id', $tenantId)
                 ->orderBy('nombre')
@@ -59,6 +66,23 @@ class BahiaController extends Controller
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Bahía creada.')]);
+
+        return to_route('bahias.index');
+    }
+
+    /**
+     * Assign usuarios to the bahías (varios usuarios por bahía y varias bahías por usuario):
+     * cada bahía enviada queda con exactamente los usuarios indicados.
+     */
+    public function asignarUsuarios(AsignarUsuariosBahiasRequest $request): RedirectResponse
+    {
+        DB::transaction(function () use ($request): void {
+            foreach ($request->validated('asignaciones') as $asignacion) {
+                Bahia::query()->findOrFail($asignacion['bahia_id'])->usuarios()->sync($asignacion['usuario_ids']);
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Usuarios asignados a las bahías.')]);
 
         return to_route('bahias.index');
     }

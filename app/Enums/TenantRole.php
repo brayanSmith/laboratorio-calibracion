@@ -63,6 +63,7 @@ enum TenantRole: string
                 TenantPermission::BahiasVer,
                 TenantPermission::BahiasCrear,
                 TenantPermission::BahiasEditar,
+                TenantPermission::BahiasAsignarUsuarios,
                 TenantPermission::FabricantesVer,
                 TenantPermission::FabricantesCrear,
                 TenantPermission::FabricantesEditar,

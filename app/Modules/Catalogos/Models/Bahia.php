@@ -3,6 +3,7 @@
 namespace App\Modules\Catalogos\Models;
 
 use App\Models\Tenant;
+use App\Models\User;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Ingresos\Models\Ingreso;
 use Database\Factories\BahiaFactory;
@@ -65,12 +66,22 @@ class Bahia extends Model
     }
 
     /**
-     * Get the ingresos that receive equipos from this bahia (an ingreso can cover several).
+     * Get the usuarios assigned to this bahia.
      *
-     * @return BelongsToMany<Ingreso, $this>
+     * @return BelongsToMany<User, $this>
      */
-    public function ingreso(): BelongsToMany
+    public function usuarios(): BelongsToMany
     {
-        return $this->belongsToMany(Ingreso::class)->withTimestamps();
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
+
+    /**
+     * Get the ingresos received in this bahia.
+     *
+     * @return HasMany<Ingreso, $this>
+     */
+    public function ingreso(): HasMany
+    {
+        return $this->hasMany(Ingreso::class);
     }
 }

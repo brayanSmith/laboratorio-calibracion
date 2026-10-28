@@ -108,7 +108,7 @@ export default function VerCalibracionModal({
                             </Badge>
                         )}
                     </Dato>
-                    <Dato etiqueta="Fecha">
+                    <Dato etiqueta="Fecha de calibración">
                         {calibracion.fecha_calibracion}
                     </Dato>
                     <Dato etiqueta="Técnico">{calibracion.tecnico_nombre}</Dato>

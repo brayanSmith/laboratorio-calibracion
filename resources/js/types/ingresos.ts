@@ -4,10 +4,8 @@ export type EstadoIngreso = 'PENDIENTE' | 'RECIBIDO' | 'CANCELADO';
 
 export type Ingreso = {
     id: number;
-    /** Bahías cuyos equipos recibe el ingreso (una o varias). */
-    bahia_ids: number[];
-    /** Nombres de sus bahías, separados por comas. */
-    bahias_nombre: string;
+    bahia_id: number;
+    bahia_nombre: string;
     fecha_creacion: string;
     desde: string;
     hasta: string;

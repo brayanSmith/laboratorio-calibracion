@@ -11,11 +11,9 @@ use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Database\Factories\IngresoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
+ * @property int $bahia_id
  * @property Carbon $desde
  * @property Carbon $hasta
  * @property Carbon|null $fecha_recepcion Día en que se recibieron los equipos; se completa al recibir el ingreso
@@ -37,13 +36,13 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property-read Collection<int, Bahia> $bahias
+ * @property-read Bahia $bahia
  * @property-read User|null $tecnicoRecibe
  * @property-read Cliente|null $clienteEntrega
  * @property-read Tenant $tenant
  */
 #[Fillable([
-    'desde', 'hasta', 'fecha_recepcion', 'tecnico_recibe_id', 'cliente_entrega_id',
+    'bahia_id', 'desde', 'hasta', 'fecha_recepcion', 'tecnico_recibe_id', 'cliente_entrega_id',
     'firma_cliente_entrega', 'estado_ingreso', 'novedad', 'motivo_cancelacion', 'tenant_id',
 ])]
 #[UseFactory(IngresoFactory::class)]
@@ -89,13 +88,13 @@ class Ingreso extends Model
     }
 
     /**
-     * Get the bahías whose equipos this ingreso receives (one or several).
+     * Get the bahia this ingreso happened in.
      *
-     * @return BelongsToMany<Bahia, $this>
+     * @return BelongsTo<Bahia, $this>
      */
-    public function bahias(): BelongsToMany
+    public function bahia(): BelongsTo
     {
-        return $this->belongsToMany(Bahia::class)->withTimestamps();
+        return $this->belongsTo(Bahia::class);
     }
 
     /**

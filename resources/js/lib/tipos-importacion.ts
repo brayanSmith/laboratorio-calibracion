@@ -20,6 +20,11 @@ export const tiposImportacion: {
     { value: 'areas', label: 'Áreas', ruta: '/areas' },
     { value: 'bahias', label: 'Bahías', ruta: '/bahias' },
     {
+        value: 'bahia-usuarios',
+        label: 'Usuarios de bahías',
+        ruta: '/bahias',
+    },
+    {
         value: 'checklist-mantenimiento',
         label: 'Checklist de mantenimiento',
         ruta: '/tipos-equipo',

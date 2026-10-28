@@ -13,6 +13,7 @@ use App\Modules\Ingresos\Http\Requests\StoreIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateEstadoIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateIngresoRequest;
 use App\Modules\Ingresos\Models\Ingreso;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,7 +87,7 @@ class IngresoController extends Controller
                 fn (Builder $programacion) => $programacion->where('equipo_id', $equipoId),
             ))
             ->with([
-                'bahias:id,nombre',
+                'bahia:id,nombre',
                 'tecnicoRecibe:id,name',
                 'clienteEntrega:id,nombre',
                 'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
@@ -98,8 +99,8 @@ class IngresoController extends Controller
             ->get()
             ->map(fn (Ingreso $ingreso) => [
                 'id' => $ingreso->id,
-                'bahia_ids' => $ingreso->bahias->pluck('id')->values(),
-                'bahias_nombre' => $ingreso->bahias->sortBy('nombre')->pluck('nombre')->implode(', '),
+                'bahia_id' => $ingreso->bahia_id,
+                'bahia_nombre' => $ingreso->bahia->nombre,
                 'fecha_creacion' => $ingreso->created_at->toDateString(),
                 'desde' => $ingreso->desde->toDateString(),
                 'hasta' => $ingreso->hasta->toDateString(),
@@ -138,37 +139,50 @@ class IngresoController extends Controller
     }
 
     /**
-     * Store a newly created ingreso.
+     * Store the ingresos: uno por cada bahía elegida, con el mismo rango de fechas, para
+     * registrar varias bahías en bloque. Cada equipo queda en el ingreso de su bahía.
      */
     public function store(StoreIngresoRequest $request): RedirectResponse
     {
         $tenantId = $request->user()->tenant_id;
+        $bahiaIds = $request->validated('bahia_ids');
 
-        DB::transaction(function () use ($request, $tenantId) {
-            $ingreso = Ingreso::create([
-                ...$request->safe()->except(['bahia_ids', 'programaciones_actualizadas', 'programaciones_correctivas']),
-                'tenant_id' => $tenantId,
+        DB::transaction(function () use ($request, $tenantId, $bahiaIds) {
+            $ingresosPorBahia = collect($bahiaIds)->mapWithKeys(fn (int $bahiaId) => [
+                $bahiaId => Ingreso::create([
+                    ...$request->safe()->only(['desde', 'hasta']),
+                    'bahia_id' => $bahiaId,
+                    'tenant_id' => $tenantId,
+                ]),
             ]);
-            $ingreso->bahias()->sync($request->validated('bahia_ids'));
 
-            $this->guardarCambiosDeEquipos($request, $ingreso, $tenantId);
+            // Si el equipo no está en ninguna de las bahías elegidas (no debería: el buscador
+            // solo trae equipos de ellas), queda en el ingreso de la primera.
+            $this->guardarCambiosDeEquipos(
+                $request,
+                fn (int $equipoBahiaId): Ingreso => $ingresosPorBahia[$equipoBahiaId] ?? $ingresosPorBahia->first(),
+                $tenantId,
+            );
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Ingreso registrado.')]);
+        $mensaje = count($bahiaIds) === 1
+            ? __('Ingreso registrado.')
+            : __(':cantidad ingresos registrados, uno por bahía.', ['cantidad' => count($bahiaIds)]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $mensaje]);
 
         return to_route('ingresos.index');
     }
 
     /**
-     * Update the bahías, fechas y equipos of the specified ingreso.
+     * Update the bahía, fechas y equipos of the specified ingreso.
      */
     public function update(UpdateIngresoRequest $request, Ingreso $ingreso): RedirectResponse
     {
         DB::transaction(function () use ($request, $ingreso) {
-            $ingreso->update($request->safe()->except(['bahia_ids', 'programaciones_actualizadas', 'programaciones_correctivas']));
-            $ingreso->bahias()->sync($request->validated('bahia_ids'));
+            $ingreso->update($request->safe()->except(['programaciones_actualizadas', 'programaciones_correctivas']));
 
-            $this->guardarCambiosDeEquipos($request, $ingreso, $ingreso->tenant_id);
+            $this->guardarCambiosDeEquipos($request, fn (): Ingreso => $ingreso, $ingreso->tenant_id);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Ingreso actualizado.')]);
@@ -268,28 +282,31 @@ class IngresoController extends Controller
 
     /**
      * Apply the pending equipo-programacion changes gathered by the ingreso form's
-     * buscador, linking to this ingreso every preventivo marcado con agendar = true, y
-     * liberando (sin enlazar) los que quedaron con agendar = false, para que sigan
-     * disponibles en una búsqueda futura.
+     * buscador, linking every preventivo marcado con agendar = true to the ingreso of its
+     * equipo's bahía (see $ingresoDeBahia), y liberando (sin enlazar) los que quedaron con
+     * agendar = false, para que sigan disponibles en una búsqueda futura.
+     *
+     * @param  Closure(int): Ingreso  $ingresoDeBahia  el ingreso que recibe los equipos de esa bahía
      */
-    private function guardarCambiosDeEquipos(StoreIngresoRequest|UpdateIngresoRequest $request, Ingreso $ingreso, int $tenantId): void
+    private function guardarCambiosDeEquipos(StoreIngresoRequest|UpdateIngresoRequest $request, Closure $ingresoDeBahia, int $tenantId): void
     {
         foreach ($request->validated('programaciones_actualizadas', []) as $cambio) {
             $agendar = $cambio['agendar'] ?? true;
-
-            EquipoProgramacion::query()
+            $programacion = EquipoProgramacion::query()
+                ->with('equipo:id,bahia_id')
                 ->where('id', $cambio['id'])
                 ->where('tenant_id', $tenantId)
-                ->first()
-                ?->update([
-                    'estado_programacion' => $agendar ? 'AGENDADO' : 'PENDIENTE',
-                    'agendar' => $agendar,
-                    'ingreso_id' => $agendar ? $ingreso->id : null,
-                ]);
+                ->first();
+
+            $programacion?->update([
+                'estado_programacion' => $agendar ? 'AGENDADO' : 'PENDIENTE',
+                'agendar' => $agendar,
+                'ingreso_id' => $agendar ? $ingresoDeBahia($programacion->equipo->bahia_id)->id : null,
+            ]);
         }
 
         foreach ($request->validated('programaciones_correctivas', []) as $correctivo) {
-            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $tenantId, 'AGENDADO');
+            $this->crearProgramacionCorrectiva($correctivo, $ingresoDeBahia, $tenantId, 'AGENDADO');
         }
     }
 
@@ -334,11 +351,15 @@ class IngresoController extends Controller
      *
      * @param  array<string, mixed>  $correctivo
      */
-    private function crearProgramacionCorrectiva(array $correctivo, Ingreso $ingreso, int $tenantId, string $estadoProgramacion): void
+    private function crearProgramacionCorrectiva(array $correctivo, Ingreso|Closure $ingreso, int $tenantId, string $estadoProgramacion): void
     {
         $equipo = Equipo::with('tipoEquipo:id,tipo_mantenimiento')
             ->where('id', $correctivo['equipo_id'])
             ->firstOrFail();
+
+        if ($ingreso instanceof Closure) {
+            $ingreso = $ingreso($equipo->bahia_id);
+        }
 
         $equipo->equipoProgramaciones()->create([
             'tipo_servicio' => implode(',', $equipo->tipoEquipo->tiposServicio()),

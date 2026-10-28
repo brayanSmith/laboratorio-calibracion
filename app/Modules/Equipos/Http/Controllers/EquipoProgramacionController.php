@@ -30,10 +30,10 @@ class EquipoProgramacionController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->where('tipo_mantenimiento', 'PREVENTIVO')
             ->where('estado_programacion', 'PENDIENTE')
-            ->whereBetween('fecha_proximo_servicio', [
-                $request->validated('desde'),
-                $request->validated('hasta'),
-            ])
+            // Por día, no como texto: la fecha se guarda con hora ("2026-11-30 00:00:00") y
+            // whereBetween dejaría fuera los equipos programados justo el día "hasta".
+            ->whereDate('fecha_proximo_servicio', '>=', $request->validated('desde'))
+            ->whereDate('fecha_proximo_servicio', '<=', $request->validated('hasta'))
             ->whereHas('equipo', fn ($query) => $query->whereIn('bahia_id', $request->validated('bahia_ids')))
             ->with(
                 'equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,bahia_id',

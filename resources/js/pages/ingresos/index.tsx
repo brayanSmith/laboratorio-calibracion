@@ -60,7 +60,42 @@ export default function IngresosIndex({
             columnHelper.columns([
                 columnHelper.accessor('desde', { header: 'Desde' }),
                 columnHelper.accessor('hasta', { header: 'Hasta' }),
-                columnHelper.accessor('bahias_nombre', { header: 'Bahías' }),
+                columnHelper.accessor('bahia_nombre', { header: 'Bahía' }),
+                columnHelper.accessor(
+                    (row) => row.equipo_programaciones.length,
+                    {
+                        id: 'equipos',
+                        header: 'Equipos',
+                        cell: ({ row }) => {
+                            const equipos = row.original.equipo_programaciones;
+                            const recibidos = equipos.filter(
+                                (equipo) => equipo.ingresado,
+                            ).length;
+
+                            return (
+                                <div className="space-y-0.5">
+                                    <Badge
+                                        variant={
+                                            equipos.length > 0
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
+                                        data-test="ingreso-equipos-count"
+                                    >
+                                        {equipos.length}
+                                    </Badge>
+                                    {row.original.estado_ingreso ===
+                                        'RECIBIDO' && equipos.length > 0 ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            {recibidos} de {equipos.length}{' '}
+                                            recibidos
+                                        </p>
+                                    ) : null}
+                                </div>
+                            );
+                        },
+                    },
+                ),
                 columnHelper.accessor('cliente_entrega_nombre', {
                     header: 'Cliente',
                     cell: (info) => (

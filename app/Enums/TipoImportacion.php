@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Importaciones\Actions\ImportadorFila;
 use App\Modules\Importaciones\Actions\ImportarFilaArea;
 use App\Modules\Importaciones\Actions\ImportarFilaBahia;
+use App\Modules\Importaciones\Actions\ImportarFilaBahiaUsuario;
 use App\Modules\Importaciones\Actions\ImportarFilaChecklistMantenimiento;
 use App\Modules\Importaciones\Actions\ImportarFilaCliente;
 use App\Modules\Importaciones\Actions\ImportarFilaEmpresaTercero;
@@ -31,6 +32,7 @@ enum TipoImportacion: string
     case Novedades = 'novedades';
     case Areas = 'areas';
     case Bahias = 'bahias';
+    case BahiaUsuarios = 'bahia-usuarios';
     case EmpresasTerceras = 'empresas-terceras';
     case TiposEquipo = 'tipos-equipo';
     case ChecklistMantenimiento = 'checklist-mantenimiento';
@@ -50,6 +52,7 @@ enum TipoImportacion: string
             self::Novedades => 'Novedades',
             self::Areas => 'Áreas',
             self::Bahias => 'Bahías',
+            self::BahiaUsuarios => 'Usuarios de bahías',
             self::EmpresasTerceras => 'Laboratorios terceros',
             self::TiposEquipo => 'Tipos de equipo',
             self::ChecklistMantenimiento => 'Checklist de mantenimiento',
@@ -71,6 +74,7 @@ enum TipoImportacion: string
             self::Novedades => ImportarFilaNovedad::class,
             self::Areas => ImportarFilaArea::class,
             self::Bahias => ImportarFilaBahia::class,
+            self::BahiaUsuarios => ImportarFilaBahiaUsuario::class,
             self::EmpresasTerceras => ImportarFilaEmpresaTercero::class,
             self::TiposEquipo => ImportarFilaTipoEquipo::class,
             self::ChecklistMantenimiento => ImportarFilaChecklistMantenimiento::class,

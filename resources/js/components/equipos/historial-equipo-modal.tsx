@@ -533,9 +533,9 @@ export default function HistorialEquipoModal({
                                                     }
                                                 />
                                                 <Dato
-                                                    label="Bahías"
+                                                    label="Bahía"
                                                     value={
-                                                        ingreso.bahias_nombre
+                                                        ingreso.bahia_nombre
                                                     }
                                                 />
                                                 <Dato

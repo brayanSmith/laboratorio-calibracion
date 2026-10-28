@@ -27,7 +27,7 @@ export default function EmpresaTerceroFormFields({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="nombre">Nombre</Label>
+                <Label htmlFor="nombre">Razon Social</Label>
                 <Input
                     id="nombre"
                     name="nombre"

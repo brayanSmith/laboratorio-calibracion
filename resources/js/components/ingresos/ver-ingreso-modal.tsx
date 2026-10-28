@@ -68,7 +68,7 @@ export default function VerIngresoModal({
                 <DialogHeader>
                     <DialogTitle>Detalle del ingreso</DialogTitle>
                     <DialogDescription>
-                        {ingreso.bahias_nombre} · {ingreso.desde} al{' '}
+                        {ingreso.bahia_nombre} · {ingreso.desde} al{' '}
                         {ingreso.hasta}
                     </DialogDescription>
                 </DialogHeader>

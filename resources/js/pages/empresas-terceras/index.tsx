@@ -39,12 +39,12 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
         () =>
             columnHelper.columns([
                 columnHelper.accessor('nombre', {
-                    header: 'Nombre',
+                    header: 'Razon Social',
                     cell: (info) => (
                         <span className="font-medium">{info.getValue()}</span>
                     ),
                 }),
-                columnHelper.accessor('nit', { header: 'N.° de documento' }),
+                columnHelper.accessor('nit', { header: 'RUC' }),
                 columnHelper.accessor('telefono', {
                     header: 'Teléfono',
                     cell: (info) => info.getValue() ?? '—',

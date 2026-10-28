@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
@@ -39,16 +40,14 @@ function registrarIngresoEnBahia(Bahia $bahia): Ingreso
 {
     DB::statement('PRAGMA defer_foreign_keys = ON');
 
-    $ingreso = Ingreso::create([
+    return Ingreso::create([
+        'bahia_id' => $bahia->id,
         'desde' => now()->toDateString(),
         'hasta' => now()->toDateString(),
         'tecnico_recibe_id' => 1,
         'cliente_entrega_id' => 1,
         'tenant_id' => $bahia->tenant_id,
     ]);
-    $ingreso->bahias()->attach($bahia);
-
-    return $ingreso;
 }
 
 test('lista solo las bahias del tenant con su area y la cantidad de equipos', function () {
@@ -218,4 +217,72 @@ test('las opciones de area para los selectores concatenan el nombre y la descrip
         ->assertInertia(fn ($page) => $page
             ->where('areas.0.etiqueta', 'CRC - Centro de Reparación de Componentes')
             ->where('areas.1.etiqueta', 'SIN'));
+});
+
+test('asigna varios usuarios a cada bahia y deja cada bahia solo con los usuarios enviados', function () {
+    $area = Area::create(['nombre' => 'Presión', 'tenant_id' => $this->tenant->id]);
+    $bahiaNorte = crearBahiaEnArea($area, 'Bahía Norte');
+    $bahiaSur = crearBahiaEnArea($area, 'Bahía Sur');
+    $ana = User::factory()->forTenant($this->tenant)->create();
+    $luis = User::factory()->forTenant($this->tenant)->create();
+    $bahiaSur->usuarios()->attach($luis);
+
+    $this->actingAs($this->admin)
+        ->put(route('bahias.asignar-usuarios'), ['asignaciones' => [
+            ['bahia_id' => $bahiaNorte->id, 'usuario_ids' => [$ana->id, $luis->id]],
+            ['bahia_id' => $bahiaSur->id, 'usuario_ids' => [$ana->id]],
+        ]])
+        ->assertRedirect(route('bahias.index'))
+        ->assertSessionHasNoErrors();
+
+    expect($bahiaNorte->usuarios()->pluck('users.id')->sort()->values()->all())->toBe(collect([$ana->id, $luis->id])->sort()->values()->all())
+        ->and($bahiaSur->usuarios()->pluck('users.id')->all())->toBe([$ana->id])
+        ->and($ana->bahias()->count())->toBe(2);
+
+    $this->actingAs($this->admin)
+        ->get(route('bahias.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('bahias.1.usuario_ids', [$ana->id])
+            ->has('usuarios', 3));
+});
+
+test('una bahia enviada sin usuarios queda sin asignaciones', function () {
+    $bahia = crearBahiaEnArea(Area::create(['nombre' => 'Presión', 'tenant_id' => $this->tenant->id]), 'Bahía 1');
+    $bahia->usuarios()->attach($this->admin);
+
+    $this->actingAs($this->admin)
+        ->put(route('bahias.asignar-usuarios'), ['asignaciones' => [['bahia_id' => $bahia->id, 'usuario_ids' => []]]])
+        ->assertSessionHasNoErrors();
+
+    expect($bahia->usuarios()->count())->toBe(0);
+});
+
+test('no permite asignar bahias ni usuarios de otro tenant', function () {
+    $otro = Tenant::factory()->create();
+    $bahia = crearBahiaEnArea(Area::create(['nombre' => 'Presión', 'tenant_id' => $this->tenant->id]), 'Bahía 1');
+    $bahiaAjena = crearBahiaEnArea(Area::create(['nombre' => 'Ajena', 'tenant_id' => $otro->id]), 'Bahía ajena');
+    $usuarioAjeno = User::factory()->forTenant($otro)->create();
+
+    $this->actingAs($this->admin)
+        ->put(route('bahias.asignar-usuarios'), ['asignaciones' => [
+            ['bahia_id' => $bahia->id, 'usuario_ids' => [$usuarioAjeno->id]],
+            ['bahia_id' => $bahiaAjena->id, 'usuario_ids' => [$this->admin->id]],
+        ]])
+        ->assertSessionHasErrors(['asignaciones.0.usuario_ids.0', 'asignaciones.1.bahia_id']);
+
+    expect(DB::table('bahia_user')->count())->toBe(0);
+});
+
+test('asignar usuarios a bahias requiere su propio permiso', function () {
+    $bahia = crearBahiaEnArea(Area::create(['nombre' => 'Presión', 'tenant_id' => $this->tenant->id]), 'Bahía 1');
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::BahiasVer, TenantPermission::BahiasEditar]);
+    $datos = ['asignaciones' => [['bahia_id' => $bahia->id, 'usuario_ids' => [$usuario->id]]]];
+
+    $this->actingAs($usuario)->put(route('bahias.asignar-usuarios'), $datos)->assertForbidden();
+    $this->actingAs($usuario)->get(route('bahias.index'))->assertInertia(fn ($page) => $page->where('usuarios', []));
+
+    $usuario->givePermissionTo(TenantPermission::BahiasAsignarUsuarios->value);
+
+    $this->actingAs($usuario)->put(route('bahias.asignar-usuarios'), $datos)->assertSessionHasNoErrors();
+    expect($bahia->usuarios()->pluck('users.id')->all())->toBe([$usuario->id]);
 });

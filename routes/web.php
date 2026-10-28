@@ -134,6 +134,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
 
     Route::resource('areas', AreaController::class)->only(['index', 'store', 'update', 'destroy']);
 
+    Route::put('bahias/asignar-usuarios', [BahiaController::class, 'asignarUsuarios'])->name('bahias.asignar-usuarios');
     Route::resource('bahias', BahiaController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::resource('fabricantes', FabricanteController::class)->only(['index', 'store', 'update', 'destroy']);

@@ -38,8 +38,8 @@ export default function CreateIngresoModal({ options, children }: Props) {
                             <DialogHeader>
                                 <DialogTitle>Nuevo ingreso</DialogTitle>
                                 <DialogDescription>
-                                    Registra la recepción de equipos de un
-                                    cliente en una bahía
+                                    Registra la recepción de equipos en una o
+                                    varias bahías: se crea un ingreso por bahía
                                 </DialogDescription>
                             </DialogHeader>
 

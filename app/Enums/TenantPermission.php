@@ -84,6 +84,7 @@ enum TenantPermission: string
     case BahiasCrear = 'bahias.crear';
     case BahiasEditar = 'bahias.editar';
     case BahiasEliminar = 'bahias.eliminar';
+    case BahiasAsignarUsuarios = 'bahias.asignar-usuarios';
 
     case FabricantesVer = 'fabricantes.ver';
     case FabricantesCrear = 'fabricantes.crear';
@@ -143,6 +144,7 @@ enum TenantPermission: string
     case ImportarNovedades = 'importaciones.novedades';
     case ImportarAreas = 'importaciones.areas';
     case ImportarBahias = 'importaciones.bahias';
+    case ImportarBahiaUsuarios = 'importaciones.bahia-usuarios';
     case ImportarEmpresasTerceras = 'importaciones.empresas-terceras';
     case ImportarTiposEquipo = 'importaciones.tipos-equipo';
     case ImportarChecklistMantenimiento = 'importaciones.checklist-mantenimiento';
@@ -216,7 +218,8 @@ enum TenantPermission: string
             self::BahiasVer,
             self::BahiasCrear,
             self::BahiasEditar,
-            self::BahiasEliminar => 'Bahías',
+            self::BahiasEliminar,
+            self::BahiasAsignarUsuarios => 'Bahías',
             self::FabricantesVer,
             self::FabricantesCrear,
             self::FabricantesEditar,
@@ -264,6 +267,7 @@ enum TenantPermission: string
             self::ImportarNovedades,
             self::ImportarAreas,
             self::ImportarBahias,
+            self::ImportarBahiaUsuarios,
             self::ImportarEmpresasTerceras,
             self::ImportarTiposEquipo,
             self::ImportarChecklistMantenimiento,
@@ -375,6 +379,7 @@ enum TenantPermission: string
             self::BahiasCrear => 'Crear bahías',
             self::BahiasEditar => 'Editar bahías',
             self::BahiasEliminar => 'Eliminar bahías',
+            self::BahiasAsignarUsuarios => 'Asignar usuarios a bahías',
             self::FabricantesVer => 'Ver fabricantes',
             self::FabricantesCrear => 'Crear fabricantes',
             self::FabricantesEditar => 'Editar fabricantes',
@@ -422,6 +427,7 @@ enum TenantPermission: string
             self::ImportarNovedades => 'Importar novedades',
             self::ImportarAreas => 'Importar áreas',
             self::ImportarBahias => 'Importar bahías',
+            self::ImportarBahiaUsuarios => 'Importar usuarios de bahías',
             self::ImportarEmpresasTerceras => 'Importar laboratorios terceros',
             self::ImportarTiposEquipo => 'Importar tipos de equipo',
             self::ImportarChecklistMantenimiento => 'Importar checklist de mantenimiento',

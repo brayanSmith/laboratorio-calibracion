@@ -123,6 +123,50 @@ test('importa bahias solo en areas existentes y sin repetir el nombre dentro del
         ]);
 });
 
+test('importa asignaciones de usuarios a bahias, buscando la bahia por su area y sin quitar las existentes', function () {
+    $norte = crearArea($this->tenant, 'Planta Norte');
+    $sur = crearArea($this->tenant, 'Planta Sur');
+    $bahiaNorte = Bahia::factory()->for($norte)->create(['nombre' => 'Bahía 1']);
+    $bahiaSur = Bahia::factory()->for($sur)->create(['nombre' => 'Bahía 1']);
+    $ana = User::factory()->forTenant($this->tenant)->create(['email' => 'ana@lab.test']);
+    $luis = User::factory()->forTenant($this->tenant)->create(['email' => 'luis@lab.test']);
+    $bahiaNorte->usuarios()->attach($luis);
+    User::factory()->forTenant(Tenant::factory()->create())->create(['email' => 'ajeno@lab.test']);
+
+    $importacion = importarCsv($this->admin, 'bahia-usuarios', [
+        'Área,Bahía,Correo del usuario',
+        'planta norte,bahia 1,ANA@lab.test',
+        'Planta Sur,Bahía 1,ana@lab.test',
+        'Planta Sur,Bahía 1,luis@lab.test',
+        'Planta Norte,Bahía 1,luis@lab.test',
+        'Planta Sur,Bahía 1,ana@lab.test',
+        'Planta Sur,Bahía 9,ana@lab.test',
+        'Planta Este,Bahía 1,ana@lab.test',
+        'Planta Sur,Bahía 1,ajeno@lab.test',
+    ]);
+
+    expect($importacion->filas_creadas)->toBe(3)
+        ->and($bahiaNorte->usuarios()->pluck('users.id')->sort()->values()->all())->toBe(collect([$ana->id, $luis->id])->sort()->values()->all())
+        ->and($bahiaSur->usuarios()->pluck('users.id')->sort()->values()->all())->toBe(collect([$ana->id, $luis->id])->sort()->values()->all())
+        ->and(array_column($importacion->errores, 'mensaje'))->toBe([
+            'El usuario luis@lab.test ya está asignado a la bahía Bahía 1.',
+            'El usuario ana@lab.test ya está asignado a la bahía Bahía 1.',
+            'El área Planta Sur no tiene una bahía llamada Bahía 9.',
+            'No existe el área Planta Este; créala o impórtala primero.',
+            'No existe un usuario con el correo ajeno@lab.test.',
+        ]);
+});
+
+test('importar usuarios de bahias requiere su propio permiso de importacion', function () {
+    $usuario = usuarioConPermisos($this->tenant, [TenantPermission::ImportarBahias, TenantPermission::BahiasAsignarUsuarios]);
+
+    $this->actingAs($usuario)->get(route('importaciones.plantilla', 'bahia-usuarios'))->assertForbidden();
+
+    $usuario->givePermissionTo(TenantPermission::ImportarBahiaUsuarios->value);
+
+    $this->actingAs($usuario)->get(route('importaciones.plantilla', 'bahia-usuarios'))->assertOk();
+});
+
 test('importa el checklist en tipos de equipo existentes y sin repetir sus puntos', function () {
     $manometro = crearTipoEquipo($this->tenant, 'Manómetro');
     crearTipoEquipo($this->tenant, 'Termómetro');

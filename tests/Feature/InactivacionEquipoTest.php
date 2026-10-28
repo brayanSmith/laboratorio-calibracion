@@ -29,7 +29,7 @@ function novedadQueInactiva(Tenant $tenant, string $categoria, bool $inactivar =
 }
 
 test('una novedad que inactiva el equipo, reportada al recibir el ingreso, lo deja inactivo con su motivo', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create(['estado_ingreso' => 'PENDIENTE']);
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo, ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]);
     $novedad = novedadQueInactiva($this->tenant, 'INGRESO');

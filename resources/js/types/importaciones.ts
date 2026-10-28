@@ -7,6 +7,7 @@ export type TipoImportacion =
     | 'novedades'
     | 'areas'
     | 'bahias'
+    | 'bahia-usuarios'
     | 'empresas-terceras'
     | 'tipos-equipo'
     | 'checklist-mantenimiento'

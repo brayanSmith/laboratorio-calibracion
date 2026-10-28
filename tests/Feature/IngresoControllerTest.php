@@ -25,7 +25,9 @@ beforeEach(function () {
 function datosIngreso(array $overrides = []): array
 {
     return [
+        // Crear acepta varias bahías (un ingreso por bahía); editar, la bahía del ingreso.
         'bahia_ids' => [test()->bahia->id],
+        'bahia_id' => test()->bahia->id,
         'desde' => '2026-09-01',
         'hasta' => '2026-09-05',
         ...$overrides,
@@ -33,7 +35,7 @@ function datosIngreso(array $overrides = []): array
 }
 
 test('lista solo los ingresos del tenant', function () {
-    Ingreso::factory()->conBahias($this->bahia)->create(['cliente_entrega_id' => $this->cliente->id]);
+    Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'cliente_entrega_id' => $this->cliente->id]);
     Ingreso::factory()->create();
 
     $this->actingAs($this->admin)
@@ -42,7 +44,7 @@ test('lista solo los ingresos del tenant', function () {
         ->assertInertia(fn ($page) => $page
             ->component('ingresos/index')
             ->has('ingresos', 1)
-            ->where('ingresos.0.bahias_nombre', $this->bahia->nombre)
+            ->where('ingresos.0.bahia_nombre', $this->bahia->nombre)
             ->where('ingresos.0.cliente_entrega_nombre', $this->cliente->nombre)
             ->has('bahias', 1)
             ->has('clientes', 1));
@@ -78,7 +80,7 @@ test('un invitado es redirigido al inicio de sesion', function () {
 
 test('recepcion puede registrar ingresos pero no editarlos ni eliminarlos', function () {
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($recepcion)
         ->post(route('ingresos.store'), datosIngreso())
@@ -102,40 +104,39 @@ test('crea un ingreso sin tecnico, cliente ni estado, con estado pendiente por d
         ->estado_ingreso->toBe('PENDIENTE');
 });
 
-test('crea un ingreso de varias bahias, con equipos correctivos de cualquiera de ellas', function () {
+test('con varias bahias crea un ingreso por bahia, y cada equipo queda en el ingreso de su bahia', function () {
     $otraBahia = Bahia::factory()->for(crearArea($this->tenant))->create();
-    $equipo = crearEquipoParaBusqueda($otraBahia, 'EQ-OTRA');
+    $preventivo = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-PROPIA'), ['fecha_proximo_servicio' => '2026-09-03']);
+    $equipoOtra = crearEquipoParaBusqueda($otraBahia, 'EQ-OTRA');
 
     $this->actingAs($this->admin)
         ->post(route('ingresos.store'), datosIngreso([
             'bahia_ids' => [$this->bahia->id, $otraBahia->id],
+            'programaciones_actualizadas' => [$preventivo->id => ['agendar' => '1']],
             'programaciones_correctivas' => [
-                ['equipo_id' => $equipo->id, 'falla_detectada' => 'El equipo no enciende'],
+                ['equipo_id' => $equipoOtra->id, 'falla_detectada' => 'El equipo no enciende'],
             ],
         ]))
+        ->assertRedirect(route('ingresos.index'))
         ->assertSessionHasNoErrors();
 
-    $ingreso = Ingreso::sole();
+    $ingresos = Ingreso::orderBy('id')->get();
 
-    expect($ingreso->bahias->pluck('id')->sort()->values()->all())->toBe(collect([$this->bahia->id, $otraBahia->id])->sort()->values()->all())
-        ->and($ingreso->equipoProgramacion()->sole()->equipo_id)->toBe($equipo->id);
-
-    $this->actingAs($this->admin)
-        ->get(route('ingresos.index'))
-        ->assertInertia(fn ($page) => $page
-            ->where('ingresos.0.bahia_ids', fn ($ids) => collect($ids)->sort()->values()->all() === $ingreso->bahias->pluck('id')->sort()->values()->all())
-            ->where('ingresos.0.bahias_nombre', collect([$this->bahia->nombre, $otraBahia->nombre])->sort()->implode(', ')));
+    expect($ingresos->pluck('bahia_id')->all())->toBe([$this->bahia->id, $otraBahia->id])
+        ->and($ingresos->every(fn (Ingreso $ingreso) => $ingreso->desde->toDateString() === '2026-09-01' && $ingreso->estado_ingreso === 'PENDIENTE'))->toBeTrue()
+        ->and($preventivo->refresh()->ingreso_id)->toBe($ingresos[0]->id)
+        ->and($ingresos[1]->equipoProgramacion()->sole()->equipo_id)->toBe($equipoOtra->id);
 });
 
-test('al editar un ingreso reemplaza sus bahias', function () {
+test('al editar un ingreso cambia su unica bahia', function () {
     $otraBahia = Bahia::factory()->for(crearArea($this->tenant))->create();
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
-        ->put(route('ingresos.update', $ingreso), datosIngreso(['bahia_ids' => [$otraBahia->id]]))
+        ->put(route('ingresos.update', $ingreso), datosIngreso(['bahia_id' => $otraBahia->id]))
         ->assertSessionHasNoErrors();
 
-    expect($ingreso->bahias()->pluck('bahias.id')->all())->toBe([$otraBahia->id]);
+    expect($ingreso->refresh()->bahia_id)->toBe($otraBahia->id);
 });
 
 test('rechaza un ingreso sin datos obligatorios', function () {
@@ -174,7 +175,7 @@ test('no permite actualizar ni eliminar ingresos de otro tenant', function () {
 });
 
 test('elimina un ingreso con borrado suave y borra su firma', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
         'estado_ingreso' => 'RECIBIDO',
@@ -204,7 +205,7 @@ test('al eliminar un ingreso, libera sus programaciones preventivas para una nue
         're_agendar' => true,
         'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-11-01'],
     ]);
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $programacion->update(['ingreso_id' => $ingreso->id]);
 
     $this->actingAs($this->admin)
@@ -232,7 +233,7 @@ test('al eliminar un ingreso, libera sus programaciones preventivas para una nue
 
 test('al eliminar un ingreso, elimina sus equipos correctivos agendados', function () {
     $equipo = crearEquipoParaBusqueda($this->bahia);
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $correctivo = $equipo->equipoProgramaciones()->create([
         'tipo_servicio' => 'MANTENIMIENTO',
         'tipo_mantenimiento' => 'CORRECTIVO',
@@ -307,7 +308,7 @@ test('no enlaza una programacion marcada con agendar=false al crear el ingreso',
 });
 
 test('agenda y enlaza una programacion marcada con agendar=true al editar el ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo);
 
@@ -382,7 +383,7 @@ test('rechaza un equipo correctivo que no pertenece a la bahia del ingreso', fun
 });
 
 test('no elimina un ingreso que tiene ordenes de trabajo asociadas', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo, ['ingreso_id' => $ingreso->id]);
 
@@ -406,7 +407,7 @@ test('no elimina un ingreso que tiene ordenes de trabajo asociadas', function ()
 });
 
 test('recibe un ingreso con tecnico, cliente y firma, quedando aprobado', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), [
@@ -428,7 +429,7 @@ test('recibe un ingreso con tecnico, cliente y firma, quedando aprobado', functi
 });
 
 test('la fecha de recepcion se fija el dia en que se recibe el ingreso y no cambia', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $datos = [
         'estado_ingreso' => 'RECIBIDO',
         'tecnico_recibe_id' => $this->admin->id,
@@ -458,7 +459,7 @@ test('la fecha de recepcion se fija el dia en que se recibe el ingreso y no camb
 });
 
 test('cancelar un ingreso no le fija fecha de recepcion', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'CANCELADO', 'motivo_cancelacion' => 'No llegaron'])
@@ -468,7 +469,7 @@ test('cancelar un ingreso no le fija fecha de recepcion', function () {
 });
 
 test('mantiene agendado un equipo programado marcado como ingresado al recibir el ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo, [
         'ingreso_id' => $ingreso->id,
@@ -493,7 +494,7 @@ test('mantiene agendado un equipo programado marcado como ingresado al recibir e
 });
 
 test('anota una novedad en un equipo marcado como ingresado, por ejemplo si llego incompleto', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $novedad = Novedad::create(['nombre' => 'Llegó sin una pieza', 'categoria' => 'INGRESO', 'tenant_id' => $this->tenant->id]);
     $programacion = crearProgramacion($equipo, [
@@ -525,7 +526,7 @@ test('anota una novedad en un equipo marcado como ingresado, por ejemplo si lleg
 });
 
 test('marca un equipo programado como no ingresado, dejandolo cancelado con su novedad', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $novedad = Novedad::create(['nombre' => 'Equipo no ubicado', 'categoria' => 'INGRESO', 'tenant_id' => $this->tenant->id]);
     $programacion = crearProgramacion($equipo, [
@@ -562,7 +563,7 @@ test('marca un equipo programado como no ingresado, dejandolo cancelado con su n
 });
 
 test('rechaza un equipo recibido que no pertenece a este ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
     $programacion = crearProgramacion($equipo);
 
@@ -579,7 +580,7 @@ test('rechaza un equipo recibido que no pertenece a este ingreso', function () {
 });
 
 test('agenda un equipo correctivo anotado al recibir el ingreso y lo enlaza con su ingreso_id', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia, 'EQ-5001', 'A');
 
     $this->actingAs($this->admin)
@@ -605,7 +606,7 @@ test('agenda un equipo correctivo anotado al recibir el ingreso y lo enlaza con 
 });
 
 test('rechaza un equipo correctivo de otra bahia al recibir el ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $otraBahia = Bahia::factory()->for(crearArea($this->tenant))->create();
     $equipo = crearEquipoParaBusqueda($otraBahia, 'EQ-OTRA');
 
@@ -623,7 +624,7 @@ test('rechaza un equipo correctivo de otra bahia al recibir el ingreso', functio
 
 test('un usuario sin permiso de editar equipos no puede tocar equipos al recibir un ingreso', function () {
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
     $equipo = crearEquipoParaBusqueda($this->bahia);
 
     $this->actingAs($recepcion)
@@ -641,7 +642,7 @@ test('un usuario sin permiso de editar equipos no puede tocar equipos al recibir
 });
 
 test('exige tecnico y cliente para recibir un ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'RECIBIDO'])
@@ -650,7 +651,7 @@ test('exige tecnico y cliente para recibir un ingreso', function () {
 
 test('rechaza un tecnico o cliente de otro tenant al recibir un ingreso', function () {
     $otro = Tenant::factory()->create();
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), [
@@ -662,7 +663,7 @@ test('rechaza un tecnico o cliente de otro tenant al recibir un ingreso', functi
 });
 
 test('rechaza una firma que no es una imagen al recibir un ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), [
@@ -675,7 +676,7 @@ test('rechaza una firma que no es una imagen al recibir un ingreso', function ()
 });
 
 test('reemplaza la firma anterior al volver a recibir un ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
         'estado_ingreso' => 'RECIBIDO',
@@ -700,7 +701,7 @@ test('reemplaza la firma anterior al volver a recibir un ingreso', function () {
 });
 
 test('conserva la firma al recibir sin enviar una nueva y la quita si se pide', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
         'estado_ingreso' => 'RECIBIDO',
@@ -730,7 +731,7 @@ test('conserva la firma al recibir sin enviar una nueva y la quita si se pide', 
 });
 
 test('cancela un ingreso con su motivo', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'CANCELADO'])
@@ -749,7 +750,7 @@ test('cancela un ingreso con su motivo', function () {
 });
 
 test('vuelve a dejar pendiente un ingreso aprobado, sin exigir mas datos', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'PENDIENTE'])
@@ -760,7 +761,7 @@ test('vuelve a dejar pendiente un ingreso aprobado, sin exigir mas datos', funct
 });
 
 test('rechaza un estado que no existe al actualizar el estado del ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($this->admin)
         ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'OTRO'])
@@ -769,7 +770,7 @@ test('rechaza un estado que no existe al actualizar el estado del ingreso', func
 
 test('un usuario sin permiso de editar ingresos no puede actualizar su estado', function () {
     $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->actingAs($recepcion)
         ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'PENDIENTE'])
@@ -785,7 +786,7 @@ test('no permite actualizar el estado de un ingreso de otro tenant', function ()
 });
 
 test('un invitado no puede actualizar el estado de un ingreso', function () {
-    $ingreso = Ingreso::factory()->conBahias($this->bahia)->create();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 
     $this->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'PENDIENTE'])
         ->assertRedirect(route('login'));

@@ -301,6 +301,22 @@ test('no incluye programaciones fuera del rango de fechas', function () {
         ->assertJsonCount(0);
 });
 
+test('incluye las programaciones de los dias desde y hasta del rango', function () {
+    $bahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id]);
+    $equipo = crearEquipoParaBusqueda($bahia);
+    crearProgramacion($equipo, ['fecha_proximo_servicio' => '2026-06-01']);
+    crearProgramacion($equipo, ['fecha_proximo_servicio' => '2026-06-30']);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('equipo-programaciones.buscar', [
+            'desde' => '2026-06-01',
+            'hasta' => '2026-06-30',
+            'bahia_ids' => [$bahia->id],
+        ]))
+        ->assertOk()
+        ->assertJsonCount(2);
+});
+
 test('no incluye programaciones de otra bahia ni de otro tenant', function () {
     $bahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id]);
     $otraBahia = Bahia::factory()->create(['tenant_id' => $this->tenant->id]);
