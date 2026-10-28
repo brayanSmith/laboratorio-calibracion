@@ -3,6 +3,7 @@
 namespace App\Modules\Equipos\Models;
 
 use App\Models\Tenant;
+use App\Models\User;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $criticidad ALTA, MEDIA o BAJA; nula si aún no se asignó
  * @property string|null $notas
  * @property bool $activo
- * @property string|null $motivo_inactivo Por qué el sistema lo inactivó (ver inactivar()); nulo si está activo o se inactivó a mano
+ * @property string|null $motivo_inactivo Por qué quedó inactivo, a mano o por el sistema (ver cambiarEstado()); nulo si está activo
  * @property bool $patron_referencia
  * @property-read string $codigo_nombre Calculado: "Tipo de equipo - código" (requiere tipoEquipo)
  * @property bool $requiere_programacion
@@ -52,6 +53,7 @@ use Illuminate\Support\Carbon;
  * @property-read EquipoEspecificacionTecnica|null $equipoEspecificacionTecnica
  * @property-read Collection<int, EquipoProgramacion> $equipoProgramaciones
  * @property-read Collection<int, EquipoHistorico> $equipoHistoricos
+ * @property-read Collection<int, EquipoCambioEstado> $cambiosEstado
  */
 #[Fillable([
     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
@@ -75,12 +77,29 @@ class Equipo extends Model
     }
 
     /**
-     * Deja el equipo inactivo, guardando el motivo para mostrarlo en el listado de equipos
-     * (ej. "Calibración: Fuera de servicio").
+     * Activa o inactiva el equipo y lo anota en su historial de estado, con el motivo y
+     * quién lo hizo (el usuario autenticado, si lo hay). Al inactivarlo, el motivo también
+     * queda en motivo_inactivo para mostrarlo en el listado de equipos.
+     */
+    public function cambiarEstado(bool $activo, string $motivo, ?User $usuario = null): void
+    {
+        $this->update(['activo' => $activo, 'motivo_inactivo' => $activo ? null : $motivo]);
+
+        $this->cambiosEstado()->create([
+            'activo' => $activo,
+            'motivo' => $motivo,
+            'user_id' => ($usuario ?? auth()->user())?->id,
+            'tenant_id' => $this->tenant_id,
+        ]);
+    }
+
+    /**
+     * Deja el equipo inactivo por un motivo del sistema (ej. "Calibración: Fuera de
+     * servicio").
      */
     public function inactivar(string $motivo): void
     {
-        $this->update(['activo' => false, 'motivo_inactivo' => $motivo]);
+        $this->cambiarEstado(false, $motivo);
     }
 
     /**
@@ -207,6 +226,16 @@ class Equipo extends Model
     public function equipoHistoricos(): HasMany
     {
         return $this->hasMany(EquipoHistorico::class);
+    }
+
+    /**
+     * Get the times this equipo was activated or inactivated, with their motivo.
+     *
+     * @return HasMany<EquipoCambioEstado, $this>
+     */
+    public function cambiosEstado(): HasMany
+    {
+        return $this->hasMany(EquipoCambioEstado::class);
     }
 
     /**

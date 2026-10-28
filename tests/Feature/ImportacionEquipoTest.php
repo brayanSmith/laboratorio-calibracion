@@ -534,7 +534,7 @@ test('agrega los simbolos de precision, alcance y resolucion cuando el csv solo 
     expect($especificacion('EQ-1')->only(['alcance_indicacion', 'precision', 'resolucion']))
         ->toBe(['alcance_indicacion' => '0 a 100mm', 'precision' => '±0.5', 'resolucion' => '0.01mm'])
         ->and($especificacion('EQ-2')->only(['alcance_indicacion', 'precision', 'resolucion']))
-        ->toBe(['alcance_indicacion' => '0 a 10bar', 'precision' => '2%', 'resolucion' => '0.1bar'])
+        ->toBe(['alcance_indicacion' => '0 a 10bar', 'precision' => '±2%', 'resolucion' => '0.1bar'])
         ->and($especificacion('EQ-3')->only(['alcance_indicacion', 'precision', 'resolucion']))
         ->toBe(['alcance_indicacion' => '0 a 10bar', 'precision' => '±0.5', 'resolucion' => '0.1bar']);
 });
@@ -560,7 +560,8 @@ test('reporta la especificacion tecnica con un formato que el formulario no acep
     $mapeo = [...mapeoEquiposCsv(), 'simbolo_precision' => 19];
 
     $importacion = importarEquipos($this->admin, csvEquipos(
-        'SN-1,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,Presión,Bar,bar,0 a 10,0.5,0.1,,,',
+        // Sin símbolo la precisión es válida (el ± se agrega solo), pero no con más de 2 decimales.
+        'SN-1,EQ-1,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,Presión,Bar,bar,0 a 10,0.555,0.1,,,',
         'SN-2,EQ-2,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,Presión,Bar,bar,0 a 10,0.5,0.1 aprox,,,±',
         // La resolución lleva solo el número: con el símbolo escrito ya no se acepta.
         'SN-3,EQ-3,Digital,M1,Fluke,Manómetro,ACME,900111222,Planta,B1,Bueno,Presión,Bar,bar,0 a 10,0.5,0.1bar,,,±',
@@ -571,7 +572,7 @@ test('reporta la especificacion tecnica con un formato que el formulario no acep
     $mensajeResolucion = 'La resolución debe ser solo el número, con máximo 4 decimales (ej. 0.0001): el símbolo de la unidad (bar) se agrega solo.';
 
     expect($importacion->filas_creadas)->toBe(0)
-        ->and($importacion->errores[0]['mensaje'])->toBe('La precisión debe ser un número con ± adelante o % al final (ej. ±0.5 o 0.5%): indica el símbolo en la columna Símbolo de la precisión.')
+        ->and($importacion->errores[0]['mensaje'])->toBe('La precisión debe ser un número de hasta 2 decimales, con % al final si es un porcentaje (ej. 0.5 o 0.5%); el ± se agrega solo.')
         ->and(array_column(array_slice($importacion->errores, 1), 'mensaje'))->toBe([$mensajeResolucion, $mensajeResolucion, $mensajeResolucion]);
 });
 

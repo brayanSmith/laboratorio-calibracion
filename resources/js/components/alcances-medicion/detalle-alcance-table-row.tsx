@@ -23,7 +23,7 @@ const inputClassName =
     'h-7 w-full rounded-none border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset';
 
 /**
- * Separa la precisión del equipo ("±0.5" o "0.5%") en su símbolo y su número. El símbolo
+ * Separa la precisión del equipo ("±0.5" o "±0.5%") en su símbolo y su número. El símbolo
  * decide si el EMP del detalle es un valor absoluto ("±", campo `emp`) o un porcentaje
  * ("%", campo `emp_porcentaje`).
  */

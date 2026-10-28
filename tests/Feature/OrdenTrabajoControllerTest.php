@@ -257,7 +257,7 @@ test('no crea checklist cuando el tipo de equipo no tiene items', function () {
     expect(MantenimientoCheckList::where('mantenimiento_id', $mantenimiento->id)->count())->toBe(0);
 });
 
-test('agenda mantenimiento asignado a un tercero y crea el servicio_tercero con la empresa elegida', function () {
+test('agenda mantenimiento asignado a un tercero y crea el servicio_tercero con la empresa, el Solped y la OB', function () {
     $programacion = crearEquipoRecibido($this->bahia);
     $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id]);
 
@@ -268,9 +268,12 @@ test('agenda mantenimiento asignado a un tercero y crea el servicio_tercero con 
                     'listo_para_mantenimiento' => '1',
                     'mantenimiento_asignado_tercero' => '1',
                     'empresa_tercero_id' => $empresa->id,
+                    'codigo_compra' => 'SOL-1001',
+                    'codigo_despacho' => 'OB-2002',
                 ],
             ],
         ])
+        ->assertSessionHasNoErrors()
         ->assertRedirect();
 
     $orden = OrdenTrabajo::where('equipo_programacion_id', $programacion->id)->firstOrFail();
@@ -281,7 +284,9 @@ test('agenda mantenimiento asignado a un tercero y crea el servicio_tercero con 
 
     expect($servicioTercero)
         ->tipo_servicio->toBe('MANTENIMIENTO')
-        ->empresa_tercero_id->toBe($empresa->id);
+        ->empresa_tercero_id->toBe($empresa->id)
+        ->codigo_compra->toBe('SOL-1001')
+        ->codigo_despacho->toBe('OB-2002');
 
     expect(Mantenimiento::where('orden_trabajo_id', $orden->id)->count())->toBe(0);
 });

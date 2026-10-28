@@ -154,6 +154,8 @@ class OrdenTrabajoController extends Controller
                         'orden_trabajo_id' => $ordenTrabajo->id,
                         'tipo_servicio' => 'MANTENIMIENTO',
                         'empresa_tercero_id' => $equipo['empresa_tercero_id'] ?? null,
+                        'codigo_compra' => $equipo['codigo_compra'] ?? null,
+                        'codigo_despacho' => $equipo['codigo_despacho'] ?? null,
                         'tenant_id' => $tenantId,
                     ]);
                 } else {

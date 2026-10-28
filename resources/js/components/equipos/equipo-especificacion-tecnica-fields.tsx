@@ -3,13 +3,7 @@ import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Toggle } from '@/components/ui/toggle';
 import type { EquipoEspecificacionTecnica, EquipoFormOptions } from '@/types';
 
 type Props = {
@@ -21,24 +15,28 @@ type Props = {
     onAlcanceIndicacionChange?: (alcanceIndicacion: string) => void;
 };
 
-type PrecisionSimbolo = '±' | '%';
-
 /**
- * Split a stored precision value ("±0.5" or "0.5%") into its number and symbol.
+ * Split a stored precision value ("±0.5" or "±0.5%") into its number and whether it's a
+ * porcentaje. The ± always goes in front; the % only when it's a porcentaje.
  */
-function parsePrecision(value?: string | null): {
+export function parsePrecision(value?: string | null): {
     numero: string;
-    simbolo: PrecisionSimbolo;
+    esPorcentaje: boolean;
 } {
-    if (value?.startsWith('±')) {
-        return { numero: value.slice(1), simbolo: '±' };
-    }
+    const esPorcentaje = value?.endsWith('%') ?? false;
 
-    if (value?.endsWith('%')) {
-        return { numero: value.slice(0, -1), simbolo: '%' };
-    }
+    return {
+        numero: (value ?? '').replace(/^±/, '').replace(/%$/, ''),
+        esPorcentaje,
+    };
+}
 
-    return { numero: value ?? '', simbolo: '±' };
+/** "0.5" -> "±0.5", or "±0.5%" if it's a porcentaje; empty while there's no number. */
+export function formatearPrecision(
+    numero: string,
+    esPorcentaje: boolean,
+): string {
+    return numero ? `±${numero}${esPorcentaje ? '%' : ''}` : '';
 }
 
 /**
@@ -60,29 +58,6 @@ function parseValorConSimbolo(
     return value;
 }
 
-function PrecisionSimboloSelect({
-    value,
-    onChange,
-}: {
-    value: PrecisionSimbolo;
-    onChange: (value: PrecisionSimbolo) => void;
-}) {
-    return (
-        <Select
-            value={value}
-            onValueChange={(nuevo) => onChange(nuevo as PrecisionSimbolo)}
-        >
-            <SelectTrigger className="w-16" aria-label="Símbolo de precisión">
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="±">±</SelectItem>
-                <SelectItem value="%">%</SelectItem>
-            </SelectContent>
-        </Select>
-    );
-}
-
 export default function EquipoEspecificacionTecnicaFields({
     especificacion,
     options,
@@ -92,16 +67,15 @@ export default function EquipoEspecificacionTecnicaFields({
 }: Props) {
     const inicial = parsePrecision(especificacion?.precision);
     const [precisionNumero, setPrecisionNumero] = useState(inicial.numero);
-    const [precisionSimbolo, setPrecisionSimbolo] = useState<PrecisionSimbolo>(
-        inicial.simbolo,
+    const [precisionPorcentaje, setPrecisionPorcentaje] = useState(
+        inicial.esPorcentaje,
     );
 
-    // El % va al final del valor ("0.5%") y el ± al principio ("±0.5").
-    const precisionValor = precisionNumero
-        ? precisionSimbolo === '%'
-            ? `${precisionNumero}%`
-            : `±${precisionNumero}`
-        : '';
+    // El ± va siempre al principio ("±0.5"); el % al final, si se marca ("±0.5%").
+    const precisionValor = formatearPrecision(
+        precisionNumero,
+        precisionPorcentaje,
+    );
 
     const [tipoMagnitudId, setTipoMagnitudId] = useState(
         especificacion?.tipo_magnitud_id?.toString(),
@@ -213,17 +187,18 @@ export default function EquipoEspecificacionTecnicaFields({
 
             <div className="grid gap-2">
                 <Label htmlFor="precision_numero">Precisión</Label>
-                <div className="flex gap-2">
-                    {precisionSimbolo === '±' ? (
-                        <PrecisionSimboloSelect
-                            value={precisionSimbolo}
-                            onChange={setPrecisionSimbolo}
-                        />
-                    ) : null}
+                <div className="flex items-center gap-2">
+                    <span
+                        className="text-sm text-muted-foreground"
+                        aria-hidden="true"
+                    >
+                        ±
+                    </span>
                     <Input
                         id="precision_numero"
                         type="number"
                         step="0.01"
+                        min="0"
                         value={precisionNumero}
                         onChange={(event) =>
                             setPrecisionNumero(event.target.value)
@@ -231,12 +206,17 @@ export default function EquipoEspecificacionTecnicaFields({
                         required={required}
                         className="flex-1"
                     />
-                    {precisionSimbolo === '%' ? (
-                        <PrecisionSimboloSelect
-                            value={precisionSimbolo}
-                            onChange={setPrecisionSimbolo}
-                        />
-                    ) : null}
+                    <Toggle
+                        variant="outline"
+                        pressed={precisionPorcentaje}
+                        onPressedChange={setPrecisionPorcentaje}
+                        aria-label="La precisión es un porcentaje"
+                        title="Marcar si la precisión es un porcentaje"
+                        className="w-10 data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground"
+                        data-test="precision-porcentaje"
+                    >
+                        %
+                    </Toggle>
                 </div>
                 <input type="hidden" name="precision" value={precisionValor} />
                 <InputError message={errors.precision} />

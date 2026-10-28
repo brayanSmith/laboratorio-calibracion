@@ -19,6 +19,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/use-permissions';
 import type { EquipoListoParaMantenimientoItem, IngresoOption } from '@/types';
@@ -147,6 +148,9 @@ function EquipoListoItem({
         useState(false);
     const [tecnicoId, setTecnicoId] = useState('');
     const [empresaTerceroId, setEmpresaTerceroId] = useState('');
+    // Solped y OB del servicio de tercero: los conoce quien agenda, así que se piden aquí.
+    const [codigoCompra, setCodigoCompra] = useState('');
+    const [codigoDespacho, setCodigoDespacho] = useState('');
     const canTerceros = usePermissions().can('mantenimientos.terceros');
 
     const prefijo = `equipos_listos.${item.id}`;
@@ -256,6 +260,51 @@ function EquipoListoItem({
                     <InputError
                         message={errors[`${prefijo}.empresa_tercero_id`]}
                     />
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor={`codigo-compra-${item.id}`}
+                                className="text-xs"
+                            >
+                                Solped
+                            </Label>
+                            <Input
+                                id={`codigo-compra-${item.id}`}
+                                value={codigoCompra}
+                                onChange={(event) =>
+                                    setCodigoCompra(event.target.value)
+                                }
+                                maxLength={50}
+                                placeholder="Opcional"
+                                data-test="agendar-codigo-compra"
+                            />
+                            <InputError
+                                message={errors[`${prefijo}.codigo_compra`]}
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor={`codigo-despacho-${item.id}`}
+                                className="text-xs"
+                            >
+                                OB
+                            </Label>
+                            <Input
+                                id={`codigo-despacho-${item.id}`}
+                                value={codigoDespacho}
+                                onChange={(event) =>
+                                    setCodigoDespacho(event.target.value)
+                                }
+                                maxLength={50}
+                                placeholder="Opcional"
+                                data-test="agendar-codigo-despacho"
+                            />
+                            <InputError
+                                message={errors[`${prefijo}.codigo_despacho`]}
+                            />
+                        </div>
+                    </div>
                 </div>
             ) : null}
 
@@ -272,11 +321,23 @@ function EquipoListoItem({
                         value={mantenimientoAsignadoTercero ? '1' : '0'}
                     />
                     {mantenimientoAsignadoTercero ? (
-                        <input
-                            type="hidden"
-                            name={`equipos_listos[${item.id}][empresa_tercero_id]`}
-                            value={empresaTerceroId}
-                        />
+                        <>
+                            <input
+                                type="hidden"
+                                name={`equipos_listos[${item.id}][empresa_tercero_id]`}
+                                value={empresaTerceroId}
+                            />
+                            <input
+                                type="hidden"
+                                name={`equipos_listos[${item.id}][codigo_compra]`}
+                                value={codigoCompra}
+                            />
+                            <input
+                                type="hidden"
+                                name={`equipos_listos[${item.id}][codigo_despacho]`}
+                                value={codigoDespacho}
+                            />
+                        </>
                     ) : (
                         <input
                             type="hidden"

@@ -9,6 +9,7 @@ use App\Models\Empresa;
 use App\Modules\Calibraciones\Http\Controllers\CalibracionController;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Despachos\Http\Controllers\DespachoController;
+use App\Modules\Equipos\Http\Requests\CambiarEstadoEquipoRequest;
 use App\Modules\Equipos\Http\Requests\StoreEquipoRequest;
 use App\Modules\Equipos\Http\Requests\UpdateEquipoRequest;
 use App\Modules\Equipos\Models\DocumentoEquipo;
@@ -163,16 +164,33 @@ class EquipoController extends Controller
     }
 
     /**
+     * Activa o inactiva el equipo a mano, con el motivo, y lo anota en su historial de
+     * estado (ver Equipo::cambiarEstado()).
+     */
+    public function cambiarEstado(CambiarEstadoEquipoRequest $request, Equipo $equipo): RedirectResponse
+    {
+        $activo = $request->boolean('activo');
+
+        $equipo->cambiarEstado($activo, $request->validated('motivo'), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $activo ? __('Equipo activado.') : __('Equipo inactivado.')]);
+
+        return back();
+    }
+
+    /**
      * Update the specified equipo, along with its especificación técnica,
      * programaciones de servicio and documentos, all in a single submit.
      */
     public function update(UpdateEquipoRequest $request, Equipo $equipo): RedirectResponse
     {
         DB::transaction(function () use ($request, $equipo): void {
+            // El estado (activo o inactivo) no se edita aquí: tiene sus propios botones, que
+            // piden el motivo (ver cambiarEstado()).
             $equipo->update([
                 ...$request->safe()->only([
                     'codigo', 'tipo_equipo_id', 'tipo_tecnologia', 'modelo', 'fabricante_id',
-                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'criticidad', 'notas', 'activo',
+                    'numero_serie', 'area_id', 'bahia_id', 'condicion_actual', 'criticidad', 'notas',
                     'patron_referencia', 'requiere_programacion', 'cliente_id',
                 ]),
                 'ficha_tecnica' => $this->fichaTecnica($request),

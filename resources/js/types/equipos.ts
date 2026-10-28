@@ -188,8 +188,10 @@ export type Equipo = {
     criticidad: CriticidadEquipo | null;
     notas: string | null;
     activo: boolean;
-    /** Por qué el sistema lo dejó inactivo; nulo si está activo o se inactivó a mano. */
+    /** Por qué quedó inactivo (a mano o por el sistema); nulo si está activo. */
     motivo_inactivo: string | null;
+    /** Historial de activaciones e inactivaciones, del más reciente al más antiguo. */
+    cambios_estado?: EquipoCambioEstado[];
     patron_referencia: boolean;
     requiere_programacion: boolean;
     cliente_id: number;
@@ -261,4 +263,15 @@ export type EquipoHistorico = {
     empresa_tercero: string | null;
     adjunto_url: string | null;
     adjunto_nombre: string | null;
+};
+
+/** Una vez en que el equipo se activó o inactivó, con su motivo. */
+export type EquipoCambioEstado = {
+    id: number;
+    /** Estado en que quedó el equipo. */
+    activo: boolean;
+    motivo: string;
+    /** Nulo si fue automático (ej. una novedad o un servicio fuera de servicio sin usuario). */
+    usuario: { id: number; name: string } | null;
+    created_at: string;
 };

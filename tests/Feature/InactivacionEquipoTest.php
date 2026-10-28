@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TenantPermission;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Catalogos\Models\Bahia;
@@ -133,7 +134,7 @@ test('un servicio de tercero rechazado sin re-agendar deja el equipo inactivo', 
 
     expect($servicio->ordenTrabajo->equipoProgramacion->equipo->refresh())
         ->activo->toBeFalse()
-        ->motivo_inactivo->toBe('Mantenimiento de tercero: Rechazado');
+        ->motivo_inactivo->toBe('Mantenimiento de tercero: Fuera de servicio');
 });
 
 test('un servicio de tercero rechazado con re-agendar o aprobado deja el equipo activo', function (array $datos) {
@@ -171,4 +172,58 @@ test('crea y edita una novedad marcada para inactivar el equipo', function () {
         ->assertSessionHasNoErrors();
 
     expect($novedad->refresh()->inactivar_equipo)->toBeFalse();
+});
+
+test('inactiva y activa un equipo a mano con su motivo, y lo deja en el historial de estado', function () {
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->patch(route('equipos.estado.update', $equipo), ['activo' => '0', 'motivo' => 'Dado de baja por daño irreparable'])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect($equipo->refresh())
+        ->activo->toBeFalse()
+        ->motivo_inactivo->toBe('Dado de baja por daño irreparable');
+
+    $this->actingAs($this->admin)
+        ->patch(route('equipos.estado.update', $equipo), ['activo' => '1', 'motivo' => 'Reparado en planta'])
+        ->assertSessionHasNoErrors();
+
+    expect($equipo->refresh())
+        ->activo->toBeTrue()
+        ->motivo_inactivo->toBeNull()
+        ->and($equipo->cambiosEstado()->orderBy('id')->get()->map->only(['activo', 'motivo', 'user_id'])->all())->toBe([
+            ['activo' => false, 'motivo' => 'Dado de baja por daño irreparable', 'user_id' => $this->admin->id],
+            ['activo' => true, 'motivo' => 'Reparado en planta', 'user_id' => $this->admin->id],
+        ]);
+});
+
+test('cambiar el estado del equipo exige el motivo y el permiso de editar equipos', function () {
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->patch(route('equipos.estado.update', $equipo), ['activo' => '0', 'motivo' => ''])
+        ->assertSessionHasErrors('motivo');
+
+    $soloVer = usuarioConPermisos($this->tenant, [TenantPermission::EquiposVer]);
+
+    $this->actingAs($soloVer)
+        ->patch(route('equipos.estado.update', $equipo), ['activo' => '0', 'motivo' => 'Baja'])
+        ->assertForbidden();
+
+    expect($equipo->refresh()->activo)->toBeTrue()
+        ->and($equipo->cambiosEstado()->count())->toBe(0);
+});
+
+test('la inactivacion automatica tambien queda en el historial de estado', function () {
+    $calibracion = crearCalibracion($this->bahia);
+
+    $this->actingAs($this->admin)->post(route('calibraciones.iniciar', $calibracion));
+    $this->actingAs($this->admin)->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FUERA_DE_SERVICIO']);
+
+    expect($calibracion->ordenTrabajo->equipoProgramacion->equipo->cambiosEstado()->sole())
+        ->activo->toBeFalse()
+        ->motivo->toBe('Calibración: Fuera de servicio')
+        ->user_id->toBe($this->admin->id);
 });

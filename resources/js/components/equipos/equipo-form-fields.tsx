@@ -182,8 +182,7 @@ export default function EquipoFormFields({
                     onValueChange={(value) =>
                         setCriticidad(
                             (value || undefined) as
-                                | CriticidadEquipo
-                                | undefined,
+                                CriticidadEquipo | undefined,
                         )
                     }
                     className="w-full"
@@ -233,16 +232,8 @@ export default function EquipoFormFields({
                     />
                 </>
             ) : (
+                // Activar o inactivar tiene sus propios botones en la tabla, que piden el motivo.
                 <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:gap-8">
-                    <div className="flex items-center gap-3">
-                        <Checkbox
-                            id="activo"
-                            name="activo"
-                            defaultChecked={equipo?.activo ?? true}
-                        />
-                        <Label htmlFor="activo">Activo</Label>
-                    </div>
-
                     <div className="flex items-center gap-3">
                         <Checkbox
                             id="requiere_programacion"

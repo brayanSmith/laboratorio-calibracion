@@ -1,6 +1,8 @@
 import { Form } from '@inertiajs/react';
+import { Power, PowerOff } from 'lucide-react';
 import { type PropsWithChildren, useState } from 'react';
 import EquipoController from '@/actions/App/Modules/Equipos/Http/Controllers/EquipoController';
+import CambiarEstadoEquipoModal from '@/components/equipos/cambiar-estado-equipo-modal';
 import EquipoAlcanceMedicionAviso from '@/components/equipos/equipo-alcance-medicion-aviso';
 import EquipoDocumentosEditarFields from '@/components/equipos/equipo-documentos-editar-fields';
 import EquipoEspecificacionTecnicaFields from '@/components/equipos/equipo-especificacion-tecnica-fields';
@@ -11,6 +13,7 @@ import EquipoInformacionAdicionalFields from '@/components/equipos/equipo-inform
 import EquipoProgramacionesEditarFields from '@/components/equipos/equipo-programaciones-editar-fields';
 import EquipoUbicacionFields from '@/components/equipos/equipo-ubicacion-fields';
 import Heading from '@/components/heading';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -25,6 +28,10 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
+import {
+    BADGE_EQUIPO_ACTIVO,
+    BADGE_EQUIPO_INACTIVO,
+} from '@/lib/estado-final-equipo';
 import { cn } from '@/lib/utils';
 import type { Equipo, EquipoFormOptions } from '@/types';
 
@@ -35,6 +42,7 @@ type Props = PropsWithChildren<{
 
 export default function EditEquipoModal({ equipo, options, children }: Props) {
     const [open, setOpen] = useState(false);
+    const [estadoOpen, setEstadoOpen] = useState(false);
     const canVerProgramaciones = usePermissions().can('equipos.programaciones');
     const [tipoEquipoId, setTipoEquipoId] = useState<string | undefined>(
         equipo.tipo_equipo_id.toString(),
@@ -202,6 +210,58 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                                             errors={errors}
                                         />
                                     </div>
+
+                                    <Separator />
+
+                                    <div
+                                        className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
+                                        data-test="equipo-estado-seccion"
+                                    >
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium">
+                                                Estado del equipo
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge
+                                                    className={
+                                                        equipo.activo
+                                                            ? BADGE_EQUIPO_ACTIVO
+                                                            : BADGE_EQUIPO_INACTIVO
+                                                    }
+                                                >
+                                                    {equipo.activo
+                                                        ? 'Activo'
+                                                        : 'Inactivo'}
+                                                </Badge>
+                                                {!equipo.activo &&
+                                                equipo.motivo_inactivo ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {equipo.motivo_inactivo}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant={
+                                                equipo.activo
+                                                    ? 'outline'
+                                                    : 'default'
+                                            }
+                                            size="sm"
+                                            onClick={() => setEstadoOpen(true)}
+                                            data-test="equipo-estado-button"
+                                        >
+                                            {equipo.activo ? (
+                                                <PowerOff />
+                                            ) : (
+                                                <Power />
+                                            )}
+                                            {equipo.activo
+                                                ? 'Inactivar equipo'
+                                                : 'Activar equipo'}
+                                        </Button>
+                                    </div>
                                 </TabsContent>
 
                                 {canVerProgramaciones ? (
@@ -247,6 +307,13 @@ export default function EditEquipoModal({ equipo, options, children }: Props) {
                         </>
                     )}
                 </Form>
+
+                {/* Fuera del <Form> de edición: es otro formulario, con su propio envío. */}
+                <CambiarEstadoEquipoModal
+                    equipo={equipo}
+                    open={estadoOpen}
+                    onOpenChange={setEstadoOpen}
+                />
             </DialogContent>
         </Dialog>
     );

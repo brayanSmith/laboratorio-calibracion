@@ -40,7 +40,7 @@ class StoreEquipoEspecificacionTecnicaRequest extends FormRequest
                 Rule::exists('unidad_medidas', 'id')->where('tenant_id', $equipo->tenant_id),
             ],
             'alcance_indicacion' => ['required', 'string', 'max:50', $this->alcanceIndicacionConSimbolo()],
-            'precision' => ['required', 'string', 'max:20', 'regex:/^(±\d+(\.\d{1,2})?|\d+(\.\d{1,2})?%)$/u'],
+            'precision' => ['required', 'string', 'max:20', 'regex:/^±\d+(\.\d{1,2})?%?$/u'],
             'resolucion' => ['required', 'string', 'max:50', $this->resolucionConSimbolo()],
         ];
     }

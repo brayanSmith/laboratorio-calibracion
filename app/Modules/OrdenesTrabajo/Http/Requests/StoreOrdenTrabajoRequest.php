@@ -92,6 +92,9 @@ class StoreOrdenTrabajoRequest extends FormRequest
                 'required_if:equipos_listos.*.requiere_tercero,true',
                 Rule::exists('empresa_terceros', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at'),
             ],
+            // Solped y OB del servicio de tercero, opcionales: los digita quien agenda.
+            'equipos_listos.*.codigo_compra' => ['nullable', 'string', 'max:50'],
+            'equipos_listos.*.codigo_despacho' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

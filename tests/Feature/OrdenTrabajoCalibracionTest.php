@@ -13,6 +13,7 @@ use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoMagnitud;
 use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
@@ -58,6 +59,49 @@ test('lista las ordenes con mantenimiento finalizado para agendar calibracion', 
         ->assertJsonCount(1)
         ->assertJsonPath('0.id', $lista->id)
         ->assertJsonPath('0.equipo.codigo', 'EQ-LISTO');
+});
+
+/** Orden cuyo mantenimiento terminó con el equipo en el estado final dado. */
+function crearOrdenConMantenimientoTerminado(Bahia $bahia, string $estadoFinal, string $codigo): OrdenTrabajo
+{
+    $orden = crearOrdenListaParaCalibracion($bahia, $codigo);
+
+    Mantenimiento::create([
+        'orden_trabajo_id' => $orden->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => now()->toDateString(),
+        'tecnico_id' => User::factory()->forTenant($bahia->tenant)->create()->id,
+        'estado_mantenimiento' => 'FINALIZADO',
+        'estado_final_equipo' => $estadoFinal,
+        'tenant_id' => $bahia->tenant_id,
+    ]);
+
+    return $orden;
+}
+
+test('una orden cuyo mantenimiento dejo el equipo fuera de servicio no pasa a calibracion', function () {
+    $operativa = crearOrdenConMantenimientoTerminado($this->bahia, 'OPERATIVO', 'EQ-OPERATIVO');
+    $fueraDeServicio = crearOrdenConMantenimientoTerminado($this->bahia, 'FUERA_DE_SERVICIO', 'EQ-FUERA');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.equipos-listos-calibracion'))
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.id', $operativa->id);
+
+    $this->actingAs($this->admin)
+        ->post(route('orden-trabajos.store-calibracion'), [
+            'ordenes_listas' => [
+                $fueraDeServicio->id => [
+                    'listo_para_calibracion' => '1',
+                    'calibracion_asignado_tercero' => '0',
+                    'tecnico_id' => $this->admin->id,
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('ordenes_listas.0.id');
+
+    expect(Calibracion::where('orden_trabajo_id', $fueraDeServicio->id)->exists())->toBeFalse();
 });
 
 test('no incluye ordenes de otro tenant en la lista para agendar calibracion', function () {
@@ -197,7 +241,7 @@ test('agenda calibracion calculando el emp a partir del emp porcentual del detal
         'tipo_magnitud_id' => TipoMagnitud::factory()->create(['tenant_id' => $this->tenant->id])->id,
         'unidad_medida_id' => UnidadMedida::factory()->create(['tenant_id' => $this->tenant->id])->id,
         'alcance_indicacion' => '0 - 100 bar',
-        'precision' => '5%',
+        'precision' => '±5%',
         'resolucion' => '0.01',
         'tenant_id' => $this->tenant->id,
     ]);

@@ -61,7 +61,7 @@ class ServicioTercero extends Model
             if ($rechazadoSinReAgendar) {
                 $modulo = $servicio->tipo_servicio === 'CALIBRACION' ? 'Calibración' : 'Mantenimiento';
 
-                $servicio->ordenTrabajo?->equipoProgramacion?->equipo?->inactivar("{$modulo} de tercero: Rechazado");
+                $servicio->ordenTrabajo?->equipoProgramacion?->equipo?->inactivar("{$modulo} de tercero: Fuera de servicio");
             }
 
             if (! $servicio->wasRecentlyCreated && ! $servicio->wasChanged('estado_servicio')) {

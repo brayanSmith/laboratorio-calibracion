@@ -241,14 +241,14 @@ class ImportarFilaEquipo extends ImportadorFila
             };
         }
 
+        // La precisión siempre lleva ± adelante; el % al final, si es un porcentaje (porque el
+        // valor ya lo trae o porque así lo indica la columna del símbolo).
         if ($datos['precision'] !== null) {
             $precision = $this->decimalConPunto(str_replace(' ', '', $datos['precision']));
-            $datos['precision'] = match (true) {
-                str_starts_with($precision, '±'), str_ends_with($precision, '%') => $precision,
-                $datos['simbolo_precision'] === '±' => "±{$precision}",
-                $datos['simbolo_precision'] === '%' => "{$precision}%",
-                default => $precision,
-            };
+            $esPorcentaje = str_ends_with($precision, '%') || $datos['simbolo_precision'] === '%';
+            $numero = (string) preg_replace('/^±|%$/u', '', $precision);
+
+            $datos['precision'] = "±{$numero}".($esPorcentaje ? '%' : '');
         }
 
         if ($datos['tipo_magnitud'] === null || $datos['unidad_medida'] === null) {
@@ -381,13 +381,13 @@ class ImportarFilaEquipo extends ImportadorFila
             'simbolo_unidad' => $opcional,
             'alcance_indicacion' => ['required_with:tipo_magnitud', 'nullable', 'string', 'max:50', ...$formatoAlcance],
             'simbolo_precision' => ['nullable', 'in:±,%'],
-            'precision' => ['required_with:tipo_magnitud', 'nullable', 'string', 'max:20', 'regex:/^(±\d+(\.\d{1,2})?|\d+(\.\d{1,2})?%)$/u'],
+            'precision' => ['required_with:tipo_magnitud', 'nullable', 'string', 'max:20', 'regex:/^±\d+(\.\d{1,2})?%?$/u'],
             // Solo el número (el símbolo se agrega al guardar), con los mismos 4 decimales del formulario.
             'resolucion' => ['required_with:tipo_magnitud', 'nullable', 'string', 'max:40', 'regex:/^\d+(\.\d{1,4})?$/'],
         ], [
             '*.date_format' => 'La :attribute no es una fecha válida: usa DD/MM/AAAA (ej. 15/06/2025).',
             'simbolo_precision.in' => 'El símbolo de la precisión debe ser ± o %.',
-            'precision.regex' => 'La precisión debe ser un número con ± adelante o % al final (ej. ±0.5 o 0.5%): indica el símbolo en la columna Símbolo de la precisión.',
+            'precision.regex' => 'La precisión debe ser un número de hasta 2 decimales, con % al final si es un porcentaje (ej. 0.5 o 0.5%); el ± se agrega solo.',
             'alcance_indicacion.regex' => 'El alcance de indicación debe terminar con el símbolo de la unidad de medida ('.($datos['simbolo_unidad'] ?? '').').',
             'resolucion.regex' => 'La resolución debe ser solo el número, con máximo 4 decimales (ej. 0.0001): el símbolo de la unidad ('.($datos['simbolo_unidad'] ?? '').') se agrega solo.',
         ], array_column(CamposImportacionEquipo::todos(), 'etiqueta', 'clave'))->validate();

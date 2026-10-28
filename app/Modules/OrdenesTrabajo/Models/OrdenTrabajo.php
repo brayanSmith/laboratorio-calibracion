@@ -14,7 +14,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $id
@@ -86,7 +88,8 @@ class OrdenTrabajo extends Model
     /**
      * Scope a query to the ordenes listas para "Agendar Calibraciones" (ver
      * OrdenTrabajoController::equiposListosCalibracion()): su mantenimiento ya terminó,
-     * su calibración todavía no, y no está ya agendada.
+     * su calibración todavía no, y no está ya agendada. Si el mantenimiento dejó el equipo
+     * fuera de servicio, no sigue a calibración.
      *
      * @param  Builder<OrdenTrabajo>  $query
      */
@@ -95,7 +98,20 @@ class OrdenTrabajo extends Model
         $query->where('tenant_id', $tenantId)
             ->where('mantenimiento_finalizado', true)
             ->where('calibracion_finalizado', false)
-            ->where('listo_para_calibracion', false);
+            ->where('listo_para_calibracion', false)
+            ->whereNotExists(self::mantenimientoFueraDeServicio(...));
+    }
+
+    /**
+     * Subconsulta: el mantenimiento de la orden terminó con el equipo fuera de servicio.
+     */
+    public static function mantenimientoFueraDeServicio(QueryBuilder $query): void
+    {
+        $query->select(DB::raw(1))
+            ->from('mantenimientos')
+            ->whereColumn('mantenimientos.orden_trabajo_id', 'orden_trabajos.id')
+            ->where('mantenimientos.estado_final_equipo', 'FUERA_DE_SERVICIO')
+            ->whereNull('mantenimientos.deleted_at');
     }
 
     /**

@@ -7,9 +7,11 @@ export const BADGE_EQUIPO_MAL = '!border-transparent !bg-red-500 !text-white';
 export const BADGE_EQUIPO_DEVUELTO =
     '!border-transparent !bg-yellow-400 !text-yellow-950';
 
-/** Activo en verde, inactivo en rojo, para distinguirlos de un vistazo en la tabla de equipos. */
-export const BADGE_EQUIPO_ACTIVO = BADGE_EQUIPO_OK;
-export const BADGE_EQUIPO_INACTIVO = BADGE_EQUIPO_MAL;
+/** Activo con el color de la app, inactivo en gris claro, para distinguirlos de un vistazo. */
+export const BADGE_EQUIPO_ACTIVO =
+    '!border-transparent !bg-primary !text-primary-foreground';
+export const BADGE_EQUIPO_INACTIVO =
+    '!border-transparent !bg-zinc-200 !text-zinc-700 dark:!bg-zinc-700 dark:!text-zinc-200';
 
 export type EstadoFinalEquipoCalibracion =
     | 'OPERATIVO'

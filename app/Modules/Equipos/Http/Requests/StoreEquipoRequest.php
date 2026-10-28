@@ -69,7 +69,7 @@ class StoreEquipoRequest extends FormRequest
             'tipo_magnitud_id' => ['nullable', Rule::exists('tipo_magnituds', 'id')->where('tenant_id', $tenantId)],
             'unidad_medida_id' => ['required_with:tipo_magnitud_id', Rule::exists('unidad_medidas', 'id')->where('tenant_id', $tenantId)],
             'alcance_indicacion' => ['required_with:tipo_magnitud_id', 'string', 'max:50', $this->alcanceIndicacionConSimbolo()],
-            'precision' => ['required_with:tipo_magnitud_id', 'string', 'max:20', 'regex:/^(±\d+(\.\d{1,2})?|\d+(\.\d{1,2})?%)$/u'],
+            'precision' => ['required_with:tipo_magnitud_id', 'string', 'max:20', 'regex:/^±\d+(\.\d{1,2})?%?$/u'],
             'resolucion' => ['required_with:tipo_magnitud_id', 'string', 'max:50', $this->resolucionConSimbolo()],
 
             // Programaciones de servicio: opcionales, cualquier cantidad (un equipo puede tener varias).

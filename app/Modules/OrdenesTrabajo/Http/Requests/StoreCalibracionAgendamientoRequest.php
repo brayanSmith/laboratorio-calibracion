@@ -3,6 +3,7 @@
 namespace App\Modules\OrdenesTrabajo\Http\Requests;
 
 use App\Enums\TenantPermission;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -70,7 +71,9 @@ class StoreCalibracionAgendamientoRequest extends FormRequest
                     ->where('tenant_id', $tenantId)
                     ->where('mantenimiento_finalizado', 1)
                     ->where('calibracion_finalizado', 0)
-                    ->where('listo_para_calibracion', 0),
+                    ->where('listo_para_calibracion', 0)
+                    // Un equipo que salió del mantenimiento fuera de servicio no sigue a calibración.
+                    ->using(fn ($query) => $query->whereNotExists(OrdenTrabajo::mantenimientoFueraDeServicio(...))),
             ],
             'ordenes_listas.*.listo_para_calibracion' => ['boolean'],
             // Solo quien tiene el permiso de calibraciones de terceros puede asignarlas a un tercero.

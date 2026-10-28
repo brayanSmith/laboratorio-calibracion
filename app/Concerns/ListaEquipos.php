@@ -53,6 +53,7 @@ trait ListaEquipos
             'area:id,nombre',
             'bahia:id,nombre',
             'cliente:id,nombre',
+            'cambiosEstado' => fn ($query) => $query->latest('id')->with('usuario:id,name'),
             'equipoEspecificacionTecnica',
             'equipoDocumentos' => fn ($query) => $query->latest(),
             'equipoProgramaciones' => fn ($query) => $query->latest()->with([

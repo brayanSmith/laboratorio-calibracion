@@ -51,8 +51,8 @@ class CamposImportacionEquipo
             self::campo('unidad_medida', 'Unidad de medida', false, 'Nombre o símbolo. Si no existe una unidad con este símbolo o nombre, se crea.'),
             self::campo('simbolo_unidad', 'Símbolo de la unidad', false, 'Se busca primero por este símbolo; si no existe, se usa al crear la unidad.'),
             self::campo('alcance_indicacion', 'Alcance de indicación', false, 'Ej. "0 a 10"; el símbolo de la unidad se agrega solo.'),
-            self::campo('simbolo_precision', 'Símbolo de la precisión', false, '± (va adelante) o % (va al final) de la precisión.'),
-            self::campo('precision', 'Precisión', false, 'Solo el número, ej. 0.5; el símbolo sale de la columna anterior.'),
+            self::campo('simbolo_precision', 'Símbolo de la precisión', false, '% si la precisión es un porcentaje; vacío o ± si no. El ± se agrega siempre adelante.'),
+            self::campo('precision', 'Precisión', false, 'Solo el número, ej. 0.5; queda ±0.5, o ±0.5% si el símbolo es %.'),
             self::campo('resolucion', 'Resolución', false, 'Solo el número, con coma o punto decimal y máximo 4 decimales (ej. 0,0005): el símbolo se toma de la unidad de medida.'),
         ];
     }

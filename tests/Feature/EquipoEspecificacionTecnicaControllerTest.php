@@ -80,27 +80,27 @@ test('acepta un alcance de indicacion en texto libre que termina con el simbolo 
     expect($especificacion->alcance_indicacion)->toBe('0 a 100'.$unidadMedida->simbolo);
 });
 
-test('acepta la precision como porcentaje concatenado al final', function () {
+test('acepta la precision como porcentaje, con el ± adelante y el % al final', function () {
     $this->actingAs($this->admin)
         ->post(
             route('equipos.especificacion-tecnica.store', $this->equipo),
-            datosEspecificacionTecnica($this->tenant, ['precision' => '0.5%']),
+            datosEspecificacionTecnica($this->tenant, ['precision' => '±0.5%']),
         )
         ->assertSessionHasNoErrors();
 
     $especificacion = EquipoEspecificacionTecnica::where('equipo_id', $this->equipo->id)->firstOrFail();
 
-    expect($especificacion->precision)->toBe('0.5%');
+    expect($especificacion->precision)->toBe('±0.5%');
 });
 
-test('rechaza una precision con un formato invalido', function () {
+test('rechaza una precision sin el ± adelante o con un formato invalido', function (string $precision) {
     $this->actingAs($this->admin)
         ->post(
             route('equipos.especificacion-tecnica.store', $this->equipo),
-            datosEspecificacionTecnica($this->tenant, ['precision' => '0.5']),
+            datosEspecificacionTecnica($this->tenant, ['precision' => $precision]),
         )
         ->assertSessionHasErrors('precision');
-});
+})->with(['0.5', '0.5%', '±0.555', '%0.5']);
 
 test('guardar de nuevo actualiza la especificacion existente en lugar de duplicarla', function () {
     $datos = datosEspecificacionTecnica($this->tenant);

@@ -206,6 +206,56 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                 </div>
                             </div>
 
+                            {equipo.cambios_estado?.length ? (
+                                <>
+                                    <Separator />
+                                    <Seccion
+                                        titulo="Historial de estado"
+                                        descripcion="Cada vez que el equipo se activó o inactivó, con su motivo"
+                                    >
+                                        <ul
+                                            className="space-y-2"
+                                            data-test="equipo-historial-estado"
+                                        >
+                                            {equipo.cambios_estado.map(
+                                                (cambio) => (
+                                                    <li
+                                                        key={cambio.id}
+                                                        className="rounded-md border px-3 py-2 text-sm"
+                                                    >
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <Badge
+                                                                className={
+                                                                    cambio.activo
+                                                                        ? BADGE_EQUIPO_ACTIVO
+                                                                        : BADGE_EQUIPO_INACTIVO
+                                                                }
+                                                            >
+                                                                {cambio.activo
+                                                                    ? 'Activado'
+                                                                    : 'Inactivado'}
+                                                            </Badge>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatearFechaSeguimiento(
+                                                                    cambio.created_at,
+                                                                )}{' '}
+                                                                ·{' '}
+                                                                {cambio.usuario
+                                                                    ?.name ??
+                                                                    'Sistema'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="mt-1">
+                                                            {cambio.motivo}
+                                                        </p>
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </Seccion>
+                                </>
+                            ) : null}
+
                             <Separator />
 
                             <Seccion

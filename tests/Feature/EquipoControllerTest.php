@@ -186,6 +186,26 @@ test('actualiza la ficha tecnica del equipo', function () {
         ->and($fichaTecnica['costo_usd'])->toBe(999.99);
 });
 
+test('editar el equipo no cambia su estado: se activa o inactiva con su propio boton', function () {
+    $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant, ['activo' => '1']));
+    $equipo = Equipo::firstOrFail();
+    expect($equipo->activo)->toBeTrue();
+
+    $this->actingAs($this->admin)
+        ->put(route('equipos.update', $equipo), datosEquipoBase($this->tenant, [
+            'codigo' => $equipo->codigo,
+            'tipo_equipo_id' => $equipo->tipo_equipo_id,
+            'fabricante_id' => $equipo->fabricante_id,
+            'area_id' => $equipo->area_id,
+            'bahia_id' => $equipo->bahia_id,
+            'cliente_id' => $equipo->cliente_id,
+            'activo' => '0',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($equipo->refresh()->activo)->toBeTrue();
+});
+
 test('actualiza el equipo junto con su especificacion tecnica, programaciones y documentos en la misma peticion', function () {
     $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant));
     $equipo = Equipo::firstOrFail();
