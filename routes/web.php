@@ -105,6 +105,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->parameters(['calibraciones' => 'calibracion'])
         ->only(['index', 'update', 'destroy']);
     // Sin "create": un despacho solo se origina al finalizar una calibración.
+    Route::post('despachos/{despacho}/reagendar', [DespachoController::class, 'reagendar'])->name('despachos.reagendar');
     Route::resource('despachos', DespachoController::class)->only(['index', 'update', 'destroy']);
 
     // Sin "create": un servicio de tercero solo se origina desde "Agendar Mantenimiento"/"Agendar Calibraciones".

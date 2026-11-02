@@ -11,8 +11,10 @@ use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +40,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read User|null $tecnicoEntrega
  * @property-read Cliente|null $clienteRecibe
  * @property-read Novedad|null $novedad
+ * @property-read Collection<int, DespachoReagendamiento> $reagendamientos
  */
 #[Fillable(['tenant_id', 'orden_trabajo_id', 'tecnico_entrega_id', 'fecha_programada', 'cliente_recibe_id', 'entrega_autorizada', 'firma_cliente_recibe', 'entrega_recibida', 'novedad_id'])]
 class Despacho extends Model
@@ -55,6 +58,32 @@ class Despacho extends Model
     }
 
     use SoftDeletes;
+
+    /**
+     * Motivo del próximo cambio de fecha programada (ver reagendar()); si se cambia sin
+     * él (ej. al editar el despacho), se anota uno genérico.
+     */
+    public ?string $motivoReagendamiento = null;
+
+    /**
+     * Re-agenda el despacho para otra fecha, dejando la traza del cambio en su historial.
+     */
+    public function reagendar(string $fechaProgramada, string $motivo): void
+    {
+        $this->motivoReagendamiento = $motivo;
+        $this->update(['fecha_programada' => $fechaProgramada]);
+        $this->motivoReagendamiento = null;
+    }
+
+    /**
+     * Si el despacho, sin entregar todavía, ya pasó su fecha programada.
+     */
+    public function vencido(): bool
+    {
+        return ! $this->entrega_recibida
+            && $this->fecha_programada !== null
+            && $this->fecha_programada->lt(today());
+    }
 
     /**
      * Keep estado_despacho derived from entrega_autorizada and entrega_recibida on
@@ -77,6 +106,28 @@ class Despacho extends Model
         });
 
         static::saved(function (Despacho $despacho): void {
+            // Cada cambio de una fecha programada que ya existía queda en el historial.
+            $fechaAnterior = $despacho->getOriginal('fecha_programada');
+
+            if (! $despacho->wasRecentlyCreated && $despacho->wasChanged('fecha_programada') && $fechaAnterior !== null && $despacho->fecha_programada !== null) {
+                $motivo = $despacho->motivoReagendamiento ?? 'Fecha cambiada al editar el despacho';
+
+                $despacho->reagendamientos()->create([
+                    'fecha_anterior' => $fechaAnterior,
+                    'fecha_nueva' => $despacho->fecha_programada,
+                    'motivo' => $motivo,
+                    'user_id' => auth()->id(),
+                    'tenant_id' => $despacho->tenant_id,
+                ]);
+
+                // También en el seguimiento de la programación, para verlo junto al resto del recorrido del equipo.
+                $despacho->ordenTrabajo?->equipoProgramacion?->registrarSeguimiento(
+                    'DESPACHO',
+                    'RE_AGENDADO',
+                    "Del {$fechaAnterior->toDateString()} al {$despacho->fecha_programada->toDateString()}: {$motivo}",
+                );
+            }
+
             if ($despacho->novedad_id !== null && ($despacho->wasRecentlyCreated || $despacho->wasChanged('novedad_id'))) {
                 $despacho->ordenTrabajo?->equipoProgramacion?->equipo?->inactivarSiLaNovedadLoPide($despacho->novedad_id, 'despacho');
             }
@@ -167,7 +218,17 @@ class Despacho extends Model
     }
 
     /**
-     * Get the novedad related to this despacho.
+     * Get the changes of fecha programada of this despacho, with their motivo.
+     *
+     * @return HasMany<DespachoReagendamiento, $this>
+     */
+    public function reagendamientos(): HasMany
+    {
+        return $this->hasMany(DespachoReagendamiento::class);
+    }
+
+    /**
+     * Get the novedad reported during the despacho.
      *
      * @return BelongsTo<Novedad, $this>
      */

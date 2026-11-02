@@ -43,7 +43,7 @@ class AgendaController extends Controller
                     ->map(fn (Mantenimiento $mantenimiento) => $this->evento(
                         tipo: 'MANTENIMIENTO',
                         id: $mantenimiento->id,
-                        fecha: $mantenimiento->fecha_mantenimiento,
+                        fecha: $mantenimiento->fecha_programada ?? $mantenimiento->fecha_mantenimiento,
                         estado: $mantenimiento->estado_mantenimiento,
                         ordenTrabajo: $mantenimiento->ordenTrabajo,
                         tecnico: $mantenimiento->tecnico,
@@ -63,7 +63,7 @@ class AgendaController extends Controller
                     ->map(fn (Calibracion $calibracion) => $this->evento(
                         tipo: 'CALIBRACION',
                         id: $calibracion->id,
-                        fecha: $calibracion->fecha_calibracion,
+                        fecha: $calibracion->fecha_programada ?? $calibracion->fecha_calibracion,
                         estado: $calibracion->estado_calibracion,
                         ordenTrabajo: $calibracion->ordenTrabajo,
                         tecnico: $calibracion->tecnico,

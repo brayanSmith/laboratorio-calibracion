@@ -37,7 +37,7 @@ export type IngresoOptions = {
     tecnicos: IngresoOption[];
     clientes: IngresoOption[];
     /** Catálogo de Novedad (categoría INGRESO), para el motivo cuando se cancela un equipo. */
-    novedadesIngreso: IngresoOption[];
+    novedadesIngreso: NovedadIngresoOption[];
     /** Programaciones preventivas pendientes, para contar los equipos de cada bahía. */
     programacionesPendientes: ProgramacionPendienteBahia[];
 };
@@ -47,4 +47,9 @@ export type ProgramacionPendienteBahia = {
     equipo_id: number;
     /** Fecha del próximo servicio, AAAA-MM-DD. */
     fecha: string;
+};
+
+/** Novedad del catálogo de ingreso, con si al reportarla el equipo queda inactivo. */
+export type NovedadIngresoOption = IngresoOption & {
+    inactivar_equipo: boolean;
 };

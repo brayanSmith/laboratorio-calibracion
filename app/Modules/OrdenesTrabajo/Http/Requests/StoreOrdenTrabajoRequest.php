@@ -5,6 +5,7 @@ namespace App\Modules\OrdenesTrabajo\Http\Requests;
 use App\Enums\TenantPermission;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class StoreOrdenTrabajoRequest extends FormRequest
@@ -64,7 +65,15 @@ class StoreOrdenTrabajoRequest extends FormRequest
             'equipos_listos' => ['array'],
             'equipos_listos.*.id' => [
                 'required',
-                Rule::exists('equipo_programacions', 'id')->where('tenant_id', $tenantId)->where('ingresado', true),
+                Rule::exists('equipo_programacions', 'id')
+                    ->where('tenant_id', $tenantId)
+                    ->where('ingresado', true)
+                    // Un equipo inactivo no sigue a mantenimiento.
+                    ->using(fn ($query) => $query->whereExists(fn ($equipo) => $equipo
+                        ->select(DB::raw(1))
+                        ->from('equipos')
+                        ->whereColumn('equipos.id', 'equipo_programacions.equipo_id')
+                        ->where('equipos.activo', true))),
             ],
             'equipos_listos.*.listo_para_mantenimiento' => ['boolean'],
             // Solo quien tiene el permiso de mantenimientos de terceros puede asignarlos a un tercero.
@@ -92,6 +101,10 @@ class StoreOrdenTrabajoRequest extends FormRequest
                 'required_if:equipos_listos.*.requiere_tercero,true',
                 Rule::exists('empresa_terceros', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at'),
             ],
+            // Día para el que se programa el mantenimiento (propio o de tercero): con él se
+            // calcula su plazo y si quedó vencido.
+            'equipos_listos.*.fecha_programada' => ['nullable', 'date'],
+
             // Solped y OB del servicio de tercero, opcionales: los digita quien agenda.
             'equipos_listos.*.codigo_compra' => ['nullable', 'string', 'max:50'],
             'equipos_listos.*.codigo_despacho' => ['nullable', 'string', 'max:50'],

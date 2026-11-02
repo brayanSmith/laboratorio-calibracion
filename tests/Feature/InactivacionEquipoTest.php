@@ -227,3 +227,48 @@ test('la inactivacion automatica tambien queda en el historial de estado', funct
         ->motivo->toBe('Calibración: Fuera de servicio')
         ->user_id->toBe($this->admin->id);
 });
+
+test('al recibir, una novedad que inactiva el equipo no se acepta si el equipo ingreso ni con re-agendar', function (array $recibido, string $campoConError) {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $programacion = crearProgramacion($equipo, ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]);
+    $novedad = novedadQueInactiva($this->tenant, 'INGRESO');
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => Cliente::factory()->create(['tenant_id' => $this->tenant->id])->id,
+            'equipos_recibidos' => [$programacion->id => [...$recibido, 'novedad_ingreso_id' => $novedad->id]],
+        ])
+        ->assertSessionHasErrors("equipos_recibidos.0.{$campoConError}");
+
+    expect($equipo->refresh()->activo)->toBeTrue();
+})->with([
+    'equipo ingresado' => [['ingresado' => '1'], 'novedad_ingreso_id'],
+    'no ingresado pero re-agendado' => [['ingresado' => '0', 're_agendar' => '1', 'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-12-01']], 're_agendar'],
+]);
+
+test('las novedades de ingreso llegan con si inactivan el equipo, para avisarlo al recibir', function () {
+    novedadQueInactiva($this->tenant, 'INGRESO');
+
+    $this->actingAs($this->admin)
+        ->get(route('ingresos.index'))
+        ->assertInertia(fn ($page) => $page->where('novedadesIngreso.0.inactivar_equipo', true));
+});
+
+test('un equipo inactivo no aparece ni se puede agendar para mantenimiento', function () {
+    $programacion = crearEquipoRecibido($this->bahia);
+    $programacion->equipo->inactivar('Dado de baja');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.equipos-listos'))
+        ->assertOk()
+        ->assertJsonCount(0);
+
+    $this->actingAs($this->admin)
+        ->post(route('orden-trabajos.store'), ['equipos_listos' => [
+            $programacion->id => ['listo_para_mantenimiento' => '1', 'mantenimiento_asignado_tercero' => '0', 'tecnico_id' => $this->admin->id],
+        ]])
+        ->assertSessionHasErrors('equipos_listos.0.id');
+});

@@ -21,6 +21,8 @@ export type Despacho = {
     estado_despacho: 'PENDIENTE' | 'AUTORIZADO' | 'ENTREGADO';
     novedad_id: number | null;
     novedad_nombre: string | null;
+    /** Cambios de la fecha programada, del más reciente al más antiguo. */
+    reagendamientos: DespachoReagendamiento[];
     equipo: {
         codigo: string;
         modelo: string;
@@ -39,4 +41,16 @@ export type DespachoOptions = {
     clientes: DespachoOption[];
     /** Catálogo de Novedad (categoría SALIDA), para la novedad del despacho. */
     novedadesDespacho: DespachoOption[];
+};
+
+/** Una vez en que cambió la fecha programada del despacho, con su motivo. */
+export type DespachoReagendamiento = {
+    id: number;
+    fecha_anterior: string;
+    fecha_nueva: string;
+    motivo: string;
+    /** Nulo si no hay usuario (ej. un cambio automático). */
+    usuario: string | null;
+    /** Cuándo se re-agendó (ISO). */
+    fecha: string;
 };

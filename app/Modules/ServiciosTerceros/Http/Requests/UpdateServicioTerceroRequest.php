@@ -32,6 +32,9 @@ class UpdateServicioTerceroRequest extends FormRequest
                 Rule::exists(EmpresaTercero::class, 'id')->where('tenant_id', $this->user()->tenant_id),
             ],
             'pdf_servicio' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            // Solped y OB: se digitan al agendar; aquí solo se corrigen (solo en mantenimientos).
+            'codigo_compra' => ['nullable', 'string', 'max:50'],
+            'codigo_despacho' => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -45,6 +48,8 @@ class UpdateServicioTerceroRequest extends FormRequest
         return [
             'empresa_tercero_id' => 'laboratorio tercero',
             'pdf_servicio' => 'documento del servicio',
+            'codigo_compra' => 'Solped',
+            'codigo_despacho' => 'OB',
         ];
     }
 }

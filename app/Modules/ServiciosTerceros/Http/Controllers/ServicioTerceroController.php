@@ -61,6 +61,8 @@ class ServicioTerceroController extends Controller
                 'codigo_compra' => $servicio->codigo_compra,
                 'codigo_despacho' => $servicio->codigo_despacho,
                 'fecha' => $servicio->created_at->toDateString(),
+                'fecha_programada' => $servicio->fecha_programada?->toDateString(),
+                'fecha_realizacion' => $servicio->fecha_realizacion?->toDateString(),
                 'orden_trabajo_codigo' => $servicio->ordenTrabajo->codigo,
                 'equipo_codigo' => $servicio->ordenTrabajo->equipoProgramacion->equipo->codigo,
                 'equipo_modelo' => $servicio->ordenTrabajo->equipoProgramacion->equipo->modelo,
@@ -105,7 +107,14 @@ class ServicioTerceroController extends Controller
      */
     public function update(UpdateServicioTerceroRequest $request, ServicioTercero $servicioTercero): RedirectResponse
     {
-        $datos = ['empresa_tercero_id' => $request->validated('empresa_tercero_id')];
+        $datos = [
+            'empresa_tercero_id' => $request->validated('empresa_tercero_id'),
+            // Solped y OB solo aplican a los servicios de mantenimiento.
+            ...($servicioTercero->tipo_servicio === 'MANTENIMIENTO' ? [
+                'codigo_compra' => $request->validated('codigo_compra'),
+                'codigo_despacho' => $request->validated('codigo_despacho'),
+            ] : []),
+        ];
 
         if ($request->hasFile('pdf_servicio')) {
             $servicioTercero->deletePdf();
@@ -162,10 +171,7 @@ class ServicioTerceroController extends Controller
                 'estado_servicio' => 'FINALIZADO',
                 'estado_final_equipo' => $estadoFinal,
                 're_agendar' => $reAgendar,
-                ...($servicioTercero->tipo_servicio === 'MANTENIMIENTO' ? [
-                    'codigo_compra' => $request->validated('codigo_compra'),
-                    'codigo_despacho' => $request->validated('codigo_despacho'),
-                ] : []),
+                // El Solped y la OB no se tocan: se digitan al agendar (y se corrigen al editar).
                 'pdf_servicio' => $request->file('pdf_servicio')
                     ->store("servicios-terceros/{$servicioTercero->tenant_id}/{$servicioTercero->id}", 'public'),
             ]);

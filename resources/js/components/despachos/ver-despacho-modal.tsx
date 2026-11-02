@@ -100,6 +100,37 @@ export default function VerDespachoModal({
                     )}
                 </Dato>
 
+                {despacho.reagendamientos.length > 0 ? (
+                    <Dato etiqueta="Re-agendamientos">
+                        <ul
+                            className="space-y-2"
+                            data-test="despacho-historial-reagendamientos"
+                        >
+                            {despacho.reagendamientos.map((reagendamiento) => (
+                                <li
+                                    key={reagendamiento.id}
+                                    className="rounded-md border px-3 py-2 text-sm"
+                                >
+                                    <p className="font-medium">
+                                        {reagendamiento.fecha_anterior} →{' '}
+                                        {reagendamiento.fecha_nueva}
+                                    </p>
+                                    <p>{reagendamiento.motivo}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {new Date(
+                                            reagendamiento.fecha,
+                                        ).toLocaleString('es-PE', {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short',
+                                        })}{' '}
+                                        · {reagendamiento.usuario ?? 'Sistema'}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    </Dato>
+                ) : null}
+
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button type="button" variant="secondary">

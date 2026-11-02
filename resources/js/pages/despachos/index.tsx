@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Eye, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import { CalendarClock, Eye, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable, {
     createDataTableColumnHelper,
@@ -7,12 +7,15 @@ import DataTable, {
 import DeleteDespachoModal from '@/components/despachos/delete-despacho-modal';
 import DespacharDespachoModal from '@/components/despachos/despachar-despacho-modal';
 import EditDespachoModal from '@/components/despachos/edit-despacho-modal';
+import ReagendarDespachoModal from '@/components/despachos/reagendar-despacho-modal';
 import VerDespachoModal from '@/components/despachos/ver-despacho-modal';
 import Heading from '@/components/heading';
+import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
+import { hoyLocal } from '@/lib/plazo-servicio';
 import { index } from '@/routes/despachos';
 import type { Despacho, DespachoOptions } from '@/types';
 
@@ -21,6 +24,15 @@ type Props = DespachoOptions & {
 };
 
 const columnHelper = createDataTableColumnHelper<Despacho>();
+
+/** Sin entregar y con la fecha programada ya pasada: se puede re-agendar. */
+function despachoVencido(despacho: Despacho): boolean {
+    return (
+        !despacho.entrega_recibida &&
+        despacho.fecha_programada !== null &&
+        despacho.fecha_programada < hoyLocal()
+    );
+}
 
 export default function DespachosIndex({
     despachos,
@@ -45,6 +57,10 @@ export default function DespachosIndex({
     const viendo =
         despachos.find((despacho) => despacho.id === viendoId) ?? null;
     const [verOpen, setVerOpen] = useState(false);
+    const [reagendandoId, setReagendandoId] = useState<number | null>(null);
+    const reagendando =
+        despachos.find((despacho) => despacho.id === reagendandoId) ?? null;
+    const [reagendarOpen, setReagendarOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -71,12 +87,26 @@ export default function DespachosIndex({
                     cell: ({ row }) => row.original.equipo.cliente.nombre,
                 }),
                 columnHelper.accessor('fecha_programada', {
-                    header: 'Fecha programada',
-                    cell: (info) => info.getValue() ?? '—',
-                }),
-                columnHelper.accessor('fecha_despacho', {
-                    header: 'Fecha de despacho',
-                    cell: (info) => info.getValue() ?? '—',
+                    header: 'Programado',
+                    cell: ({ row }) => (
+                        <div className="space-y-1">
+                            <PlazoServicioCelda
+                                fechaProgramada={row.original.fecha_programada}
+                                fechaRealizacion={row.original.fecha_despacho}
+                            />
+                            {row.original.reagendamientos.length > 0 ? (
+                                <p
+                                    className="text-xs text-muted-foreground"
+                                    data-test="despacho-reagendado"
+                                >
+                                    Re-agendado{' '}
+                                    {row.original.reagendamientos.length === 1
+                                        ? '1 vez'
+                                        : `${row.original.reagendamientos.length} veces`}
+                                </p>
+                            ) : null}
+                        </div>
+                    ),
                 }),
                 columnHelper.accessor('tecnico_entrega_nombre', {
                     header: 'Técnico que entrega',
@@ -122,7 +152,8 @@ export default function DespachosIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            {row.original.entrega_recibida ? (
+                            {row.original.entrega_recibida ||
+                            row.original.reagendamientos.length > 0 ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -149,6 +180,21 @@ export default function DespachosIndex({
                                 >
                                     <PackageCheck className="h-4 w-4" />{' '}
                                     Despachar
+                                </Button>
+                            ) : null}
+                            {canEdit && despachoVencido(row.original) ? (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="!border-red-300 !text-red-700 hover:!bg-red-50 dark:!border-red-900 dark:!text-red-300 dark:hover:!bg-red-950"
+                                    data-test="despacho-reagendar-button"
+                                    onClick={() => {
+                                        setReagendandoId(row.original.id);
+                                        setReagendarOpen(true);
+                                    }}
+                                >
+                                    <CalendarClock className="h-4 w-4" />{' '}
+                                    Re-agendar
                                 </Button>
                             ) : null}
                             {canEdit ? (
@@ -218,6 +264,11 @@ export default function DespachosIndex({
                 despacho={viendo}
                 open={verOpen}
                 onOpenChange={setVerOpen}
+            />
+            <ReagendarDespachoModal
+                despacho={reagendando}
+                open={reagendarOpen}
+                onOpenChange={setReagendarOpen}
             />
             <DespacharDespachoModal
                 despacho={despachando}

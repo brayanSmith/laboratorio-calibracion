@@ -78,6 +78,10 @@ export type Mantenimiento = {
     orden_trabajo_codigo: string;
     tipo_mantenimiento: TipoMantenimientoProgramacion;
     fecha_mantenimiento: string;
+    /** Día para el que se agendó. */
+    fecha_programada: string | null;
+    /** Día en que realmente se terminó; nulo mientras no termina. */
+    fecha_realizacion: string | null;
     descripcion: string | null;
     estado_inicial_equipo: EstadoEquipoMantenimiento | null;
     estado_final_equipo: EstadoEquipoMantenimiento | null;
@@ -122,6 +126,10 @@ export type ServicioTerceroListado = {
     codigo_compra: string | null;
     codigo_despacho: string | null;
     fecha: string;
+    /** Día para el que se agendó. */
+    fecha_programada: string | null;
+    /** Día en que realmente se terminó; nulo mientras no termina. */
+    fecha_realizacion: string | null;
     orden_trabajo_codigo: string;
     equipo_codigo: string;
     equipo_modelo: string;

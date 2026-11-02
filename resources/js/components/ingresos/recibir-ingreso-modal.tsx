@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Plus, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { actualizarEstado } from '@/actions/App/Modules/Ingresos/Http/Controllers/IngresoController';
 import Combobox from '@/components/combobox';
@@ -10,6 +10,7 @@ import {
     CorrectivoPendienteItem,
 } from '@/components/ingresos/agregar-equipo-correctivo';
 import InputError from '@/components/input-error';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -39,13 +40,14 @@ import type {
     EstadoIngreso,
     Ingreso,
     IngresoOption,
+    NovedadIngresoOption,
 } from '@/types';
 
 type Props = {
     ingreso: Ingreso | null;
     tecnicos: IngresoOption[];
     clientes: IngresoOption[];
-    novedadesIngreso: IngresoOption[];
+    novedadesIngreso: NovedadIngresoOption[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
@@ -100,7 +102,7 @@ type FormularioProps = {
     ingreso: Ingreso;
     tecnicos: IngresoOption[];
     clientes: IngresoOption[];
-    novedadesIngreso: IngresoOption[];
+    novedadesIngreso: NovedadIngresoOption[];
     onSuccess: () => void;
 };
 
@@ -488,7 +490,7 @@ function RecibirIngresoFormulario({
 
 type EquipoRecibidoProps = {
     item: EquipoProgramacionBusquedaItem;
-    novedadesIngreso: IngresoOption[];
+    novedadesIngreso: NovedadIngresoOption[];
     errors: Partial<Record<string, string>>;
 };
 
@@ -522,6 +524,31 @@ function EquipoRecibido({
 
     const prefijo = `equipos_recibidos.${item.id}`;
 
+    const inactiva = (novedadId: string) =>
+        novedadesIngreso.some(
+            (novedad) =>
+                novedad.id.toString() === novedadId && novedad.inactivar_equipo,
+        );
+    // Si la novedad elegida inactiva el equipo, no tiene sentido re-agendarlo.
+    const novedadInactiva = inactiva(novedadIngresoId);
+
+    const elegirNovedad = (novedadId: string) => {
+        setNovedadIngresoId(novedadId);
+
+        if (inactiva(novedadId)) {
+            setReAgendar(false);
+        }
+    };
+
+    // Un equipo que sí llegó no puede quedar con una novedad que lo inactive.
+    const cambiarIngresado = (valor: boolean) => {
+        setIngresado(valor);
+
+        if (valor && novedadInactiva) {
+            setNovedadIngresoId('');
+        }
+    };
+
     const camposNovedad = (
         <>
             <div className="grid gap-2">
@@ -534,14 +561,39 @@ function EquipoRecibido({
                 <Combobox
                     id={`novedad-ingreso-${item.id}`}
                     value={novedadIngresoId}
-                    onValueChange={setNovedadIngresoId}
+                    onValueChange={elegirNovedad}
                     options={novedadesIngreso.map((option) => ({
                         id: option.id,
                         label: option.nombre,
+                        aviso: option.inactivar_equipo
+                            ? 'Inactiva el equipo'
+                            : undefined,
+                        // Si el equipo llegó, no se puede elegir una novedad que lo inactive.
+                        disabled: ingresado && option.inactivar_equipo,
                     }))}
                     placeholder="Selecciona un motivo"
                     searchPlaceholder="Buscar motivo..."
                 />
+                {!ingresado && novedadInactiva ? (
+                    <Alert
+                        variant="destructive"
+                        className="border-red-200 bg-red-50 py-2 dark:border-red-900 dark:bg-red-950"
+                        data-test="novedad-inactiva-alerta"
+                    >
+                        <TriangleAlert />
+                        <AlertDescription className="text-xs text-red-700 dark:text-red-300">
+                            Esta novedad inactiva el equipo: al recibir el
+                            ingreso quedará inactivo, no pasará a mantenimiento
+                            y no se podrá re-agendar.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+                {ingresado ? (
+                    <p className="text-xs text-muted-foreground">
+                        Las novedades que inactivan el equipo solo se pueden
+                        elegir si el equipo no ingresó.
+                    </p>
+                ) : null}
                 <InputError message={errors[`${prefijo}.novedad_ingreso_id`]} />
             </div>
 
@@ -590,7 +642,7 @@ function EquipoRecibido({
 
                 <Switch
                     checked={ingresado}
-                    onCheckedChange={setIngresado}
+                    onCheckedChange={cambiarIngresado}
                     aria-label="Ingresado"
                     className={ingresado ? '!bg-emerald-500' : '!bg-red-500'}
                     data-test="ingresado-toggle"
@@ -623,6 +675,7 @@ function EquipoRecibido({
                         <Checkbox
                             id={`re-agendar-${item.id}`}
                             checked={reAgendar}
+                            disabled={novedadInactiva}
                             onCheckedChange={(checked) =>
                                 setReAgendar(checked === true)
                             }
@@ -632,6 +685,9 @@ function EquipoRecibido({
                             className="text-xs font-normal"
                         >
                             Re-agendar
+                            {novedadInactiva
+                                ? ' (no disponible: la novedad inactiva el equipo)'
+                                : ''}
                         </Label>
                     </div>
 
@@ -684,7 +740,7 @@ function EquipoRecibido({
                     <input
                         type="hidden"
                         name={`equipos_recibidos[${item.id}][re_agendar]`}
-                        value={reAgendar ? '1' : '0'}
+                        value={reAgendar && !novedadInactiva ? '1' : '0'}
                     />
                     {reAgendar ? (
                         <input

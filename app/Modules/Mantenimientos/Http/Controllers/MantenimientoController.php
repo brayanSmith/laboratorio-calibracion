@@ -132,6 +132,8 @@ class MantenimientoController extends Controller
                 'orden_trabajo_codigo' => $mantenimiento->ordenTrabajo->codigo,
                 'tipo_mantenimiento' => $mantenimiento->tipo_mantenimiento,
                 'fecha_mantenimiento' => $mantenimiento->fecha_mantenimiento->toDateString(),
+                'fecha_programada' => $mantenimiento->fecha_programada?->toDateString(),
+                'fecha_realizacion' => $mantenimiento->fecha_realizacion?->toDateString(),
                 'descripcion' => $mantenimiento->descripcion,
                 'estado_inicial_equipo' => $mantenimiento->estado_inicial_equipo,
                 'estado_final_equipo' => $mantenimiento->estado_final_equipo,

@@ -343,3 +343,60 @@ test('despachar sin enviar entrega_autorizada conserva la autorizacion y el tecn
         ->cliente_recibe_id->toBe($this->cliente->id)
         ->estado_despacho->toBe('ENTREGADO');
 });
+
+test('re-agenda un despacho vencido y deja la traza del cambio con su motivo', function () {
+    $this->travelTo('2026-11-20 10:00');
+    $despacho = crearDespachoListo($this->bahia, ['fecha_programada' => '2026-11-15']);
+
+    $this->actingAs($this->admin)
+        ->post(route('despachos.reagendar', $despacho), ['fecha_programada' => '2026-11-25', 'motivo' => 'El cliente no estaba disponible'])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect($despacho->refresh()->fecha_programada->toDateString())->toBe('2026-11-25')
+        ->and($despacho->reagendamientos()->sole())
+        ->fecha_anterior->toDateString()->toBe('2026-11-15')
+        ->fecha_nueva->toDateString()->toBe('2026-11-25')
+        ->motivo->toBe('El cliente no estaba disponible')
+        ->user_id->toBe($this->admin->id)
+        ->and($despacho->ordenTrabajo->equipoProgramacion->seguimientos()->latest('id')->first())
+        ->fase->toBe('DESPACHO')
+        ->seguimiento->toBe('RE_AGENDADO')
+        ->observaciones->toBe('Del 2026-11-15 al 2026-11-25: El cliente no estaba disponible')
+        ->usuario_id->toBe($this->admin->id);
+
+    $this->actingAs($this->admin)
+        ->get(route('despachos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('despachos.0.reagendamientos.0.fecha_anterior', '2026-11-15')
+            ->where('despachos.0.reagendamientos.0.motivo', 'El cliente no estaba disponible'));
+});
+
+test('re-agendar exige el motivo, una fecha desde hoy y que el despacho no se haya entregado', function () {
+    $this->travelTo('2026-11-20 10:00');
+    $despacho = crearDespachoListo($this->bahia, ['fecha_programada' => '2026-11-15']);
+
+    $this->actingAs($this->admin)
+        ->post(route('despachos.reagendar', $despacho), ['fecha_programada' => '2026-11-19', 'motivo' => ''])
+        ->assertSessionHasErrors(['fecha_programada', 'motivo']);
+
+    $despacho->update(['entrega_recibida' => true]);
+
+    $this->actingAs($this->admin)
+        ->post(route('despachos.reagendar', $despacho), ['fecha_programada' => '2026-11-25', 'motivo' => 'Tarde'])
+        ->assertSessionHasErrors('fecha_programada');
+
+    expect($despacho->reagendamientos()->count())->toBe(0);
+});
+
+test('cambiar la fecha programada al editar el despacho tambien queda en la traza', function () {
+    $despacho = crearDespachoListo($this->bahia, ['fecha_programada' => '2026-11-15']);
+
+    $this->actingAs($this->admin)
+        ->put(route('despachos.update', $despacho), ['entrega_autorizada' => '1', 'fecha_programada' => '2026-11-18'])
+        ->assertSessionHasNoErrors();
+
+    expect($despacho->reagendamientos()->sole())
+        ->fecha_nueva->toDateString()->toBe('2026-11-18')
+        ->motivo->toBe('Fecha cambiada al editar el despacho');
+});

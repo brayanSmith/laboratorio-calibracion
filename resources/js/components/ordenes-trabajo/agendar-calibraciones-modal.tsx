@@ -5,6 +5,7 @@ import {
     storeCalibracion,
 } from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import Combobox from '@/components/combobox';
+import FechaProgramadaField from '@/components/ordenes-trabajo/fecha-programada-field';
 import InputError from '@/components/input-error';
 import CargandoContenido from '@/components/cargando-contenido';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/use-permissions';
+import { hoyLocal } from '@/lib/plazo-servicio';
 import type { IngresoOption, OrdenListaParaCalibracionItem } from '@/types';
 
 type Props = {
@@ -146,6 +148,7 @@ function OrdenListaItem({
         useState(false);
     const [tecnicoId, setTecnicoId] = useState('');
     const [empresaTerceroId, setEmpresaTerceroId] = useState('');
+    const [fechaProgramada, setFechaProgramada] = useState(hoyLocal);
     const canTerceros = usePermissions().can('calibraciones.terceros');
 
     const prefijo = `ordenes_listas.${item.id}`;
@@ -209,42 +212,60 @@ function OrdenListaItem({
 
             <InputError message={errors[`${prefijo}.id`]} />
 
-            {listoParaCalibracion && !calibracionAsignadaTercero ? (
-                <div className="grid gap-2 rounded-md bg-muted/40 p-2">
-                    <Label htmlFor={`tecnico-${item.id}`} className="text-xs">
-                        Técnico
-                    </Label>
-                    <Combobox
-                        id={`tecnico-${item.id}`}
-                        value={tecnicoId}
-                        onValueChange={setTecnicoId}
-                        options={toComboboxOptions(tecnicos)}
-                        placeholder="Selecciona un técnico"
-                        searchPlaceholder="Buscar técnico..."
+            {listoParaCalibracion ? (
+                // Fecha y técnico (o laboratorio) en una misma fila, para ocupar menos espacio.
+                <div className="grid gap-2 rounded-md bg-muted/40 p-2 sm:grid-cols-[11rem_1fr] sm:items-start">
+                    <FechaProgramadaField
+                        id={`fecha-programada-${item.id}`}
+                        name={`ordenes_listas[${item.id}][fecha_programada]`}
+                        value={fechaProgramada}
+                        onChange={setFechaProgramada}
+                        error={errors[`${prefijo}.fecha_programada`]}
                     />
-                    <InputError message={errors[`${prefijo}.tecnico_id`]} />
-                </div>
-            ) : null}
 
-            {listoParaCalibracion && calibracionAsignadaTercero ? (
-                <div className="grid gap-2 rounded-md bg-muted/40 p-2">
-                    <Label
-                        htmlFor={`empresa-tercero-${item.id}`}
-                        className="text-xs"
-                    >
-                        Laboratorio tercero
-                    </Label>
-                    <Combobox
-                        id={`empresa-tercero-${item.id}`}
-                        value={empresaTerceroId}
-                        onValueChange={setEmpresaTerceroId}
-                        options={toComboboxOptions(empresasTerceras)}
-                        placeholder="Selecciona un laboratorio"
-                        searchPlaceholder="Buscar laboratorio..."
-                    />
-                    <InputError
-                        message={errors[`${prefijo}.empresa_tercero_id`]}
-                    />
+                    {calibracionAsignadaTercero ? (
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor={`empresa-tercero-${item.id}`}
+                                className="text-xs"
+                            >
+                                Laboratorio tercero
+                            </Label>
+                            <Combobox
+                                id={`empresa-tercero-${item.id}`}
+                                value={empresaTerceroId}
+                                onValueChange={setEmpresaTerceroId}
+                                options={toComboboxOptions(empresasTerceras)}
+                                placeholder="Selecciona un laboratorio"
+                                searchPlaceholder="Buscar laboratorio..."
+                            />
+                            <InputError
+                                message={
+                                    errors[`${prefijo}.empresa_tercero_id`]
+                                }
+                            />
+                        </div>
+                    ) : (
+                        <div className="grid gap-1">
+                            <Label
+                                htmlFor={`tecnico-${item.id}`}
+                                className="text-xs"
+                            >
+                                Técnico
+                            </Label>
+                            <Combobox
+                                id={`tecnico-${item.id}`}
+                                value={tecnicoId}
+                                onValueChange={setTecnicoId}
+                                options={toComboboxOptions(tecnicos)}
+                                placeholder="Selecciona un técnico"
+                                searchPlaceholder="Buscar técnico..."
+                            />
+                            <InputError
+                                message={errors[`${prefijo}.tecnico_id`]}
+                            />
+                        </div>
+                    )}
                 </div>
             ) : null}
 

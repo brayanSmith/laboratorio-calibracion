@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
+import CodigosServicioFields from '@/components/servicio-terceros/codigos-servicio-fields';
 import EquipoServicioCard from '@/components/servicio-terceros/equipo-servicio-card';
 import { Button } from '@/components/ui/button';
 import {
@@ -91,6 +92,18 @@ export default function ServicioTerceroModal({
                                         message={errors.empresa_tercero_id}
                                     />
                                 </div>
+
+                                {servicio.tipo_servicio === 'MANTENIMIENTO' ? (
+                                    <CodigosServicioFields
+                                        codigoCompra={
+                                            servicio.codigo_compra ?? ''
+                                        }
+                                        codigoDespacho={
+                                            servicio.codigo_despacho ?? ''
+                                        }
+                                        errors={errors}
+                                    />
+                                ) : null}
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="pdf_servicio">

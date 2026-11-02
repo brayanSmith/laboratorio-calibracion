@@ -5,6 +5,7 @@ import {
     store,
 } from '@/actions/App/Modules/OrdenesTrabajo/Http/Controllers/OrdenTrabajoController';
 import Combobox from '@/components/combobox';
+import FechaProgramadaField from '@/components/ordenes-trabajo/fecha-programada-field';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import CargandoContenido from '@/components/cargando-contenido';
@@ -22,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/use-permissions';
+import { hoyLocal } from '@/lib/plazo-servicio';
 import type { EquipoListoParaMantenimientoItem, IngresoOption } from '@/types';
 
 type Props = {
@@ -151,6 +153,7 @@ function EquipoListoItem({
     // Solped y OB del servicio de tercero: los conoce quien agenda, así que se piden aquí.
     const [codigoCompra, setCodigoCompra] = useState('');
     const [codigoDespacho, setCodigoDespacho] = useState('');
+    const [fechaProgramada, setFechaProgramada] = useState(hoyLocal);
     const canTerceros = usePermissions().can('mantenimientos.terceros');
 
     const prefijo = `equipos_listos.${item.id}`;
@@ -224,87 +227,113 @@ function EquipoListoItem({
 
             <InputError message={errors[`${prefijo}.id`]} />
 
-            {listoParaMantenimiento && !mantenimientoAsignadoTercero ? (
+            {listoParaMantenimiento ? (
                 <div className="grid gap-2 rounded-md bg-muted/40 p-2">
-                    <Label htmlFor={`tecnico-${item.id}`} className="text-xs">
-                        Técnico
-                    </Label>
-                    <Combobox
-                        id={`tecnico-${item.id}`}
-                        value={tecnicoId}
-                        onValueChange={setTecnicoId}
-                        options={toComboboxOptions(tecnicos)}
-                        placeholder="Selecciona un técnico"
-                        searchPlaceholder="Buscar técnico..."
-                    />
-                    <InputError message={errors[`${prefijo}.tecnico_id`]} />
-                </div>
-            ) : null}
+                    {/* Fecha y técnico (o laboratorio) en una misma fila, para ocupar menos espacio. */}
+                    <div className="grid gap-2 sm:grid-cols-[11rem_1fr] sm:items-start">
+                        <FechaProgramadaField
+                            id={`fecha-programada-${item.id}`}
+                            name={`equipos_listos[${item.id}][fecha_programada]`}
+                            value={fechaProgramada}
+                            onChange={setFechaProgramada}
+                            error={errors[`${prefijo}.fecha_programada`]}
+                        />
 
-            {listoParaMantenimiento && mantenimientoAsignadoTercero ? (
-                <div className="grid gap-2 rounded-md bg-muted/40 p-2">
-                    <Label
-                        htmlFor={`empresa-tercero-${item.id}`}
-                        className="text-xs"
-                    >
-                        Laboratorio tercero
-                    </Label>
-                    <Combobox
-                        id={`empresa-tercero-${item.id}`}
-                        value={empresaTerceroId}
-                        onValueChange={setEmpresaTerceroId}
-                        options={toComboboxOptions(empresasTerceras)}
-                        placeholder="Selecciona un laboratorio"
-                        searchPlaceholder="Buscar laboratorio..."
-                    />
-                    <InputError
-                        message={errors[`${prefijo}.empresa_tercero_id`]}
-                    />
-
-                    <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="grid gap-1">
-                            <Label
-                                htmlFor={`codigo-compra-${item.id}`}
-                                className="text-xs"
-                            >
-                                Solped
-                            </Label>
-                            <Input
-                                id={`codigo-compra-${item.id}`}
-                                value={codigoCompra}
-                                onChange={(event) =>
-                                    setCodigoCompra(event.target.value)
-                                }
-                                maxLength={50}
-                                placeholder="Opcional"
-                                data-test="agendar-codigo-compra"
-                            />
-                            <InputError
-                                message={errors[`${prefijo}.codigo_compra`]}
-                            />
-                        </div>
-                        <div className="grid gap-1">
-                            <Label
-                                htmlFor={`codigo-despacho-${item.id}`}
-                                className="text-xs"
-                            >
-                                OB
-                            </Label>
-                            <Input
-                                id={`codigo-despacho-${item.id}`}
-                                value={codigoDespacho}
-                                onChange={(event) =>
-                                    setCodigoDespacho(event.target.value)
-                                }
-                                maxLength={50}
-                                placeholder="Opcional"
-                                data-test="agendar-codigo-despacho"
-                            />
-                            <InputError
-                                message={errors[`${prefijo}.codigo_despacho`]}
-                            />
-                        </div>
+                        {mantenimientoAsignadoTercero ? (
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`empresa-tercero-${item.id}`}
+                                    className="text-xs"
+                                >
+                                    Laboratorio tercero
+                                </Label>
+                                <Combobox
+                                    id={`empresa-tercero-${item.id}`}
+                                    value={empresaTerceroId}
+                                    onValueChange={setEmpresaTerceroId}
+                                    options={toComboboxOptions(
+                                        empresasTerceras,
+                                    )}
+                                    placeholder="Selecciona un laboratorio"
+                                    searchPlaceholder="Buscar laboratorio..."
+                                />
+                                <InputError
+                                    message={
+                                        errors[`${prefijo}.empresa_tercero_id`]
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`tecnico-${item.id}`}
+                                    className="text-xs"
+                                >
+                                    Técnico
+                                </Label>
+                                <Combobox
+                                    id={`tecnico-${item.id}`}
+                                    value={tecnicoId}
+                                    onValueChange={setTecnicoId}
+                                    options={toComboboxOptions(tecnicos)}
+                                    placeholder="Selecciona un técnico"
+                                    searchPlaceholder="Buscar técnico..."
+                                />
+                                <InputError
+                                    message={errors[`${prefijo}.tecnico_id`]}
+                                />
+                            </div>
+                        )}
                     </div>
+
+                    {mantenimientoAsignadoTercero ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`codigo-compra-${item.id}`}
+                                    className="text-xs"
+                                >
+                                    Solped
+                                </Label>
+                                <Input
+                                    id={`codigo-compra-${item.id}`}
+                                    value={codigoCompra}
+                                    onChange={(event) =>
+                                        setCodigoCompra(event.target.value)
+                                    }
+                                    maxLength={50}
+                                    placeholder="Opcional"
+                                    data-test="agendar-codigo-compra"
+                                />
+                                <InputError
+                                    message={errors[`${prefijo}.codigo_compra`]}
+                                />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`codigo-despacho-${item.id}`}
+                                    className="text-xs"
+                                >
+                                    OB
+                                </Label>
+                                <Input
+                                    id={`codigo-despacho-${item.id}`}
+                                    value={codigoDespacho}
+                                    onChange={(event) =>
+                                        setCodigoDespacho(event.target.value)
+                                    }
+                                    maxLength={50}
+                                    placeholder="Opcional"
+                                    data-test="agendar-codigo-despacho"
+                                />
+                                <InputError
+                                    message={
+                                        errors[`${prefijo}.codigo_despacho`]
+                                    }
+                                />
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
             ) : null}
 

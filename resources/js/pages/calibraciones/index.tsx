@@ -12,6 +12,7 @@ import VerCalibracionModal from '@/components/calibraciones/ver-calibracion-moda
 import Heading from '@/components/heading';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
+import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,7 +21,11 @@ import {
     estadoFinalEquipoCalibracion,
     estadosFinalesEquipoCalibracion,
 } from '@/lib/estado-final-equipo';
-import { colorEstadoCalibracion } from '@/lib/estados-calibracion';
+import {
+    estadoServicioCalibracion,
+    estadosServicio,
+    opcionesEstadoServicio,
+} from '@/lib/estado-servicio';
 import { index } from '@/routes/calibraciones';
 import type {
     Calibracion,
@@ -41,14 +46,6 @@ type Props = CalibracionOptions & {
 };
 
 const columnHelper = createDataTableColumnHelper<Calibracion>();
-
-const estadosCalibracionLabel: Record<string, string> = {
-    PENDIENTE: 'Pendiente',
-    EN_PROCESO: 'En proceso',
-    FINALIZADO: 'Finalizado',
-    DEVOLVER_MANTENIMIENTO: 'Devolver a mantenimiento',
-    FUERA_DE_SERVICIO: 'Fuera de servicio',
-};
 
 /** Una calibración finalizada, devuelta a mantenimiento o fuera de servicio ya se realizó: no se vuelve a iniciar. */
 function terminada(calibracion: Calibracion): boolean {
@@ -98,6 +95,15 @@ export default function CalibracionesIndex({
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),
+                columnHelper.accessor('fecha_programada', {
+                    header: 'Programado',
+                    cell: ({ row }) => (
+                        <PlazoServicioCelda
+                            fechaProgramada={row.original.fecha_programada}
+                            fechaRealizacion={row.original.fecha_realizacion}
+                        />
+                    ),
+                }),
                 columnHelper.accessor(
                     (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
                     {
@@ -125,46 +131,23 @@ export default function CalibracionesIndex({
                     header: 'Laboratorio',
                     cell: (info) => info.getValue() ?? '—',
                 }),
-                columnHelper.accessor('estado_calibracion', {
-                    meta: {
-                        filterOptions: Object.entries(
-                            estadosCalibracionLabel,
-                        ).map(([value, label]) => ({ value, label })),
-                    },
-                    header: 'Estado',
-                    cell: (info) => (
-                        <Badge
-                            className={colorEstadoCalibracion[info.getValue()]}
-                        >
-                            {estadosCalibracionLabel[info.getValue()] ??
-                                info.getValue()}
-                        </Badge>
-                    ),
-                }),
-                columnHelper.accessor('resultado_calibracion', {
-                    meta: {
-                        filterOptions: [
-                            { value: 'true', label: 'Aprobado' },
-                            { value: 'false', label: 'No aprobado' },
-                            { value: 'null', label: 'Sin resultado' },
-                        ],
-                    },
-                    header: 'Resultado',
-                    cell: (info) =>
-                        info.getValue() === null ? (
-                            <span className="text-muted-foreground">—</span>
-                        ) : (
+                columnHelper.accessor(
+                    (row) => estadoServicioCalibracion(row.estado_calibracion),
+                    {
+                        id: 'estado',
+                        meta: { filterOptions: opcionesEstadoServicio },
+                        header: 'Estado',
+                        cell: (info) => (
                             <Badge
                                 className={
-                                    info.getValue()
-                                        ? '!border-transparent !bg-emerald-500 !text-white'
-                                        : '!border-transparent !bg-red-500 !text-white'
+                                    estadosServicio[info.getValue()].className
                                 }
                             >
-                                {info.getValue() ? 'Aprobado' : 'No aprobado'}
+                                {estadosServicio[info.getValue()].label}
                             </Badge>
                         ),
-                }),
+                    },
+                ),
                 columnHelper.accessor(
                     (row) => estadoFinalEquipoCalibracion(row) ?? 'null',
                     {

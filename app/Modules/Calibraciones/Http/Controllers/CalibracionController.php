@@ -106,6 +106,8 @@ class CalibracionController extends Controller
                 'orden_trabajo_id' => $calibracion->orden_trabajo_id,
                 'orden_trabajo_codigo' => $calibracion->ordenTrabajo->codigo,
                 'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),
+                'fecha_programada' => $calibracion->fecha_programada?->toDateString(),
+                'fecha_realizacion' => $calibracion->fecha_realizacion?->toDateString(),
                 'laboratorio_nombre' => $calibracion->lugar_calibracion,
                 'solicitante_id' => $calibracion->solicitante_id,
                 'solicitante_nombre' => $calibracion->solicitante?->nombre,

@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Modules\Calibraciones\Http\Controllers\CalibracionController;
 use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Despachos\Http\Requests\ReagendarDespachoRequest;
 use App\Modules\Despachos\Http\Requests\UpdateDespachoRequest;
 use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Despachos\Models\DespachoReagendamiento;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,6 +68,7 @@ class DespachoController extends Controller
                 'tecnicoEntrega:id,name',
                 'clienteRecibe:id,nombre',
                 'novedad:id,nombre',
+                'reagendamientos' => fn ($query) => $query->latest('id')->with('usuario:id,name'),
             ])
             ->orderByDesc('id')
             ->get()
@@ -85,6 +88,14 @@ class DespachoController extends Controller
                 'estado_despacho' => $despacho->estado_despacho,
                 'novedad_id' => $despacho->novedad_id,
                 'novedad_nombre' => $despacho->novedad?->nombre,
+                'reagendamientos' => $despacho->reagendamientos->map(fn (DespachoReagendamiento $reagendamiento) => [
+                    'id' => $reagendamiento->id,
+                    'fecha_anterior' => $reagendamiento->fecha_anterior->toDateString(),
+                    'fecha_nueva' => $reagendamiento->fecha_nueva->toDateString(),
+                    'motivo' => $reagendamiento->motivo,
+                    'usuario' => $reagendamiento->usuario?->name,
+                    'fecha' => $reagendamiento->created_at->toIso8601String(),
+                ])->values(),
                 'equipo' => [
                     'codigo' => $despacho->ordenTrabajo->equipoProgramacion->equipo->codigo,
                     'modelo' => $despacho->ordenTrabajo->equipoProgramacion->equipo->modelo,
@@ -92,6 +103,19 @@ class DespachoController extends Controller
                     'cliente' => ['nombre' => $despacho->ordenTrabajo->equipoProgramacion->equipo->cliente->nombre],
                 ],
             ]);
+    }
+
+    /**
+     * Re-agenda un despacho (normalmente vencido) para otra fecha, con su motivo; el cambio
+     * queda en su historial de re-agendamientos (ver Despacho::reagendar()).
+     */
+    public function reagendar(ReagendarDespachoRequest $request, Despacho $despacho): RedirectResponse
+    {
+        $despacho->reagendar($request->validated('fecha_programada'), $request->validated('motivo'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Despacho re-agendado.')]);
+
+        return back();
     }
 
     /**

@@ -3,11 +3,14 @@
 namespace App\Modules\Ingresos\Http\Requests;
 
 use App\Enums\TenantPermission;
+use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Ingresos\Models\Ingreso;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateEstadoIngresoRequest extends FormRequest
 {
@@ -103,6 +106,37 @@ class UpdateEstadoIngresoRequest extends FormRequest
                 Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->where('bahia_id', $ingreso->bahia_id)->whereNull('deleted_at'),
             ],
             'equipos_correctivos_recibidos.*.falla_detectada' => ['required', 'string', 'max:2000'],
+        ];
+    }
+
+    /**
+     * Una novedad que inactiva el equipo solo se puede reportar si el equipo no ingresó, y
+     * entonces no se puede re-agendar: el equipo queda inactivo y no sigue a mantenimiento.
+     *
+     * @return array<int, Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $inactivan = Novedad::query()
+                    ->whereIn('id', collect($this->input('equipos_recibidos', []))->pluck('novedad_ingreso_id')->filter()->all())
+                    ->where('inactivar_equipo', true)
+                    ->pluck('id')
+                    ->all();
+
+                foreach ($this->input('equipos_recibidos', []) as $indice => $recibido) {
+                    if (! in_array((int) ($recibido['novedad_ingreso_id'] ?? 0), $inactivan, true)) {
+                        continue;
+                    }
+
+                    if ($recibido['ingresado']) {
+                        $validator->errors()->add("equipos_recibidos.{$indice}.novedad_ingreso_id", 'Esta novedad inactiva el equipo: solo se puede elegir si el equipo no ingresó.');
+                    } elseif ($recibido['re_agendar']) {
+                        $validator->errors()->add("equipos_recibidos.{$indice}.re_agendar", 'No se puede re-agendar un equipo con una novedad que lo inactiva.');
+                    }
+                }
+            },
         ];
     }
 

@@ -288,24 +288,46 @@ test('los codigos no aplican a un servicio de tercero de calibracion', function 
     expect($servicio->refresh()->codigo_compra)->toBeNull();
 });
 
-test('finalizar un servicio de mantenimiento guarda los codigos y sigue exigiendo el pdf', function () {
-    $servicio = crearServicioTercero($this->bahia);
+test('finalizar un servicio de mantenimiento conserva los codigos del agendamiento y sigue exigiendo el pdf', function () {
+    $servicio = crearServicioTercero($this->bahia, ['codigo_compra' => 'SOL-1', 'codigo_despacho' => 'OB-9']);
     $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
 
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'codigo_compra' => 'OC-1'])
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO'])
         ->assertSessionHasErrors('pdf_servicio');
 
     $this->actingAs($this->admin)
         ->post(route('servicio-terceros.finalizar', $servicio), [
             'estado_final_equipo' => 'APROBADO',
             'pdf_servicio' => pdfServicio(),
-            'codigo_compra' => 'OC-1',
-            'codigo_despacho' => 'DS-9',
+            'codigo_compra' => 'OTRO',
         ])
         ->assertRedirect();
 
-    expect($servicio->refresh())->codigo_compra->toBe('OC-1')->codigo_despacho->toBe('DS-9');
+    expect($servicio->refresh())->codigo_compra->toBe('SOL-1')->codigo_despacho->toBe('OB-9');
+});
+
+test('al editar un servicio de mantenimiento se corrigen el Solped y la OB, pero no en uno de calibracion', function () {
+    $mantenimiento = crearServicioTercero($this->bahia, ['codigo_compra' => 'SOL-1']);
+    $calibracion = crearServicioTercero($this->bahia, ['tipo_servicio' => 'CALIBRACION'], 'EQ-7002');
+
+    $this->actingAs($this->admin)
+        ->put(route('servicio-terceros.update', $mantenimiento), [
+            'empresa_tercero_id' => $mantenimiento->empresa_tercero_id,
+            'codigo_compra' => 'SOL-2',
+            'codigo_despacho' => 'OB-3',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->admin)
+        ->put(route('servicio-terceros.update', $calibracion), [
+            'empresa_tercero_id' => $calibracion->empresa_tercero_id,
+            'codigo_compra' => 'SOL-X',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($mantenimiento->refresh())->codigo_compra->toBe('SOL-2')->codigo_despacho->toBe('OB-3')
+        ->and($calibracion->refresh()->codigo_compra)->toBeNull();
 });
 
 test('un usuario sin permiso de finalizar no puede guardar los codigos', function () {

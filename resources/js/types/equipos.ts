@@ -1,6 +1,6 @@
 import type { Calibracion } from './calibraciones';
 import type { Despacho } from './despachos';
-import type { Ingreso, IngresoOption } from './ingresos';
+import type { Ingreso, IngresoOption, NovedadIngresoOption } from './ingresos';
 import type { Mantenimiento, ServicioTerceroListado } from './mantenimientos';
 
 export type TipoTecnologia = 'ANALOGICO' | 'DIGITAL';
@@ -245,7 +245,7 @@ export type HistorialEquipo = {
     servicios_terceros: ServicioTerceroListado[];
     historicos: EquipoHistorico[];
     /** Catálogo de Novedad (categoría INGRESO), que necesita la modal "Ver" del ingreso. */
-    novedadesIngreso: IngresoOption[];
+    novedadesIngreso: NovedadIngresoOption[];
     /** Laboratorio propio de la Empresa, el de los históricos que no hizo un tercero. */
     laboratorioPropio: string | null;
     /** Empresas terceras, para elegirla al agregar un histórico de un tercero. */

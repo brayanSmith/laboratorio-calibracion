@@ -16,8 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import CodigosServicioFields from '@/components/servicio-terceros/codigos-servicio-fields';
-import type { CodigosServicio } from '@/components/servicio-terceros/continuar-servicio-tercero-modal';
 import EquipoServicioCard from '@/components/servicio-terceros/equipo-servicio-card';
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
 import type { ServicioTerceroListado } from '@/types';
@@ -26,8 +24,6 @@ type EstadoFinal = 'APROBADO' | 'RECHAZADO';
 
 type Props = {
     servicio: ServicioTerceroListado | null;
-    /** Códigos escritos en la modal de "Continuar", si se llegó desde ahí. */
-    codigos?: CodigosServicio | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
@@ -37,7 +33,6 @@ type Props = {
  * rechazado, si se re-agenda (ver ServicioTerceroController::finalizar()). */
 export default function FinalizarServicioTerceroModal({
     servicio,
-    codigos,
     open,
     onOpenChange,
 }: Props) {
@@ -102,20 +97,23 @@ export default function FinalizarServicioTerceroModal({
 
                                 <EquipoServicioCard servicio={servicio} />
 
-                                {servicio.tipo_servicio === 'MANTENIMIENTO' ? (
-                                    <CodigosServicioFields
-                                        codigoCompra={
-                                            codigos?.compra ??
-                                            servicio.codigo_compra ??
-                                            ''
-                                        }
-                                        codigoDespacho={
-                                            codigos?.despacho ??
-                                            servicio.codigo_despacho ??
-                                            ''
-                                        }
-                                        errors={errors}
-                                    />
+                                {/* El Solped y la OB se digitan al agendar; aquí solo se muestran. */}
+                                {servicio.tipo_servicio === 'MANTENIMIENTO' &&
+                                (servicio.codigo_compra ||
+                                    servicio.codigo_despacho) ? (
+                                    <p
+                                        className="text-sm text-muted-foreground"
+                                        data-test="finalizar-codigos"
+                                    >
+                                        Solped:{' '}
+                                        <span className="font-medium text-foreground">
+                                            {servicio.codigo_compra ?? '—'}
+                                        </span>{' '}
+                                        · OB:{' '}
+                                        <span className="font-medium text-foreground">
+                                            {servicio.codigo_despacho ?? '—'}
+                                        </span>
+                                    </p>
                                 ) : null}
 
                                 <div className="grid gap-2">

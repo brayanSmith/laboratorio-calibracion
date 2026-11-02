@@ -152,6 +152,7 @@ class OrdenTrabajoController extends Controller
                 if ($equipo['mantenimiento_asignado_tercero']) {
                     ServicioTercero::create([
                         'orden_trabajo_id' => $ordenTrabajo->id,
+                        'fecha_programada' => $equipo['fecha_programada'] ?? now()->toDateString(),
                         'tipo_servicio' => 'MANTENIMIENTO',
                         'empresa_tercero_id' => $equipo['empresa_tercero_id'] ?? null,
                         'codigo_compra' => $equipo['codigo_compra'] ?? null,
@@ -165,6 +166,7 @@ class OrdenTrabajoController extends Controller
                         'orden_trabajo_id' => $ordenTrabajo->id,
                         'tipo_mantenimiento' => $programacion->tipo_mantenimiento,
                         'fecha_mantenimiento' => now()->toDateString(),
+                        'fecha_programada' => $equipo['fecha_programada'] ?? now()->toDateString(),
                         'tecnico_id' => $equipo['tecnico_id'] ?? null,
                         'novedad_id' => $equipo['novedad_id'] ?? null,
                         'tenant_id' => $tenantId,
@@ -251,6 +253,7 @@ class OrdenTrabajoController extends Controller
                 if ($datos['calibracion_asignado_tercero']) {
                     ServicioTercero::create([
                         'orden_trabajo_id' => $ordenTrabajo->id,
+                        'fecha_programada' => $datos['fecha_programada'] ?? now()->toDateString(),
                         'tipo_servicio' => 'CALIBRACION',
                         'empresa_tercero_id' => $datos['empresa_tercero_id'] ?? null,
                         'tenant_id' => $tenantId,
@@ -259,6 +262,7 @@ class OrdenTrabajoController extends Controller
                     $calibracion = Calibracion::create([
                         'orden_trabajo_id' => $ordenTrabajo->id,
                         'fecha_calibracion' => now()->toDateString(),
+                        'fecha_programada' => $datos['fecha_programada'] ?? now()->toDateString(),
                         'tecnico_id' => $datos['tecnico_id'] ?? null,
                         'novedad_id' => $datos['novedad_id'] ?? null,
                         'tenant_id' => $tenantId,

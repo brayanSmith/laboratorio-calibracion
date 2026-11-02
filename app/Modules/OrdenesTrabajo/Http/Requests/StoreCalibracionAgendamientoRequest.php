@@ -101,6 +101,10 @@ class StoreCalibracionAgendamientoRequest extends FormRequest
                 'required_if:ordenes_listas.*.requiere_tercero,true',
                 Rule::exists('empresa_terceros', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at'),
             ],
+
+            // Día para el que se programa la calibración (propia o de tercero): con él se
+            // calcula su plazo y si quedó vencida.
+            'ordenes_listas.*.fecha_programada' => ['nullable', 'date'],
         ];
     }
 }

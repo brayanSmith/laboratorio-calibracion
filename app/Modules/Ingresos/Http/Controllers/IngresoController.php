@@ -42,7 +42,7 @@ class IngresoController extends Controller
             'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre']),
+            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre', 'inactivar_equipo']),
             'programacionesPendientes' => self::programacionesPendientes($tenantId),
         ]);
     }

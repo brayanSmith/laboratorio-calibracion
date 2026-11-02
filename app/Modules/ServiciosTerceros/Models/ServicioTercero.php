@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 /**
  * @property int $id
  * @property int $orden_trabajo_id
+ * @property Carbon|null $fecha_programada Día para el que se agendó; lo elige quien agenda
+ * @property Carbon|null $fecha_realizacion Día en que realmente se terminó; se fija sola al finalizar
  * @property string $tipo_servicio
  * @property int $empresa_tercero_id
  * @property string|null $pdf_servicio
@@ -30,7 +32,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read EmpresaTercero $empresaTercero
  * @property-read Tenant $tenant
  */
-#[Fillable(['orden_trabajo_id', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'codigo_compra', 'codigo_despacho', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
+#[Fillable(['orden_trabajo_id', 'fecha_programada', 'fecha_realizacion', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'codigo_compra', 'codigo_despacho', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
 class ServicioTercero extends Model
 {
     use SoftDeletes;
@@ -49,8 +51,23 @@ class ServicioTercero extends Model
      * crearse el servicio o cambiar su estado, siempre que la orden de trabajo esté lista
      * para esa fase.
      */
+    /**
+     * Si el servicio ya se terminó (ver fecha_realizacion).
+     */
+    public function terminado(): bool
+    {
+        return $this->estado_servicio === 'FINALIZADO';
+    }
+
     protected static function booted(): void
     {
+        // La fecha real del servicio se fija la primera vez que termina y no vuelve a cambiar.
+        static::saving(function (self $servicio): void {
+            if ($servicio->fecha_realizacion === null && $servicio->terminado()) {
+                $servicio->fecha_realizacion = now()->toDateString();
+            }
+        });
+
         static::saved(function (ServicioTercero $servicio): void {
             // Rechazado sin volver a agendarlo: el equipo no tiene arreglo, queda inactivo.
             $rechazadoSinReAgendar = $servicio->estado_servicio === 'FINALIZADO'
@@ -88,6 +105,8 @@ class ServicioTercero extends Model
     protected function casts(): array
     {
         return [
+            'fecha_programada' => 'date',
+            'fecha_realizacion' => 'date',
             're_agendar' => 'boolean',
         ];
     }

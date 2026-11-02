@@ -202,7 +202,7 @@ class EquipoProgramacion extends Model
      * Scope a query to the programaciones listas para "Agendar Mantenimiento" (ver
      * OrdenTrabajoController::equiposListos()): ya ingresadas y sin una orden de
      * trabajo agendada todavía (sea porque no tienen ninguna, o porque la que tienen
-     * es un placeholder de devolución pendiente de agendar).
+     * es un placeholder de devolución pendiente de agendar), y de un equipo activo.
      *
      * @param  Builder<EquipoProgramacion>  $query
      */
@@ -213,7 +213,9 @@ class EquipoProgramacion extends Model
             ->where(fn ($q) => $q
                 ->whereDoesntHave('ordenesTrabajo')
                 ->orWhereHas('ordenesTrabajo', fn ($q2) => $q2->where('listo_para_mantenimiento', false)))
-            ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'));
+            ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'))
+            // Un equipo inactivo (ej. por una novedad del ingreso) no sigue a mantenimiento.
+            ->whereHas('equipo', fn ($q) => $q->where('activo', true));
     }
 
     /**

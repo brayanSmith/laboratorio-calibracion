@@ -53,6 +53,10 @@ export type Calibracion = {
     orden_trabajo_id: number;
     orden_trabajo_codigo: string;
     fecha_calibracion: string;
+    /** Día para el que se agendó. */
+    fecha_programada: string | null;
+    /** Día en que realmente se terminó; nulo mientras no termina. */
+    fecha_realizacion: string | null;
     laboratorio_nombre: string | null;
     solicitante_id: number | null;
     solicitante_nombre: string | null;

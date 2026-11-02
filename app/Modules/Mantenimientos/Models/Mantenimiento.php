@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $orden_trabajo_id
+ * @property Carbon|null $fecha_programada Día para el que se agendó; lo elige quien agenda
+ * @property Carbon|null $fecha_realizacion Día en que realmente se terminó; se fija sola al finalizar
  * @property string $tipo_mantenimiento
  * @property Carbon $fecha_mantenimiento
  * @property string|null $descripcion Se completa al realizar el mantenimiento
@@ -45,7 +47,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, GaleriaMantenimiento> $galeriaMantenimientos
  */
 #[Fillable([
-    'orden_trabajo_id', 'tipo_mantenimiento', 'fecha_mantenimiento', 'descripcion',
+    'orden_trabajo_id', 'fecha_programada', 'fecha_realizacion', 'tipo_mantenimiento', 'fecha_mantenimiento', 'descripcion',
     'estado_inicial_equipo', 'estado_final_equipo', 'estado_mantenimiento',
     'tecnico_id', 'firmado', 'novedad_id', 'pdf_informe', 'tenant_id',
 ])]
@@ -103,8 +105,23 @@ class Mantenimiento extends Model
         }
     }
 
+    /**
+     * Si el mantenimiento ya se terminó (ver fecha_realizacion).
+     */
+    public function terminado(): bool
+    {
+        return $this->estado_mantenimiento === 'FINALIZADO';
+    }
+
     protected static function booted(): void
     {
+        // La fecha real del servicio se fija la primera vez que termina y no vuelve a cambiar.
+        static::saving(function (self $servicio): void {
+            if ($servicio->fecha_realizacion === null && $servicio->terminado()) {
+                $servicio->fecha_realizacion = now()->toDateString();
+            }
+        });
+
         static::saved(function (Mantenimiento $mantenimiento): void {
             $mantenimiento->inactivarEquipoSiCorresponde();
 
@@ -231,6 +248,8 @@ class Mantenimiento extends Model
     protected function casts(): array
     {
         return [
+            'fecha_programada' => 'date',
+            'fecha_realizacion' => 'date',
             'fecha_mantenimiento' => 'date',
             'firmado' => 'boolean',
         ];

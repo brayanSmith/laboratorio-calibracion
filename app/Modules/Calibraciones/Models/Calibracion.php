@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $orden_trabajo_id
+ * @property Carbon|null $fecha_programada Día para el que se agendó; lo elige quien agenda
+ * @property Carbon|null $fecha_realizacion Día en que realmente se terminó; se fija sola al finalizar
  * @property Carbon $fecha_calibracion
  * @property string|null $lugar_calibracion Nombre del laboratorio propio al realizar la calibración (ver Empresa)
  * @property int|null $solicitante_id Se completa cuando se realiza la calibración
@@ -46,7 +48,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, DetalleMedicionCalibracion> $detalleMedicionCalibracion
  */
 #[Fillable([
-    'orden_trabajo_id', 'fecha_calibracion', 'lugar_calibracion', 'solicitante_id', 'tecnico_id',
+    'orden_trabajo_id', 'fecha_programada', 'fecha_realizacion', 'fecha_calibracion', 'lugar_calibracion', 'solicitante_id', 'tecnico_id',
     'temperatura', 'humedad', 'procedimiento_id', 'ajustes_requeridos', 'estado_calibracion', 'resultado_calibracion',
     'firmado', 'novedad_id', 'pdf_certificado', 'tenant_id',
 ])]
@@ -100,8 +102,23 @@ class Calibracion extends Model
         }
     }
 
+    /**
+     * Si la calibración ya se terminó, sea cual sea su estado final (ver fecha_realizacion).
+     */
+    public function terminado(): bool
+    {
+        return in_array($this->estado_calibracion, ['FINALIZADO', 'DEVOLVER_MANTENIMIENTO', 'FUERA_DE_SERVICIO'], true);
+    }
+
     protected static function booted(): void
     {
+        // La fecha real del servicio se fija la primera vez que termina y no vuelve a cambiar.
+        static::saving(function (self $servicio): void {
+            if ($servicio->fecha_realizacion === null && $servicio->terminado()) {
+                $servicio->fecha_realizacion = now()->toDateString();
+            }
+        });
+
         static::saved(function (Calibracion $calibracion): void {
             $calibracion->inactivarEquipoSiCorresponde();
 
@@ -195,6 +212,8 @@ class Calibracion extends Model
     protected function casts(): array
     {
         return [
+            'fecha_programada' => 'date',
+            'fecha_realizacion' => 'date',
             'fecha_calibracion' => 'date',
             'temperatura' => 'decimal:2',
             'humedad' => 'decimal:2',

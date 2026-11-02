@@ -13,13 +13,18 @@ import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mante
 import VerMantenimientoModal from '@/components/mantenimientos/ver-mantenimiento-modal';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
+import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
+    estadoServicioMantenimiento,
+    estadosServicio,
+    opcionesEstadoServicio,
+} from '@/lib/estado-servicio';
+import {
     colorEstadoEquipoMantenimiento,
-    colorEstadoMantenimiento,
     estadosEquipoMantenimiento,
 } from '@/lib/estados-mantenimiento';
 import { index } from '@/routes/mantenimientos';
@@ -45,13 +50,6 @@ const columnHelper = createDataTableColumnHelper<Mantenimiento>();
 const tiposMantenimientoLabel: Record<string, string> = {
     PREVENTIVO: 'Preventivo',
     CORRECTIVO: 'Correctivo',
-};
-
-const estadosMantenimientoLabel: Record<string, string> = {
-    PENDIENTE: 'Pendiente',
-    EN_PROCESO: 'En proceso',
-    FALTA_REPUESTOS: 'Falta repuestos',
-    FINALIZADO: 'Finalizado',
 };
 
 export default function MantenimientosIndex({
@@ -98,11 +96,26 @@ export default function MantenimientosIndex({
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.accessor('fecha_mantenimiento', {
-                    header: 'Fecha',
+                columnHelper.accessor('fecha_programada', {
+                    header: 'Programado',
+                    cell: ({ row }) => (
+                        <PlazoServicioCelda
+                            fechaProgramada={row.original.fecha_programada}
+                            fechaRealizacion={row.original.fecha_realizacion}
+                        />
+                    ),
                 }),
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
+                }),
+                columnHelper.accessor('fecha_programada', {
+                    header: 'Programado',
+                    cell: ({ row }) => (
+                        <PlazoServicioCelda
+                            fechaProgramada={row.original.fecha_programada}
+                            fechaRealizacion={row.original.fecha_realizacion}
+                        />
+                    ),
                 }),
                 columnHelper.accessor(
                     (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
@@ -138,24 +151,33 @@ export default function MantenimientosIndex({
                         info.getValue(),
                 }),
                 columnHelper.accessor('tecnico_nombre', { header: 'Técnico' }),
-                columnHelper.accessor('estado_mantenimiento', {
-                    meta: {
-                        filterOptions: Object.entries(
-                            estadosMantenimientoLabel,
-                        ).map(([value, label]) => ({ value, label })),
+                columnHelper.accessor(
+                    (row) =>
+                        estadoServicioMantenimiento(row.estado_mantenimiento),
+                    {
+                        id: 'estado',
+                        meta: { filterOptions: opcionesEstadoServicio },
+                        header: 'Estado',
+                        cell: ({ row, getValue }) => (
+                            <div className="space-y-1">
+                                <Badge
+                                    className={
+                                        estadosServicio[getValue()].className
+                                    }
+                                >
+                                    {estadosServicio[getValue()].label}
+                                </Badge>
+                                {/* "Falta repuestos" cuenta como en proceso, pero se sigue indicando. */}
+                                {row.original.estado_mantenimiento ===
+                                'FALTA_REPUESTOS' ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        Falta repuestos
+                                    </p>
+                                ) : null}
+                            </div>
+                        ),
                     },
-                    header: 'Estado',
-                    cell: (info) => (
-                        <Badge
-                            className={
-                                colorEstadoMantenimiento[info.getValue()]
-                            }
-                        >
-                            {estadosMantenimientoLabel[info.getValue()] ??
-                                info.getValue()}
-                        </Badge>
-                    ),
-                }),
+                ),
                 columnHelper.accessor('estado_final_equipo', {
                     meta: {
                         filterOptions: [

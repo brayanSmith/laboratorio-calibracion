@@ -20,6 +20,10 @@ import { cn } from '@/lib/utils';
 export type ComboboxOption = {
     id: number | string;
     label: string;
+    /** Texto corto en rojo al lado de la opción (ej. "Inactiva el equipo"). */
+    aviso?: string;
+    /** No se puede elegir: se muestra atenuada. */
+    disabled?: boolean;
 };
 
 type Props = {
@@ -123,6 +127,7 @@ export default function Combobox({
                                     <CommandItem
                                         key={option.id}
                                         value={option.label}
+                                        disabled={option.disabled}
                                         onSelect={() => {
                                             onValueChange?.(
                                                 option.id.toString(),
@@ -138,7 +143,14 @@ export default function Combobox({
                                                     : 'opacity-0',
                                             )}
                                         />
-                                        {option.label}
+                                        <span className="min-w-0 flex-1 truncate">
+                                            {option.label}
+                                        </span>
+                                        {option.aviso ? (
+                                            <span className="ml-2 shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+                                                {option.aviso}
+                                            </span>
+                                        ) : null}
                                     </CommandItem>
                                 ))}
                             </CommandGroup>
