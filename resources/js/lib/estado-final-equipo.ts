@@ -14,9 +14,7 @@ export const BADGE_EQUIPO_INACTIVO =
     '!border-transparent !bg-zinc-200 !text-zinc-700 dark:!bg-zinc-700 dark:!text-zinc-200';
 
 export type EstadoFinalEquipoCalibracion =
-    | 'OPERATIVO'
-    | 'DEVUELTO_MANTENIMIENTO'
-    | 'FUERA_DE_SERVICIO';
+    'OPERATIVO' | 'DEVUELTO_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
 
 export const estadosFinalesEquipoCalibracion: Record<
     EstadoFinalEquipoCalibracion,

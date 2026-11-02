@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\ForcePasswordChangeController;
+use App\Http\Controllers\IndicadoresDashboardController;
 use App\Http\Controllers\Plataforma\AjustePlataformaController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
@@ -49,6 +50,9 @@ Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('dashboard/indicadores/tiempos-atencion', [IndicadoresDashboardController::class, 'tiemposAtencion'])->name('dashboard.indicadores.tiempos-atencion');
+    Route::get('dashboard/indicadores/desempeno-tecnicos', [IndicadoresDashboardController::class, 'desempenoTecnicos'])->name('dashboard.indicadores.desempeno-tecnicos');
+    Route::get('dashboard/indicadores/cumplimiento', [IndicadoresDashboardController::class, 'cumplimiento'])->name('dashboard.indicadores.cumplimiento');
 
     Route::get('password-change', [ForcePasswordChangeController::class, 'edit'])->name('password-change.edit');
     Route::put('password-change', [ForcePasswordChangeController::class, 'update'])

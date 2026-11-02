@@ -13,6 +13,9 @@ enum TenantPermission: string
     case DashboardEquiposVencidos = 'dashboard.equipos-vencidos';
     case DashboardEquiposUrgentes = 'dashboard.equipos-urgentes';
     case DashboardTablaEquipos = 'dashboard.tabla-equipos';
+    case DashboardTiemposAtencion = 'dashboard.tiempos-atencion';
+    case DashboardDesempenoTecnicos = 'dashboard.desempeno-tecnicos';
+    case DashboardCumplimiento = 'dashboard.cumplimiento';
 
     // Botones del menú superior: la agenda y los atajos para agendar mantenimientos,
     // calibraciones y despachos.
@@ -165,7 +168,10 @@ enum TenantPermission: string
             self::DashboardEquiposProximos,
             self::DashboardEquiposVencidos,
             self::DashboardEquiposUrgentes,
-            self::DashboardTablaEquipos => 'Dashboard',
+            self::DashboardTablaEquipos,
+            self::DashboardTiemposAtencion,
+            self::DashboardDesempenoTecnicos,
+            self::DashboardCumplimiento => 'Dashboard',
             self::AgendaVer,
             self::AgendaVerTodos,
             self::AgendarMantenimiento,
@@ -326,6 +332,9 @@ enum TenantPermission: string
             self::DashboardEquiposVencidos => 'Tarjeta: equipos vencidos',
             self::DashboardEquiposUrgentes => 'Listado de equipos urgentes',
             self::DashboardTablaEquipos => 'Tabla de equipos',
+            self::DashboardTiemposAtencion => 'Indicador: tiempos de atención de equipos',
+            self::DashboardDesempenoTecnicos => 'Indicador: desempeño por técnico',
+            self::DashboardCumplimiento => 'Indicador: cumplimiento de lo programado',
             self::AgendaVer => 'Ver la agenda',
             self::AgendaVerTodos => 'Ver la agenda de todos los técnicos (sin marcar, solo la propia)',
             self::AgendarMantenimiento => 'Agendar mantenimientos',

@@ -3,15 +3,18 @@
 namespace App\Modules\OrdenesTrabajo\Models;
 
 use App\Models\Tenant;
+use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
+use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -61,6 +64,36 @@ class OrdenTrabajo extends Model
     public function despacho(): HasOne
     {
         return $this->hasOne(Despacho::class);
+    }
+
+    /**
+     * Get the mantenimientos (propios) of this orden de trabajo.
+     *
+     * @return HasMany<Mantenimiento, $this>
+     */
+    public function mantenimientos(): HasMany
+    {
+        return $this->hasMany(Mantenimiento::class);
+    }
+
+    /**
+     * Get the calibraciones (propias) of this orden de trabajo.
+     *
+     * @return HasMany<Calibracion, $this>
+     */
+    public function calibraciones(): HasMany
+    {
+        return $this->hasMany(Calibracion::class);
+    }
+
+    /**
+     * Get the servicios (mantenimiento o calibración) that empresas terceras did on this orden.
+     *
+     * @return HasMany<ServicioTercero, $this>
+     */
+    public function serviciosTerceros(): HasMany
+    {
+        return $this->hasMany(ServicioTercero::class);
     }
 
     /**

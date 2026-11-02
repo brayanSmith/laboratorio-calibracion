@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Concerns\ListaEquipos;
 use App\Enums\TenantPermission;
+use App\Models\User;
+use App\Modules\Catalogos\Models\Area;
+use App\Modules\Catalogos\Models\TipoEquipo;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -54,7 +58,36 @@ class DashboardController extends Controller
             ],
             ...($puedeUrgentes ? ['equipos_urgentes' => $this->equiposUrgentes($tenantId, $estadoPorEquipo)] : []),
             ...($puedeUrgentes || $puedeTabla ? $this->datosListadoEquipos($request, incluirEquipos: $puedeTabla) : []),
+            'indicadores' => $this->indicadores($usuario, $tenantId),
         ]);
+    }
+
+    /**
+     * Qué indicadores puede ver el usuario y las opciones de sus filtros; nulo si no
+     * puede ver ninguno. Los datos de cada indicador se piden aparte (ver
+     * IndicadoresDashboardController), según sus filtros.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function indicadores(User $usuario, int $tenantId): ?array
+    {
+        $permisos = [
+            'tiempos_atencion' => $usuario->can(TenantPermission::DashboardTiemposAtencion->value),
+            'desempeno_tecnicos' => $usuario->can(TenantPermission::DashboardDesempenoTecnicos->value),
+            'cumplimiento' => $usuario->can(TenantPermission::DashboardCumplimiento->value),
+        ];
+
+        if (! in_array(true, $permisos, true)) {
+            return null;
+        }
+
+        return [
+            'permisos' => $permisos,
+            'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
+            'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'tiposEquipo' => TipoEquipo::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+            'areas' => Area::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
+        ];
     }
 
     /**

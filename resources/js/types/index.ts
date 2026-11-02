@@ -5,6 +5,7 @@ export type * from './areas';
 export type * from './bahias';
 export type * from './calibraciones';
 export type * from './clientes';
+export type * from './dashboard';
 export type * from './despachos';
 export type * from './empresas-terceras';
 export type * from './equipos';
