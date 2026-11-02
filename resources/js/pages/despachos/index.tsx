@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { CalendarClock, Eye, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -12,7 +13,6 @@ import VerDespachoModal from '@/components/despachos/ver-despacho-modal';
 import Heading from '@/components/heading';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
 import { hoyLocal } from '@/lib/plazo-servicio';
@@ -154,37 +154,35 @@ export default function DespachosIndex({
                         <div className="flex items-center justify-end gap-2">
                             {row.original.entrega_recibida ||
                             row.original.reagendamientos.length > 0 ? (
-                                <Button
+                                <BotonAccion
+                                    icono={Eye}
+                                    etiqueta="Ver"
                                     variant="outline"
-                                    size="sm"
                                     data-test="despacho-ver-button"
                                     onClick={() => {
                                         setViendoId(row.original.id);
                                         setVerOpen(true);
                                     }}
-                                >
-                                    <Eye className="h-4 w-4" /> Ver
-                                </Button>
+                                />
                             ) : null}
                             {canEdit &&
                             row.original.entrega_autorizada &&
                             !row.original.entrega_recibida ? (
-                                <Button
-                                    size="sm"
+                                <BotonAccion
+                                    icono={PackageCheck}
+                                    etiqueta="Despachar"
                                     className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                     data-test="despacho-despachar-button"
                                     onClick={() => {
                                         setDespachandoId(row.original.id);
                                         setDespacharOpen(true);
                                     }}
-                                >
-                                    <PackageCheck className="h-4 w-4" />{' '}
-                                    Despachar
-                                </Button>
+                                />
                             ) : null}
                             {canEdit && despachoVencido(row.original) ? (
-                                <Button
-                                    size="sm"
+                                <BotonAccion
+                                    icono={CalendarClock}
+                                    etiqueta="Re-agendar"
                                     variant="outline"
                                     className="!border-red-300 !text-red-700 hover:!bg-red-50 dark:!border-red-900 dark:!text-red-300 dark:hover:!bg-red-950"
                                     data-test="despacho-reagendar-button"
@@ -192,36 +190,29 @@ export default function DespachosIndex({
                                         setReagendandoId(row.original.id);
                                         setReagendarOpen(true);
                                     }}
-                                >
-                                    <CalendarClock className="h-4 w-4" />{' '}
-                                    Re-agendar
-                                </Button>
+                                />
                             ) : null}
                             {canEdit ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Pencil}
+                                    etiqueta="Editar"
                                     data-test="despacho-edit-button"
                                     onClick={() => {
                                         setEditingId(row.original.id);
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canDelete ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="despacho-delete-button"
                                     onClick={() => {
                                         setDeleting(row.original);
                                         setDeleteOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),

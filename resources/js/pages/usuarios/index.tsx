@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { KeyRound, Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import UsuarioController from '@/actions/App/Http/Controllers/UsuarioController';
 import DataTable, {
     createDataTableColumnHelper,
@@ -62,29 +63,24 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                         <div className="flex items-center justify-end gap-2">
                             {row.original.can_manage ? (
                                 <>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
+                                    <BotonAccion
+                                        icono={Pencil}
+                                        etiqueta="Editar"
                                         onClick={() => {
                                             setEditingUsuario(row.original);
                                             setEditOpen(true);
                                         }}
                                         data-test="usuario-edit-button"
-                                    >
-                                        <Pencil className="h-4 w-4" /> Editar
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
+                                    />
+                                    <BotonAccion
+                                        icono={KeyRound}
+                                        etiqueta="Regenerar contraseña"
                                         onClick={() => {
                                             setResettingUsuario(row.original);
                                             setResetOpen(true);
                                         }}
                                         data-test="usuario-reset-button"
-                                    >
-                                        <KeyRound className="h-4 w-4" />{' '}
-                                        Regenerar contraseña
-                                    </Button>
+                                    />
                                 </>
                             ) : null}
                         </div>

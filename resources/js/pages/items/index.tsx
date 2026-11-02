@@ -8,6 +8,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -133,79 +134,63 @@ export default function ItemsIndex({ items }: Props) {
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
                             {canVerEntradas ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    title="Ver entradas y salidas"
+                                <BotonAccion
+                                    icono={History}
+                                    etiqueta="Historial"
                                     data-test="item-movimientos-button"
                                     onClick={() => {
                                         setMovimientosItemId(row.original.id);
                                         setMovimientosOpen(true);
                                     }}
-                                >
-                                    <History className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canRegistrarEntrada ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    title="Registrar entrada"
+                                <BotonAccion
+                                    icono={PackagePlus}
+                                    etiqueta="Registrar entrada"
                                     data-test="item-entrada-button"
                                     onClick={() => {
                                         setEntradaItemId(row.original.id);
                                         setEntradaOpen(true);
                                     }}
-                                >
-                                    <PackagePlus className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canRecibirEntradas &&
                             row.original.entradas_pendientes.length > 0 ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    title="Entradas pendientes de recibir"
+                                <BotonAccion
+                                    icono={PackageCheck}
+                                    etiqueta="Entradas pendientes"
+                                    insignia={
+                                        row.original.entradas_pendientes.length
+                                    }
                                     data-test="item-pendientes-button"
                                     onClick={() => {
                                         setPendientesItemId(row.original.id);
                                         setPendientesOpen(true);
                                     }}
-                                >
-                                    <PackageCheck className="h-4 w-4" />
-                                    <span className="text-xs tabular-nums">
-                                        {
-                                            row.original.entradas_pendientes
-                                                .length
-                                        }
-                                    </span>
-                                </Button>
+                                />
                             ) : null}
                             {canEdit ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Pencil}
+                                    etiqueta="Editar"
                                     data-test="item-edit-button"
                                     onClick={() => {
                                         setEditingItemId(row.original.id);
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canDelete ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="item-delete-button"
                                     onClick={() => {
                                         setDeletingItem(row.original);
                                         setDeleteOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),

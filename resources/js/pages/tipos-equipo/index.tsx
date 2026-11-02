@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -85,9 +86,10 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
                             {canChecklist ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={ListChecks}
+                                    etiqueta="Agregar
+                                    checklist"
                                     data-test="tipo-equipo-checklist-button"
                                     onClick={() => {
                                         setChecklistTipoEquipoId(
@@ -95,36 +97,29 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                                         );
                                         setChecklistOpen(true);
                                     }}
-                                >
-                                    <ListChecks className="h-4 w-4" /> Agregar
-                                    checklist
-                                </Button>
+                                />
                             ) : null}
                             {canEdit ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Pencil}
+                                    etiqueta="Editar"
                                     data-test="tipo-equipo-edit-button"
                                     onClick={() => {
                                         setEditingTipoEquipoId(row.original.id);
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canDelete ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="tipo-equipo-delete-button"
                                     onClick={() => {
                                         setDeletingTipoEquipo(row.original);
                                         setDeleteOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),

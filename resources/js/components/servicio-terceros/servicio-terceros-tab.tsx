@@ -1,5 +1,6 @@
 import { CheckCircle2, Eye, Pencil, Play, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -11,7 +12,6 @@ import TiempoTranscurrido from '@/components/servicio-terceros/tiempo-transcurri
 import VerServicioTerceroModal from '@/components/servicio-terceros/ver-servicio-tercero-modal';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import type { MantenimientoOption, ServicioTerceroListado } from '@/types';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
 import { estadosFinalesEquipoTercero } from '@/lib/estado-final-equipo';
@@ -199,70 +199,62 @@ export default function ServicioTercerosTab({
                         return (
                             <div className="flex items-center justify-end gap-2">
                                 {finalizado ? (
-                                    <Button
+                                    <BotonAccion
+                                        icono={Eye}
+                                        etiqueta="Ver"
                                         variant="outline"
-                                        size="sm"
                                         data-test="servicio-tercero-ver-button"
                                         onClick={() => {
                                             setViendoId(servicio.id);
                                             setVerOpen(true);
                                         }}
-                                    >
-                                        <Eye className="h-4 w-4" /> Ver
-                                    </Button>
+                                    />
                                 ) : null}
                                 {canIniciar && !finalizado && !iniciado ? (
-                                    <Button
-                                        size="sm"
+                                    <BotonAccion
+                                        icono={Play}
+                                        etiqueta="Iniciar"
                                         className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                         data-test="servicio-tercero-iniciar-button"
                                         onClick={() => {
                                             setIniciandoId(servicio.id);
                                             setIniciarOpen(true);
                                         }}
-                                    >
-                                        <Play className="h-4 w-4" /> Iniciar
-                                    </Button>
+                                    />
                                 ) : null}
                                 {canFinalizar && !finalizado && iniciado ? (
-                                    <Button
-                                        size="sm"
+                                    <BotonAccion
+                                        icono={CheckCircle2}
+                                        etiqueta="Finalizar"
                                         className="!border-transparent !bg-blue-500 !text-white hover:!bg-blue-600"
                                         data-test="servicio-tercero-finalizar-button"
                                         onClick={() => {
                                             setFinalizandoId(servicio.id);
                                             setFinalizarOpen(true);
                                         }}
-                                    >
-                                        <CheckCircle2 className="h-4 w-4" />{' '}
-                                        Finalizar
-                                    </Button>
+                                    />
                                 ) : null}
                                 {canEdit ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
+                                    <BotonAccion
+                                        icono={Pencil}
+                                        etiqueta="Editar"
                                         data-test="servicio-tercero-edit-button"
                                         onClick={() => {
                                             setEditId(servicio.id);
                                             setEditOpen(true);
                                         }}
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
+                                    />
                                 ) : null}
                                 {canDelete ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
+                                    <BotonAccion
+                                        icono={Trash2}
+                                        etiqueta="Eliminar"
                                         data-test="servicio-tercero-delete-button"
                                         onClick={() => {
                                             setDeleting(servicio);
                                             setDeleteOpen(true);
                                         }}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    />
                                 ) : null}
                             </div>
                         );

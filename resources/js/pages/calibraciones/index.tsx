@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -14,7 +15,6 @@ import ServicioTercerosTab from '@/components/servicio-terceros/servicio-tercero
 import TabCountBadge from '@/components/tab-count-badge';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
@@ -197,37 +197,35 @@ export default function CalibracionesIndex({
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
                             {terminada(row.original) ? (
-                                <Button
+                                <BotonAccion
+                                    icono={Eye}
+                                    etiqueta="Ver"
                                     variant="outline"
-                                    size="sm"
                                     data-test="calibracion-ver-button"
                                     onClick={() => {
                                         setViendoId(row.original.id);
                                         setVerOpen(true);
                                     }}
-                                >
-                                    <Eye className="h-4 w-4" /> Ver
-                                </Button>
+                                />
                             ) : null}
                             {canPdf &&
                             row.original.estado_calibracion === 'FINALIZADO' ? (
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={certificado.url(row.original.id)}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        data-test="calibracion-imprimir-button"
-                                    >
-                                        <Printer className="h-4 w-4" /> PDF
-                                    </a>
-                                </Button>
+                                <BotonAccion
+                                    icono={Printer}
+                                    etiqueta="Certificado PDF"
+                                    variant="outline"
+                                    href={certificado.url(row.original.id)}
+                                    target="_blank"
+                                    data-test="calibracion-imprimir-button"
+                                />
                             ) : null}
                             {canEdit &&
                             !terminada(row.original) &&
                             row.original.tiempo_servicio_inicio ? (
-                                <Button
+                                <BotonAccion
+                                    icono={Play}
+                                    etiqueta="Continuar"
                                     variant="outline"
-                                    size="sm"
                                     data-test="calibracion-continuar-button"
                                     onClick={() => {
                                         setEditingId(row.original.id);
@@ -239,29 +237,26 @@ export default function CalibracionesIndex({
                                         );
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Play className="h-4 w-4" /> Continuar
-                                </Button>
+                                />
                             ) : null}
                             {canIniciar &&
                             !terminada(row.original) &&
                             !row.original.tiempo_servicio_inicio ? (
-                                <Button
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Play}
+                                    etiqueta="Iniciar"
                                     className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                     data-test="calibracion-iniciar-button"
                                     onClick={() => {
                                         setIniciandoId(row.original.id);
                                         setIniciarOpen(true);
                                     }}
-                                >
-                                    <Play className="h-4 w-4" /> Iniciar
-                                </Button>
+                                />
                             ) : null}
                             {canEdit ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Pencil}
+                                    etiqueta="Editar"
                                     data-test="calibracion-edit-button"
                                     onClick={() => {
                                         setEditingId(row.original.id);
@@ -273,22 +268,18 @@ export default function CalibracionesIndex({
                                         );
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canDelete ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="calibracion-delete-button"
                                     onClick={() => {
                                         setDeleting(row.original);
                                         setDeleteOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),

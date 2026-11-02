@@ -1,5 +1,6 @@
 import { Eye, History, Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -9,7 +10,6 @@ import { estadosVencimiento } from '@/components/equipos/equipo-programacion-fie
 import HistorialEquipoModal from '@/components/equipos/historial-equipo-modal';
 import ViewEquipoModal from '@/components/equipos/view-equipo-modal';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
     BADGE_ALCANCE_MEDICION,
@@ -262,57 +262,46 @@ export default function EquiposTabla({
                                     equipo={row.original}
                                     options={options}
                                 >
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        aria-label="Ver equipo"
+                                    <BotonAccion
+                                        icono={Eye}
+                                        etiqueta="Ver equipo"
                                         data-test="equipo-view-button"
-                                    >
-                                        <Eye className="h-4 w-4" />
-                                    </Button>
+                                    />
                                 </ViewEquipoModal>
                             ) : null}
                             {can('equipos.historial') ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    aria-label="Historial del equipo"
-                                    title="Historial"
+                                <BotonAccion
+                                    icono={History}
+                                    etiqueta="Historial del equipo"
                                     data-test="equipo-historial-button"
                                     onClick={() => {
                                         setEquipoHistorial(row.original);
                                         setHistorialOpen(true);
                                     }}
-                                >
-                                    <History className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {can('equipos.editar') ? (
                                 <EditEquipoModal
                                     equipo={row.original}
                                     options={options}
                                 >
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
+                                    <BotonAccion
+                                        icono={Pencil}
+                                        etiqueta="Editar"
                                         data-test="equipo-edit-button"
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
+                                    />
                                 </EditEquipoModal>
                             ) : null}
                             {can('equipos.eliminar') ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="equipo-delete-button"
                                     onClick={() => {
                                         setEquipoDeleting(row.original);
                                         setDeleteDialogOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),

@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -15,7 +16,6 @@ import ServicioTercerosTab from '@/components/servicio-terceros/servicio-tercero
 import TabCountBadge from '@/components/tab-count-badge';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
@@ -213,39 +213,37 @@ export default function MantenimientosIndex({
                         <div className="flex items-center justify-end gap-2">
                             {row.original.estado_mantenimiento ===
                             'FINALIZADO' ? (
-                                <Button
+                                <BotonAccion
+                                    icono={Eye}
+                                    etiqueta="Ver"
                                     variant="outline"
-                                    size="sm"
                                     data-test="mantenimiento-ver-button"
                                     onClick={() => {
                                         setViendoId(row.original.id);
                                         setVerOpen(true);
                                     }}
-                                >
-                                    <Eye className="h-4 w-4" /> Ver
-                                </Button>
+                                />
                             ) : null}
                             {canPdf &&
                             row.original.estado_mantenimiento ===
                                 'FINALIZADO' ? (
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={informe.url(row.original.id)}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        data-test="mantenimiento-imprimir-button"
-                                    >
-                                        <Printer className="h-4 w-4" /> PDF
-                                    </a>
-                                </Button>
+                                <BotonAccion
+                                    icono={Printer}
+                                    etiqueta="Informe PDF"
+                                    variant="outline"
+                                    href={informe.url(row.original.id)}
+                                    target="_blank"
+                                    data-test="mantenimiento-imprimir-button"
+                                />
                             ) : null}
                             {canEdit &&
                             row.original.estado_mantenimiento !==
                                 'FINALIZADO' &&
                             row.original.tiempo_servicio_inicio ? (
-                                <Button
+                                <BotonAccion
+                                    icono={Play}
+                                    etiqueta="Continuar"
                                     variant="outline"
-                                    size="sm"
                                     data-test="mantenimiento-continuar-button"
                                     onClick={() => {
                                         setGestionandoId(row.original.id);
@@ -257,51 +255,44 @@ export default function MantenimientosIndex({
                                         );
                                         setGestionarOpen(true);
                                     }}
-                                >
-                                    <Play className="h-4 w-4" /> Continuar
-                                </Button>
+                                />
                             ) : null}
                             {canIniciar &&
                             row.original.estado_mantenimiento !==
                                 'FINALIZADO' &&
                             !row.original.tiempo_servicio_inicio ? (
-                                <Button
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Play}
+                                    etiqueta="Iniciar"
                                     className="!border-transparent !bg-emerald-600 !text-white hover:!bg-emerald-700"
                                     data-test="mantenimiento-iniciar-button"
                                     onClick={() => {
                                         setIniciandoId(row.original.id);
                                         setIniciarOpen(true);
                                     }}
-                                >
-                                    <Play className="h-4 w-4" /> Iniciar
-                                </Button>
+                                />
                             ) : null}
                             {canEdit ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Pencil}
+                                    etiqueta="Editar"
                                     data-test="mantenimiento-edit-button"
                                     onClick={() => {
                                         setEditingId(row.original.id);
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canDelete ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="mantenimiento-delete-button"
                                     onClick={() => {
                                         setDeleting(row.original);
                                         setDeleteOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),

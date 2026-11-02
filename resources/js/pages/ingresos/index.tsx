@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { ClipboardCheck, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -143,56 +144,49 @@ export default function IngresosIndex({
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
                             {row.original.estado_ingreso === 'RECIBIDO' ? (
-                                <Button
+                                <BotonAccion
+                                    icono={Eye}
+                                    etiqueta="Ver detalle"
                                     variant="outline"
-                                    size="sm"
                                     data-test="ingreso-ver-detalle-button"
                                     onClick={() => {
                                         setViendoId(row.original.id);
                                         setVerOpen(true);
                                     }}
-                                >
-                                    <Eye className="h-4 w-4" /> Ver detalle
-                                </Button>
+                                />
                             ) : canEdit ? (
-                                <Button
-                                    size="sm"
+                                <BotonAccion
+                                    icono={ClipboardCheck}
+                                    etiqueta="Recibir"
                                     className="!border-transparent !bg-amber-500 !text-amber-950 hover:!bg-amber-600"
                                     data-test="ingreso-recibir-button"
                                     onClick={() => {
                                         setRecibiendoId(row.original.id);
                                         setRecibirOpen(true);
                                     }}
-                                >
-                                    <ClipboardCheck className="h-4 w-4" />{' '}
-                                    Recibir
-                                </Button>
+                                />
                             ) : null}
                             {canEdit ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Pencil}
+                                    etiqueta="Editar"
                                     data-test="ingreso-edit-button"
                                     onClick={() => {
                                         setEditingId(row.original.id);
                                         setEditOpen(true);
                                     }}
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                             {canDelete ? (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
+                                <BotonAccion
+                                    icono={Trash2}
+                                    etiqueta="Eliminar"
                                     data-test="ingreso-delete-button"
                                     onClick={() => {
                                         setDeleting(row.original);
                                         setDeleteOpen(true);
                                     }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                />
                             ) : null}
                         </div>
                     ),
