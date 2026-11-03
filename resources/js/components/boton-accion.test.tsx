@@ -2,27 +2,32 @@ import { Pencil, Printer } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vite-plus/test';
 import BotonAccion from '@/components/boton-accion';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 describe('BotonAccion', () => {
-    it('lleva su nombre como nombre accesible y lo oculta hasta pasar el cursor', () => {
+    it('muestra solo el icono y lleva su nombre como nombre accesible', () => {
         const html = renderToStaticMarkup(
-            <BotonAccion icono={Pencil} etiqueta="Editar" />,
+            <TooltipProvider>
+                <BotonAccion icono={Pencil} etiqueta="Editar" />
+            </TooltipProvider>,
         );
 
         expect(html).toContain('<button');
         expect(html).toContain('aria-label="Editar"');
-        expect(html).toContain('max-w-0');
-        expect(html).toContain('group-hover/accion:max-w-40');
+        // El globo con el nombre solo se monta al pasar el cursor.
+        expect(html).not.toContain('>Editar<');
     });
 
     it('con href es un enlace que abre en otra pestaña de forma segura', () => {
         const html = renderToStaticMarkup(
-            <BotonAccion
-                icono={Printer}
-                etiqueta="Informe PDF"
-                href="/informe/1"
-                target="_blank"
-            />,
+            <TooltipProvider>
+                <BotonAccion
+                    icono={Printer}
+                    etiqueta="Informe PDF"
+                    href="/informe/1"
+                    target="_blank"
+                />
+            </TooltipProvider>,
         );
 
         expect(html).toContain('<a');

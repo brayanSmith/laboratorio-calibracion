@@ -1,5 +1,18 @@
 import { Head } from '@inertiajs/react';
-import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
+import {
+    Boxes,
+    CheckCircle2,
+    Clock,
+    Eye,
+    FlaskConical,
+    Handshake,
+    Loader,
+    Pencil,
+    Play,
+    Printer,
+    ShieldAlert,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
@@ -11,6 +24,10 @@ import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-mo
 import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
 import VerCalibracionModal from '@/components/calibraciones/ver-calibracion-modal';
 import Heading from '@/components/heading';
+import TarjetasEstado, {
+    useFiltroPorTarjeta,
+} from '@/components/tarjetas-estado';
+import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
@@ -88,6 +105,68 @@ export default function CalibracionesIndex({
         calibraciones.find((calibracion) => calibracion.id === viendoId) ??
         null;
     const [verOpen, setVerOpen] = useState(false);
+    const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
+        useFiltroPorTarjeta();
+
+    const contar = (cumple: (calibracion: Calibracion) => boolean): number =>
+        calibraciones.filter(cumple).length;
+    const devueltas = contar(
+        (c) => c.estado_calibracion === 'DEVOLVER_MANTENIMIENTO',
+    );
+    const tarjetas: TarjetaEstado[] = [
+        {
+            id: 'calibraciones-todas',
+            titulo: 'Todas',
+            valor: calibraciones.length,
+            icono: Boxes,
+            tono: 'sky',
+            filtros: [],
+        },
+        {
+            id: 'calibraciones-pendientes',
+            titulo: 'Pendientes',
+            valor: contar((c) => c.estado_calibracion === 'PENDIENTE'),
+            icono: Clock,
+            tono: 'amber',
+            detalle: 'Sin iniciar',
+            filtros: [{ id: 'estado', value: 'PENDIENTE' }],
+        },
+        {
+            id: 'calibraciones-en-proceso',
+            titulo: 'En proceso',
+            valor: contar((c) => c.estado_calibracion === 'EN_PROCESO'),
+            icono: Loader,
+            tono: 'blue',
+            filtros: [{ id: 'estado', value: 'EN_PROCESO' }],
+        },
+        {
+            id: 'calibraciones-finalizadas',
+            titulo: 'Finalizadas',
+            valor: contar(
+                (c) =>
+                    estadoServicioCalibracion(c.estado_calibracion) ===
+                    'FINALIZADO',
+            ),
+            icono: CheckCircle2,
+            tono: 'emerald',
+            detalle:
+                devueltas > 0
+                    ? `${devueltas} devueltas a mantenimiento`
+                    : undefined,
+            filtros: [{ id: 'estado', value: 'FINALIZADO' }],
+        },
+        {
+            id: 'calibraciones-fuera-de-servicio',
+            titulo: 'Fuera de servicio',
+            valor: contar((c) => c.estado_calibracion === 'FUERA_DE_SERVICIO'),
+            icono: ShieldAlert,
+            tono: 'red',
+            detalle: 'Equipos que terminaron fuera de servicio',
+            filtros: [
+                { id: 'estado_final_equipo', value: 'FUERA_DE_SERVICIO' },
+            ],
+        },
+    ];
 
     const columns = useMemo(
         () =>
@@ -303,7 +382,8 @@ export default function CalibracionesIndex({
 
                 <Tabs defaultValue="local">
                     <TabsList>
-                        <TabsTrigger value="local">
+                        <TabsTrigger value="local" className="gap-1.5">
+                            <FlaskConical className="h-4 w-4" />
                             Local
                             <TabCountBadge
                                 value={
@@ -316,11 +396,12 @@ export default function CalibracionesIndex({
                                     ).length
                                 }
                                 label="Pendientes en local"
-                                className="bg-blue-500 text-white"
+                                className="bg-red-500 text-white"
                             />
                         </TabsTrigger>
                         {canTerceros ? (
-                            <TabsTrigger value="tercero">
+                            <TabsTrigger value="tercero" className="gap-1.5">
+                                <Handshake className="h-4 w-4" />
                                 Tercero
                                 <TabCountBadge
                                     value={
@@ -331,14 +412,21 @@ export default function CalibracionesIndex({
                                         ).length
                                     }
                                     label="Pendientes en tercero"
-                                    className="bg-amber-500 text-white"
+                                    className="bg-red-500 text-white"
                                 />
                             </TabsTrigger>
                         ) : null}
                     </TabsList>
 
-                    <TabsContent value="local">
+                    <TabsContent value="local" className="space-y-4">
+                        <TarjetasEstado
+                            tarjetas={tarjetas}
+                            activa={tarjetaActiva}
+                            onVer={ver}
+                        />
                         <DataTable
+                            key={claveTabla}
+                            initialColumnFilters={filtrosIniciales}
                             data={calibraciones}
                             columns={columns}
                             searchPlaceholder="Buscar calibración..."

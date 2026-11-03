@@ -1,4 +1,14 @@
-import { CheckCircle2, Eye, Pencil, Play, Trash2 } from 'lucide-react';
+import {
+    Boxes,
+    CheckCircle2,
+    Clock,
+    Eye,
+    Loader,
+    Pencil,
+    Play,
+    ShieldAlert,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
@@ -11,6 +21,10 @@ import ServicioTerceroModal from '@/components/servicio-terceros/servicio-tercer
 import TiempoTranscurrido from '@/components/servicio-terceros/tiempo-transcurrido';
 import VerServicioTerceroModal from '@/components/servicio-terceros/ver-servicio-tercero-modal';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
+import TarjetasEstado, {
+    useFiltroPorTarjeta,
+} from '@/components/tarjetas-estado';
+import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import { Badge } from '@/components/ui/badge';
 import type { MantenimientoOption, ServicioTerceroListado } from '@/types';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
@@ -79,6 +93,57 @@ export default function ServicioTercerosTab({
     const viendo =
         servicios.find((servicio) => servicio.id === viendoId) ?? null;
     const [verOpen, setVerOpen] = useState(false);
+    const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
+        useFiltroPorTarjeta();
+
+    const contar = (
+        cumple: (servicio: ServicioTerceroListado) => boolean,
+    ): number => servicios.filter(cumple).length;
+    const tarjetas: TarjetaEstado[] = [
+        {
+            id: 'terceros-todos',
+            titulo: 'Todos',
+            valor: servicios.length,
+            icono: Boxes,
+            tono: 'sky',
+            filtros: [],
+        },
+        {
+            id: 'terceros-pendientes',
+            titulo: 'Pendientes',
+            valor: contar((s) => s.estado_servicio === 'PENDIENTE'),
+            icono: Clock,
+            tono: 'amber',
+            detalle: 'Sin iniciar',
+            filtros: [{ id: 'estado_servicio', value: 'PENDIENTE' }],
+        },
+        {
+            id: 'terceros-en-proceso',
+            titulo: 'En proceso',
+            valor: contar((s) => s.estado_servicio === 'EN_PROCESO'),
+            icono: Loader,
+            tono: 'blue',
+            detalle: 'En el laboratorio tercero',
+            filtros: [{ id: 'estado_servicio', value: 'EN_PROCESO' }],
+        },
+        {
+            id: 'terceros-finalizados',
+            titulo: 'Finalizados',
+            valor: contar((s) => s.estado_servicio === 'FINALIZADO'),
+            icono: CheckCircle2,
+            tono: 'emerald',
+            filtros: [{ id: 'estado_servicio', value: 'FINALIZADO' }],
+        },
+        {
+            id: 'terceros-rechazados',
+            titulo: 'Rechazados',
+            valor: contar((s) => s.estado_final_equipo === 'RECHAZADO'),
+            icono: ShieldAlert,
+            tono: 'red',
+            detalle: 'El tercero rechazó el equipo',
+            filtros: [{ id: 'estado_final_equipo', value: 'RECHAZADO' }],
+        },
+    ];
 
     const columns = useMemo(
         () =>
@@ -266,7 +331,16 @@ export default function ServicioTercerosTab({
 
     return (
         <>
+            <div className="mb-4">
+                <TarjetasEstado
+                    tarjetas={tarjetas}
+                    activa={tarjetaActiva}
+                    onVer={ver}
+                />
+            </div>
             <DataTable
+                key={claveTabla}
+                initialColumnFilters={filtrosIniciales}
                 data={servicios}
                 columns={columns}
                 searchPlaceholder={searchPlaceholder}

@@ -1,11 +1,25 @@
 import { Head } from '@inertiajs/react';
-import { ClipboardCheck, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+    Ban,
+    Boxes,
+    CheckCircle2,
+    ClipboardCheck,
+    Clock,
+    Eye,
+    Pencil,
+    Plus,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import Heading from '@/components/heading';
+import TarjetasEstado, {
+    useFiltroPorTarjeta,
+} from '@/components/tarjetas-estado';
+import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import CreateIngresoModal from '@/components/ingresos/create-ingreso-modal';
 import DeleteIngresoModal from '@/components/ingresos/delete-ingreso-modal';
 import EditIngresoModal from '@/components/ingresos/edit-ingreso-modal';
@@ -55,6 +69,46 @@ export default function IngresosIndex({
     const [viendoId, setViendoId] = useState<number | null>(null);
     const viendo = ingresos.find((ingreso) => ingreso.id === viendoId) ?? null;
     const [verOpen, setVerOpen] = useState(false);
+    const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
+        useFiltroPorTarjeta();
+
+    const contar = (estado: Ingreso['estado_ingreso']) =>
+        ingresos.filter((ingreso) => ingreso.estado_ingreso === estado).length;
+    const tarjetas: TarjetaEstado[] = [
+        {
+            id: 'ingresos-todos',
+            titulo: 'Todos los ingresos',
+            valor: ingresos.length,
+            icono: Boxes,
+            tono: 'sky',
+            filtros: [],
+        },
+        {
+            id: 'ingresos-pendientes',
+            titulo: 'Pendientes',
+            valor: contar('PENDIENTE'),
+            icono: Clock,
+            tono: 'amber',
+            detalle: 'Por recibir en el laboratorio',
+            filtros: [{ id: 'estado_ingreso', value: 'PENDIENTE' }],
+        },
+        {
+            id: 'ingresos-recibidos',
+            titulo: 'Recibidos',
+            valor: contar('RECIBIDO'),
+            icono: CheckCircle2,
+            tono: 'emerald',
+            filtros: [{ id: 'estado_ingreso', value: 'RECIBIDO' }],
+        },
+        {
+            id: 'ingresos-cancelados',
+            titulo: 'Cancelados',
+            valor: contar('CANCELADO'),
+            icono: Ban,
+            tono: 'red',
+            filtros: [{ id: 'estado_ingreso', value: 'CANCELADO' }],
+        },
+    ];
 
     const columns = useMemo(
         () =>
@@ -220,7 +274,15 @@ export default function IngresosIndex({
                     </div>
                 </div>
 
+                <TarjetasEstado
+                    tarjetas={tarjetas}
+                    activa={tarjetaActiva}
+                    onVer={ver}
+                />
+
                 <DataTable
+                    key={claveTabla}
+                    initialColumnFilters={filtrosIniciales}
                     data={ingresos}
                     columns={columns}
                     searchPlaceholder="Buscar ingreso..."

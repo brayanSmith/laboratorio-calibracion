@@ -1,5 +1,15 @@
 import { Head } from '@inertiajs/react';
-import { CalendarClock, Eye, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import {
+    Boxes,
+    CalendarClock,
+    CheckCircle2,
+    Clock,
+    Eye,
+    PackageCheck,
+    Pencil,
+    Trash2,
+    Truck,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
@@ -12,6 +22,10 @@ import ReagendarDespachoModal from '@/components/despachos/reagendar-despacho-mo
 import VerDespachoModal from '@/components/despachos/ver-despacho-modal';
 import Heading from '@/components/heading';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
+import TarjetasEstado, {
+    useFiltroPorTarjeta,
+} from '@/components/tarjetas-estado';
+import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/hooks/use-permissions';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
@@ -61,6 +75,55 @@ export default function DespachosIndex({
     const reagendando =
         despachos.find((despacho) => despacho.id === reagendandoId) ?? null;
     const [reagendarOpen, setReagendarOpen] = useState(false);
+    const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
+        useFiltroPorTarjeta();
+
+    const contar = (estado: Despacho['estado_despacho']) =>
+        despachos.filter((despacho) => despacho.estado_despacho === estado)
+            .length;
+    const vencidos = despachos.filter(despachoVencido).length;
+    const tarjetas: TarjetaEstado[] = [
+        {
+            id: 'despachos-todos',
+            titulo: 'Todos los despachos',
+            valor: despachos.length,
+            icono: Boxes,
+            tono: 'sky',
+            filtros: [],
+        },
+        {
+            id: 'despachos-pendientes',
+            titulo: 'Pendientes',
+            valor: contar('PENDIENTE'),
+            icono: Clock,
+            tono: 'amber',
+            detalle: 'Sin autorizar la entrega',
+            filtros: [{ id: 'entrega_autorizada', value: 'false' }],
+        },
+        {
+            id: 'despachos-autorizados',
+            titulo: 'Autorizados',
+            valor: contar('AUTORIZADO'),
+            icono: Truck,
+            tono: 'blue',
+            detalle:
+                vencidos > 0
+                    ? `Por entregar · ${vencidos} con el plazo vencido`
+                    : 'Por entregar al cliente',
+            filtros: [
+                { id: 'entrega_autorizada', value: 'true' },
+                { id: 'entrega_recibida', value: 'false' },
+            ],
+        },
+        {
+            id: 'despachos-entregados',
+            titulo: 'Entregados',
+            valor: contar('ENTREGADO'),
+            icono: CheckCircle2,
+            tono: 'emerald',
+            filtros: [{ id: 'entrega_recibida', value: 'true' }],
+        },
+    ];
 
     const columns = useMemo(
         () =>
@@ -234,7 +297,15 @@ export default function DespachosIndex({
                     description="Despachos creados al finalizar una calibración, con quién entrega y recibe cada equipo"
                 />
 
+                <TarjetasEstado
+                    tarjetas={tarjetas}
+                    activa={tarjetaActiva}
+                    onVer={ver}
+                />
+
                 <DataTable
+                    key={claveTabla}
+                    initialColumnFilters={filtrosIniciales}
                     data={despachos}
                     columns={columns}
                     searchPlaceholder="Buscar despacho..."

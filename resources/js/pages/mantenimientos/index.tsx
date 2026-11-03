@@ -1,11 +1,28 @@
 import { Head } from '@inertiajs/react';
-import { Eye, Pencil, Play, Printer, Trash2 } from 'lucide-react';
+import {
+    Boxes,
+    CheckCircle2,
+    Clock,
+    Eye,
+    FlaskConical,
+    Handshake,
+    Loader,
+    Pencil,
+    Play,
+    Printer,
+    ShieldAlert,
+    Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import Heading from '@/components/heading';
+import TarjetasEstado, {
+    useFiltroPorTarjeta,
+} from '@/components/tarjetas-estado';
+import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import DeleteMantenimientoModal from '@/components/mantenimientos/delete-mantenimiento-modal';
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
 import { informe } from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
@@ -92,6 +109,69 @@ export default function MantenimientosIndex({
         mantenimientos.find((mantenimiento) => mantenimiento.id === viendoId) ??
         null;
     const [verOpen, setVerOpen] = useState(false);
+    const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
+        useFiltroPorTarjeta();
+
+    const contar = (
+        cumple: (mantenimiento: Mantenimiento) => boolean,
+    ): number => mantenimientos.filter(cumple).length;
+    const faltaRepuestos = contar(
+        (m) => m.estado_mantenimiento === 'FALTA_REPUESTOS',
+    );
+    const tarjetas: TarjetaEstado[] = [
+        {
+            id: 'mantenimientos-todos',
+            titulo: 'Todos',
+            valor: mantenimientos.length,
+            icono: Boxes,
+            tono: 'sky',
+            filtros: [],
+        },
+        {
+            id: 'mantenimientos-pendientes',
+            titulo: 'Pendientes',
+            valor: contar((m) => m.estado_mantenimiento === 'PENDIENTE'),
+            icono: Clock,
+            tono: 'amber',
+            detalle: 'Sin iniciar',
+            filtros: [{ id: 'estado', value: 'PENDIENTE' }],
+        },
+        {
+            id: 'mantenimientos-en-proceso',
+            titulo: 'En proceso',
+            valor: contar(
+                (m) =>
+                    estadoServicioMantenimiento(m.estado_mantenimiento) ===
+                    'EN_PROCESO',
+            ),
+            icono: Loader,
+            tono: 'blue',
+            detalle:
+                faltaRepuestos > 0
+                    ? `${faltaRepuestos} con falta de repuestos`
+                    : undefined,
+            filtros: [{ id: 'estado', value: 'EN_PROCESO' }],
+        },
+        {
+            id: 'mantenimientos-finalizados',
+            titulo: 'Finalizados',
+            valor: contar((m) => m.estado_mantenimiento === 'FINALIZADO'),
+            icono: CheckCircle2,
+            tono: 'emerald',
+            filtros: [{ id: 'estado', value: 'FINALIZADO' }],
+        },
+        {
+            id: 'mantenimientos-fuera-de-servicio',
+            titulo: 'Fuera de servicio',
+            valor: contar((m) => m.estado_final_equipo === 'FUERA_DE_SERVICIO'),
+            icono: ShieldAlert,
+            tono: 'red',
+            detalle: 'Equipos que terminaron fuera de servicio',
+            filtros: [
+                { id: 'estado_final_equipo', value: 'FUERA_DE_SERVICIO' },
+            ],
+        },
+    ];
 
     const columns = useMemo(
         () =>
@@ -316,7 +396,8 @@ export default function MantenimientosIndex({
 
                 <Tabs defaultValue="local">
                     <TabsList>
-                        <TabsTrigger value="local">
+                        <TabsTrigger value="local" className="gap-1.5">
+                            <FlaskConical className="h-4 w-4" />
                             Local
                             <TabCountBadge
                                 value={
@@ -327,11 +408,12 @@ export default function MantenimientosIndex({
                                     ).length
                                 }
                                 label="Pendientes en local"
-                                className="bg-blue-500 text-white"
+                                className="bg-red-500 text-white"
                             />
                         </TabsTrigger>
                         {canTerceros ? (
-                            <TabsTrigger value="tercero">
+                            <TabsTrigger value="tercero" className="gap-1.5">
+                                <Handshake className="h-4 w-4" />
                                 Tercero
                                 <TabCountBadge
                                     value={
@@ -342,14 +424,21 @@ export default function MantenimientosIndex({
                                         ).length
                                     }
                                     label="Pendientes en tercero"
-                                    className="bg-amber-500 text-white"
+                                    className="bg-red-500 text-white"
                                 />
                             </TabsTrigger>
                         ) : null}
                     </TabsList>
 
-                    <TabsContent value="local">
+                    <TabsContent value="local" className="space-y-4">
+                        <TarjetasEstado
+                            tarjetas={tarjetas}
+                            activa={tarjetaActiva}
+                            onVer={ver}
+                        />
                         <DataTable
+                            key={claveTabla}
+                            initialColumnFilters={filtrosIniciales}
                             data={mantenimientos}
                             columns={columns}
                             searchPlaceholder="Buscar mantenimiento..."

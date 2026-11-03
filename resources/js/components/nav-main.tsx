@@ -57,21 +57,55 @@ function NavItemBadges({ badges }: { badges?: NavBadge[] }) {
         return null;
     }
 
+    const total = visibles.reduce((suma, badge) => suma + badge.value, 0);
+
     return (
-        <div className="pointer-events-none absolute top-1.5 right-1 flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-            {visibles.map((badge) => (
-                <span
-                    key={badge.label}
-                    title={badge.label}
-                    aria-label={`${badge.label}: ${badge.value}`}
-                    className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums ${badge.className}`}
-                    data-test="nav-badge"
-                >
-                    {badge.value}
-                </span>
-            ))}
-        </div>
+        <>
+            <div className="pointer-events-none absolute top-1.5 right-1 flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+                {visibles.map((badge) => (
+                    <span
+                        key={badge.label}
+                        title={badge.label}
+                        aria-label={`${badge.label}: ${badge.value}`}
+                        className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums ${badge.className}`}
+                        data-test="nav-badge"
+                    >
+                        {badge.value}
+                    </span>
+                ))}
+            </div>
+            {/* Con el menú contraído: un solo círculo en la esquina del icono con el total
+                (del color del contador si es uno solo); el desglose va en el globo del ítem. */}
+            <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute top-0 right-0 hidden h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold tabular-nums ring-2 ring-sidebar group-data-[collapsible=icon]:flex ${visibles.length === 1 ? visibles[0].className : 'bg-red-500 text-white'}`}
+                data-test="nav-badge-contraido"
+            >
+                {total > 99 ? '99+' : total}
+            </span>
+        </>
     );
+}
+
+/** Globo del ítem con el menú contraído: su nombre y, debajo, lo que tiene pendiente. */
+function tooltipItem(item: NavGroup['items'][number]) {
+    const pendientes = item.badges?.filter((badge) => badge.value > 0) ?? [];
+
+    return {
+        children:
+            pendientes.length === 0 ? (
+                item.title
+            ) : (
+                <div className="grid gap-0.5">
+                    <span className="font-medium">{item.title}</span>
+                    {pendientes.map((badge) => (
+                        <span key={badge.label} className="opacity-90">
+                            {badge.label}: {badge.value}
+                        </span>
+                    ))}
+                </div>
+            ),
+    };
 }
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
@@ -153,7 +187,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                         <SidebarMenuButton
                                             asChild
                                             isActive={isCurrentUrl(item.href)}
-                                            tooltip={{ children: item.title }}
+                                            tooltip={tooltipItem(item)}
                                         >
                                             <Link
                                                 href={item.href}
@@ -205,7 +239,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                                         <SidebarMenuButton
                                             asChild
                                             isActive={isCurrentUrl(item.href)}
-                                            tooltip={{ children: item.title }}
+                                            tooltip={tooltipItem(item)}
                                         >
                                             <Link
                                                 href={item.href}
