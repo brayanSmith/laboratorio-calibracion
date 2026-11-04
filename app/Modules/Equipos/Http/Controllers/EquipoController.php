@@ -26,7 +26,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -225,8 +224,7 @@ class EquipoController extends Controller
             $documentosEliminar = DocumentoEquipo::whereIn('id', $request->validated('documentos_eliminar', []))->get();
 
             foreach ($documentosEliminar as $documento) {
-                Storage::disk('public')->delete($documento->archivo);
-                $documento->delete();
+                $documento->eliminar();
             }
 
             foreach ($request->validated('documentos', []) as $documento) {

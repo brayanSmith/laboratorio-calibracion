@@ -48,6 +48,22 @@ class DocumentoEquipo extends Model
     }
 
     /**
+     * Elimina el documento y su archivo. Un mismo archivo puede estar en varios equipos
+     * (la documentación subida por tipo, marca y modelo), así que solo se borra del disco
+     * cuando ya ningún otro documento lo usa.
+     */
+    public function eliminar(): void
+    {
+        $this->delete();
+
+        $enUso = self::query()->where('archivo', $this->archivo)->exists();
+
+        if (! $enUso) {
+            Storage::disk('public')->delete($this->archivo);
+        }
+    }
+
+    /**
      * Get the public URL of the stored archivo.
      */
     public function archivoUrl(): string

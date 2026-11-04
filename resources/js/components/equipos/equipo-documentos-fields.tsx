@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 
 type Props = {
     errors: Partial<Record<string, string>>;
+    /** Filas vacías con las que arranca (0 por defecto: el documento es opcional). */
+    filasIniciales?: number;
 };
 
 /**
@@ -14,9 +16,14 @@ type Props = {
  * exist yet. Each row keeps a stable id so removing one from the middle does
  * not reset the values the person already typed in the others.
  */
-export default function EquipoDocumentosFields({ errors }: Props) {
-    const [rowIds, setRowIds] = useState<number[]>([]);
-    const nextId = useRef(0);
+export default function EquipoDocumentosFields({
+    errors,
+    filasIniciales = 0,
+}: Props) {
+    const [rowIds, setRowIds] = useState<number[]>(() =>
+        Array.from({ length: filasIniciales }, (_, index) => index),
+    );
+    const nextId = useRef(filasIniciales);
 
     const addRow = () => {
         setRowIds((ids) => [...ids, nextId.current++]);

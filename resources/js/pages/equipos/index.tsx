@@ -1,7 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { FileUp, Plus } from 'lucide-react';
 import CreateEquipoModal from '@/components/equipos/create-equipo-modal';
 import EquiposTabla from '@/components/equipos/equipos-tabla';
+import SubirDocumentacionModal from '@/components/equipos/subir-documentacion-modal';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -30,13 +31,25 @@ export default function EquiposIndex({ equipos, options }: Props) {
                         description="Gestiona los equipos de metrología del laboratorio"
                     />
 
-                    {can('equipos.crear') ? (
-                        <CreateEquipoModal options={options}>
-                            <Button data-test="equipos-new-button">
-                                <Plus /> Nuevo equipo
-                            </Button>
-                        </CreateEquipoModal>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                        {can('equipos.editar') ? (
+                            <SubirDocumentacionModal equipos={equipos}>
+                                <Button
+                                    variant="outline"
+                                    data-test="equipos-subir-documentacion-button"
+                                >
+                                    <FileUp /> Subir documentación
+                                </Button>
+                            </SubirDocumentacionModal>
+                        ) : null}
+                        {can('equipos.crear') ? (
+                            <CreateEquipoModal options={options}>
+                                <Button data-test="equipos-new-button">
+                                    <Plus /> Nuevo equipo
+                                </Button>
+                            </CreateEquipoModal>
+                        ) : null}
+                    </div>
                 </div>
 
                 <EquiposTabla equipos={equipos} options={options} />
