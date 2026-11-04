@@ -79,6 +79,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::delete('programaciones/{equipoProgramacion}', [EquipoProgramacionController::class, 'destroy'])->name('programaciones.destroy');
     Route::post('equipos/documentacion-modelo', [DocumentoEquipoController::class, 'storePorModelo'])->name('equipos.documentacion-modelo.store');
     Route::post('equipos/{equipo}/documentos', [DocumentoEquipoController::class, 'store'])->name('equipos.documentos.store');
+    Route::get('documentos/buscar', [DocumentoEquipoController::class, 'buscar'])->name('documentos.buscar');
     Route::delete('documentos/{documentoEquipo}', [DocumentoEquipoController::class, 'destroy'])->name('documentos.destroy');
     Route::post('equipos/{equipo}/historicos', [EquipoHistoricoController::class, 'store'])->name('equipos.historicos.store');
 

@@ -3,10 +3,13 @@
 namespace App\Modules\Equipos\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Equipos\Http\Requests\BuscarDocumentosRequest;
 use App\Modules\Equipos\Http\Requests\StoreDocumentacionModeloRequest;
 use App\Modules\Equipos\Http\Requests\StoreDocumentoEquipoRequest;
 use App\Modules\Equipos\Models\DocumentoEquipo;
 use App\Modules\Equipos\Models\Equipo;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -15,6 +18,9 @@ use Inertia\Inertia;
 
 class DocumentoEquipoController extends Controller
 {
+    /** Máximo de documentos que devuelve el buscador universal. */
+    private const MAX_RESULTADOS = 20;
+
     /**
      * Store a newly created documento for the equipo.
      */
@@ -75,6 +81,38 @@ class DocumentoEquipoController extends Controller
         )]);
 
         return back();
+    }
+
+    /**
+     * Documentos de los equipos del tenant cuyo nombre, o el código o modelo de su equipo,
+     * contiene lo buscado; para el buscador universal (como mucho, MAX_RESULTADOS).
+     */
+    public function buscar(BuscarDocumentosRequest $request): JsonResponse
+    {
+        $termino = '%'.addcslashes($request->validated('q'), '%_\\').'%';
+
+        $documentos = DocumentoEquipo::query()
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->where(fn (Builder $query) => $query
+                ->where('nombre', 'like', $termino)
+                ->orWhereHas('equipo', fn (Builder $equipo) => $equipo
+                    ->where('codigo', 'like', $termino)
+                    ->orWhere('modelo', 'like', $termino)))
+            ->with(['equipo:id,codigo,modelo,tipo_equipo_id', 'equipo.tipoEquipo:id,nombre'])
+            ->latest()
+            ->limit(self::MAX_RESULTADOS)
+            ->get()
+            ->map(fn (DocumentoEquipo $documento): array => [
+                'id' => $documento->id,
+                'nombre' => $documento->nombre,
+                'url' => $documento->archivoUrl(),
+                'equipo_id' => $documento->equipo_id,
+                'equipo_codigo' => $documento->equipo?->codigo,
+                'equipo_modelo' => $documento->equipo?->modelo,
+                'tipo_equipo' => $documento->equipo?->tipoEquipo?->nombre,
+            ]);
+
+        return response()->json($documentos);
     }
 
     /**

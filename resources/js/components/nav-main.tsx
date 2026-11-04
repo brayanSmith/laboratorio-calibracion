@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
-import { ChevronRight, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import BuscadorUniversal from '@/components/buscador-universal';
 import {
     Collapsible,
     CollapsibleContent,
@@ -9,7 +10,6 @@ import {
 import {
     SidebarGroup,
     SidebarGroupLabel,
-    SidebarInput,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -17,7 +17,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useNavegacionPendiente } from '@/hooks/use-navegacion-pendiente';
-import { normalizeText } from '@/lib/data-table';
 import { toUrl } from '@/lib/utils';
 import type { NavBadge, NavGroup } from '@/types';
 
@@ -116,7 +115,6 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
     const estaCargando = (href: NavGroup['items'][number]['href']): boolean =>
         rutaPendiente !== null &&
         new URL(toUrl(href), window.location.origin).pathname === rutaPendiente;
-    const [query, setQuery] = useState('');
     const [collapsedGroups, setCollapsedGroups] = useState<
         Record<string, boolean>
     >({});
@@ -125,26 +123,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
         setCollapsedGroups(readCollapsedGroups());
     }, []);
 
-    const isSearching = query.trim() !== '';
-
-    const filteredGroups = useMemo(() => {
-        if (!isSearching) {
-            return groups;
-        }
-
-        const needle = normalizeText(query);
-
-        return groups.map((group) => ({
-            ...group,
-            items: group.items.filter((item) =>
-                normalizeText(item.title).includes(needle),
-            ),
-        }));
-    }, [groups, query, isSearching]);
-
-    const visibleGroups = filteredGroups.filter(
-        (group) => group.items.length > 0,
-    );
+    const visibleGroups = groups.filter((group) => group.items.length > 0);
 
     const toggleGroup = (title: string) => {
         setCollapsedGroups((current) => {
@@ -157,25 +136,13 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
 
     return (
         <>
-            <div className="px-2 pt-1 pb-2 group-data-[collapsible=icon]:hidden">
-                <div className="relative">
-                    <Search className="pointer-events-none absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/50" />
-                    <SidebarInput
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Buscar módulo..."
-                        aria-label="Buscar módulo"
-                        className="pl-8"
-                        data-test="nav-search"
-                    />
-                </div>
-            </div>
-
-            {visibleGroups.length === 0 ? (
-                <p className="px-4 py-2 text-sm text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
-                    No se encontró ningún módulo.
-                </p>
-            ) : null}
+            <SidebarGroup className="px-2 pt-1 pb-2">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <BuscadorUniversal groups={groups} />
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
 
             {visibleGroups.map((group, index) => {
                 if (!group.title) {
@@ -213,15 +180,13 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                     );
                 }
 
-                const isOpen = isSearching || !collapsedGroups[group.title];
+                const isOpen = !collapsedGroups[group.title];
 
                 return (
                     <Collapsible
                         key={group.title}
                         open={isOpen}
-                        onOpenChange={() =>
-                            !isSearching && toggleGroup(group.title as string)
-                        }
+                        onOpenChange={() => toggleGroup(group.title as string)}
                         className="relative flex w-full min-w-0 flex-col px-2 py-0"
                     >
                         <SidebarGroupLabel asChild>
