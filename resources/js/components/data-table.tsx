@@ -1,5 +1,6 @@
 import { createColumnHelper, useTable } from '@tanstack/react-table';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { MouseEvent } from 'react';
 import type { ColumnDef, RowData } from '@tanstack/react-table';
 import {
     ChevronDown,
@@ -13,11 +14,13 @@ import {
 import ColumnResizeHandle, {
     ColgroupAnchos,
 } from '@/components/column-resize-handle';
+import MenuAccionesFila from '@/components/menu-acciones-fila';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useResizableTable } from '@/hooks/use-resizable-table';
 import { cn } from '@/lib/utils';
 import { dataTableFeatures, withColumnFilters } from '@/lib/data-table';
+import { SELECTOR_INTERACTIVO } from '@/lib/menu-acciones-fila';
 import type { DataTableFeatures } from '@/lib/data-table';
 
 export type DataTableColumn<TData extends RowData> = ColumnDef<
@@ -41,6 +44,9 @@ type Props<TData extends RowData> = {
     /** Filtros de columna con los que arranca la tabla. */
     initialColumnFilters?: { id: string; value: unknown }[];
 };
+
+/** Columna con los botones de acción de cada fila (la misma que muestra el menú de la fila). */
+const COLUMNA_ACCIONES = 'acciones';
 
 const selectClassName =
     'h-8 w-full min-w-24 rounded-md border border-input bg-background px-2 text-xs font-normal text-foreground shadow-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none';
@@ -81,6 +87,51 @@ export default function DataTable<TData extends RowData>({
         useResizableTable(clavesColumnas);
 
     const rows = table.getRowModel().rows;
+
+    // Menú de acciones al hacer clic en una fila: muestra su columna de acciones junto al
+    // clic, para no tener que desplazarse hasta el final de la tabla.
+    const tieneAcciones = clavesColumnas.includes(COLUMNA_ACCIONES);
+    const [menu, setMenu] = useState<{
+        filaId: string;
+        clic: { x: number; y: number };
+        visible: boolean;
+    } | null>(null);
+    const celdaAccionesMenu = menu
+        ? rows
+              .find((row) => row.id === menu.filaId)
+              ?.getAllCells()
+              .find((cell) => cell.column.id === COLUMNA_ACCIONES)
+        : undefined;
+
+    const abrirMenu = (
+        evento: MouseEvent<HTMLTableRowElement>,
+        filaId: string,
+    ) => {
+        const objetivo = evento.target as HTMLElement;
+
+        // Los botones, enlaces y campos de la fila tienen su propio clic; y al seleccionar
+        // texto para copiarlo tampoco se abre el menú.
+        if (
+            objetivo.closest(SELECTOR_INTERACTIVO) ||
+            window.getSelection()?.toString()
+        ) {
+            return;
+        }
+
+        setMenu({
+            filaId,
+            clic: { x: evento.clientX, y: evento.clientY },
+            visible: true,
+        });
+    };
+
+    const cerrarMenu = useCallback(
+        () =>
+            setMenu((actual) =>
+                actual?.visible ? { ...actual, visible: false } : actual,
+            ),
+        [],
+    );
     const totalRows = table.getPrePaginatedRowModel().rows.length;
     const { pageIndex } = table.state.pagination;
     const firstRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
@@ -251,7 +302,18 @@ export default function DataTable<TData extends RowData>({
                             <tr
                                 key={row.id}
                                 data-test={rowTestId}
-                                className="transition-colors hover:bg-primary/10"
+                                onClick={
+                                    tieneAcciones
+                                        ? (evento) => abrirMenu(evento, row.id)
+                                        : undefined
+                                }
+                                className={cn(
+                                    'transition-colors hover:bg-primary/10',
+                                    tieneAcciones && 'cursor-pointer',
+                                    menu?.visible &&
+                                        menu.filaId === row.id &&
+                                        'bg-primary/10',
+                                )}
                             >
                                 {row.getAllCells().map((cell) => (
                                     <td key={cell.id} className="px-4 py-3">
@@ -276,6 +338,17 @@ export default function DataTable<TData extends RowData>({
                     </tbody>
                 </table>
             </div>
+
+            {menu && celdaAccionesMenu ? (
+                <MenuAccionesFila
+                    key={menu.filaId}
+                    clic={menu.clic}
+                    visible={menu.visible}
+                    onCerrar={cerrarMenu}
+                >
+                    <table.FlexRender cell={celdaAccionesMenu} />
+                </MenuAccionesFila>
+            ) : null}
 
             {totalRows > 0 ? (
                 <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
