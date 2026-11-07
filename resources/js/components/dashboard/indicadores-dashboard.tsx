@@ -1,10 +1,14 @@
 import { Activity, ClipboardCheck, Clock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { RecargaIndicadorContext } from '@/components/dashboard/indicador-comun';
 import IndicadorCumplimiento from '@/components/dashboard/indicador-cumplimiento';
 import IndicadorDesempenoTecnicos from '@/components/dashboard/indicador-desempeno-tecnicos';
 import IndicadorTiemposAtencion from '@/components/dashboard/indicador-tiempos-atencion';
-import type { IndicadoresDashboard } from '@/types';
+import ObjetivosModal from '@/components/dashboard/objetivos-modal';
+import { usePermissions } from '@/hooks/use-permissions';
+import type { IndicadoresDashboard, ModuloObjetivo } from '@/types';
 
 export type PestanaDashboard = {
     value: string;
@@ -13,32 +17,50 @@ export type PestanaDashboard = {
     contenido: ReactNode;
 };
 
-/** Una sección de indicadores: encabezado con su icono y debajo sus tarjetas y tablas. */
+/**
+ * Una sección de indicadores: encabezado con su icono (y el botón de sus objetivos
+ * anuales, para quien puede definirlos) y debajo sus tarjetas, gráficos y tablas.
+ */
 function SeccionIndicador({
     titulo,
     descripcion,
     icono: Icono,
+    modulo,
     children,
 }: {
     titulo: string;
     descripcion: string;
     icono: LucideIcon;
+    modulo: ModuloObjetivo;
     children: ReactNode;
 }) {
+    const { can } = usePermissions();
+    // Sube al guardar objetivos: el indicador se vuelve a pedir con la línea nueva.
+    const [recarga, setRecarga] = useState(0);
+
     return (
         <section className="grid gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icono className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="flex-1">
                     <h2 className="text-lg font-semibold">{titulo}</h2>
                     <p className="text-sm text-muted-foreground">
                         {descripcion}
                     </p>
                 </div>
+                {can('dashboard.objetivos') ? (
+                    <ObjetivosModal
+                        modulo={modulo}
+                        titulo={titulo}
+                        onCambio={() => setRecarga((actual) => actual + 1)}
+                    />
+                ) : null}
             </div>
-            {children}
+            <RecargaIndicadorContext.Provider value={recarga}>
+                {children}
+            </RecargaIndicadorContext.Provider>
         </section>
     );
 }
@@ -60,9 +82,10 @@ export function pestanasIndicadores(
                 <SeccionIndicador
                     titulo="Tiempos de atención de equipos"
                     icono={Clock}
+                    modulo="TIEMPOS_ATENCION"
                     descripcion="Tiempo total entre el ingreso y el despacho de cada equipo."
                 >
-                    <IndicadorTiemposAtencion indicadores={indicadores} />
+                    <IndicadorTiemposAtencion />
                 </SeccionIndicador>
             ),
         },
@@ -75,9 +98,10 @@ export function pestanasIndicadores(
                 <SeccionIndicador
                     titulo="Desempeño por técnico"
                     icono={Activity}
+                    modulo="DESEMPENO_TECNICOS"
                     descripcion="Mantenimientos y calibraciones finalizados y su tiempo promedio."
                 >
-                    <IndicadorDesempenoTecnicos indicadores={indicadores} />
+                    <IndicadorDesempenoTecnicos />
                 </SeccionIndicador>
             ),
         },
@@ -90,9 +114,10 @@ export function pestanasIndicadores(
                 <SeccionIndicador
                     titulo="Cumplimiento"
                     icono={ClipboardCheck}
+                    modulo="CUMPLIMIENTO"
                     descripcion="Equipos programados frente a los equipos atendidos."
                 >
-                    <IndicadorCumplimiento indicadores={indicadores} />
+                    <IndicadorCumplimiento />
                 </SeccionIndicador>
             ),
         },

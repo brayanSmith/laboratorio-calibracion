@@ -2,8 +2,11 @@
 
 namespace App\Actions\Dashboard;
 
+use App\Concerns\SerieMensual;
 use App\Modules\Calibraciones\Models\Calibracion;
+use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,35 +17,58 @@ use Illuminate\Support\Collection;
  * en el rango, y cuánto tardaron en promedio. La duración es la de su tiempo de servicio
  * (de "Iniciar" a "Finalizar"); los servicios sin tiempo registrado cuentan en la cantidad
  * pero no en el promedio.
+ *
+ * Los filtros son listas dependientes de selección múltiple (ver FiltrosDependientes), en
+ * este orden: laboratorio → técnico → magnitud → tipo de equipo. Los servicios de terceros
+ * no tienen técnico: al elegir técnicos solo quedan los propios.
  */
 class CalcularDesempenoTecnicos
 {
+    use SerieMensual;
+
     /** Estados con los que una calibración queda terminada. */
     private const CALIBRACION_TERMINADA = ['FINALIZADO', 'DEVOLVER_MANTENIMIENTO', 'FUERA_DE_SERVICIO'];
 
+    /** Tipos de servicio que se pueden ver: mantenimientos y calibraciones. */
+    public const TIPOS_SERVICIO = ['MANTENIMIENTO', 'CALIBRACION'];
+
+    /** Relaciones del equipo del servicio que usan los filtros. */
+    private const EQUIPO = [
+        'ordenTrabajo:id,equipo_programacion_id',
+        'ordenTrabajo.equipoProgramacion:id,equipo_id',
+        'ordenTrabajo.equipoProgramacion.equipo:id,tipo_equipo_id',
+        'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre',
+        'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica:id,equipo_id,tipo_magnitud_id',
+        'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica.tipoMagnitud:id,nombre',
+    ];
+
     /**
-     * @param  array{desde: string, hasta: string, laboratorio?: string|int|null, tecnico_id?: int|null, tipo_equipo_id?: int|null}  $filtros
-     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>}
+     * @param  array{desde: string, hasta: string, laboratorios?: list<int|string>, tecnicos?: list<int>, magnitudes?: list<int>, tipos_equipo?: list<int>, servicios?: list<string>}  $filtros
+     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, mensual: list<array<string, mixed>>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
      */
     public function handle(int $tenantId, array $filtros): array
     {
-        $laboratorio = $filtros['laboratorio'] ?? null;
-        $tecnicoId = $filtros['tecnico_id'] ?? null;
-        $incluirPropios = $laboratorio === null || $laboratorio === 'propio';
-        // Al filtrar por un técnico solo se ven sus servicios, que son propios.
-        $incluirTerceros = $tecnicoId === null && $laboratorio !== 'propio';
+        // Mantenimientos, calibraciones o los dos (sin elegir, los dos).
+        $tiposServicio = ($filtros['servicios'] ?? []) ?: self::TIPOS_SERVICIO;
 
-        $servicios = collect();
+        $delPeriodo = collect();
 
-        if ($incluirPropios) {
-            $servicios = $servicios
-                ->concat($this->propios(Mantenimiento::query()->where('estado_mantenimiento', 'FINALIZADO'), 'MANTENIMIENTO', $tenantId, $filtros))
-                ->concat($this->propios(Calibracion::query()->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA), 'CALIBRACION', $tenantId, $filtros));
+        if (in_array('MANTENIMIENTO', $tiposServicio, true)) {
+            $delPeriodo = $delPeriodo->concat($this->propios(Mantenimiento::query()->where('estado_mantenimiento', 'FINALIZADO'), 'MANTENIMIENTO', $tenantId, $filtros));
         }
 
-        if ($incluirTerceros) {
-            $servicios = $servicios->concat($this->terceros($tenantId, $filtros));
+        if (in_array('CALIBRACION', $tiposServicio, true)) {
+            $delPeriodo = $delPeriodo->concat($this->propios(Calibracion::query()->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA), 'CALIBRACION', $tenantId, $filtros));
         }
+
+        $delPeriodo = $delPeriodo->concat($this->terceros($tenantId, $filtros, $tiposServicio));
+
+        ['filas' => $servicios, 'opciones' => $opciones] = FiltrosDependientes::aplicar($delPeriodo, [
+            'laboratorios' => $filtros['laboratorios'] ?? [],
+            'tecnicos' => $filtros['tecnicos'] ?? [],
+            'magnitudes' => $filtros['magnitudes'] ?? [],
+            'tipos_equipo' => $filtros['tipos_equipo'] ?? [],
+        ]);
 
         $duraciones = $this->duraciones($servicios->pluck('orden_trabajo_id')->unique()->values()->all());
 
@@ -69,6 +95,18 @@ class CalcularDesempenoTecnicos
                 'mantenimientos' => $this->resumen($servicios->where('tipo_servicio', 'MANTENIMIENTO')),
                 'calibraciones' => $this->resumen($servicios->where('tipo_servicio', 'CALIBRACION')),
             ],
+            // Por mes de realización: cantidad y tiempo promedio (para los gráficos con el objetivo).
+            'mensual' => $this->serieMensual(
+                $filtros['desde'],
+                $filtros['hasta'],
+                $servicios,
+                fn (array $servicio): string => $servicio['mes'],
+                fn (Collection $delMes): array => [
+                    'mantenimientos' => $this->resumen($delMes->where('tipo_servicio', 'MANTENIMIENTO')),
+                    'calibraciones' => $this->resumen($delMes->where('tipo_servicio', 'CALIBRACION')),
+                ],
+            ),
+            'opciones' => $opciones,
         ];
     }
 
@@ -86,51 +124,69 @@ class CalcularDesempenoTecnicos
             ->whereNotNull('tecnico_id')
             ->whereDate('fecha_realizacion', '>=', $filtros['desde'])
             ->whereDate('fecha_realizacion', '<=', $filtros['hasta'])
-            ->when($filtros['tecnico_id'] ?? null, fn (Builder $q, int $tecnicoId) => $q->where('tecnico_id', $tecnicoId))
-            ->when($filtros['tipo_equipo_id'] ?? null, fn (Builder $q, int $tipoEquipoId) => $q->whereHas(
-                'ordenTrabajo.equipoProgramacion.equipo',
-                fn (Builder $equipo) => $equipo->where('tipo_equipo_id', $tipoEquipoId),
-            ))
-            ->with('tecnico:id,name')
-            ->get(['id', 'orden_trabajo_id', 'tecnico_id'])
+            ->with(['tecnico:id,name', ...self::EQUIPO])
+            ->get(['id', 'orden_trabajo_id', 'tecnico_id', 'fecha_realizacion'])
             ->map(fn (Mantenimiento|Calibracion $servicio): array => [
                 'tipo' => 'TECNICO',
                 'responsable_id' => $servicio->tecnico_id,
                 'responsable' => $servicio->tecnico?->name ?? 'Sin técnico',
                 'tipo_servicio' => $tipoServicio,
                 'orden_trabajo_id' => $servicio->orden_trabajo_id,
+                'mes' => $servicio->fecha_realizacion->format('Y-m'),
+                'filtros' => [
+                    'laboratorios' => [['id' => FiltrosDependientes::PROPIO, 'nombre' => 'Laboratorio propio']],
+                    'tecnicos' => FiltrosDependientes::opcion($servicio->tecnico, 'name'),
+                    ...$this->filtrosDelEquipo($servicio->ordenTrabajo),
+                ],
             ]);
     }
 
     /**
-     * Servicios de terceros terminados en el rango, con su empresa.
+     * Servicios de terceros terminados en el rango, con su empresa (no tienen técnico).
      *
      * @param  array<string, mixed>  $filtros
+     * @param  list<string>  $tiposServicio
      * @return Collection<int, array<string, mixed>>
      */
-    private function terceros(int $tenantId, array $filtros): Collection
+    private function terceros(int $tenantId, array $filtros, array $tiposServicio): Collection
     {
-        $laboratorio = $filtros['laboratorio'] ?? null;
-
         return ServicioTercero::query()
             ->where('tenant_id', $tenantId)
             ->where('estado_servicio', 'FINALIZADO')
+            ->whereIn('tipo_servicio', $tiposServicio)
             ->whereDate('fecha_realizacion', '>=', $filtros['desde'])
             ->whereDate('fecha_realizacion', '<=', $filtros['hasta'])
-            ->when($laboratorio !== null, fn (Builder $q) => $q->where('empresa_tercero_id', $laboratorio))
-            ->when($filtros['tipo_equipo_id'] ?? null, fn (Builder $q, int $tipoEquipoId) => $q->whereHas(
-                'ordenTrabajo.equipoProgramacion.equipo',
-                fn (Builder $equipo) => $equipo->where('tipo_equipo_id', $tipoEquipoId),
-            ))
-            ->with('empresaTercero:id,nombre')
-            ->get(['id', 'orden_trabajo_id', 'empresa_tercero_id', 'tipo_servicio'])
+            ->with(['empresaTercero:id,nombre', ...self::EQUIPO])
+            ->get(['id', 'orden_trabajo_id', 'empresa_tercero_id', 'tipo_servicio', 'fecha_realizacion'])
             ->map(fn (ServicioTercero $servicio): array => [
                 'tipo' => 'TERCERO',
                 'responsable_id' => $servicio->empresa_tercero_id,
                 'responsable' => $servicio->empresaTercero?->nombre ?? 'Sin empresa',
                 'tipo_servicio' => $servicio->tipo_servicio,
                 'orden_trabajo_id' => $servicio->orden_trabajo_id,
+                'mes' => $servicio->fecha_realizacion->format('Y-m'),
+                'filtros' => [
+                    'laboratorios' => FiltrosDependientes::opcion($servicio->empresaTercero),
+                    'tecnicos' => [],
+                    ...$this->filtrosDelEquipo($servicio->ordenTrabajo),
+                ],
             ]);
+    }
+
+    /**
+     * Magnitud y tipo del equipo de la orden, para los filtros.
+     *
+     * @return array{magnitudes: list<array{id: int|string, nombre: string}>, tipos_equipo: list<array{id: int|string, nombre: string}>}
+     */
+    private function filtrosDelEquipo(?OrdenTrabajo $ordenTrabajo): array
+    {
+        /** @var Equipo|null $equipo */
+        $equipo = $ordenTrabajo?->equipoProgramacion?->equipo;
+
+        return [
+            'magnitudes' => FiltrosDependientes::opcion($equipo?->equipoEspecificacionTecnica?->tipoMagnitud),
+            'tipos_equipo' => FiltrosDependientes::opcion($equipo?->tipoEquipo),
+        ];
     }
 
     /**

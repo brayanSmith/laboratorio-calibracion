@@ -1,4 +1,11 @@
-import { ListChecks, Rabbit, Timer, Truck, Turtle } from 'lucide-react';
+import {
+    ChartColumn,
+    ListChecks,
+    Rabbit,
+    Timer,
+    Truck,
+    Turtle,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { tiemposAtencion } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
@@ -6,29 +13,44 @@ import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import {
-    aOpciones,
+    aOpcionesDependientes,
     BloqueIndicador,
     FiltroRango,
-    FiltroSeleccion,
+    FiltroSeleccionMultiple,
     PanelFiltros,
     StatTile,
+    useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
+import GraficoObjetivo from '@/components/dashboard/grafico-objetivo';
 import { Badge } from '@/components/ui/badge';
 import {
     formatearDias,
     rangoPorDefecto,
     tonoMapaCalor,
 } from '@/lib/indicadores';
-import type {
-    FiltrosIndicador,
-    IndicadoresDashboard,
-    TiemposAtencion,
-} from '@/types';
+import type { TiemposAtencion } from '@/types';
 
 type EquipoAtendido = TiemposAtencion['equipos'][number];
 
+/** Periodo y filtros de selección múltiple de tiempos de atención. */
+type FiltrosTiempos = {
+    desde: string;
+    hasta: string;
+    areas: string[];
+    laboratorios: string[];
+    magnitudes: string[];
+    tipos_equipo: string[];
+};
+
 const columnHelper = createDataTableColumnHelper<EquipoAtendido>();
+
+const SIN_OPCIONES: TiemposAtencion['opciones'] = {
+    areas: [],
+    laboratorios: [],
+    magnitudes: [],
+    tipos_equipo: [],
+};
 
 /** Fondo de la celda del mapa de calor: el tono con transparencia, legible en claro y oscuro. */
 const fondoCalor = (tono: number, opacidad = 0.3) =>
@@ -93,23 +115,30 @@ function LeyendaMapaCalor({
  * Equipos despachados (entrega recibida) en el periodo y el tiempo total entre su ingreso
  * y su despacho, filtrado por laboratorio y tipo de equipo.
  */
-export default function IndicadorTiemposAtencion({
-    indicadores,
-}: {
-    indicadores: IndicadoresDashboard;
-}) {
-    const [filtros, setFiltros] = useState<FiltrosIndicador>({
+export default function IndicadorTiemposAtencion() {
+    const [filtros, setFiltros] = useState<FiltrosTiempos>({
         ...rangoPorDefecto(),
-        laboratorio: '',
-        tipo_equipo_id: '',
+        areas: [],
+        laboratorios: [],
+        magnitudes: [],
+        tipos_equipo: [],
     });
     const { datos, cargando } = useIndicador<TiemposAtencion>(
         tiemposAtencion,
         filtros,
     );
 
-    const cambiar = (cambios: Partial<FiltrosIndicador>) =>
+    const cambiar = (cambios: Partial<FiltrosTiempos>) =>
         setFiltros((actuales) => ({ ...actuales, ...cambios }));
+
+    // Listas dependientes de selección múltiple: área → laboratorio → magnitud → tipo de
+    // equipo.
+    const opciones = useFiltrosDependientes(
+        datos?.opciones,
+        filtros,
+        setFiltros,
+        SIN_OPCIONES,
+    );
 
     // El mapa de calor va del más rápido (verde) al más lento (rojo) de lo que se muestra.
     const minimo = datos?.resumen.minimo_dias ?? 0;
@@ -186,22 +215,39 @@ export default function IndicadorTiemposAtencion({
                     hasta={filtros.hasta}
                     onChange={cambiar}
                 />
-                <FiltroSeleccion
+                <FiltroSeleccionMultiple
+                    id="tiempos-atencion-area"
+                    etiqueta="Área"
+                    value={filtros.areas}
+                    onChange={(areas) => cambiar({ areas })}
+                    opciones={aOpcionesDependientes(opciones.areas)}
+                    todos="Todas"
+                    plural="áreas"
+                />
+                <FiltroSeleccionMultiple
                     id="tiempos-atencion-laboratorio"
                     etiqueta="Laboratorio"
-                    value={filtros.laboratorio ?? ''}
-                    onChange={(laboratorio) => cambiar({ laboratorio })}
-                    opciones={[
-                        { id: 'propio', label: 'Laboratorio propio' },
-                        ...aOpciones(indicadores.empresasTerceras),
-                    ]}
+                    value={filtros.laboratorios}
+                    onChange={(laboratorios) => cambiar({ laboratorios })}
+                    opciones={aOpcionesDependientes(opciones.laboratorios)}
+                    plural="laboratorios"
                 />
-                <FiltroSeleccion
+                <FiltroSeleccionMultiple
+                    id="tiempos-atencion-magnitud"
+                    etiqueta="Magnitud"
+                    value={filtros.magnitudes}
+                    onChange={(magnitudes) => cambiar({ magnitudes })}
+                    opciones={aOpcionesDependientes(opciones.magnitudes)}
+                    todos="Todas"
+                    plural="magnitudes"
+                />
+                <FiltroSeleccionMultiple
                     id="tiempos-atencion-tipo-equipo"
                     etiqueta="Tipo de equipo"
-                    value={filtros.tipo_equipo_id ?? ''}
-                    onChange={(tipo_equipo_id) => cambiar({ tipo_equipo_id })}
-                    opciones={aOpciones(indicadores.tiposEquipo)}
+                    value={filtros.tipos_equipo}
+                    onChange={(tipos_equipo) => cambiar({ tipos_equipo })}
+                    opciones={aOpcionesDependientes(opciones.tipos_equipo)}
+                    plural="tipos de equipo"
                 />
             </PanelFiltros>
 
@@ -241,6 +287,26 @@ export default function IndicadorTiemposAtencion({
                             tono="red"
                         />
                     </div>
+
+                    <BloqueIndicador
+                        titulo="Tiempo promedio por mes frente al objetivo"
+                        icono={ChartColumn}
+                    >
+                        <GraficoObjetivo
+                            etiquetaValor="Tiempo promedio"
+                            filas={datos.equipos.map((equipo) => ({
+                                fecha: equipo.fecha_despacho,
+                                valor: equipo.dias,
+                            }))}
+                            desde={filtros.desde}
+                            hasta={filtros.hasta}
+                            nombreFilas="equipos"
+                            objetivos={datos.objetivos}
+                            concepto="TIEMPO_ATENCION_DIAS"
+                            formato={formatearDias}
+                            testId="grafico-tiempos-atencion"
+                        />
+                    </BloqueIndicador>
 
                     <BloqueIndicador
                         titulo="Detalle por equipo"

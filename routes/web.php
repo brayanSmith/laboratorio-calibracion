@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\IndicadoresDashboardController;
+use App\Http\Controllers\ObjetivosDashboardController;
 use App\Http\Controllers\Plataforma\AjustePlataformaController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
@@ -53,6 +54,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/indicadores/tiempos-atencion', [IndicadoresDashboardController::class, 'tiemposAtencion'])->name('dashboard.indicadores.tiempos-atencion');
     Route::get('dashboard/indicadores/desempeno-tecnicos', [IndicadoresDashboardController::class, 'desempenoTecnicos'])->name('dashboard.indicadores.desempeno-tecnicos');
     Route::get('dashboard/indicadores/cumplimiento', [IndicadoresDashboardController::class, 'cumplimiento'])->name('dashboard.indicadores.cumplimiento');
+    Route::get('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'index'])->name('dashboard.objetivos.index');
+    Route::put('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'store'])->name('dashboard.objetivos.store');
+    Route::delete('dashboard/objetivos/{modulo}/{anio}', [ObjetivosDashboardController::class, 'destroy'])->whereNumber('anio')->name('dashboard.objetivos.destroy');
 
     Route::get('password-change', [ForcePasswordChangeController::class, 'edit'])->name('password-change.edit');
     Route::put('password-change', [ForcePasswordChangeController::class, 'update'])

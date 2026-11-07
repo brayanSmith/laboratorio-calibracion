@@ -1,33 +1,42 @@
 import { useHttp } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import Combobox from '@/components/combobox';
+import MultiCombobox from '@/components/multi-combobox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+    depurarFiltrosDependientes,
     filtrosConValor,
     formatearPorcentaje,
     PERIODO_POR_DEFECTO,
     periodosIndicador,
     rangoDePeriodo,
 } from '@/lib/indicadores';
-import type { PeriodoIndicador } from '@/lib/indicadores';
+import type {
+    OpcionesDependientes,
+    PeriodoIndicador,
+    ValorFiltro,
+} from '@/lib/indicadores';
 import { cn } from '@/lib/utils';
-import type { FiltrosIndicador, IndicadorOption } from '@/types';
 
 /**
  * Pide los datos de un indicador cada vez que cambian sus filtros. `ruta` arma la URL
  * con los filtros (una ruta de Wayfinder).
  */
 export function useIndicador<T>(
-    ruta: (opciones: { query: Record<string, string> }) => { url: string },
-    filtros: FiltrosIndicador,
+    ruta: (opciones: { query: Record<string, string | string[]> }) => {
+        url: string;
+    },
+    filtros: { desde: string; hasta: string } & Record<string, ValorFiltro>,
 ) {
     const { get, response, processing } = useHttp<Record<string, string>, T>();
     const clave = JSON.stringify(filtros);
+    const recarga = useContext(RecargaIndicadorContext);
 
     useEffect(() => {
         if (
@@ -41,12 +50,59 @@ export function useIndicador<T>(
         void get(ruta({ query: filtrosConValor(filtros) }).url).catch(
             () => undefined,
         );
-        // Solo se vuelve a pedir si cambian los filtros.
+        // Solo se vuelve a pedir si cambian los filtros o se guardan objetivos del módulo.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [clave]);
+    }, [clave, recarga]);
 
     return { datos: response, cargando: processing };
 }
+
+/**
+ * Filtros dependientes de selección múltiple de un indicador: devuelve las opciones de
+ * cada lista (las que llegaron con los datos; mientras se recalcula se siguen mostrando las
+ * anteriores) y quita de los filtros lo elegido que ya no está en su lista.
+ */
+export function useFiltrosDependientes<
+    T extends Record<string, ValorFiltro>,
+    O extends OpcionesDependientes,
+>(
+    opcionesNuevas: O | undefined,
+    filtros: T,
+    setFiltros: (filtros: T) => void,
+    sinOpciones: O,
+): O {
+    const [opciones, setOpciones] = useState<O>(sinOpciones);
+
+    useEffect(() => {
+        if (!opcionesNuevas) {
+            return;
+        }
+
+        setOpciones(opcionesNuevas);
+
+        const depurados = depurarFiltrosDependientes(filtros, opcionesNuevas);
+
+        if (depurados) {
+            setFiltros(depurados);
+        }
+        // Solo cuando llegan opciones nuevas.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [opcionesNuevas]);
+
+    return opciones;
+}
+
+/** Opciones `{id, nombre}` de la respuesta en el formato de los selectores. */
+export const aOpcionesDependientes = (
+    opciones: { id: number | string; nombre: string }[],
+) =>
+    opciones.map((opcion) => ({ id: String(opcion.id), label: opcion.nombre }));
+
+/**
+ * Versión de los datos de un módulo: sube cuando se guardan sus objetivos, para que el
+ * indicador se vuelva a pedir y sus gráficos muestren la línea nueva.
+ */
+export const RecargaIndicadorContext = createContext(0);
 
 /** Tonos de las tarjetas, los mismos de las tarjetas de la pestaña Resumen. */
 const TONOS = {
@@ -327,38 +383,101 @@ function FechasPersonalizadas({
     );
 }
 
-/** Un filtro de selección del indicador, con la opción "Todos" para no filtrar. */
-export function FiltroSeleccion({
+/**
+ * Un filtro de selección múltiple del indicador; sin nada elegido no filtra ("Todos").
+ */
+export function FiltroSeleccionMultiple({
     id,
     etiqueta,
     value,
     onChange,
     opciones,
     todos = 'Todos',
+    plural,
 }: {
     id: string;
     etiqueta: string;
-    value: string;
-    onChange: (value: string) => void;
+    value: string[];
+    onChange: (value: string[]) => void;
     opciones: { id: number | string; label: string }[];
     todos?: string;
+    /** Cómo se llama a varias opciones elegidas, ej. "áreas". */
+    plural: string;
 }) {
     return (
         <div className="grid gap-1">
             <Label htmlFor={id} className="text-xs">
                 {etiqueta}
             </Label>
-            <Combobox
+            <MultiCombobox
                 id={id}
                 value={value}
                 onValueChange={onChange}
-                options={[{ id: '', label: todos }, ...opciones]}
+                options={opciones}
                 placeholder={todos}
                 searchPlaceholder={`Buscar ${etiqueta.toLowerCase()}...`}
+                plural={plural}
             />
         </div>
     );
 }
 
-export const aOpciones = (opciones: IndicadorOption[]) =>
-    opciones.map((opcion) => ({ id: opcion.id, label: opcion.nombre }));
+/**
+ * Casillas para elegir qué se incluye (ej. mantenimiento y/o calibración, tipo A y/o B).
+ * Siempre queda al menos una marcada: la última no se puede quitar.
+ */
+export function FiltroCasillas({
+    id,
+    etiqueta,
+    opciones,
+    value,
+    onChange,
+}: {
+    id: string;
+    etiqueta: string;
+    opciones: { value: string; label: string }[];
+    value: string[];
+    onChange: (value: string[]) => void;
+}) {
+    const alternar = (opcion: string, marcada: boolean) => {
+        const elegidas = marcada
+            ? [...value, opcion]
+            : value.filter((actual) => actual !== opcion);
+
+        if (elegidas.length > 0) {
+            // En el orden de las casillas.
+            onChange(
+                opciones
+                    .map((item) => item.value)
+                    .filter((item) => elegidas.includes(item)),
+            );
+        }
+    };
+
+    return (
+        <fieldset className="grid gap-1">
+            <legend className="mb-1 text-xs font-medium">{etiqueta}</legend>
+            <div className="flex h-9 items-center gap-4">
+                {opciones.map((opcion) => (
+                    <label
+                        key={opcion.value}
+                        className="flex items-center gap-2 text-sm"
+                    >
+                        <Checkbox
+                            checked={value.includes(opcion.value)}
+                            onCheckedChange={(marcada) =>
+                                alternar(opcion.value, marcada === true)
+                            }
+                            disabled={
+                                value.length === 1 &&
+                                value.includes(opcion.value)
+                            }
+                            data-test={`${id}-${opcion.value}`}
+                        />
+                        {opcion.label}
+                    </label>
+                ))}
+            </div>
+        </fieldset>
+    );
+}

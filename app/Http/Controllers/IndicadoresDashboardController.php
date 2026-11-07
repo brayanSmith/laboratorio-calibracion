@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Actions\Dashboard\CalcularCumplimiento;
 use App\Actions\Dashboard\CalcularDesempenoTecnicos;
 use App\Actions\Dashboard\CalcularTiemposAtencion;
+use App\Enums\ModuloObjetivo;
 use App\Enums\TenantPermission;
 use App\Http\Requests\Dashboard\IndicadoresDashboardRequest;
+use App\Models\ObjetivoDashboard;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -22,7 +24,7 @@ class IndicadoresDashboardController extends Controller
     {
         abort_unless($request->user()->can(TenantPermission::DashboardTiemposAtencion->value), 403);
 
-        return response()->json($calcular->handle($request->user()->tenant_id, $this->filtros($request)));
+        return $this->conObjetivos($request, ModuloObjetivo::TiemposAtencion, $calcular->handle($request->user()->tenant_id, $this->filtrosMultiples($request)));
     }
 
     /**
@@ -32,7 +34,7 @@ class IndicadoresDashboardController extends Controller
     {
         abort_unless($request->user()->can(TenantPermission::DashboardDesempenoTecnicos->value), 403);
 
-        return response()->json($calcular->handle($request->user()->tenant_id, $this->filtros($request)));
+        return $this->conObjetivos($request, ModuloObjetivo::DesempenoTecnicos, $calcular->handle($request->user()->tenant_id, $this->filtrosMultiples($request)));
     }
 
     /**
@@ -42,26 +44,56 @@ class IndicadoresDashboardController extends Controller
     {
         abort_unless($request->user()->can(TenantPermission::DashboardCumplimiento->value), 403);
 
-        return response()->json($calcular->handle($request->user()->tenant_id, $this->filtros($request)));
+        return $this->conObjetivos($request, ModuloObjetivo::Cumplimiento, $calcular->handle($request->user()->tenant_id, $this->filtrosMultiples($request)));
     }
 
     /**
-     * Filtros validados, con los ids como enteros ("propio" se mantiene como texto).
+     * Agrega al indicador los objetivos de cada año del periodo (si el periodo abarca dos
+     * años, cada uno con los suyos), para dibujarlos en sus gráficos.
      *
-     * @return array{desde: string, hasta: string, laboratorio: string|int|null, tecnico_id: int|null, tipo_equipo_id: int|null, area_id: int|null}
+     * @param  array<string, mixed>  $indicador
      */
-    private function filtros(IndicadoresDashboardRequest $request): array
+    private function conObjetivos(IndicadoresDashboardRequest $request, ModuloObjetivo $modulo, array $indicador): JsonResponse
     {
-        $laboratorio = $request->validated('laboratorio');
-        $entero = fn (string $campo): ?int => $request->filled($campo) ? (int) $request->validated($campo) : null;
+        $anios = range(
+            (int) substr($request->validated('desde'), 0, 4),
+            (int) substr($request->validated('hasta'), 0, 4),
+        );
+        $porAnio = ObjetivoDashboard::porAnio($request->user()->tenant_id, $modulo, $anios);
+
+        return response()->json([
+            ...$indicador,
+            'objetivos' => array_map(fn (int $anio): array => [
+                'anio' => $anio,
+                // Un objeto aunque esté vacío, para que el frontend lo lea igual.
+                'valores' => (object) ($porAnio[$anio] ?? []),
+            ], $anios),
+        ]);
+    }
+
+    /**
+     * Filtros de selección múltiple de los indicadores: listas de ids como enteros; en los
+     * laboratorios, "propio" se mantiene como texto. Cada indicador usa los que le aplican.
+     *
+     * @return array{desde: string, hasta: string, areas: list<int>, laboratorios: list<int|string>, tecnicos: list<int>, magnitudes: list<int>, tipos_equipo: list<int>, servicios: list<string>, tipos_mantenimiento: list<string>}
+     */
+    private function filtrosMultiples(IndicadoresDashboardRequest $request): array
+    {
+        $enteros = fn (string $campo): array => array_map('intval', $request->validated($campo, []));
 
         return [
             'desde' => $request->validated('desde'),
             'hasta' => $request->validated('hasta'),
-            'laboratorio' => $laboratorio === null || $laboratorio === 'propio' ? $laboratorio : (int) $laboratorio,
-            'tecnico_id' => $entero('tecnico_id'),
-            'tipo_equipo_id' => $entero('tipo_equipo_id'),
-            'area_id' => $entero('area_id'),
+            'areas' => $enteros('areas'),
+            'laboratorios' => array_map(
+                fn (string|int $laboratorio): string|int => $laboratorio === 'propio' ? $laboratorio : (int) $laboratorio,
+                $request->validated('laboratorios', []),
+            ),
+            'tecnicos' => $enteros('tecnicos'),
+            'magnitudes' => $enteros('magnitudes'),
+            'tipos_equipo' => $enteros('tipos_equipo'),
+            'servicios' => $request->validated('servicios', []),
+            'tipos_mantenimiento' => $request->validated('tipos_mantenimiento', []),
         ];
     }
 }

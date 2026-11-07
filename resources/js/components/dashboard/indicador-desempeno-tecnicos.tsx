@@ -6,25 +6,49 @@ import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import {
-    aOpciones,
+    aOpcionesDependientes,
     BloqueIndicador,
+    FiltroCasillas,
     FiltroRango,
-    FiltroSeleccion,
+    FiltroSeleccionMultiple,
     PanelFiltros,
     StatTile,
+    useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
 import { Badge } from '@/components/ui/badge';
 import { formatearHoras, rangoPorDefecto } from '@/lib/indicadores';
-import type {
-    DesempenoTecnicos,
-    FiltrosIndicador,
-    IndicadoresDashboard,
-} from '@/types';
+import type { DesempenoTecnicos } from '@/types';
 
 type Responsable = DesempenoTecnicos['responsables'][number];
 
+/** Periodo, filtros de selección múltiple y servicios que se ven. */
+type FiltrosDesempeno = {
+    desde: string;
+    hasta: string;
+    laboratorios: string[];
+    tecnicos: string[];
+    magnitudes: string[];
+    tipos_equipo: string[];
+    servicios: string[];
+};
+
+const SIN_OPCIONES: DesempenoTecnicos['opciones'] = {
+    laboratorios: [],
+    tecnicos: [],
+    magnitudes: [],
+    tipos_equipo: [],
+};
+
 const columnHelper = createDataTableColumnHelper<Responsable>();
+
+/** Servicios que se pueden ver, en el orden de las casillas. */
+const SERVICIOS = [
+    { value: 'MANTENIMIENTO', label: 'Mantenimiento' },
+    { value: 'CALIBRACION', label: 'Calibración' },
+];
+const COLUMNAS_MANTENIMIENTO = ['mantenimientos', 'promedio_mantenimiento'];
+const COLUMNAS_CALIBRACION = ['calibraciones', 'promedio_calibracion'];
 
 /** Celda de un tiempo promedio; sin tiempo registrado (-1 al ordenar) muestra "—". */
 const celdaHoras = (horas: number | null) => (
@@ -35,89 +59,123 @@ const celdaHoras = (horas: number | null) => (
  * Mantenimientos y calibraciones finalizados por técnico (o empresa tercera) en el
  * periodo, con su cantidad y su tiempo promedio.
  */
-export default function IndicadorDesempenoTecnicos({
-    indicadores,
-}: {
-    indicadores: IndicadoresDashboard;
-}) {
-    const [filtros, setFiltros] = useState<FiltrosIndicador>({
+export default function IndicadorDesempenoTecnicos() {
+    const [filtros, setFiltros] = useState<FiltrosDesempeno>({
         ...rangoPorDefecto(),
-        tecnico_id: '',
-        laboratorio: '',
-        tipo_equipo_id: '',
+        laboratorios: [],
+        tecnicos: [],
+        magnitudes: [],
+        tipos_equipo: [],
+        servicios: SERVICIOS.map((servicio) => servicio.value),
     });
     const { datos, cargando } = useIndicador<DesempenoTecnicos>(
         desempenoTecnicos,
         filtros,
     );
 
-    const cambiar = (cambios: Partial<FiltrosIndicador>) =>
+    const cambiar = (cambios: Partial<FiltrosDesempeno>) =>
         setFiltros((actuales) => ({ ...actuales, ...cambios }));
+
+    // Listas dependientes de selección múltiple: laboratorio → técnico → magnitud → tipo
+    // de equipo (las empresas terceras no tienen técnicos).
+    const opciones = useFiltrosDependientes(
+        datos?.opciones,
+        filtros,
+        setFiltros,
+        SIN_OPCIONES,
+    );
+
+    const servicios = filtros.servicios;
+    const verMantenimientos = servicios.includes('MANTENIMIENTO');
+    const verCalibraciones = servicios.includes('CALIBRACION');
 
     const columns = useMemo(
         () =>
-            columnHelper.columns([
-                columnHelper.accessor('responsable', {
-                    header: 'Responsable',
-                    cell: ({ row }) => (
-                        <span className="font-medium">
-                            {row.original.responsable}
-                        </span>
-                    ),
-                }),
-                columnHelper.accessor('tipo', {
-                    header: 'Tipo',
-                    meta: {
-                        filterOptions: [
-                            { value: 'TECNICO', label: 'Técnico' },
-                            { value: 'TERCERO', label: 'Tercero' },
-                        ],
-                    },
-                    cell: ({ row }) =>
-                        row.original.tipo === 'TERCERO' ? (
-                            <Badge variant="secondary">Tercero</Badge>
-                        ) : (
-                            <Badge>Técnico</Badge>
+            columnHelper
+                .columns([
+                    columnHelper.accessor('responsable', {
+                        header: 'Responsable',
+                        cell: ({ row }) => (
+                            <span className="font-medium">
+                                {row.original.responsable}
+                            </span>
                         ),
-                }),
-                columnHelper.accessor((fila) => fila.mantenimientos.cantidad, {
-                    id: 'mantenimientos',
-                    header: 'Mantenimientos',
-                    cell: (info) => (
-                        <span className="tabular-nums">{info.getValue()}</span>
-                    ),
-                }),
-                columnHelper.accessor(
-                    (fila) => fila.mantenimientos.promedio_horas ?? -1,
-                    {
-                        id: 'promedio_mantenimiento',
-                        header: 'Prom. mantenimiento',
+                    }),
+                    columnHelper.accessor('tipo', {
+                        header: 'Tipo',
+                        meta: {
+                            filterOptions: [
+                                { value: 'TECNICO', label: 'Técnico' },
+                                { value: 'TERCERO', label: 'Tercero' },
+                            ],
+                        },
                         cell: ({ row }) =>
-                            celdaHoras(
-                                row.original.mantenimientos.promedio_horas,
+                            row.original.tipo === 'TERCERO' ? (
+                                <Badge variant="secondary">Tercero</Badge>
+                            ) : (
+                                <Badge>Técnico</Badge>
                             ),
-                    },
-                ),
-                columnHelper.accessor((fila) => fila.calibraciones.cantidad, {
-                    id: 'calibraciones',
-                    header: 'Calibraciones',
-                    cell: (info) => (
-                        <span className="tabular-nums">{info.getValue()}</span>
+                    }),
+                    columnHelper.accessor(
+                        (fila) => fila.mantenimientos.cantidad,
+                        {
+                            id: 'mantenimientos',
+                            header: 'Mantenimientos',
+                            cell: (info) => (
+                                <span className="tabular-nums">
+                                    {info.getValue()}
+                                </span>
+                            ),
+                        },
                     ),
-                }),
-                columnHelper.accessor(
-                    (fila) => fila.calibraciones.promedio_horas ?? -1,
-                    {
-                        id: 'promedio_calibracion',
-                        header: 'Prom. calibración',
-                        cell: ({ row }) =>
-                            celdaHoras(
-                                row.original.calibraciones.promedio_horas,
+                    columnHelper.accessor(
+                        (fila) => fila.mantenimientos.promedio_horas ?? -1,
+                        {
+                            id: 'promedio_mantenimiento',
+                            header: 'Prom. mantenimiento',
+                            cell: ({ row }) =>
+                                celdaHoras(
+                                    row.original.mantenimientos.promedio_horas,
+                                ),
+                        },
+                    ),
+                    columnHelper.accessor(
+                        (fila) => fila.calibraciones.cantidad,
+                        {
+                            id: 'calibraciones',
+                            header: 'Calibraciones',
+                            cell: (info) => (
+                                <span className="tabular-nums">
+                                    {info.getValue()}
+                                </span>
                             ),
-                    },
-                ),
-            ]),
-        [],
+                        },
+                    ),
+                    columnHelper.accessor(
+                        (fila) => fila.calibraciones.promedio_horas ?? -1,
+                        {
+                            id: 'promedio_calibracion',
+                            header: 'Prom. calibración',
+                            cell: ({ row }) =>
+                                celdaHoras(
+                                    row.original.calibraciones.promedio_horas,
+                                ),
+                        },
+                    ),
+                ])
+                .filter((columna) => {
+                    // Solo las columnas de los servicios que se están viendo.
+                    if (COLUMNAS_MANTENIMIENTO.includes(columna.id ?? '')) {
+                        return verMantenimientos;
+                    }
+
+                    if (COLUMNAS_CALIBRACION.includes(columna.id ?? '')) {
+                        return verCalibraciones;
+                    }
+
+                    return true;
+                }),
+        [verMantenimientos, verCalibraciones],
     );
 
     return (
@@ -129,29 +187,45 @@ export default function IndicadorDesempenoTecnicos({
                     hasta={filtros.hasta}
                     onChange={cambiar}
                 />
-                <FiltroSeleccion
-                    id="desempeno-tecnicos-tecnico"
-                    etiqueta="Técnico"
-                    value={filtros.tecnico_id ?? ''}
-                    onChange={(tecnico_id) => cambiar({ tecnico_id })}
-                    opciones={aOpciones(indicadores.tecnicos)}
-                />
-                <FiltroSeleccion
+                <FiltroSeleccionMultiple
                     id="desempeno-tecnicos-laboratorio"
                     etiqueta="Laboratorio"
-                    value={filtros.laboratorio ?? ''}
-                    onChange={(laboratorio) => cambiar({ laboratorio })}
-                    opciones={[
-                        { id: 'propio', label: 'Laboratorio propio' },
-                        ...aOpciones(indicadores.empresasTerceras),
-                    ]}
+                    value={filtros.laboratorios}
+                    onChange={(laboratorios) => cambiar({ laboratorios })}
+                    opciones={aOpcionesDependientes(opciones.laboratorios)}
+                    plural="laboratorios"
                 />
-                <FiltroSeleccion
+                <FiltroSeleccionMultiple
+                    id="desempeno-tecnicos-tecnico"
+                    etiqueta="Técnico"
+                    value={filtros.tecnicos}
+                    onChange={(tecnicos) => cambiar({ tecnicos })}
+                    opciones={aOpcionesDependientes(opciones.tecnicos)}
+                    plural="técnicos"
+                />
+                <FiltroSeleccionMultiple
+                    id="desempeno-tecnicos-magnitud"
+                    etiqueta="Magnitud"
+                    value={filtros.magnitudes}
+                    onChange={(magnitudes) => cambiar({ magnitudes })}
+                    opciones={aOpcionesDependientes(opciones.magnitudes)}
+                    todos="Todas"
+                    plural="magnitudes"
+                />
+                <FiltroSeleccionMultiple
                     id="desempeno-tecnicos-tipo-equipo"
                     etiqueta="Tipo de equipo"
-                    value={filtros.tipo_equipo_id ?? ''}
-                    onChange={(tipo_equipo_id) => cambiar({ tipo_equipo_id })}
-                    opciones={aOpciones(indicadores.tiposEquipo)}
+                    value={filtros.tipos_equipo}
+                    onChange={(tipos_equipo) => cambiar({ tipos_equipo })}
+                    opciones={aOpcionesDependientes(opciones.tipos_equipo)}
+                    plural="tipos de equipo"
+                />
+                <FiltroCasillas
+                    id="desempeno-servicio"
+                    etiqueta="Servicios"
+                    opciones={SERVICIOS}
+                    value={servicios}
+                    onChange={(elegidos) => cambiar({ servicios: elegidos })}
                 />
             </PanelFiltros>
 
@@ -160,42 +234,54 @@ export default function IndicadorDesempenoTecnicos({
             ) : (
                 <>
                     <div className="grid auto-rows-min gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <StatTile
-                            etiqueta="Mantenimientos"
-                            valor={String(
-                                datos.totales.mantenimientos.cantidad,
-                            )}
-                            detalle="Finalizados en el periodo"
-                            icono={Wrench}
-                            tono="sky"
-                            testId="desempeno-mantenimientos"
-                        />
-                        <StatTile
-                            etiqueta="Tiempo promedio de mantenimiento"
-                            valor={formatearHoras(
-                                datos.totales.mantenimientos.promedio_horas,
-                            )}
-                            detalle="Según los tiempos registrados"
-                            icono={Timer}
-                            tono="sky"
-                        />
-                        <StatTile
-                            etiqueta="Calibraciones"
-                            valor={String(datos.totales.calibraciones.cantidad)}
-                            detalle="Terminadas en el periodo"
-                            icono={Gauge}
-                            tono="violet"
-                            testId="desempeno-calibraciones"
-                        />
-                        <StatTile
-                            etiqueta="Tiempo promedio de calibración"
-                            valor={formatearHoras(
-                                datos.totales.calibraciones.promedio_horas,
-                            )}
-                            detalle="Según los tiempos registrados"
-                            icono={Timer}
-                            tono="violet"
-                        />
+                        {verMantenimientos ? (
+                            <>
+                                <StatTile
+                                    etiqueta="Mantenimientos"
+                                    valor={String(
+                                        datos.totales.mantenimientos.cantidad,
+                                    )}
+                                    detalle="Finalizados en el periodo"
+                                    icono={Wrench}
+                                    tono="sky"
+                                    testId="desempeno-mantenimientos"
+                                />
+                                <StatTile
+                                    etiqueta="Tiempo promedio de mantenimiento"
+                                    valor={formatearHoras(
+                                        datos.totales.mantenimientos
+                                            .promedio_horas,
+                                    )}
+                                    detalle="Según los tiempos registrados"
+                                    icono={Timer}
+                                    tono="sky"
+                                />
+                            </>
+                        ) : null}
+                        {verCalibraciones ? (
+                            <>
+                                <StatTile
+                                    etiqueta="Calibraciones"
+                                    valor={String(
+                                        datos.totales.calibraciones.cantidad,
+                                    )}
+                                    detalle="Terminadas en el periodo"
+                                    icono={Gauge}
+                                    tono="violet"
+                                    testId="desempeno-calibraciones"
+                                />
+                                <StatTile
+                                    etiqueta="Tiempo promedio de calibración"
+                                    valor={formatearHoras(
+                                        datos.totales.calibraciones
+                                            .promedio_horas,
+                                    )}
+                                    detalle="Según los tiempos registrados"
+                                    icono={Timer}
+                                    tono="violet"
+                                />
+                            </>
+                        ) : null}
                     </div>
 
                     <BloqueIndicador

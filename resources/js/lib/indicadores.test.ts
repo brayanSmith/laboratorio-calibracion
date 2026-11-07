@@ -4,6 +4,7 @@ import {
     formatearDias,
     formatearHoras,
     formatearPorcentaje,
+    depurarFiltrosDependientes,
     rangoDePeriodo,
     tonoMapaCalor,
 } from './indicadores';
@@ -86,5 +87,59 @@ describe('tonoMapaCalor', () => {
 
     it('is green when every value is the same', () => {
         expect(tonoMapaCalor(3, 3, 3)).toBe(120);
+    });
+});
+
+describe('depurarFiltrosDependientes', () => {
+    const opciones = {
+        areas: [{ id: 1 }, { id: 2 }],
+        laboratorios: [{ id: 'propio' }],
+        magnitudes: [{ id: 5 }],
+        tipos_equipo: [{ id: 9 }],
+    };
+
+    it('removes only the chosen values that are no longer in their list', () => {
+        expect(
+            depurarFiltrosDependientes(
+                {
+                    areas: ['1', '3'],
+                    laboratorios: ['propio', '7'],
+                    magnitudes: ['5'],
+                    tipos_equipo: [],
+                },
+                opciones,
+            ),
+        ).toEqual({
+            areas: ['1'],
+            laboratorios: ['propio'],
+            magnitudes: ['5'],
+            tipos_equipo: [],
+        });
+    });
+
+    it('returns null when everything chosen is still valid', () => {
+        expect(
+            depurarFiltrosDependientes(
+                {
+                    areas: ['2'],
+                    laboratorios: [],
+                    magnitudes: [],
+                    tipos_equipo: ['9'],
+                },
+                opciones,
+            ),
+        ).toBeNull();
+    });
+});
+
+describe('filtrosConValor con listas', () => {
+    it('keeps lists with values and drops empty ones', () => {
+        expect(
+            filtrosConValor({
+                desde: '2026-10-01',
+                areas: ['1', '2'],
+                magnitudes: [],
+            }),
+        ).toEqual({ desde: '2026-10-01', areas: ['1', '2'] });
     });
 });

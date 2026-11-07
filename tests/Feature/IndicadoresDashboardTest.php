@@ -5,7 +5,10 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\TipoMagnitud;
+use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -96,7 +99,7 @@ test('el dashboard envia las opciones de los indicadores solo a quien tiene algu
         ->assertInertia(fn ($page) => $page
             ->where('indicadores.permisos.cumplimiento', true)
             ->where('indicadores.permisos.tiempos_atencion', false)
-            ->has('indicadores.areas', 1));
+            ->missing('indicadores.areas'));
 });
 
 test('tiempos de atencion cuenta los despachos entregados en el rango y promedia los dias desde el ingreso', function () {
@@ -131,14 +134,106 @@ test('tiempos de atencion cuenta los despachos entregados en el rango y promedia
         ->assertJsonPath('equipos.2.dias', null);
 
     $this->actingAs($this->admin)
-        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorio' => 'propio']))
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorios' => ['propio']]))
         ->assertJsonCount(2, 'equipos')
         ->assertJsonPath('equipos.0.equipo', 'EQ-PROPIO');
 
     $this->actingAs($this->admin)
-        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorio' => $empresa->id]))
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorios' => [$empresa->id]]))
         ->assertJsonCount(1, 'equipos')
         ->assertJsonPath('equipos.0.equipo', 'EQ-TERCERO');
+
+    // Selección múltiple: cualquiera de los laboratorios elegidos.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorios' => ['propio', $empresa->id]]))
+        ->assertJsonCount(3, 'equipos');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorios' => ['otro']]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('laboratorios.0');
+});
+
+test('tiempos de atencion filtra por el area del equipo y por la magnitud de su especificacion tecnica', function () {
+    $presion = TipoMagnitud::factory()->create(['tenant_id' => $this->tenant->id, 'nombre' => 'Presión']);
+    $otraArea = crearArea($this->tenant, 'Otra área');
+
+    $conMagnitud = crearCicloAtencion($this->bahia, 'EQ-PRESION', '2026-10-01', '2026-10-03');
+    EquipoEspecificacionTecnica::create([
+        'equipo_id' => $conMagnitud->equipoProgramacion->equipo_id,
+        'tipo_magnitud_id' => $presion->id,
+        'unidad_medida_id' => UnidadMedida::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'alcance_indicacion' => '0 - 100 bar',
+        'precision' => '±0.1',
+        'resolucion' => '0.01',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    crearCicloAtencion(Bahia::factory()->for($otraArea)->create(), 'EQ-OTRA-AREA', '2026-10-01', '2026-10-05');
+
+    $rango = ['desde' => '2026-10-01', 'hasta' => '2026-10-31'];
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'areas' => [$otraArea->id]]))
+        ->assertOk()
+        ->assertJsonCount(1, 'equipos')
+        ->assertJsonPath('equipos.0.equipo', 'EQ-OTRA-AREA');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'magnitudes' => [$presion->id]]))
+        ->assertJsonCount(1, 'equipos')
+        ->assertJsonPath('equipos.0.equipo', 'EQ-PRESION');
+
+});
+
+test('los filtros de tiempos de atencion son listas dependientes en su orden', function () {
+    $presion = TipoMagnitud::factory()->create(['tenant_id' => $this->tenant->id, 'nombre' => 'Presión']);
+    $otraArea = crearArea($this->tenant, 'Otra área');
+    $empresa = EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id, 'nombre' => 'Metrología SAS']);
+
+    $conMagnitud = crearCicloAtencion($this->bahia, 'EQ-PRESION', '2026-10-01', '2026-10-03');
+    EquipoEspecificacionTecnica::create([
+        'equipo_id' => $conMagnitud->equipoProgramacion->equipo_id,
+        'tipo_magnitud_id' => $presion->id,
+        'unidad_medida_id' => UnidadMedida::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'alcance_indicacion' => '0 - 100 bar',
+        'precision' => '±0.1',
+        'resolucion' => '0.01',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $deTercero = crearCicloAtencion(Bahia::factory()->for($otraArea)->create(), 'EQ-TERCERO', '2026-10-01', '2026-10-05');
+    ServicioTercero::create([
+        'orden_trabajo_id' => $deTercero->id,
+        'tipo_servicio' => 'CALIBRACION',
+        'empresa_tercero_id' => $empresa->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $rango = ['desde' => '2026-10-01', 'hasta' => '2026-10-31'];
+
+    // Sin filtros: cada lista tiene todo lo del periodo; el laboratorio propio va primero.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', $rango))
+        ->assertJsonCount(2, 'opciones.areas')
+        ->assertJsonPath('opciones.laboratorios.0.id', 'propio')
+        ->assertJsonPath('opciones.laboratorios.1.nombre', 'Metrología SAS')
+        ->assertJsonPath('opciones.magnitudes.0.nombre', 'Presión')
+        ->assertJsonCount(2, 'opciones.tipos_equipo');
+
+    // Con un área: las listas siguientes solo ofrecen lo de esa área; el área sigue completa.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'areas' => [$otraArea->id]]))
+        ->assertJsonCount(2, 'opciones.areas')
+        ->assertJsonCount(1, 'opciones.laboratorios')
+        ->assertJsonPath('opciones.laboratorios.0.nombre', 'Metrología SAS')
+        ->assertJsonCount(0, 'opciones.magnitudes')
+        ->assertJsonCount(1, 'opciones.tipos_equipo');
+
+    // Con el laboratorio propio: solo la magnitud y el tipo de sus equipos.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', [...$rango, 'laboratorios' => ['propio']]))
+        ->assertJsonCount(1, 'equipos')
+        ->assertJsonPath('opciones.magnitudes.0.id', $presion->id)
+        ->assertJsonCount(1, 'opciones.tipos_equipo');
 });
 
 test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo registrado', function () {
@@ -159,8 +254,20 @@ test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo
         registrarTiempoServicio($orden, 'MANTENIMIENTO', $horas);
     }
 
+    $ordenCalibracion = crearOrdenDeIndicador(crearEquipoRecibido($this->bahia, 'EQ-CAL'));
+    $presion = TipoMagnitud::factory()->create(['tenant_id' => $this->tenant->id]);
+    EquipoEspecificacionTecnica::create([
+        'equipo_id' => $ordenCalibracion->equipoProgramacion->equipo_id,
+        'tipo_magnitud_id' => $presion->id,
+        'unidad_medida_id' => UnidadMedida::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'alcance_indicacion' => '0 - 100 bar',
+        'precision' => '±0.1',
+        'resolucion' => '0.01',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
     Calibracion::create([
-        'orden_trabajo_id' => crearOrdenDeIndicador(crearEquipoRecibido($this->bahia, 'EQ-CAL'))->id,
+        'orden_trabajo_id' => $ordenCalibracion->id,
         'fecha_calibracion' => '2026-10-06',
         'tecnico_id' => $tecnico->id,
         'estado_calibracion' => 'FINALIZADO',
@@ -199,12 +306,48 @@ test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo
         ->assertJsonPath('totales.calibraciones.promedio_horas', null)
         ->assertJsonPath('responsables.0.responsable', 'Ana Técnica')
         ->assertJsonPath('responsables.0.mantenimientos.cantidad', 2)
-        ->assertJsonPath('responsables.1.tipo', 'TERCERO');
+        ->assertJsonPath('responsables.1.tipo', 'TERCERO')
+        ->assertJsonCount(1, 'mensual')
+        ->assertJsonPath('mensual.0.mes', '2026-10')
+        ->assertJsonPath('mensual.0.mantenimientos.cantidad', 3)
+        ->assertJsonPath('mensual.0.calibraciones.cantidad', 1);
 
     $this->actingAs($this->admin)
-        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'tecnico_id' => $tecnico->id]))
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'tecnicos' => [$tecnico->id]]))
         ->assertJsonCount(1, 'responsables')
         ->assertJsonPath('totales.mantenimientos.cantidad', 2);
+
+    // Solo calibraciones: ni los mantenimientos propios ni los de terceros.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'servicios' => ['CALIBRACION']]))
+        ->assertJsonPath('totales.mantenimientos.cantidad', 0)
+        ->assertJsonPath('totales.calibraciones.cantidad', 1)
+        ->assertJsonCount(1, 'responsables');
+
+    // Por la magnitud del equipo: solo el equipo con esa especificación técnica.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'magnitudes' => [$presion->id]]))
+        ->assertJsonPath('totales.mantenimientos.cantidad', 0)
+        ->assertJsonPath('totales.calibraciones.cantidad', 1);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'servicios' => ['OTRO']]))
+        ->assertJsonValidationErrors('servicios.0');
+
+    // Listas dependientes: el laboratorio propio primero; una empresa tercera no tiene técnicos.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', $rango))
+        ->assertJsonPath('opciones.laboratorios.0.id', 'propio')
+        ->assertJsonCount(2, 'opciones.laboratorios')
+        ->assertJsonCount(1, 'opciones.tecnicos')
+        ->assertJsonPath('opciones.tecnicos.0.nombre', 'Ana Técnica');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'laboratorios' => [$empresa->id]]))
+        ->assertJsonCount(2, 'opciones.laboratorios')
+        ->assertJsonCount(0, 'opciones.tecnicos')
+        ->assertJsonPath('totales.mantenimientos.cantidad', 1)
+        ->assertJsonPath('responsables.0.tipo', 'TERCERO');
 });
 
 test('cumplimiento compara los equipos con preventivo programado contra los que tienen el servicio finalizado', function () {
@@ -232,12 +375,29 @@ test('cumplimiento compara los equipos con preventivo programado contra los que 
         ->assertJsonPath('resumen.porcentaje', 33.3)
         ->assertJsonPath('por_area.0.programados', 3)
         ->assertJsonCount(2, 'pendientes')
-        ->assertJsonPath('pendientes.0.equipo', 'EQ-PENDIENTE-1');
+        ->assertJsonPath('pendientes.0.equipo', 'EQ-PENDIENTE-1')
+        // Listas dependientes: las áreas y los tipos de equipo del periodo.
+        ->assertJsonCount(1, 'opciones.areas')
+        ->assertJsonCount(3, 'opciones.tipos_equipo');
 
     $otraArea = crearArea($this->tenant, 'Otra área');
+    $rango = ['desde' => '2026-10-01', 'hasta' => '2026-10-31'];
 
     $this->actingAs($this->admin)
-        ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31', 'area_id' => $otraArea->id]))
+        ->getJson(route('dashboard.indicadores.cumplimiento', [...$rango, 'areas' => [$otraArea->id]]))
         ->assertJsonPath('resumen.programados', 0)
         ->assertJsonPath('resumen.porcentaje', null);
+
+    // Tipo de mantenimiento del tipo de equipo: los de la prueba son de tipo A.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', [...$rango, 'tipos_mantenimiento' => ['A']]))
+        ->assertJsonPath('resumen.programados', 3);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', [...$rango, 'tipos_mantenimiento' => ['B']]))
+        ->assertJsonPath('resumen.programados', 0);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', [...$rango, 'tipos_mantenimiento' => ['C']]))
+        ->assertJsonValidationErrors('tipos_mantenimiento.0');
 });

@@ -1,33 +1,14 @@
-/** Opción de un filtro de los indicadores (técnico, empresa, tipo de equipo, área). */
-export type IndicadorOption = {
-    id: number;
-    nombre: string;
-};
-
-/** Qué indicadores ve el usuario y las opciones de sus filtros (ver DashboardController). */
+/**
+ * Qué indicadores ve el usuario (ver DashboardController). Las opciones de sus filtros
+ * llegan con los datos de cada indicador, como listas dependientes.
+ */
 export type IndicadoresDashboard = {
     permisos: {
         tiempos_atencion: boolean;
         desempeno_tecnicos: boolean;
         cumplimiento: boolean;
     };
-    tecnicos: IndicadorOption[];
-    empresasTerceras: IndicadorOption[];
-    tiposEquipo: IndicadorOption[];
-    areas: IndicadorOption[];
 };
-
-/** Filtros de los indicadores; cada uno usa los que le aplican. */
-export type FiltrosIndicador = {
-    desde: string;
-    hasta: string;
-    /** "propio" o el id de una empresa tercera; vacío para todos. */
-    laboratorio?: string;
-    tecnico_id?: string;
-    tipo_equipo_id?: string;
-    area_id?: string;
-};
-
 export type TiemposAtencion = {
     resumen: {
         /** Despachos con la entrega recibida en el rango. */
@@ -50,6 +31,28 @@ export type TiemposAtencion = {
         fecha_despacho: string;
         dias: number | null;
     }[];
+    /**
+     * Opciones de los filtros como listas dependientes (área → laboratorio → magnitud → tipo
+     * de equipo): cada una con lo que dejan los filtros anteriores.
+     */
+    opciones: {
+        areas: OpcionFiltroDependiente[];
+        /** El laboratorio propio llega con el id "propio". */
+        laboratorios: OpcionFiltroDependiente[];
+        magnitudes: OpcionFiltroDependiente[];
+        tipos_equipo: OpcionFiltroDependiente[];
+    };
+    mensual: {
+        mes: string;
+        cantidad: number;
+        promedio_dias: number | null;
+    }[];
+    objetivos: ObjetivosDelPeriodo;
+};
+
+export type OpcionFiltroDependiente = {
+    id: number | string;
+    nombre: string;
 };
 
 export type ResumenServicios = {
@@ -69,6 +72,20 @@ export type DesempenoTecnicos = {
     totales: {
         mantenimientos: ResumenServicios;
         calibraciones: ResumenServicios;
+    };
+    mensual: {
+        mes: string;
+        mantenimientos: ResumenServicios;
+        calibraciones: ResumenServicios;
+    }[];
+    objetivos: ObjetivosDelPeriodo;
+    /** Listas dependientes: laboratorio → técnico → magnitud → tipo de equipo. */
+    opciones: {
+        /** El laboratorio propio llega con el id "propio". */
+        laboratorios: OpcionFiltroDependiente[];
+        tecnicos: OpcionFiltroDependiente[];
+        magnitudes: OpcionFiltroDependiente[];
+        tipos_equipo: OpcionFiltroDependiente[];
     };
 };
 
@@ -94,4 +111,49 @@ export type Cumplimiento = {
         fecha_programada: string;
         estado_programacion: string;
     }[];
+    mensual: {
+        mes: string;
+        programados: number;
+        atendidos: number;
+        porcentaje: number | null;
+    }[];
+    objetivos: ObjetivosDelPeriodo;
+    /** Listas dependientes: área → magnitud → tipo de equipo. */
+    opciones: {
+        areas: OpcionFiltroDependiente[];
+        magnitudes: OpcionFiltroDependiente[];
+        tipos_equipo: OpcionFiltroDependiente[];
+    };
+};
+
+/** Módulos del dashboard con objetivos anuales (ver ModuloObjetivo). */
+export type ModuloObjetivo =
+    'TIEMPOS_ATENCION' | 'DESEMPENO_TECNICOS' | 'CUMPLIMIENTO';
+
+/** Cada objetivo anual que se puede definir (ver ConceptoObjetivo). */
+export type ConceptoObjetivo =
+    | 'TIEMPO_ATENCION_DIAS'
+    | 'CANTIDAD_MANTENIMIENTOS'
+    | 'PROMEDIO_HORAS_MANTENIMIENTO'
+    | 'CANTIDAD_CALIBRACIONES'
+    | 'PROMEDIO_HORAS_CALIBRACION'
+    | 'CUMPLIMIENTO_PORCENTAJE';
+
+/** Objetivos de cada año del periodo de un indicador (uno por año, aunque esté vacío). */
+export type ObjetivosDelPeriodo = {
+    anio: number;
+    valores: Partial<Record<ConceptoObjetivo, number>>;
+}[];
+
+/** Objetivos de un módulo para el formulario (ver ObjetivosDashboardController). */
+export type ObjetivosModulo = {
+    conceptos: {
+        concepto: ConceptoObjetivo;
+        label: string;
+        unidad: string;
+        /** Cómo se escribe y se muestra: las horas, con horas y minutos. */
+        formato: 'horas' | 'dias' | 'cantidad' | 'porcentaje';
+        maximo: number | null;
+    }[];
+    anios: ObjetivosDelPeriodo;
 };

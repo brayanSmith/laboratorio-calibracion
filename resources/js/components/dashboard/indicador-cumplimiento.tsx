@@ -13,25 +13,45 @@ import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import {
-    aOpciones,
+    aOpcionesDependientes,
     BloqueIndicador,
+    FiltroCasillas,
     FiltroRango,
-    FiltroSeleccion,
+    FiltroSeleccionMultiple,
     Medidor,
     PanelFiltros,
     StatTile,
     tonoDePorcentaje,
+    useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
 import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fields';
 import { formatearPorcentaje, rangoPorDefecto } from '@/lib/indicadores';
-import type {
-    Cumplimiento,
-    FiltrosIndicador,
-    IndicadoresDashboard,
-} from '@/types';
+import type { Cumplimiento } from '@/types';
 
 type Pendiente = Cumplimiento['pendientes'][number];
+
+/** Periodo, filtros de selección múltiple y tipos de mantenimiento que se ven. */
+type FiltrosCumplimiento = {
+    desde: string;
+    hasta: string;
+    areas: string[];
+    magnitudes: string[];
+    tipos_equipo: string[];
+    tipos_mantenimiento: string[];
+};
+
+/** Tipo de mantenimiento del tipo de equipo. */
+const TIPOS_MANTENIMIENTO = [
+    { value: 'A', label: 'Tipo A' },
+    { value: 'B', label: 'Tipo B' },
+];
+
+const SIN_OPCIONES: Cumplimiento['opciones'] = {
+    areas: [],
+    magnitudes: [],
+    tipos_equipo: [],
+};
 
 const columnHelper = createDataTableColumnHelper<Pendiente>();
 
@@ -39,23 +59,29 @@ const columnHelper = createDataTableColumnHelper<Pendiente>();
  * Equipos con mantenimiento preventivo programado en el periodo frente a los que ya
  * tienen su servicio finalizado, en total y por área.
  */
-export default function IndicadorCumplimiento({
-    indicadores,
-}: {
-    indicadores: IndicadoresDashboard;
-}) {
-    const [filtros, setFiltros] = useState<FiltrosIndicador>({
+export default function IndicadorCumplimiento() {
+    const [filtros, setFiltros] = useState<FiltrosCumplimiento>({
         ...rangoPorDefecto(),
-        area_id: '',
-        tipo_equipo_id: '',
+        areas: [],
+        magnitudes: [],
+        tipos_equipo: [],
+        tipos_mantenimiento: TIPOS_MANTENIMIENTO.map((tipo) => tipo.value),
     });
     const { datos, cargando } = useIndicador<Cumplimiento>(
         cumplimiento,
         filtros,
     );
 
-    const cambiar = (cambios: Partial<FiltrosIndicador>) =>
+    const cambiar = (cambios: Partial<FiltrosCumplimiento>) =>
         setFiltros((actuales) => ({ ...actuales, ...cambios }));
+
+    // Listas dependientes de selección múltiple: área → magnitud → tipo de equipo.
+    const opciones = useFiltrosDependientes(
+        datos?.opciones,
+        filtros,
+        setFiltros,
+        SIN_OPCIONES,
+    );
 
     const columns = useMemo(
         () =>
@@ -114,20 +140,40 @@ export default function IndicadorCumplimiento({
                     hasta={filtros.hasta}
                     onChange={cambiar}
                 />
-                <FiltroSeleccion
+                <FiltroSeleccionMultiple
                     id="cumplimiento-area"
                     etiqueta="Área"
-                    value={filtros.area_id ?? ''}
-                    onChange={(area_id) => cambiar({ area_id })}
-                    opciones={aOpciones(indicadores.areas)}
+                    value={filtros.areas}
+                    onChange={(areas) => cambiar({ areas })}
+                    opciones={aOpcionesDependientes(opciones.areas)}
                     todos="Todas"
+                    plural="áreas"
                 />
-                <FiltroSeleccion
+                <FiltroSeleccionMultiple
+                    id="cumplimiento-magnitud"
+                    etiqueta="Magnitud"
+                    value={filtros.magnitudes}
+                    onChange={(magnitudes) => cambiar({ magnitudes })}
+                    opciones={aOpcionesDependientes(opciones.magnitudes)}
+                    todos="Todas"
+                    plural="magnitudes"
+                />
+                <FiltroSeleccionMultiple
                     id="cumplimiento-tipo-equipo"
                     etiqueta="Tipo de equipo"
-                    value={filtros.tipo_equipo_id ?? ''}
-                    onChange={(tipo_equipo_id) => cambiar({ tipo_equipo_id })}
-                    opciones={aOpciones(indicadores.tiposEquipo)}
+                    value={filtros.tipos_equipo}
+                    onChange={(tipos_equipo) => cambiar({ tipos_equipo })}
+                    opciones={aOpcionesDependientes(opciones.tipos_equipo)}
+                    plural="tipos de equipo"
+                />
+                <FiltroCasillas
+                    id="cumplimiento-tipo-mantenimiento"
+                    etiqueta="Tipo de mantenimiento"
+                    opciones={TIPOS_MANTENIMIENTO}
+                    value={filtros.tipos_mantenimiento}
+                    onChange={(tipos_mantenimiento) =>
+                        cambiar({ tipos_mantenimiento })
+                    }
                 />
             </PanelFiltros>
 

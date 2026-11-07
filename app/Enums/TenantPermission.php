@@ -16,6 +16,7 @@ enum TenantPermission: string
     case DashboardTiemposAtencion = 'dashboard.tiempos-atencion';
     case DashboardDesempenoTecnicos = 'dashboard.desempeno-tecnicos';
     case DashboardCumplimiento = 'dashboard.cumplimiento';
+    case DashboardObjetivos = 'dashboard.objetivos';
 
     // Botones del menú superior: la agenda y los atajos para agendar mantenimientos,
     // calibraciones y despachos.
@@ -171,7 +172,8 @@ enum TenantPermission: string
             self::DashboardTablaEquipos,
             self::DashboardTiemposAtencion,
             self::DashboardDesempenoTecnicos,
-            self::DashboardCumplimiento => 'Dashboard',
+            self::DashboardCumplimiento,
+            self::DashboardObjetivos => 'Dashboard',
             self::AgendaVer,
             self::AgendaVerTodos,
             self::AgendarMantenimiento,
@@ -302,13 +304,17 @@ enum TenantPermission: string
     }
 
     /**
-     * Get every permission that belongs to the dashboard.
+     * Get every dashboard permission that every role receives (all but defining goals).
      *
      * @return array<self>
      */
     public static function dashboardCases(): array
     {
-        return array_values(array_filter(self::cases(), fn (self $permission) => $permission->group() === 'Dashboard'));
+        // Definir los objetivos es de administración: no va a todos los roles con el dashboard.
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $permission) => $permission->group() === 'Dashboard' && $permission !== self::DashboardObjetivos,
+        ));
     }
 
     /**
@@ -335,6 +341,7 @@ enum TenantPermission: string
             self::DashboardTiemposAtencion => 'Indicador: tiempos de atención de equipos',
             self::DashboardDesempenoTecnicos => 'Indicador: desempeño por técnico',
             self::DashboardCumplimiento => 'Indicador: cumplimiento de lo programado',
+            self::DashboardObjetivos => 'Definir los objetivos anuales de los indicadores',
             self::AgendaVer => 'Ver la agenda',
             self::AgendaVerTodos => 'Ver la agenda de todos los técnicos (sin marcar, solo la propia)',
             self::AgendarMantenimiento => 'Agendar mantenimientos',

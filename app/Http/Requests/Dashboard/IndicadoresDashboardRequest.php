@@ -2,8 +2,12 @@
 
 namespace App\Http\Requests\Dashboard;
 
+use App\Actions\Dashboard\CalcularCumplimiento;
+use App\Actions\Dashboard\CalcularDesempenoTecnicos;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -33,17 +37,34 @@ class IndicadoresDashboardRequest extends FormRequest
         return [
             'desde' => ['required', 'date'],
             'hasta' => ['required', 'date', 'after_or_equal:desde'],
-            // "propio" (laboratorio propio) o el id de una empresa tercera.
-            'laboratorio' => [
-                'nullable',
-                Rule::when($this->input('laboratorio') !== 'propio', [
-                    'integer',
-                    Rule::exists('empresa_terceros', 'id')->where('tenant_id', $tenantId),
-                ]),
-            ],
-            'tecnico_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
-            'tipo_equipo_id' => ['nullable', 'integer', Rule::exists('tipo_equipos', 'id')->where('tenant_id', $tenantId)],
-            'area_id' => ['nullable', 'integer', Rule::exists('areas', 'id')->where('tenant_id', $tenantId)],
+            // Selección múltiple (todos los indicadores): varias áreas, laboratorios
+            // ("propio" o el id de una empresa tercera), técnicos, magnitudes y tipos de equipo.
+            'areas' => ['nullable', 'array'],
+            'areas.*' => ['integer', Rule::exists('areas', 'id')->where('tenant_id', $tenantId)],
+            'laboratorios' => ['nullable', 'array'],
+            'laboratorios.*' => [function (string $atributo, mixed $valor, Closure $fallar) use ($tenantId): void {
+                $esEmpresa = is_numeric($valor)
+                    && DB::table('empresa_terceros')->where('tenant_id', $tenantId)->where('id', (int) $valor)->exists();
+
+                if ($valor !== 'propio' && ! $esEmpresa) {
+                    $fallar(__('El laboratorio seleccionado no es válido.'));
+                }
+            }],
+            'magnitudes' => ['nullable', 'array'],
+            'magnitudes.*' => ['integer', Rule::exists('tipo_magnituds', 'id')->where('tenant_id', $tenantId)],
+            'tipos_equipo' => ['nullable', 'array'],
+            'tipos_equipo.*' => ['integer', Rule::exists('tipo_equipos', 'id')->where('tenant_id', $tenantId)],
+
+            'tecnicos' => ['nullable', 'array'],
+            'tecnicos.*' => ['integer', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
+
+            // Desempeño por técnico: qué servicios ver.
+            'servicios' => ['nullable', 'array'],
+            'servicios.*' => [Rule::in(CalcularDesempenoTecnicos::TIPOS_SERVICIO)],
+
+            // Cumplimiento: tipo de mantenimiento del tipo de equipo (A, B o los dos).
+            'tipos_mantenimiento' => ['nullable', 'array'],
+            'tipos_mantenimiento.*' => [Rule::in(CalcularCumplimiento::TIPOS_MANTENIMIENTO)],
         ];
     }
 
@@ -57,10 +78,13 @@ class IndicadoresDashboardRequest extends FormRequest
         return [
             'desde' => 'fecha desde',
             'hasta' => 'fecha hasta',
-            'laboratorio' => 'laboratorio',
-            'tecnico_id' => 'técnico',
-            'tipo_equipo_id' => 'tipo de equipo',
-            'area_id' => 'área',
+            'tecnicos.*' => 'técnico',
+            'areas.*' => 'área',
+            'laboratorios.*' => 'laboratorio',
+            'magnitudes.*' => 'magnitud',
+            'tipos_equipo.*' => 'tipo de equipo',
+            'servicios.*' => 'servicio',
+            'tipos_mantenimiento.*' => 'tipo de mantenimiento',
         ];
     }
 }
