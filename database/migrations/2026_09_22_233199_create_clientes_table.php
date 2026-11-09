@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('clientes', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->string('tipo_documento')->nullable(); // DNI, SAP o CE (ver TipoDocumentoCliente)
+            $table->string('numero_documento', 50)->nullable();
             $table->string('email');
             $table->string('telefono')->nullable();
             $table->string('direccion')->nullable();
@@ -22,6 +24,8 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->unique(['tenant_id', 'email']);
+            // El número de documento identifica al cliente dentro del tenant (por ejemplo, al importar equipos).
+            $table->unique(['tenant_id', 'numero_documento']);
         });
     }
 

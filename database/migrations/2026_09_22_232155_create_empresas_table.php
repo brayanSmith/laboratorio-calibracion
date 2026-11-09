@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('direccion');
             $table->string('telefono');
+            $table->string('laboratorio_nombre')->nullable();
+            $table->string('laboratorio_direccion')->nullable();
+            $table->string('laboratorio_email')->nullable();
+            $table->string('laboratorio_telefono')->nullable();
             $table->string('logo')->nullable();
             $table->string('color_tema', 20)->nullable(); // Color del tema de la interfaz, ej: #1d4ed8
             $table->string('color_nav', 20)->nullable(); // Color de la barra de navegación

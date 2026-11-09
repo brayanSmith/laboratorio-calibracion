@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->enum('categoria', ['INGRESO', 'MANTENIMIENTO', 'CALIBRACION', 'SALIDA']);
+            $table->boolean('inactivar_equipo')->default(false);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

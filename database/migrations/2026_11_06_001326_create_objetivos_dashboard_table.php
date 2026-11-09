@@ -16,13 +16,15 @@ return new class extends Migration
         Schema::create('objetivos_dashboard', function (Blueprint $table) {
             $table->id();
             $table->unsignedSmallInteger('anio');
+            $table->unsignedTinyInteger('mes')->nullable(); // Solo en los módulos con objetivos por mes y tipo de equipo
+            $table->foreignId('tipo_equipo_id')->nullable()->constrained('tipo_equipos')->cascadeOnDelete();
             $table->string('modulo', 40);
             $table->string('concepto', 60);
             $table->decimal('valor', 12, 2);
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();
 
-            $table->unique(['tenant_id', 'anio', 'concepto']);
+            $table->unique(['tenant_id', 'anio', 'mes', 'tipo_equipo_id', 'concepto'], 'objetivos_dashboard_unico');
             $table->index(['tenant_id', 'modulo', 'anio']);
         });
     }

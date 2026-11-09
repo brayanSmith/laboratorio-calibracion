@@ -19,12 +19,14 @@ return new class extends Migration
             $table->string('delimitador', 1);
             $table->string('codificacion');
             $table->json('mapeo'); // campo del sistema => encabezado del CSV
+            $table->string('lote_adjuntos', 40)->nullable();
             $table->enum('estado', ['PENDIENTE', 'PROCESANDO', 'COMPLETADA', 'FALLIDA'])->default('PENDIENTE');
             $table->unsignedInteger('total_filas')->default(0);
             $table->unsignedInteger('filas_procesadas')->default(0);
             $table->unsignedInteger('filas_creadas')->default(0);
             $table->unsignedInteger('filas_con_error')->default(0);
             $table->json('errores')->nullable(); // [{fila, mensaje}], limitado para no crecer sin control
+            $table->timestamp('leida_en')->nullable(); // Cuándo el usuario revisó el resultado; null si aún no lo ha visto
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->timestamps();

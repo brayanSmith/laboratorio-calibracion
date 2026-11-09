@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('mantenimientos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('orden_trabajo_id')->constrained('orden_trabajos')->onDelete('cascade');
+            $table->date('fecha_programada')->nullable();
+            $table->date('fecha_realizacion')->nullable();
             $table->enum('tipo_mantenimiento', ['PREVENTIVO', 'CORRECTIVO']);
             $table->date('fecha_mantenimiento');
             $table->text('descripcion')->nullable();

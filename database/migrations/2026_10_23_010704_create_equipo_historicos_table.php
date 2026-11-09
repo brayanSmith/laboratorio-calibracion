@@ -14,9 +14,10 @@ return new class extends Migration
         Schema::create('equipo_historicos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('equipo_id')->constrained()->onDelete('cascade');
+            $table->string('tipo_servicio'); // MANTENIMIENTO o CALIBRACION
             $table->date('fecha_servicio');
-            $table->string('nombre_laboratorio');
             $table->boolean('es_tercero')->default(false);
+            $table->foreignId('empresa_tercero_id')->nullable()->constrained('empresa_terceros')->nullOnDelete();
             $table->string('adjunto')->nullable();
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->timestamps();

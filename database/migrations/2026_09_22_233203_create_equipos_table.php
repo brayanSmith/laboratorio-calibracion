@@ -23,10 +23,11 @@ return new class extends Migration
             $table->foreignId('area_id')->constrained('areas')->onDelete('cascade');
             $table->foreignId('bahia_id')->constrained('bahias')->onDelete('cascade');
             $table->string('condicion_actual');
+            $table->string('criticidad')->nullable();
             $table->string('notas')->nullable();
             $table->boolean('activo')->default(true);
+            $table->string('motivo_inactivo')->nullable();
             $table->boolean('patron_referencia')->default(false);
-            $table->string('concatenar_codigo_nombre')->nullable();
             $table->boolean('requiere_programacion')->default(true);
             $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');

@@ -29,16 +29,3 @@ test('el factory de areas crea un area valida del tenant', function () {
 
     expect($area->tenant_id)->toBe($tenant->id)->and($area->nombre)->not->toBeEmpty();
 });
-
-test('la migracion intercambia nombre y descripcion de las areas por defecto una sola vez', function () {
-    $tenant = Tenant::factory()->create();
-    $codigo = Area::factory()->for($tenant)->create(['nombre' => 'Taller de Soldadura', 'descripcion' => 'TSOL']);
-    $propia = Area::factory()->for($tenant)->create(['nombre' => 'Mi área', 'descripcion' => 'Área propia']);
-
-    $migracion = require database_path('migrations/2026_10_17_015032_swap_nombre_and_descripcion_in_default_areas.php');
-    $migracion->up();
-    $migracion->up();
-
-    expect($codigo->fresh())->nombre->toBe('TSOL')->descripcion->toBe('Taller de Soldadura')
-        ->and($propia->fresh())->nombre->toBe('Mi área')->descripcion->toBe('Área propia');
-});

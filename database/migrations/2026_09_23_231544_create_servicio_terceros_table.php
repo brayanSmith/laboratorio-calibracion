@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('servicio_terceros', function (Blueprint $table) {
             $table->id();
             $table->foreignId('orden_trabajo_id')->constrained('orden_trabajos')->onDelete('cascade');
+            $table->date('fecha_programada')->nullable();
+            $table->date('fecha_realizacion')->nullable();
             $table->enum('tipo_servicio', ['MANTENIMIENTO', 'CALIBRACION']);
             $table->foreignId('empresa_tercero_id')->constrained('empresa_terceros')->onDelete('cascade');
             $table->string('pdf_servicio')->nullable();
