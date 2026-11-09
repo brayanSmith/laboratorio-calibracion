@@ -1,6 +1,6 @@
 import { createColumnHelper, useTable } from '@tanstack/react-table';
-import { Fragment, useCallback, useMemo, useState } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { MouseEvent } from 'react';
 import type { ColumnDef, RowData } from '@tanstack/react-table';
 import {
     ChevronDown,
@@ -43,13 +43,8 @@ type Props<TData extends RowData> = {
     rowTestId?: string;
     /** Filtros de columna con los que arranca la tabla. */
     initialColumnFilters?: { id: string; value: unknown }[];
-    /**
-     * Contenido debajo de una fila cuando está expandida (ej. sus registros); la columna
-     * con el botón para expandir la define quien usa la tabla.
-     */
-    renderDetalle?: (fila: TData) => ReactNode;
-    /** Si la fila muestra su detalle (ver renderDetalle). */
-    filaExpandida?: (fila: TData) => boolean;
+    /** Al tocar una fila (si la tabla no tiene columna de acciones), ej. abrir su detalle. */
+    onFilaClick?: (fila: TData) => void;
 };
 
 /** Columna con los botones de acción de cada fila (la misma que muestra el menú de la fila). */
@@ -66,8 +61,7 @@ export default function DataTable<TData extends RowData>({
     pageSize = 10,
     rowTestId,
     initialColumnFilters,
-    renderDetalle,
-    filaExpandida,
+    onFilaClick,
 }: Props<TData>) {
     // Cada columna filtra por texto (sin tildes ni mayúsculas) o, si declara opciones, por
     // coincidencia exacta con la opción elegida.
@@ -308,41 +302,31 @@ export default function DataTable<TData extends RowData>({
                     </thead>
                     <tbody className="divide-y">
                         {rows.map((row) => (
-                            <Fragment key={row.id}>
-                                <tr
-                                    data-test={rowTestId}
-                                    onClick={
-                                        tieneAcciones
-                                            ? (evento) =>
-                                                  abrirMenu(evento, row.id)
-                                            : undefined
-                                    }
-                                    className={cn(
-                                        'transition-colors hover:bg-primary/10',
-                                        tieneAcciones && 'cursor-pointer',
-                                        menu?.visible &&
-                                            menu.filaId === row.id &&
-                                            'bg-primary/10',
-                                    )}
-                                >
-                                    {row.getAllCells().map((cell) => (
-                                        <td key={cell.id} className="px-4 py-3">
-                                            <table.FlexRender cell={cell} />
-                                        </td>
-                                    ))}
-                                </tr>
-                                {renderDetalle &&
-                                filaExpandida?.(row.original) ? (
-                                    <tr data-test="data-table-detalle">
-                                        <td
-                                            colSpan={columns.length}
-                                            className="bg-muted/30 px-4 py-3"
-                                        >
-                                            {renderDetalle(row.original)}
-                                        </td>
-                                    </tr>
-                                ) : null}
-                            </Fragment>
+                            <tr
+                                key={row.id}
+                                data-test={rowTestId}
+                                onClick={
+                                    tieneAcciones
+                                        ? (evento) => abrirMenu(evento, row.id)
+                                        : onFilaClick
+                                          ? () => onFilaClick(row.original)
+                                          : undefined
+                                }
+                                className={cn(
+                                    'transition-colors hover:bg-primary/10',
+                                    (tieneAcciones || onFilaClick) &&
+                                        'cursor-pointer',
+                                    menu?.visible &&
+                                        menu.filaId === row.id &&
+                                        'bg-primary/10',
+                                )}
+                            >
+                                {row.getAllCells().map((cell) => (
+                                    <td key={cell.id} className="px-4 py-3">
+                                        <table.FlexRender cell={cell} />
+                                    </td>
+                                ))}
+                            </tr>
                         ))}
 
                         {rows.length === 0 ? (

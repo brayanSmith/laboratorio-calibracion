@@ -1,10 +1,11 @@
 import { useHttp } from '@inertiajs/react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import Combobox from '@/components/combobox';
 import MultiCombobox from '@/components/multi-combobox';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -198,18 +199,65 @@ export function StatTile({
 }
 
 /** Panel de filtros de un indicador, sobre un fondo suave para separarlo de los datos. */
-export function PanelFiltros({ children }: { children: ReactNode }) {
+export function PanelFiltros({
+    children,
+    onBuscar,
+    hayCambios,
+    buscando,
+}: {
+    children: ReactNode;
+    /** Aplica los filtros: el indicador solo se vuelve a pedir al buscar. */
+    onBuscar: () => void;
+    /** Si hay filtros cambiados que aún no se aplicaron. */
+    hayCambios: boolean;
+    buscando: boolean;
+}) {
     return (
         <div className="rounded-xl border bg-muted/40 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <SlidersHorizontal className="h-4 w-4" />
                 Filtros
+                {hayCambios ? (
+                    <span className="text-xs font-normal">
+                        · Hay cambios sin aplicar
+                    </span>
+                ) : null}
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {children}
             </div>
+            <div className="mt-3 flex justify-end">
+                <Button
+                    type="button"
+                    onClick={onBuscar}
+                    loading={buscando}
+                    variant={hayCambios ? 'default' : 'outline'}
+                    data-test="indicador-buscar"
+                >
+                    <Search className="h-4 w-4" />
+                    Buscar
+                </Button>
+            </div>
         </div>
     );
+}
+
+/**
+ * Filtros de un indicador con búsqueda explícita: `borrador` es lo que se va eligiendo en
+ * el panel y `filtros` lo aplicado (lo que se pide al servidor y con lo que se calculan
+ * los datos). Al buscar, el borrador pasa a ser lo aplicado.
+ */
+export function useFiltrosConBusqueda<T>(iniciales: T) {
+    const [borrador, setBorrador] = useState<T>(iniciales);
+    const [filtros, setFiltros] = useState<T>(iniciales);
+
+    return {
+        borrador,
+        setBorrador,
+        filtros,
+        buscar: () => setFiltros(borrador),
+        hayCambios: JSON.stringify(borrador) !== JSON.stringify(filtros),
+    };
 }
 
 /** Tarjeta con título e icono para un bloque de detalle (tabla, avance por área...). */

@@ -1,12 +1,4 @@
-import {
-    ChartLine,
-    ChevronRight,
-    Gauge,
-    Timer,
-    Target,
-    Users,
-    Wrench,
-} from 'lucide-react';
+import { ChartLine, Gauge, Timer, Target, Users, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { desempenoTecnicos } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
@@ -22,22 +14,22 @@ import {
     FiltroSeleccionMultiple,
     PanelFiltros,
     StatTile,
+    useFiltrosConBusqueda,
     useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
 import BarraCumplimiento from '@/components/dashboard/barra-cumplimiento';
 import GraficoSeries from '@/components/dashboard/grafico-series';
+import RegistrosResponsableModal from '@/components/dashboard/registros-responsable-modal';
 import TarjetaCumplimiento from '@/components/dashboard/tarjeta-cumplimiento';
 import type { SerieGrafico } from '@/components/dashboard/grafico-series';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     formatearCantidad,
     formatearHoras,
     rangoPorDefecto,
 } from '@/lib/indicadores';
 import {
-    cumplimientoDelRegistro,
     cumplimientoDelResponsable,
     resumenDeCumplimiento,
 } from '@/lib/cumplimiento-responsable';
@@ -158,129 +150,6 @@ function CeldaCumplimientoTiempo({
     );
 }
 
-/** Badge del servicio, con el color de su serie en los gráficos. */
-function BadgeServicio({
-    servicio,
-}: {
-    servicio: 'MANTENIMIENTO' | 'CALIBRACION';
-}) {
-    return servicio === 'MANTENIMIENTO' ? (
-        <Badge className="border-transparent bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
-            Mantenimiento
-        </Badge>
-    ) : (
-        <Badge className="border-transparent bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">
-            Calibración
-        </Badge>
-    );
-}
-
-/** Identifica al responsable de una fila (un técnico y una empresa pueden tener el mismo id). */
-const claveResponsable = (fila: Responsable) =>
-    `${fila.tipo}|${fila.responsable_id}`;
-
-const formatoFecha = new Intl.DateTimeFormat('es', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-});
-
-/**
- * Los servicios de un responsable en el periodo, del más reciente al más antiguo, cada
- * uno con su cumplimiento de tiempo frente al objetivo de su tipo de equipo.
- */
-function RegistrosDelResponsable({
-    datos,
-    servicios,
-}: {
-    datos: DesempenoTecnicos;
-    servicios: DesempenoTecnicos['servicios'];
-}) {
-    if (servicios.length === 0) {
-        return (
-            <p className="text-sm text-muted-foreground">
-                Sin registros de los servicios que se están viendo.
-            </p>
-        );
-    }
-
-    const ordenados = [...servicios].sort((a, b) =>
-        b.fecha.localeCompare(a.fecha),
-    );
-
-    return (
-        <div className="overflow-x-auto rounded-md border bg-background">
-            <table
-                className="w-full text-xs"
-                data-test="desempeno-registros-responsable"
-            >
-                <thead className="bg-muted/50 text-left text-muted-foreground">
-                    <tr>
-                        <th className="px-3 py-2 font-medium">Fecha</th>
-                        <th className="px-3 py-2 font-medium">Servicio</th>
-                        <th className="px-3 py-2 font-medium">
-                            Orden de trabajo
-                        </th>
-                        <th className="px-3 py-2 font-medium">Equipo</th>
-                        <th className="px-3 py-2 font-medium">
-                            Tipo de equipo
-                        </th>
-                        <th className="px-3 py-2 font-medium">Magnitud</th>
-                        <th className="px-3 py-2 text-right font-medium">
-                            Tiempo
-                        </th>
-                        <th className="px-3 py-2 font-medium">Cumplimiento</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y">
-                    {ordenados.map((servicio, indice) => {
-                        const cumplimiento = cumplimientoDelRegistro(
-                            datos,
-                            servicio,
-                        );
-
-                        return (
-                            <tr key={`${servicio.orden_trabajo}-${indice}`}>
-                                <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                                    {formatoFecha.format(
-                                        new Date(`${servicio.fecha}T00:00:00Z`),
-                                    )}
-                                </td>
-                                <td className="px-3 py-2">
-                                    <BadgeServicio
-                                        servicio={servicio.tipo_servicio}
-                                    />
-                                </td>
-                                <td className="px-3 py-2 font-medium">
-                                    {servicio.orden_trabajo ?? '—'}
-                                </td>
-                                <td className="px-3 py-2">
-                                    {servicio.equipo ?? '—'}
-                                </td>
-                                <td className="px-3 py-2">
-                                    {servicio.tipo_equipo ?? '—'}
-                                </td>
-                                <td className="px-3 py-2">
-                                    {servicio.magnitud ?? '—'}
-                                </td>
-                                <td className="px-3 py-2 text-right">
-                                    {celdaHoras(servicio.horas)}
-                                </td>
-                                <td className="px-3 py-2">
-                                    <CeldaCumplimientoTiempo
-                                        cumplimiento={cumplimiento}
-                                    />
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
 /** Cantidad, su cumplimiento, tiempo promedio y su cumplimiento de un servicio. */
 function columnasDelServicio(serie: (typeof SERVICIOS_TABLA)[number]) {
     return [
@@ -367,29 +236,30 @@ const celdaHoras = (horas: number | null) => (
  * periodo, con su cantidad y su tiempo promedio.
  */
 export default function IndicadorDesempenoTecnicos() {
-    const [filtros, setFiltros] = useState<FiltrosDesempeno>({
-        ...rangoPorDefecto(),
-        origen: 'LOCAL',
-        laboratorios: [],
-        tecnicos: [],
-        magnitudes: [],
-        tipos_equipo: [],
-        servicios: SERVICIOS.map((servicio) => servicio.value),
-    });
+    const { borrador, setBorrador, filtros, buscar, hayCambios } =
+        useFiltrosConBusqueda<FiltrosDesempeno>({
+            ...rangoPorDefecto(),
+            origen: 'LOCAL',
+            laboratorios: [],
+            tecnicos: [],
+            magnitudes: [],
+            tipos_equipo: [],
+            servicios: SERVICIOS.map((servicio) => servicio.value),
+        });
     const { datos, cargando } = useIndicador<DesempenoTecnicos>(
         desempenoTecnicos,
         filtros,
     );
 
     const cambiar = (cambios: Partial<FiltrosDesempeno>) =>
-        setFiltros((actuales) => ({ ...actuales, ...cambios }));
+        setBorrador((actuales) => ({ ...actuales, ...cambios }));
 
     // Listas dependientes de selección múltiple: laboratorio → técnico → magnitud → tipo
     // de equipo (las empresas terceras no tienen técnicos).
     const opciones = useFiltrosDependientes(
         datos?.opciones,
-        filtros,
-        setFiltros,
+        borrador,
+        setBorrador,
         SIN_OPCIONES,
     );
 
@@ -444,67 +314,12 @@ export default function IndicadorDesempenoTecnicos() {
             };
         });
 
-    // Responsables con sus registros a la vista (por "tipo|id").
-    const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
-    const alternarExpandido = (clave: string) =>
-        setExpandidos((actuales) => {
-            const siguientes = new Set(actuales);
-
-            if (siguientes.has(clave)) {
-                siguientes.delete(clave);
-            } else {
-                siguientes.add(clave);
-            }
-
-            return siguientes;
-        });
+    // Responsable cuyos registros se ven en la ventana (al tocar su fila).
+    const [seleccionado, setSeleccionado] = useState<Responsable | null>(null);
 
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.display({
-                    id: 'expandir',
-                    header: '',
-                    enableSorting: false,
-                    cell: ({ row }) => {
-                        const abierto = expandidos.has(
-                            claveResponsable(row.original),
-                        );
-
-                        return (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                aria-expanded={abierto}
-                                aria-label={
-                                    abierto
-                                        ? 'Ocultar registros'
-                                        : 'Ver registros'
-                                }
-                                title={
-                                    abierto
-                                        ? 'Ocultar registros'
-                                        : 'Ver registros'
-                                }
-                                onClick={() =>
-                                    alternarExpandido(
-                                        claveResponsable(row.original),
-                                    )
-                                }
-                                data-test="desempeno-expandir"
-                            >
-                                <ChevronRight
-                                    className={cn(
-                                        'h-4 w-4 transition-transform',
-                                        abierto && 'rotate-90',
-                                    )}
-                                />
-                            </Button>
-                        );
-                    },
-                }),
                 columnHelper.accessor('responsable', {
                     header: 'Responsable',
                     cell: ({ row }) => (
@@ -536,7 +351,7 @@ export default function IndicadorDesempenoTecnicos() {
                         (serie.servicio === 'CALIBRACION' && verCalibraciones),
                 ).flatMap(columnasDelServicio),
             ]),
-        [verMantenimientos, verCalibraciones, expandidos],
+        [verMantenimientos, verCalibraciones],
     );
 
     // Cada responsable con su cumplimiento frente a los objetivos del periodo filtrado.
@@ -604,28 +419,32 @@ export default function IndicadorDesempenoTecnicos() {
             className="grid min-w-0 grid-cols-1 gap-4"
             data-test="indicador-desempeno-tecnicos"
         >
-            <PanelFiltros>
+            <PanelFiltros
+                onBuscar={buscar}
+                hayCambios={hayCambios}
+                buscando={cargando}
+            >
                 <FiltroRango
                     id="desempeno-tecnicos"
-                    desde={filtros.desde}
-                    hasta={filtros.hasta}
+                    desde={borrador.desde}
+                    hasta={borrador.hasta}
                     onChange={cambiar}
                 />
                 <FiltroAlternativa
                     id="desempeno-origen"
                     etiqueta="Origen"
                     opciones={ORIGENES}
-                    value={filtros.origen}
+                    value={borrador.origen}
                     // Al cambiar de origen, lo elegido del otro ya no aplica.
                     onChange={(origen) =>
                         cambiar({ origen, laboratorios: [], tecnicos: [] })
                     }
                 />
-                {filtros.origen === 'LOCAL' ? (
+                {borrador.origen === 'LOCAL' ? (
                     <FiltroSeleccionMultiple
                         id="desempeno-tecnicos-tecnico"
                         etiqueta="Técnico"
-                        value={filtros.tecnicos}
+                        value={borrador.tecnicos}
                         onChange={(tecnicos) => cambiar({ tecnicos })}
                         opciones={aOpcionesDependientes(opciones.tecnicos)}
                         plural="técnicos"
@@ -634,7 +453,7 @@ export default function IndicadorDesempenoTecnicos() {
                     <FiltroSeleccionMultiple
                         id="desempeno-tecnicos-laboratorio"
                         etiqueta="Laboratorio tercero"
-                        value={filtros.laboratorios}
+                        value={borrador.laboratorios}
                         onChange={(laboratorios) => cambiar({ laboratorios })}
                         opciones={aOpcionesDependientes(opciones.laboratorios)}
                         plural="laboratorios"
@@ -643,7 +462,7 @@ export default function IndicadorDesempenoTecnicos() {
                 <FiltroSeleccionMultiple
                     id="desempeno-tecnicos-magnitud"
                     etiqueta="Magnitud"
-                    value={filtros.magnitudes}
+                    value={borrador.magnitudes}
                     onChange={(magnitudes) => cambiar({ magnitudes })}
                     opciones={aOpcionesDependientes(opciones.magnitudes)}
                     todos="Todas"
@@ -652,7 +471,7 @@ export default function IndicadorDesempenoTecnicos() {
                 <FiltroSeleccionMultiple
                     id="desempeno-tecnicos-tipo-equipo"
                     etiqueta="Tipo de equipo"
-                    value={filtros.tipos_equipo}
+                    value={borrador.tipos_equipo}
                     onChange={(tipos_equipo) => cambiar({ tipos_equipo })}
                     opciones={aOpcionesDependientes(opciones.tipos_equipo)}
                     plural="tipos de equipo"
@@ -661,7 +480,7 @@ export default function IndicadorDesempenoTecnicos() {
                     id="desempeno-servicio"
                     etiqueta="Servicios"
                     opciones={SERVICIOS}
-                    value={servicios}
+                    value={borrador.servicios}
                     onChange={(elegidos) => cambiar({ servicios: elegidos })}
                 />
             </PanelFiltros>
@@ -778,24 +597,7 @@ export default function IndicadorDesempenoTecnicos() {
                         <DataTable
                             data={filas}
                             columns={columns}
-                            filaExpandida={(fila) =>
-                                expandidos.has(claveResponsable(fila))
-                            }
-                            renderDetalle={(fila) => (
-                                <RegistrosDelResponsable
-                                    datos={datos}
-                                    servicios={datos.servicios.filter(
-                                        (servicio) =>
-                                            servicio.responsable_tipo ===
-                                                fila.tipo &&
-                                            servicio.responsable_id ===
-                                                fila.responsable_id &&
-                                            servicios.includes(
-                                                servicio.tipo_servicio,
-                                            ),
-                                    )}
-                                />
-                            )}
+                            onFilaClick={setSeleccionado}
                             searchPlaceholder="Buscar técnico o empresa..."
                             emptyMessage="No hay servicios finalizados en este periodo."
                             rowTestId="desempeno-tecnicos-row"
@@ -807,8 +609,20 @@ export default function IndicadorDesempenoTecnicos() {
                             hecho con los objetivos del técnico en el periodo
                             (Objetivos → Por usuario); el de tiempo, su promedio
                             con el objetivo de los tipos de equipo que atendió.
+                            Toca una fila para ver sus registros.
                         </p>
                     </BloqueIndicador>
+
+                    <RegistrosResponsableModal
+                        datos={datos}
+                        responsable={seleccionado}
+                        servicios={servicios}
+                        onOpenChange={(abierta) => {
+                            if (!abierta) {
+                                setSeleccionado(null);
+                            }
+                        }}
+                    />
                 </>
             )}
         </div>

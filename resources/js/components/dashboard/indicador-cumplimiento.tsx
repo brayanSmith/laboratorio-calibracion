@@ -6,7 +6,7 @@ import {
     ListTodo,
     Target,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { cumplimiento } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
 import DataTable, {
@@ -22,6 +22,7 @@ import {
     PanelFiltros,
     StatTile,
     tonoDePorcentaje,
+    useFiltrosConBusqueda,
     useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
@@ -60,26 +61,27 @@ const columnHelper = createDataTableColumnHelper<Pendiente>();
  * tienen su servicio finalizado, en total y por área.
  */
 export default function IndicadorCumplimiento() {
-    const [filtros, setFiltros] = useState<FiltrosCumplimiento>({
-        ...rangoPorDefecto(),
-        areas: [],
-        magnitudes: [],
-        tipos_equipo: [],
-        tipos_mantenimiento: TIPOS_MANTENIMIENTO.map((tipo) => tipo.value),
-    });
+    const { borrador, setBorrador, filtros, buscar, hayCambios } =
+        useFiltrosConBusqueda<FiltrosCumplimiento>({
+            ...rangoPorDefecto(),
+            areas: [],
+            magnitudes: [],
+            tipos_equipo: [],
+            tipos_mantenimiento: TIPOS_MANTENIMIENTO.map((tipo) => tipo.value),
+        });
     const { datos, cargando } = useIndicador<Cumplimiento>(
         cumplimiento,
         filtros,
     );
 
     const cambiar = (cambios: Partial<FiltrosCumplimiento>) =>
-        setFiltros((actuales) => ({ ...actuales, ...cambios }));
+        setBorrador((actuales) => ({ ...actuales, ...cambios }));
 
     // Listas dependientes de selección múltiple: área → magnitud → tipo de equipo.
     const opciones = useFiltrosDependientes(
         datos?.opciones,
-        filtros,
-        setFiltros,
+        borrador,
+        setBorrador,
         SIN_OPCIONES,
     );
 
@@ -136,17 +138,21 @@ export default function IndicadorCumplimiento() {
             className="grid min-w-0 grid-cols-1 gap-4"
             data-test="indicador-cumplimiento"
         >
-            <PanelFiltros>
+            <PanelFiltros
+                onBuscar={buscar}
+                hayCambios={hayCambios}
+                buscando={cargando}
+            >
                 <FiltroRango
                     id="cumplimiento"
-                    desde={filtros.desde}
-                    hasta={filtros.hasta}
+                    desde={borrador.desde}
+                    hasta={borrador.hasta}
                     onChange={cambiar}
                 />
                 <FiltroSeleccionMultiple
                     id="cumplimiento-area"
                     etiqueta="Área"
-                    value={filtros.areas}
+                    value={borrador.areas}
                     onChange={(areas) => cambiar({ areas })}
                     opciones={aOpcionesDependientes(opciones.areas)}
                     todos="Todas"
@@ -155,7 +161,7 @@ export default function IndicadorCumplimiento() {
                 <FiltroSeleccionMultiple
                     id="cumplimiento-magnitud"
                     etiqueta="Magnitud"
-                    value={filtros.magnitudes}
+                    value={borrador.magnitudes}
                     onChange={(magnitudes) => cambiar({ magnitudes })}
                     opciones={aOpcionesDependientes(opciones.magnitudes)}
                     todos="Todas"
@@ -164,7 +170,7 @@ export default function IndicadorCumplimiento() {
                 <FiltroSeleccionMultiple
                     id="cumplimiento-tipo-equipo"
                     etiqueta="Tipo de equipo"
-                    value={filtros.tipos_equipo}
+                    value={borrador.tipos_equipo}
                     onChange={(tipos_equipo) => cambiar({ tipos_equipo })}
                     opciones={aOpcionesDependientes(opciones.tipos_equipo)}
                     plural="tipos de equipo"
@@ -173,7 +179,7 @@ export default function IndicadorCumplimiento() {
                     id="cumplimiento-tipo-mantenimiento"
                     etiqueta="Tipo de mantenimiento"
                     opciones={TIPOS_MANTENIMIENTO}
-                    value={filtros.tipos_mantenimiento}
+                    value={borrador.tipos_mantenimiento}
                     onChange={(tipos_mantenimiento) =>
                         cambiar({ tipos_mantenimiento })
                     }

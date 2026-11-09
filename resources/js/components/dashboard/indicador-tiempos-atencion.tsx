@@ -6,7 +6,7 @@ import {
     Truck,
     Turtle,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { tiemposAtencion } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
 import DataTable, {
@@ -19,6 +19,7 @@ import {
     FiltroSeleccionMultiple,
     PanelFiltros,
     StatTile,
+    useFiltrosConBusqueda,
     useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
@@ -116,27 +117,28 @@ function LeyendaMapaCalor({
  * y su despacho, filtrado por laboratorio y tipo de equipo.
  */
 export default function IndicadorTiemposAtencion() {
-    const [filtros, setFiltros] = useState<FiltrosTiempos>({
-        ...rangoPorDefecto(),
-        areas: [],
-        laboratorios: [],
-        magnitudes: [],
-        tipos_equipo: [],
-    });
+    const { borrador, setBorrador, filtros, buscar, hayCambios } =
+        useFiltrosConBusqueda<FiltrosTiempos>({
+            ...rangoPorDefecto(),
+            areas: [],
+            laboratorios: [],
+            magnitudes: [],
+            tipos_equipo: [],
+        });
     const { datos, cargando } = useIndicador<TiemposAtencion>(
         tiemposAtencion,
         filtros,
     );
 
     const cambiar = (cambios: Partial<FiltrosTiempos>) =>
-        setFiltros((actuales) => ({ ...actuales, ...cambios }));
+        setBorrador((actuales) => ({ ...actuales, ...cambios }));
 
     // Listas dependientes de selección múltiple: área → laboratorio → magnitud → tipo de
     // equipo.
     const opciones = useFiltrosDependientes(
         datos?.opciones,
-        filtros,
-        setFiltros,
+        borrador,
+        setBorrador,
         SIN_OPCIONES,
     );
 
@@ -211,17 +213,21 @@ export default function IndicadorTiemposAtencion() {
             className="grid min-w-0 grid-cols-1 gap-4"
             data-test="indicador-tiempos-atencion"
         >
-            <PanelFiltros>
+            <PanelFiltros
+                onBuscar={buscar}
+                hayCambios={hayCambios}
+                buscando={cargando}
+            >
                 <FiltroRango
                     id="tiempos-atencion"
-                    desde={filtros.desde}
-                    hasta={filtros.hasta}
+                    desde={borrador.desde}
+                    hasta={borrador.hasta}
                     onChange={cambiar}
                 />
                 <FiltroSeleccionMultiple
                     id="tiempos-atencion-area"
                     etiqueta="Área"
-                    value={filtros.areas}
+                    value={borrador.areas}
                     onChange={(areas) => cambiar({ areas })}
                     opciones={aOpcionesDependientes(opciones.areas)}
                     todos="Todas"
@@ -230,7 +236,7 @@ export default function IndicadorTiemposAtencion() {
                 <FiltroSeleccionMultiple
                     id="tiempos-atencion-laboratorio"
                     etiqueta="Laboratorio"
-                    value={filtros.laboratorios}
+                    value={borrador.laboratorios}
                     onChange={(laboratorios) => cambiar({ laboratorios })}
                     opciones={aOpcionesDependientes(opciones.laboratorios)}
                     plural="laboratorios"
@@ -238,7 +244,7 @@ export default function IndicadorTiemposAtencion() {
                 <FiltroSeleccionMultiple
                     id="tiempos-atencion-magnitud"
                     etiqueta="Magnitud"
-                    value={filtros.magnitudes}
+                    value={borrador.magnitudes}
                     onChange={(magnitudes) => cambiar({ magnitudes })}
                     opciones={aOpcionesDependientes(opciones.magnitudes)}
                     todos="Todas"
@@ -247,7 +253,7 @@ export default function IndicadorTiemposAtencion() {
                 <FiltroSeleccionMultiple
                     id="tiempos-atencion-tipo-equipo"
                     etiqueta="Tipo de equipo"
-                    value={filtros.tipos_equipo}
+                    value={borrador.tipos_equipo}
                     onChange={(tipos_equipo) => cambiar({ tipos_equipo })}
                     opciones={aOpcionesDependientes(opciones.tipos_equipo)}
                     plural="tipos de equipo"
