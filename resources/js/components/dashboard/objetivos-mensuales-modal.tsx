@@ -244,7 +244,7 @@ export default function ObjetivosMensualesModal({
                             <InputError message={formulario.errors.anio} />
                         </div>
 
-                        {/* Mantenimiento en una fila y calibración en la otra: cantidad | tiempo. */}
+                        {/* Tiempo de mantenimiento | tiempo de calibración (las cantidades son de cada usuario). */}
                         <div className="grid items-start gap-4 rounded-lg border p-4 sm:grid-cols-2">
                             {objetivos.conceptos.map(
                                 ({

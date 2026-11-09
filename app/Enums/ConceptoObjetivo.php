@@ -3,15 +3,14 @@
 namespace App\Enums;
 
 /**
- * Cada objetivo anual que se puede definir en el dashboard. El concepto determina su
- * módulo y su unidad, para que no se puedan guardar desalineados.
+ * Cada objetivo que se puede definir en el dashboard. El concepto determina su módulo y su
+ * unidad, para que no se puedan guardar desalineados. Las cantidades de mantenimientos y
+ * calibraciones no están aquí: son los objetivos de cada usuario (ver ObjetivoUser).
  */
 enum ConceptoObjetivo: string
 {
     case TiempoAtencionDias = 'TIEMPO_ATENCION_DIAS';
-    case CantidadMantenimientos = 'CANTIDAD_MANTENIMIENTOS';
     case PromedioHorasMantenimiento = 'PROMEDIO_HORAS_MANTENIMIENTO';
-    case CantidadCalibraciones = 'CANTIDAD_CALIBRACIONES';
     case PromedioHorasCalibracion = 'PROMEDIO_HORAS_CALIBRACION';
     case CumplimientoPorcentaje = 'CUMPLIMIENTO_PORCENTAJE';
 
@@ -22,9 +21,7 @@ enum ConceptoObjetivo: string
     {
         return match ($this) {
             self::TiempoAtencionDias => ModuloObjetivo::TiemposAtencion,
-            self::CantidadMantenimientos,
             self::PromedioHorasMantenimiento,
-            self::CantidadCalibraciones,
             self::PromedioHorasCalibracion => ModuloObjetivo::DesempenoTecnicos,
             self::CumplimientoPorcentaje => ModuloObjetivo::Cumplimiento,
         };
@@ -37,9 +34,7 @@ enum ConceptoObjetivo: string
     {
         return match ($this) {
             self::TiempoAtencionDias => 'Tiempo promedio de atención',
-            self::CantidadMantenimientos => 'Cantidad de mantenimientos',
             self::PromedioHorasMantenimiento => 'Tiempo promedio de mantenimiento',
-            self::CantidadCalibraciones => 'Cantidad de calibraciones',
             self::PromedioHorasCalibracion => 'Tiempo promedio de calibración',
             self::CumplimientoPorcentaje => 'Cumplimiento esperado',
         };
@@ -52,8 +47,6 @@ enum ConceptoObjetivo: string
     {
         return match ($this) {
             self::TiempoAtencionDias => 'días',
-            self::CantidadMantenimientos => 'mantenimientos al mes',
-            self::CantidadCalibraciones => 'calibraciones al mes',
             self::PromedioHorasMantenimiento,
             self::PromedioHorasCalibracion => 'horas',
             self::CumplimientoPorcentaje => '%',
@@ -62,14 +55,12 @@ enum ConceptoObjetivo: string
 
     /**
      * Cómo se escribe y se muestra el valor: "horas" (en horas y minutos, se guarda en
-     * horas), "dias", "cantidad" (entera) o "porcentaje".
+     * horas), "dias" o "porcentaje".
      */
     public function formato(): string
     {
         return match ($this) {
             self::TiempoAtencionDias => 'dias',
-            self::CantidadMantenimientos,
-            self::CantidadCalibraciones => 'cantidad',
             self::PromedioHorasMantenimiento,
             self::PromedioHorasCalibracion => 'horas',
             self::CumplimientoPorcentaje => 'porcentaje',

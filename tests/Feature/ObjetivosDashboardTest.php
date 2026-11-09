@@ -5,6 +5,7 @@ use App\Enums\ModuloObjetivo;
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\ObjetivoDashboard;
+use App\Models\ObjetivoUser;
 use App\Models\Tenant;
 use App\Models\User;
 
@@ -68,7 +69,7 @@ test('los objetivos de desempeno se guardan por mes y tipo de equipo, no anuales
     $this->actingAs($this->admin)
         ->putJson(route('dashboard.objetivos.store', ModuloObjetivo::DesempenoTecnicos), [
             'anio' => 2026,
-            'valores' => ['CANTIDAD_MANTENIMIENTOS' => 40],
+            'valores' => ['PROMEDIO_HORAS_MANTENIMIENTO' => 2],
         ])
         ->assertNotFound();
 
@@ -77,23 +78,24 @@ test('los objetivos de desempeno se guardan por mes y tipo de equipo, no anuales
             'anio' => 2026,
             'tipo_equipo_id' => $balanza->id,
             'meses' => [
-                1 => ['CANTIDAD_MANTENIMIENTOS' => 40, 'PROMEDIO_HORAS_MANTENIMIENTO' => 1.5],
-                2 => ['CANTIDAD_MANTENIMIENTOS' => 35],
+                1 => ['PROMEDIO_HORAS_MANTENIMIENTO' => 1.5, 'PROMEDIO_HORAS_CALIBRACION' => 3],
+                2 => ['PROMEDIO_HORAS_MANTENIMIENTO' => 2],
             ],
         ])
         ->assertOk()
-        ->assertJsonCount(4, 'conceptos')
+        // Solo los tiempos: las cantidades son los objetivos de cada usuario.
+        ->assertJsonCount(2, 'conceptos')
         ->assertJsonPath('registros.0.tipo_equipo', 'Balanza')
-        ->assertJsonPath('registros.0.meses.1.CANTIDAD_MANTENIMIENTOS', 40)
         ->assertJsonPath('registros.0.meses.1.PROMEDIO_HORAS_MANTENIMIENTO', 1.5)
-        ->assertJsonPath('registros.0.meses.2.CANTIDAD_MANTENIMIENTOS', 35);
+        ->assertJsonPath('registros.0.meses.1.PROMEDIO_HORAS_CALIBRACION', 3)
+        ->assertJsonPath('registros.0.meses.2.PROMEDIO_HORAS_MANTENIMIENTO', 2);
 
     // Otro tipo de equipo no pisa los de la balanza.
     $this->actingAs($this->admin)
         ->putJson(route('dashboard.objetivos-mensuales.store', ModuloObjetivo::DesempenoTecnicos), [
             'anio' => 2026,
             'tipo_equipo_id' => $manometro->id,
-            'meses' => [1 => ['CANTIDAD_MANTENIMIENTOS' => 10]],
+            'meses' => [1 => ['PROMEDIO_HORAS_MANTENIMIENTO' => 1]],
         ])
         ->assertOk()
         ->assertJsonCount(2, 'registros');
@@ -105,11 +107,11 @@ test('los objetivos de desempeno se guardan por mes y tipo de equipo, no anuales
         ->putJson(route('dashboard.objetivos-mensuales.store', ModuloObjetivo::DesempenoTecnicos), [
             'anio' => 2026,
             'tipo_equipo_id' => $balanza->id,
-            'meses' => [1 => ['CANTIDAD_MANTENIMIENTOS' => 45]],
+            'meses' => [1 => ['PROMEDIO_HORAS_MANTENIMIENTO' => 4]],
         ])
         ->assertOk();
 
-    expect(ObjetivoDashboard::where('tipo_equipo_id', $balanza->id)->sole()->valor)->toBe('45.00');
+    expect(ObjetivoDashboard::where('tipo_equipo_id', $balanza->id)->sole()->valor)->toBe('4.00');
 
     $this->actingAs($this->admin)
         ->deleteJson(route('dashboard.objetivos-mensuales.destroy', [ModuloObjetivo::DesempenoTecnicos, 2026, $manometro->id]))
@@ -117,7 +119,7 @@ test('los objetivos de desempeno se guardan por mes y tipo de equipo, no anuales
         ->assertJsonCount(1, 'registros');
 });
 
-test('valida el tipo de equipo del laboratorio y que las cantidades sean enteras', function () {
+test('valida el tipo de equipo del laboratorio y no guarda cantidades por tipo de equipo', function () {
     $ajeno = crearTipoEquipo(Tenant::factory()->create(), 'Ajeno');
     $propio = crearTipoEquipo($this->tenant, 'Balanza');
 
@@ -129,15 +131,17 @@ test('valida el tipo de equipo del laboratorio y que las cantidades sean enteras
         ])
         ->assertJsonValidationErrors('tipo_equipo_id');
 
-    // Las cantidades son enteras; las horas sí admiten fracciones (1 h 30 min = 1.5).
+    // Las horas admiten fracciones (1 h 30 min = 1.5); una cantidad ya no se guarda aquí.
     $this->actingAs($this->admin)
         ->putJson(route('dashboard.objetivos-mensuales.store', ModuloObjetivo::DesempenoTecnicos), [
             'anio' => 2026,
             'tipo_equipo_id' => $propio->id,
-            'meses' => [3 => ['CANTIDAD_MANTENIMIENTOS' => 10.5, 'PROMEDIO_HORAS_MANTENIMIENTO' => 1.5]],
+            'meses' => [3 => ['CANTIDAD_MANTENIMIENTOS' => 10, 'PROMEDIO_HORAS_MANTENIMIENTO' => 1.5]],
         ])
-        ->assertJsonValidationErrors('meses.3.CANTIDAD_MANTENIMIENTOS')
-        ->assertJsonMissingValidationErrors('meses.3.PROMEDIO_HORAS_MANTENIMIENTO');
+        ->assertOk();
+
+    expect(ObjetivoDashboard::where('tipo_equipo_id', $propio->id)->sole()->concepto)
+        ->toBe(ConceptoObjetivo::PromedioHorasMantenimiento);
 });
 
 test('quita los objetivos de un año del modulo', function () {
@@ -216,8 +220,8 @@ test('desempeno trae los objetivos por mes de los tipos de equipo filtrados', fu
             'anio' => 2026,
             'mes' => 3,
             'tipo_equipo_id' => $tipo->id,
-            'concepto' => ConceptoObjetivo::CantidadMantenimientos,
-            'valor' => 20,
+            'concepto' => ConceptoObjetivo::PromedioHorasMantenimiento,
+            'valor' => 2,
         ]);
     }
 
@@ -228,10 +232,35 @@ test('desempeno trae los objetivos por mes de los tipos de equipo filtrados', fu
         ->assertOk()
         ->assertJsonCount(2, 'objetivos')
         ->assertJsonPath('objetivos.0.mes', 3)
-        ->assertJsonPath('objetivos.0.valores.CANTIDAD_MANTENIMIENTOS', 20);
+        ->assertJsonPath('objetivos.0.valores.PROMEDIO_HORAS_MANTENIMIENTO', 2);
 
     $this->actingAs($this->admin)
         ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'tipos_equipo' => [$balanza->id]]))
         ->assertJsonCount(1, 'objetivos')
         ->assertJsonPath('objetivos.0.tipo_equipo_id', $balanza->id);
+});
+
+test('desempeno trae la cantidad objetivo de cada mes sumada entre los tecnicos filtrados', function () {
+    $ana = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
+    $luis = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
+
+    foreach ([[$ana, 10], [$luis, 6]] as [$tecnico, $valor]) {
+        ObjetivoUser::factory()->for($tecnico)->for($this->tenant)->create(['anio' => 2026, 'mes' => 3, 'tipo' => 'MANTENIMIENTO', 'valor' => $valor]);
+    }
+    ObjetivoUser::factory()->for($ana)->for($this->tenant)->create(['anio' => 2026, 'mes' => 3, 'tipo' => 'CALIBRACION', 'valor' => 4]);
+
+    $rango = ['desde' => '2026-03-01', 'hasta' => '2026-03-31'];
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', $rango))
+        ->assertOk()
+        ->assertJsonCount(2, 'objetivos_usuarios')
+        ->assertJsonPath('objetivos_usuarios.0.tipo', 'CALIBRACION')
+        ->assertJsonPath('objetivos_usuarios.1.tipo', 'MANTENIMIENTO')
+        ->assertJsonPath('objetivos_usuarios.1.valor', 16);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'tecnicos' => [$luis->id]]))
+        ->assertJsonCount(1, 'objetivos_usuarios')
+        ->assertJsonPath('objetivos_usuarios.0.valor', 6);
 });

@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->unsignedSmallInteger('anio');
             $table->unsignedTinyInteger('mes')->nullable();
-            $table->decimal('objetivo', 8, 2);
+            $table->enum('tipo', ['MANTENIMIENTO', 'CALIBRACION']);
+            $table->decimal('valor', 8, 2);
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

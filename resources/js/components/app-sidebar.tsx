@@ -18,6 +18,7 @@ import {
     Scale,
     ShieldCheck,
     Sigma,
+    Target,
     Tags,
     TriangleAlert,
     Truck,
@@ -55,6 +56,7 @@ import { edit as ajustesEdit } from '@/routes/plataforma/ajustes';
 import { index as tenantsIndex } from '@/routes/plataforma/tenants';
 import { show as empresaShow } from '@/routes/empresa';
 import { index as novedadesIndex } from '@/routes/novedades';
+import { index as objetivosIndex } from '@/routes/objetivos';
 import { index as procedimientosCalibracionIndex } from '@/routes/procedimientos-calibracion';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
@@ -102,6 +104,15 @@ export function AppSidebar() {
                           href: dashboardUrl,
                           icon: LayoutGrid,
                       },
+                      ...(can('dashboard.objetivos')
+                          ? [
+                                {
+                                    title: 'Objetivos',
+                                    href: objetivosIndex(),
+                                    icon: Target,
+                                },
+                            ]
+                          : []),
                       ...(can('empresa.ver')
                           ? [
                                 {

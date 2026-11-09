@@ -24,7 +24,10 @@ import {
     formatearHoras,
     rangoPorDefecto,
 } from '@/lib/indicadores';
-import { objetivoMensualDelPeriodo } from '@/lib/periodos-grafico';
+import {
+    objetivoMensualDelPeriodo,
+    sumaMensualDelPeriodo,
+} from '@/lib/periodos-grafico';
 import type { DesempenoTecnicos } from '@/types';
 
 type Responsable = DesempenoTecnicos['responsables'][number];
@@ -56,25 +59,23 @@ const SERVICIOS = [
 ];
 const COLUMNAS_MANTENIMIENTO = ['mantenimientos', 'promedio_mantenimiento'];
 const COLUMNAS_CALIBRACION = ['calibraciones', 'promedio_calibracion'];
-/** Series de los gráficos por servicio, con sus colores (los de las tarjetas) y objetivos. */ const SERIES_SERVICIO =
-    [
-        {
-            servicio: 'MANTENIMIENTO',
-            clave: 'mantenimientos',
-            etiqueta: 'Mantenimientos',
-            color: '#0284c7',
-            objetivoTiempo: 'PROMEDIO_HORAS_MANTENIMIENTO',
-            objetivoCantidad: 'CANTIDAD_MANTENIMIENTOS',
-        },
-        {
-            servicio: 'CALIBRACION',
-            clave: 'calibraciones',
-            etiqueta: 'Calibraciones',
-            color: '#7c3aed',
-            objetivoTiempo: 'PROMEDIO_HORAS_CALIBRACION',
-            objetivoCantidad: 'CANTIDAD_CALIBRACIONES',
-        },
-    ] as const;
+/** Series de los gráficos por servicio, con sus colores (los de las tarjetas) y objetivos. */
+const SERIES_SERVICIO = [
+    {
+        servicio: 'MANTENIMIENTO',
+        clave: 'mantenimientos',
+        etiqueta: 'Mantenimientos',
+        color: '#0284c7',
+        objetivoTiempo: 'PROMEDIO_HORAS_MANTENIMIENTO',
+    },
+    {
+        servicio: 'CALIBRACION',
+        clave: 'calibraciones',
+        etiqueta: 'Calibraciones',
+        color: '#7c3aed',
+        objetivoTiempo: 'PROMEDIO_HORAS_CALIBRACION',
+    },
+] as const;
 
 /** Celda de un tiempo promedio; sin tiempo registrado (-1 al ordenar) muestra "—". */
 const celdaHoras = (horas: number | null) => (
@@ -117,7 +118,8 @@ export default function IndicadorDesempenoTecnicos() {
 
     /**
      * Una serie por servicio marcado (mantenimiento, calibración o los dos), cada una con
-     * su objetivo: el tiempo promedio o la cantidad.
+     * su objetivo: el tiempo promedio (por tipo de equipo) o la cantidad (la suma de los
+     * objetivos de los técnicos).
      */
     const seriesDe = (
         datosIndicador: DesempenoTecnicos,
@@ -126,28 +128,34 @@ export default function IndicadorDesempenoTecnicos() {
         SERIES_SERVICIO.filter((serie) =>
             servicios.includes(serie.servicio),
         ).map((serie) => {
-            const concepto =
-                que === 'tiempo'
-                    ? serie.objetivoTiempo
-                    : serie.objetivoCantidad;
             const delServicio = datosIndicador.servicios.filter(
                 (fila) => fila.tipo_servicio === serie.servicio,
             );
+            const cantidadesDelServicio =
+                datosIndicador.objetivos_usuarios.filter(
+                    (objetivo) => objetivo.tipo === serie.servicio,
+                );
 
             return {
                 clave: serie.clave,
                 etiqueta: serie.etiqueta,
                 color: serie.color,
-                concepto,
-                // Objetivos por mes de los tipos de equipo visibles, combinados.
+                menorEsMejor: que === 'tiempo',
                 objetivo: (inicio, agrupacion) =>
-                    objetivoMensualDelPeriodo(
-                        datosIndicador.objetivos,
-                        delServicio,
-                        inicio,
-                        agrupacion,
-                        concepto,
-                    ),
+                    que === 'tiempo'
+                        ? // Objetivos por mes de los tipos de equipo visibles, combinados.
+                          objetivoMensualDelPeriodo(
+                              datosIndicador.objetivos,
+                              delServicio,
+                              inicio,
+                              agrupacion,
+                              serie.objetivoTiempo,
+                          )
+                        : sumaMensualDelPeriodo(
+                              cantidadesDelServicio,
+                              inicio,
+                              agrupacion,
+                          ),
                 filas: delServicio.map((fila) => ({
                     fecha: fila.fecha,
                     valor: fila.horas,

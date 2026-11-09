@@ -43,6 +43,7 @@ use App\Modules\Mantenimientos\Http\Controllers\GaleriaMantenimientoController;
 use App\Modules\Mantenimientos\Http\Controllers\ItemMantenimientoController;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoDefectoIdentificadoController;
+use App\Modules\Objetivos\Http\Controllers\ObjetivoUserController;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\ServiciosTerceros\Http\Controllers\EmpresaTerceroController;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
@@ -58,6 +59,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'index'])->name('dashboard.objetivos.index');
     Route::put('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'store'])->name('dashboard.objetivos.store');
     Route::delete('dashboard/objetivos/{modulo}/{anio}', [ObjetivosDashboardController::class, 'destroy'])->whereNumber('anio')->name('dashboard.objetivos.destroy');
+    Route::get('objetivos', [ObjetivoUserController::class, 'index'])->name('objetivos.index');
+    Route::put('objetivos', [ObjetivoUserController::class, 'store'])->name('objetivos.store');
+    Route::delete('objetivos/{usuario}/{anio}', [ObjetivoUserController::class, 'destroy'])
+        ->whereNumber('anio')
+        ->name('objetivos.destroy');
     Route::get('dashboard/objetivos-mensuales/{modulo}', [ObjetivosMensualesDashboardController::class, 'index'])->name('dashboard.objetivos-mensuales.index');
     Route::put('dashboard/objetivos-mensuales/{modulo}', [ObjetivosMensualesDashboardController::class, 'store'])->name('dashboard.objetivos-mensuales.store');
     Route::delete('dashboard/objetivos-mensuales/{modulo}/{anio}/{tipoEquipo}', [ObjetivosMensualesDashboardController::class, 'destroy'])->whereNumber(['anio', 'tipoEquipo'])->name('dashboard.objetivos-mensuales.destroy');

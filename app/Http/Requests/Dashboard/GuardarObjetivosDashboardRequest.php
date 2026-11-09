@@ -37,8 +37,7 @@ class GuardarObjetivosDashboardRequest extends FormRequest
         foreach ($this->modulo()->conceptos() as $concepto) {
             $reglas["valores.{$concepto->value}"] = array_filter([
                 'nullable',
-                // Las cantidades son enteras; los tiempos y el porcentaje admiten decimales.
-                $concepto->formato() === 'cantidad' ? 'integer' : 'numeric',
+                'numeric',
                 'min:0',
                 $concepto->maximo() !== null ? "max:{$concepto->maximo()}" : null,
             ]);

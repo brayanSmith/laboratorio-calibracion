@@ -9,6 +9,7 @@ use App\Enums\ModuloObjetivo;
 use App\Enums\TenantPermission;
 use App\Http\Requests\Dashboard\IndicadoresDashboardRequest;
 use App\Models\ObjetivoDashboard;
+use App\Models\ObjetivoUser;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -59,8 +60,9 @@ class IndicadoresDashboardController extends Controller
             (int) substr($request->validated('desde'), 0, 4),
             (int) substr($request->validated('hasta'), 0, 4),
         );
-        // Desempeño: objetivos por mes y tipo de equipo, solo de los tipos filtrados (sin
-        // filtro, de todos); el gráfico los combina.
+        // Desempeño: los tiempos por mes y tipo de equipo, solo de los tipos filtrados (sin
+        // filtro, de todos); las cantidades, de los objetivos de los técnicos filtrados (sin
+        // filtro, de todos los usuarios). El gráfico los combina.
         if ($modulo->porMesYTipoEquipo()) {
             return response()->json([
                 ...$indicador,
@@ -69,6 +71,11 @@ class IndicadoresDashboardController extends Controller
                     $modulo,
                     $anios,
                     array_map('intval', $request->validated('tipos_equipo', [])),
+                ),
+                'objetivos_usuarios' => ObjetivoUser::sumaPorMes(
+                    $request->user()->tenant_id,
+                    $anios,
+                    array_map('intval', $request->validated('tecnicos', [])),
                 ),
             ]);
         }

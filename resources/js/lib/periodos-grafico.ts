@@ -370,26 +370,24 @@ export type ObjetivoMensual = {
     valores: Partial<Record<ConceptoObjetivo, number>>;
 };
 
-/**
- * Objetivo de un periodo a partir de los objetivos por mes y tipo de equipo, combinando los
- * tipos:
- * - Cantidades: se suman los objetivos de los tipos; de un mes que el periodo cubre solo en
- *   parte (días, semanas) se toma la parte proporcional a sus días.
- * - Tiempos: promedio de los objetivos, ponderado por cuántos servicios tuvo cada tipo en
- *   el periodo; sin servicios, ponderado por los días que el periodo cubre de cada mes.
- *
- * Null si ningún mes del periodo tiene objetivo para el concepto.
- */
-export function objetivoMensualDelPeriodo(
-    objetivos: ObjetivoMensual[],
-    filas: { fecha: string; tipo_equipo_id: number | null }[],
+/** Un mes que toca un periodo: sus límites dentro del periodo y qué parte de él cubre. */
+type MesDelPeriodo = {
+    anio: number;
+    mes: number;
+    desde: number;
+    hasta: number;
+    /** Parte del mes que cubre el periodo (1 si lo cubre completo). */
+    parte: number;
+};
+
+/** Los meses que toca el periodo que empieza en `inicio`, con la parte de cada uno. */
+function mesesDelPeriodo(
     inicio: string,
     agrupacion: Agrupacion,
-    concepto: ConceptoObjetivo,
-): number | null {
+): MesDelPeriodo[] {
     const desde = aFecha(inicio).getTime();
     const hasta = aFecha(siguiente(inicio, agrupacion)).getTime();
-    const items: { valor: number; servicios: number; dias: number }[] = [];
+    const meses: MesDelPeriodo[] = [];
 
     for (
         let mes = aFecha(inicioDePeriodo(inicio, 'mes')).getTime();
@@ -401,40 +399,60 @@ export function objetivoMensualDelPeriodo(
         ).getTime();
         const desdeEnMes = Math.max(desde, mes);
         const hastaEnMes = Math.min(hasta, finMes);
-        // Parte del mes que cubre el periodo (1 si lo cubre completo).
-        const parte = (hastaEnMes - desdeEnMes) / (finMes - mes);
         const fecha = new Date(mes);
 
+        meses.push({
+            anio: fecha.getUTCFullYear(),
+            mes: fecha.getUTCMonth() + 1,
+            desde: desdeEnMes,
+            hasta: hastaEnMes,
+            parte: (hastaEnMes - desdeEnMes) / (finMes - mes),
+        });
+    }
+
+    return meses;
+}
+
+/**
+ * Tiempo objetivo de un periodo a partir de los objetivos por mes y tipo de equipo,
+ * combinando los tipos: promedio de los objetivos, ponderado por cuántos servicios tuvo
+ * cada tipo en el periodo; sin servicios, ponderado por los días que el periodo cubre de
+ * cada mes.
+ *
+ * Null si ningún mes del periodo tiene objetivo para el concepto.
+ */
+export function objetivoMensualDelPeriodo(
+    objetivos: ObjetivoMensual[],
+    filas: { fecha: string; tipo_equipo_id: number | null }[],
+    inicio: string,
+    agrupacion: Agrupacion,
+    concepto: ConceptoObjetivo,
+): number | null {
+    const items = mesesDelPeriodo(inicio, agrupacion).flatMap((mes) =>
         objetivos
             .filter(
                 (objetivo) =>
-                    objetivo.anio === fecha.getUTCFullYear() &&
-                    objetivo.mes === fecha.getUTCMonth() + 1 &&
+                    objetivo.anio === mes.anio &&
+                    objetivo.mes === mes.mes &&
                     objetivo.valores[concepto] !== undefined,
             )
-            .forEach((objetivo) => {
-                items.push({
-                    valor: objetivo.valores[concepto] as number,
-                    dias: parte,
-                    servicios: filas.filter((fila) => {
-                        const dia = aFecha(fila.fecha).getTime();
+            .map((objetivo) => ({
+                valor: objetivo.valores[concepto] as number,
+                dias: mes.parte,
+                servicios: filas.filter((fila) => {
+                    const dia = aFecha(fila.fecha).getTime();
 
-                        return (
-                            fila.tipo_equipo_id === objetivo.tipo_equipo_id &&
-                            dia >= desdeEnMes &&
-                            dia < hastaEnMes
-                        );
-                    }).length,
-                });
-            });
-    }
+                    return (
+                        fila.tipo_equipo_id === objetivo.tipo_equipo_id &&
+                        dia >= mes.desde &&
+                        dia < mes.hasta
+                    );
+                }).length,
+            })),
+    );
 
     if (items.length === 0) {
         return null;
-    }
-
-    if (!menorEsMejor(concepto)) {
-        return items.reduce((suma, item) => suma + item.valor * item.dias, 0);
     }
 
     const conServicios = items.reduce((suma, item) => suma + item.servicios, 0);
@@ -446,4 +464,32 @@ export function objetivoMensualDelPeriodo(
         ? null
         : items.reduce((suma, item) => suma + item.valor * peso(item), 0) /
               pesoTotal;
+}
+
+/**
+ * Cantidad objetivo de un periodo a partir de objetivos por mes (los de los usuarios): se
+ * suman los meses del periodo y, de un mes que cubre solo en parte (días, semanas), se
+ * toma la parte proporcional a sus días.
+ *
+ * Null si ningún mes del periodo tiene objetivo.
+ */
+export function sumaMensualDelPeriodo(
+    objetivos: { anio: number; mes: number; valor: number }[],
+    inicio: string,
+    agrupacion: Agrupacion,
+): number | null {
+    let total: number | null = null;
+
+    mesesDelPeriodo(inicio, agrupacion).forEach((mes) => {
+        objetivos
+            .filter(
+                (objetivo) =>
+                    objetivo.anio === mes.anio && objetivo.mes === mes.mes,
+            )
+            .forEach((objetivo) => {
+                total = (total ?? 0) + objetivo.valor * mes.parte;
+            });
+    });
+
+    return total;
 }

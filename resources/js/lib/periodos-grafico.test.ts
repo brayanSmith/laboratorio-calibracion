@@ -6,6 +6,7 @@ import {
     cortesDeColor,
     diferenciaConObjetivo,
     objetivoMensualDelPeriodo,
+    sumaMensualDelPeriodo,
     agruparPromedios,
     agrupacionSugerida,
     etiquetaPeriodo,
@@ -195,70 +196,15 @@ describe('objetivoMensualDelPeriodo', () => {
             anio: 2026,
             mes: 3,
             tipo_equipo_id: 1,
-            valores: {
-                CANTIDAD_MANTENIMIENTOS: 20,
-                PROMEDIO_HORAS_MANTENIMIENTO: 2,
-            },
+            valores: { PROMEDIO_HORAS_MANTENIMIENTO: 2 },
         },
         {
             anio: 2026,
             mes: 3,
             tipo_equipo_id: 2,
-            valores: {
-                CANTIDAD_MANTENIMIENTOS: 10,
-                PROMEDIO_HORAS_MANTENIMIENTO: 5,
-            },
-        },
-        {
-            anio: 2026,
-            mes: 4,
-            tipo_equipo_id: 1,
-            valores: { CANTIDAD_MANTENIMIENTOS: 30 },
+            valores: { PROMEDIO_HORAS_MANTENIMIENTO: 5 },
         },
     ];
-
-    it('adds up the quantities of the types and of the months in the period', () => {
-        expect(
-            objetivoMensualDelPeriodo(
-                objetivos,
-                [],
-                '2026-03-01',
-                'mes',
-                'CANTIDAD_MANTENIMIENTOS',
-            ),
-        ).toBe(30);
-        expect(
-            objetivoMensualDelPeriodo(
-                objetivos,
-                [],
-                '2026-01-01',
-                'trimestre',
-                'CANTIDAD_MANTENIMIENTOS',
-            ),
-        ).toBe(30);
-        expect(
-            objetivoMensualDelPeriodo(
-                objetivos,
-                [],
-                '2026-04-01',
-                'trimestre',
-                'CANTIDAD_MANTENIMIENTOS',
-            ),
-        ).toBe(30);
-    });
-
-    it('takes the share of a month that a day covers', () => {
-        // Marzo tiene 31 días: un día es 30 / 31 del objetivo del mes.
-        expect(
-            objetivoMensualDelPeriodo(
-                objetivos,
-                [],
-                '2026-03-10',
-                'dia',
-                'CANTIDAD_MANTENIMIENTOS',
-            ),
-        ).toBeCloseTo(30 / 31);
-    });
 
     it('weights times by how many services each type had', () => {
         const filas = [
@@ -297,8 +243,38 @@ describe('objetivoMensualDelPeriodo', () => {
                 [],
                 '2026-06-01',
                 'mes',
-                'CANTIDAD_MANTENIMIENTOS',
+                'PROMEDIO_HORAS_MANTENIMIENTO',
             ),
+        ).toBeNull();
+    });
+});
+
+describe('sumaMensualDelPeriodo', () => {
+    const objetivos = [
+        { anio: 2026, mes: 3, valor: 30 },
+        { anio: 2026, mes: 4, valor: 20 },
+    ];
+
+    it('adds up the months in the period', () => {
+        expect(sumaMensualDelPeriodo(objetivos, '2026-03-01', 'mes')).toBe(30);
+        expect(
+            sumaMensualDelPeriodo(objetivos, '2026-01-01', 'trimestre'),
+        ).toBe(30);
+        expect(sumaMensualDelPeriodo(objetivos, '2026-01-01', 'semestre')).toBe(
+            50,
+        );
+    });
+
+    it('takes the share of a month that a day covers', () => {
+        // Marzo tiene 31 días: un día es 30 / 31 del objetivo del mes.
+        expect(
+            sumaMensualDelPeriodo(objetivos, '2026-03-10', 'dia'),
+        ).toBeCloseTo(30 / 31);
+    });
+
+    it('is null when no month of the period has a goal', () => {
+        expect(
+            sumaMensualDelPeriodo(objetivos, '2026-06-01', 'mes'),
         ).toBeNull();
     });
 });

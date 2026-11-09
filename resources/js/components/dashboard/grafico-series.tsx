@@ -16,18 +16,16 @@ import type { ChartConfig } from '@/components/ui/chart';
 import {
     agruparPromedios,
     diferenciaConObjetivo,
-    menorEsMejor,
 } from '@/lib/periodos-grafico';
 import type { Agrupacion } from '@/lib/periodos-grafico';
-import type { ConceptoObjetivo } from '@/types';
 
 /** Una serie del gráfico (ej. mantenimientos) con las filas que la forman. */
 export type SerieGrafico = {
     clave: string;
     etiqueta: string;
     color: string;
-    /** Concepto del objetivo: decide si es mejor quedar por debajo o por encima. */
-    concepto: ConceptoObjetivo;
+    /** Si es mejor quedar por debajo del objetivo (tiempos) o por encima (cantidades). */
+    menorEsMejor: boolean;
     /** Objetivo de un periodo (por su inicio y la agrupación); null si no tiene. */
     objetivo: (inicio: string, agrupacion: Agrupacion) => number | null;
     filas: { fecha: string; valor: number | null }[];
@@ -250,7 +248,7 @@ function GloboSeries({
                 const resultado = diferenciaConObjetivo(
                     valor,
                     objetivo,
-                    menorEsMejor(serie.concepto),
+                    serie.menorEsMejor,
                 );
 
                 return (

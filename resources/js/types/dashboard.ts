@@ -80,8 +80,18 @@ export type DesempenoTecnicos = {
         mantenimientos: ResumenServicios;
         calibraciones: ResumenServicios;
     }[];
-    /** Objetivos por mes y tipo de equipo (solo de los tipos filtrados; sin filtro, de todos). */
+    /** Tiempos objetivo por mes y tipo de equipo (solo de los tipos filtrados; sin filtro, de todos). */
     objetivos: ObjetivoMensual[];
+    /**
+     * Cantidad objetivo de cada mes, sumada entre los técnicos filtrados (sin filtro, entre
+     * todos los usuarios); ver Objetivos por usuario.
+     */
+    objetivos_usuarios: {
+        anio: number;
+        mes: number;
+        tipo: 'MANTENIMIENTO' | 'CALIBRACION';
+        valor: number;
+    }[];
     /** Cada servicio con su día y sus horas (null sin tiempo registrado), para los gráficos. */
     servicios: {
         fecha: string;
@@ -143,9 +153,7 @@ export type ModuloObjetivo =
 /** Cada objetivo anual que se puede definir (ver ConceptoObjetivo). */
 export type ConceptoObjetivo =
     | 'TIEMPO_ATENCION_DIAS'
-    | 'CANTIDAD_MANTENIMIENTOS'
     | 'PROMEDIO_HORAS_MANTENIMIENTO'
-    | 'CANTIDAD_CALIBRACIONES'
     | 'PROMEDIO_HORAS_CALIBRACION'
     | 'CUMPLIMIENTO_PORCENTAJE';
 

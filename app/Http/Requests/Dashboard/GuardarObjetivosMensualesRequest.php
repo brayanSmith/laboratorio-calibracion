@@ -40,8 +40,7 @@ class GuardarObjetivosMensualesRequest extends FormRequest
             foreach ($this->modulo()->conceptos() as $concepto) {
                 $reglas["meses.{$mes}.{$concepto->value}"] = array_filter([
                     'nullable',
-                    // Las cantidades son enteras; los tiempos admiten decimales (horas).
-                    $concepto->formato() === 'cantidad' ? 'integer' : 'numeric',
+                    'numeric',
                     'min:0',
                     $concepto->maximo() !== null ? "max:{$concepto->maximo()}" : null,
                 ]);
