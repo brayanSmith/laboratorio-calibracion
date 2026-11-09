@@ -132,7 +132,10 @@ export default function IndicadorCumplimiento() {
     );
 
     return (
-        <div className="grid gap-4" data-test="indicador-cumplimiento">
+        <div
+            className="grid min-w-0 grid-cols-1 gap-4"
+            data-test="indicador-cumplimiento"
+        >
             <PanelFiltros>
                 <FiltroRango
                     id="cumplimiento"

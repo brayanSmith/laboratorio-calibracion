@@ -231,7 +231,7 @@ function PestanasDashboard({ pestanas }: { pestanas: PestanaDashboard[] }) {
     };
 
     return (
-        <Tabs value={activa} onValueChange={cambiar} className="gap-4">
+        <Tabs value={activa} onValueChange={cambiar} className="min-w-0 gap-4">
             <TabsList className="h-auto flex-wrap">
                 {pestanas.map((pestana) => (
                     <TabsTrigger
@@ -251,7 +251,7 @@ function PestanasDashboard({ pestanas }: { pestanas: PestanaDashboard[] }) {
                         key={pestana.value}
                         value={pestana.value}
                         forceMount
-                        className="flex flex-col gap-4 data-[state=inactive]:hidden"
+                        className="flex min-w-0 flex-col gap-4 data-[state=inactive]:hidden"
                     >
                         {pestana.contenido}
                     </TabsContent>

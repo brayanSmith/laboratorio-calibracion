@@ -1,4 +1,12 @@
-import { ChartLine, Gauge, Timer, Users, Wrench } from 'lucide-react';
+import {
+    ChartLine,
+    ChevronRight,
+    Gauge,
+    Timer,
+    Target,
+    Users,
+    Wrench,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { desempenoTecnicos } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
@@ -8,6 +16,7 @@ import DataTable, {
 import {
     aOpcionesDependientes,
     BloqueIndicador,
+    FiltroAlternativa,
     FiltroCasillas,
     FiltroRango,
     FiltroSeleccionMultiple,
@@ -16,27 +25,52 @@ import {
     useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
+import BarraCumplimiento from '@/components/dashboard/barra-cumplimiento';
 import GraficoSeries from '@/components/dashboard/grafico-series';
+import TarjetaCumplimiento from '@/components/dashboard/tarjeta-cumplimiento';
 import type { SerieGrafico } from '@/components/dashboard/grafico-series';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     formatearCantidad,
     formatearHoras,
     rangoPorDefecto,
 } from '@/lib/indicadores';
 import {
+    cumplimientoDelRegistro,
+    cumplimientoDelResponsable,
+    resumenDeCumplimiento,
+} from '@/lib/cumplimiento-responsable';
+import type {
+    CumplimientoCantidad,
+    CumplimientoServicio,
+    CumplimientoTiempo,
+} from '@/lib/cumplimiento-responsable';
+import {
     objetivoMensualDelPeriodo,
     sumaMensualDelPeriodo,
 } from '@/lib/periodos-grafico';
+import { cn } from '@/lib/utils';
 import type { DesempenoTecnicos } from '@/types';
 
 type Responsable = DesempenoTecnicos['responsables'][number];
 
-/** Periodo, filtros de selección múltiple y servicios que se ven. */
+/** Del laboratorio propio (con sus técnicos) o de empresas terceras. */
+type Origen = 'LOCAL' | 'TERCERO';
+
+const ORIGENES: { value: Origen; label: string }[] = [
+    { value: 'LOCAL', label: 'Local' },
+    { value: 'TERCERO', label: 'Tercero' },
+];
+
+/** Periodo, origen, filtros de selección múltiple y servicios que se ven. */
 type FiltrosDesempeno = {
     desde: string;
     hasta: string;
+    origen: Origen;
+    /** Solo en Tercero: las empresas terceras elegidas. */
     laboratorios: string[];
+    /** Solo en Local: los técnicos elegidos. */
     tecnicos: string[];
     magnitudes: string[];
     tipos_equipo: string[];
@@ -50,15 +84,261 @@ const SIN_OPCIONES: DesempenoTecnicos['opciones'] = {
     tipos_equipo: [],
 };
 
-const columnHelper = createDataTableColumnHelper<Responsable>();
+/** Una fila del detalle: el responsable con su cumplimiento en cada servicio. */
+type FilaResponsable = Responsable & {
+    cumplimiento: Record<'MANTENIMIENTO' | 'CALIBRACION', CumplimientoServicio>;
+};
+
+const columnHelper = createDataTableColumnHelper<FilaResponsable>();
+
+/** Columnas de cada servicio en el detalle, en el orden en que se muestran. */
+const SERVICIOS_TABLA = [
+    {
+        servicio: 'MANTENIMIENTO',
+        resumen: 'mantenimientos',
+        promedio: 'promedio_mantenimiento',
+        etiqueta: 'Mantenimientos',
+        singular: 'mantenimiento',
+    },
+    {
+        servicio: 'CALIBRACION',
+        resumen: 'calibraciones',
+        promedio: 'promedio_calibracion',
+        etiqueta: 'Calibraciones',
+        singular: 'calibración',
+    },
+] as const;
+
+/** Texto de una celda sin cumplimiento (sin objetivo, o en terceros la cantidad). */
+function SinCumplimiento({ motivo }: { motivo: string }) {
+    return (
+        <span className="text-muted-foreground" title={motivo}>
+            —
+        </span>
+    );
+}
+
+/** Cantidad hecha frente al objetivo del técnico, como barra; "—" sin objetivo. */
+function CeldaCumplimientoCantidad({
+    cumplimiento,
+}: {
+    cumplimiento: CumplimientoCantidad | null;
+}) {
+    if (cumplimiento === null) {
+        return <SinCumplimiento motivo="Sin objetivo" />;
+    }
+
+    return (
+        <BarraCumplimiento
+            porcentaje={cumplimiento.porcentaje}
+            cumple={cumplimiento.porcentaje >= 100}
+            detalle={`de ${formatearCantidad(cumplimiento.objetivo)}`}
+        />
+    );
+}
+
+/** Tiempo frente al objetivo, como barra (objetivo ÷ tiempo); "—" sin objetivo o sin tiempos. */
+function CeldaCumplimientoTiempo({
+    cumplimiento,
+}: {
+    cumplimiento: CumplimientoTiempo | null;
+}) {
+    if (cumplimiento === null) {
+        return (
+            <SinCumplimiento motivo="Sin objetivo o sin tiempos registrados" />
+        );
+    }
+
+    return (
+        <BarraCumplimiento
+            porcentaje={cumplimiento.porcentaje}
+            cumple={cumplimiento.cumple}
+            detalle={`obj. ${formatearHoras(cumplimiento.objetivo)}`}
+        />
+    );
+}
+
+/** Badge del servicio, con el color de su serie en los gráficos. */
+function BadgeServicio({
+    servicio,
+}: {
+    servicio: 'MANTENIMIENTO' | 'CALIBRACION';
+}) {
+    return servicio === 'MANTENIMIENTO' ? (
+        <Badge className="border-transparent bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+            Mantenimiento
+        </Badge>
+    ) : (
+        <Badge className="border-transparent bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">
+            Calibración
+        </Badge>
+    );
+}
+
+/** Identifica al responsable de una fila (un técnico y una empresa pueden tener el mismo id). */
+const claveResponsable = (fila: Responsable) =>
+    `${fila.tipo}|${fila.responsable_id}`;
+
+const formatoFecha = new Intl.DateTimeFormat('es', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+});
+
+/**
+ * Los servicios de un responsable en el periodo, del más reciente al más antiguo, cada
+ * uno con su cumplimiento de tiempo frente al objetivo de su tipo de equipo.
+ */
+function RegistrosDelResponsable({
+    datos,
+    servicios,
+}: {
+    datos: DesempenoTecnicos;
+    servicios: DesempenoTecnicos['servicios'];
+}) {
+    if (servicios.length === 0) {
+        return (
+            <p className="text-sm text-muted-foreground">
+                Sin registros de los servicios que se están viendo.
+            </p>
+        );
+    }
+
+    const ordenados = [...servicios].sort((a, b) =>
+        b.fecha.localeCompare(a.fecha),
+    );
+
+    return (
+        <div className="overflow-x-auto rounded-md border bg-background">
+            <table
+                className="w-full text-xs"
+                data-test="desempeno-registros-responsable"
+            >
+                <thead className="bg-muted/50 text-left text-muted-foreground">
+                    <tr>
+                        <th className="px-3 py-2 font-medium">Fecha</th>
+                        <th className="px-3 py-2 font-medium">Servicio</th>
+                        <th className="px-3 py-2 font-medium">
+                            Orden de trabajo
+                        </th>
+                        <th className="px-3 py-2 font-medium">Equipo</th>
+                        <th className="px-3 py-2 font-medium">
+                            Tipo de equipo
+                        </th>
+                        <th className="px-3 py-2 font-medium">Magnitud</th>
+                        <th className="px-3 py-2 text-right font-medium">
+                            Tiempo
+                        </th>
+                        <th className="px-3 py-2 font-medium">Cumplimiento</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y">
+                    {ordenados.map((servicio, indice) => {
+                        const cumplimiento = cumplimientoDelRegistro(
+                            datos,
+                            servicio,
+                        );
+
+                        return (
+                            <tr key={`${servicio.orden_trabajo}-${indice}`}>
+                                <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                                    {formatoFecha.format(
+                                        new Date(`${servicio.fecha}T00:00:00Z`),
+                                    )}
+                                </td>
+                                <td className="px-3 py-2">
+                                    <BadgeServicio
+                                        servicio={servicio.tipo_servicio}
+                                    />
+                                </td>
+                                <td className="px-3 py-2 font-medium">
+                                    {servicio.orden_trabajo ?? '—'}
+                                </td>
+                                <td className="px-3 py-2">
+                                    {servicio.equipo ?? '—'}
+                                </td>
+                                <td className="px-3 py-2">
+                                    {servicio.tipo_equipo ?? '—'}
+                                </td>
+                                <td className="px-3 py-2">
+                                    {servicio.magnitud ?? '—'}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                    {celdaHoras(servicio.horas)}
+                                </td>
+                                <td className="px-3 py-2">
+                                    <CeldaCumplimientoTiempo
+                                        cumplimiento={cumplimiento}
+                                    />
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+/** Cantidad, su cumplimiento, tiempo promedio y su cumplimiento de un servicio. */
+function columnasDelServicio(serie: (typeof SERVICIOS_TABLA)[number]) {
+    return [
+        columnHelper.accessor((fila) => fila[serie.resumen].cantidad, {
+            id: serie.resumen,
+            header: serie.etiqueta,
+            cell: (info) => (
+                <span className="tabular-nums">{info.getValue()}</span>
+            ),
+        }),
+        columnHelper.accessor(
+            (fila) =>
+                fila.cumplimiento[serie.servicio].cantidad?.porcentaje ?? -1,
+            {
+                id: `cumplimiento_${serie.resumen}`,
+                header: `Cumpl. ${serie.etiqueta.toLowerCase()}`,
+                cell: ({ row }) => (
+                    <CeldaCumplimientoCantidad
+                        cumplimiento={
+                            row.original.cumplimiento[serie.servicio].cantidad
+                        }
+                    />
+                ),
+            },
+        ),
+        columnHelper.accessor(
+            (fila) => fila[serie.resumen].promedio_horas ?? -1,
+            {
+                id: serie.promedio,
+                header: `Prom. ${serie.singular}`,
+                cell: ({ row }) =>
+                    celdaHoras(row.original[serie.resumen].promedio_horas),
+            },
+        ),
+        columnHelper.accessor(
+            // Al ordenar: primero los que más holgura tienen; sin objetivo, al final.
+            (fila) =>
+                fila.cumplimiento[serie.servicio].tiempo?.diferencia ?? 9999,
+            {
+                id: `cumplimiento_tiempo_${serie.resumen}`,
+                header: `Cumpl. tiempo ${serie.singular}`,
+                cell: ({ row }) => (
+                    <CeldaCumplimientoTiempo
+                        cumplimiento={
+                            row.original.cumplimiento[serie.servicio].tiempo
+                        }
+                    />
+                ),
+            },
+        ),
+    ];
+}
 
 /** Servicios que se pueden ver, en el orden de las casillas. */
 const SERVICIOS = [
     { value: 'MANTENIMIENTO', label: 'Mantenimiento' },
     { value: 'CALIBRACION', label: 'Calibración' },
 ];
-const COLUMNAS_MANTENIMIENTO = ['mantenimientos', 'promedio_mantenimiento'];
-const COLUMNAS_CALIBRACION = ['calibraciones', 'promedio_calibracion'];
 /** Series de los gráficos por servicio, con sus colores (los de las tarjetas) y objetivos. */
 const SERIES_SERVICIO = [
     {
@@ -89,6 +369,7 @@ const celdaHoras = (horas: number | null) => (
 export default function IndicadorDesempenoTecnicos() {
     const [filtros, setFiltros] = useState<FiltrosDesempeno>({
         ...rangoPorDefecto(),
+        origen: 'LOCAL',
         laboratorios: [],
         tecnicos: [],
         magnitudes: [],
@@ -163,97 +444,166 @@ export default function IndicadorDesempenoTecnicos() {
             };
         });
 
+    // Responsables con sus registros a la vista (por "tipo|id").
+    const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+    const alternarExpandido = (clave: string) =>
+        setExpandidos((actuales) => {
+            const siguientes = new Set(actuales);
+
+            if (siguientes.has(clave)) {
+                siguientes.delete(clave);
+            } else {
+                siguientes.add(clave);
+            }
+
+            return siguientes;
+        });
+
     const columns = useMemo(
         () =>
-            columnHelper
-                .columns([
-                    columnHelper.accessor('responsable', {
-                        header: 'Responsable',
-                        cell: ({ row }) => (
-                            <span className="font-medium">
-                                {row.original.responsable}
-                            </span>
-                        ),
-                    }),
-                    columnHelper.accessor('tipo', {
-                        header: 'Tipo',
-                        meta: {
-                            filterOptions: [
-                                { value: 'TECNICO', label: 'Técnico' },
-                                { value: 'TERCERO', label: 'Tercero' },
-                            ],
-                        },
-                        cell: ({ row }) =>
-                            row.original.tipo === 'TERCERO' ? (
-                                <Badge variant="secondary">Tercero</Badge>
-                            ) : (
-                                <Badge>Técnico</Badge>
-                            ),
-                    }),
-                    columnHelper.accessor(
-                        (fila) => fila.mantenimientos.cantidad,
-                        {
-                            id: 'mantenimientos',
-                            header: 'Mantenimientos',
-                            cell: (info) => (
-                                <span className="tabular-nums">
-                                    {info.getValue()}
-                                </span>
-                            ),
-                        },
-                    ),
-                    columnHelper.accessor(
-                        (fila) => fila.mantenimientos.promedio_horas ?? -1,
-                        {
-                            id: 'promedio_mantenimiento',
-                            header: 'Prom. mantenimiento',
-                            cell: ({ row }) =>
-                                celdaHoras(
-                                    row.original.mantenimientos.promedio_horas,
-                                ),
-                        },
-                    ),
-                    columnHelper.accessor(
-                        (fila) => fila.calibraciones.cantidad,
-                        {
-                            id: 'calibraciones',
-                            header: 'Calibraciones',
-                            cell: (info) => (
-                                <span className="tabular-nums">
-                                    {info.getValue()}
-                                </span>
-                            ),
-                        },
-                    ),
-                    columnHelper.accessor(
-                        (fila) => fila.calibraciones.promedio_horas ?? -1,
-                        {
-                            id: 'promedio_calibracion',
-                            header: 'Prom. calibración',
-                            cell: ({ row }) =>
-                                celdaHoras(
-                                    row.original.calibraciones.promedio_horas,
-                                ),
-                        },
-                    ),
-                ])
-                .filter((columna) => {
-                    // Solo las columnas de los servicios que se están viendo.
-                    if (COLUMNAS_MANTENIMIENTO.includes(columna.id ?? '')) {
-                        return verMantenimientos;
-                    }
+            columnHelper.columns([
+                columnHelper.display({
+                    id: 'expandir',
+                    header: '',
+                    enableSorting: false,
+                    cell: ({ row }) => {
+                        const abierto = expandidos.has(
+                            claveResponsable(row.original),
+                        );
 
-                    if (COLUMNAS_CALIBRACION.includes(columna.id ?? '')) {
-                        return verCalibraciones;
-                    }
-
-                    return true;
+                        return (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                aria-expanded={abierto}
+                                aria-label={
+                                    abierto
+                                        ? 'Ocultar registros'
+                                        : 'Ver registros'
+                                }
+                                title={
+                                    abierto
+                                        ? 'Ocultar registros'
+                                        : 'Ver registros'
+                                }
+                                onClick={() =>
+                                    alternarExpandido(
+                                        claveResponsable(row.original),
+                                    )
+                                }
+                                data-test="desempeno-expandir"
+                            >
+                                <ChevronRight
+                                    className={cn(
+                                        'h-4 w-4 transition-transform',
+                                        abierto && 'rotate-90',
+                                    )}
+                                />
+                            </Button>
+                        );
+                    },
                 }),
-        [verMantenimientos, verCalibraciones],
+                columnHelper.accessor('responsable', {
+                    header: 'Responsable',
+                    cell: ({ row }) => (
+                        <span className="font-medium">
+                            {row.original.responsable}
+                        </span>
+                    ),
+                }),
+                columnHelper.accessor('tipo', {
+                    header: 'Tipo',
+                    meta: {
+                        filterOptions: [
+                            { value: 'TECNICO', label: 'Técnico' },
+                            { value: 'TERCERO', label: 'Tercero' },
+                        ],
+                    },
+                    cell: ({ row }) =>
+                        row.original.tipo === 'TERCERO' ? (
+                            <Badge variant="secondary">Tercero</Badge>
+                        ) : (
+                            <Badge>Técnico</Badge>
+                        ),
+                }),
+                // Solo las columnas de los servicios que se están viendo.
+                ...SERVICIOS_TABLA.filter(
+                    (serie) =>
+                        (serie.servicio === 'MANTENIMIENTO' &&
+                            verMantenimientos) ||
+                        (serie.servicio === 'CALIBRACION' && verCalibraciones),
+                ).flatMap(columnasDelServicio),
+            ]),
+        [verMantenimientos, verCalibraciones, expandidos],
     );
 
+    // Cada responsable con su cumplimiento frente a los objetivos del periodo filtrado.
+    const filas = useMemo<FilaResponsable[]>(
+        () =>
+            (datos?.responsables ?? []).map((responsable) => ({
+                ...responsable,
+                cumplimiento: {
+                    MANTENIMIENTO: cumplimientoDelResponsable(
+                        datos as DesempenoTecnicos,
+                        responsable,
+                        'MANTENIMIENTO',
+                        filtros.desde,
+                        filtros.hasta,
+                    ),
+                    CALIBRACION: cumplimientoDelResponsable(
+                        datos as DesempenoTecnicos,
+                        responsable,
+                        'CALIBRACION',
+                        filtros.desde,
+                        filtros.hasta,
+                    ),
+                },
+            })),
+        [datos, filtros.desde, filtros.hasta],
+    );
+
+    // Tarjetas de cumplimiento: una por servicio visible y la general de los visibles.
+    const tarjetasCumplimiento = useMemo(() => {
+        if (!datos) {
+            return [];
+        }
+
+        const visibles = SERIES_SERVICIO.filter((serie) =>
+            servicios.includes(serie.servicio),
+        );
+        const resumen = (elegidos: ('MANTENIMIENTO' | 'CALIBRACION')[]) =>
+            resumenDeCumplimiento(
+                datos,
+                elegidos,
+                filtros.desde,
+                filtros.hasta,
+            );
+
+        return [
+            ...visibles.map((serie) => ({
+                clave: serie.clave,
+                titulo: serie.etiqueta,
+                icono: serie.servicio === 'MANTENIMIENTO' ? Wrench : Gauge,
+                color: serie.color,
+                resumen: resumen([serie.servicio]),
+            })),
+            {
+                clave: 'general',
+                titulo: 'General',
+                icono: Target,
+                color: 'var(--primary)',
+                resumen: resumen(visibles.map((serie) => serie.servicio)),
+            },
+        ];
+    }, [datos, servicios, filtros.desde, filtros.hasta]);
+
     return (
-        <div className="grid gap-4" data-test="indicador-desempeno-tecnicos">
+        <div
+            className="grid min-w-0 grid-cols-1 gap-4"
+            data-test="indicador-desempeno-tecnicos"
+        >
             <PanelFiltros>
                 <FiltroRango
                     id="desempeno-tecnicos"
@@ -261,22 +611,35 @@ export default function IndicadorDesempenoTecnicos() {
                     hasta={filtros.hasta}
                     onChange={cambiar}
                 />
-                <FiltroSeleccionMultiple
-                    id="desempeno-tecnicos-laboratorio"
-                    etiqueta="Laboratorio"
-                    value={filtros.laboratorios}
-                    onChange={(laboratorios) => cambiar({ laboratorios })}
-                    opciones={aOpcionesDependientes(opciones.laboratorios)}
-                    plural="laboratorios"
+                <FiltroAlternativa
+                    id="desempeno-origen"
+                    etiqueta="Origen"
+                    opciones={ORIGENES}
+                    value={filtros.origen}
+                    // Al cambiar de origen, lo elegido del otro ya no aplica.
+                    onChange={(origen) =>
+                        cambiar({ origen, laboratorios: [], tecnicos: [] })
+                    }
                 />
-                <FiltroSeleccionMultiple
-                    id="desempeno-tecnicos-tecnico"
-                    etiqueta="Técnico"
-                    value={filtros.tecnicos}
-                    onChange={(tecnicos) => cambiar({ tecnicos })}
-                    opciones={aOpcionesDependientes(opciones.tecnicos)}
-                    plural="técnicos"
-                />
+                {filtros.origen === 'LOCAL' ? (
+                    <FiltroSeleccionMultiple
+                        id="desempeno-tecnicos-tecnico"
+                        etiqueta="Técnico"
+                        value={filtros.tecnicos}
+                        onChange={(tecnicos) => cambiar({ tecnicos })}
+                        opciones={aOpcionesDependientes(opciones.tecnicos)}
+                        plural="técnicos"
+                    />
+                ) : (
+                    <FiltroSeleccionMultiple
+                        id="desempeno-tecnicos-laboratorio"
+                        etiqueta="Laboratorio tercero"
+                        value={filtros.laboratorios}
+                        onChange={(laboratorios) => cambiar({ laboratorios })}
+                        opciones={aOpcionesDependientes(opciones.laboratorios)}
+                        plural="laboratorios"
+                    />
+                )}
                 <FiltroSeleccionMultiple
                     id="desempeno-tecnicos-magnitud"
                     etiqueta="Magnitud"
@@ -307,6 +670,25 @@ export default function IndicadorDesempenoTecnicos() {
                 <CargandoContenido mensaje="Calculando desempeño..." />
             ) : (
                 <>
+                    <div
+                        className={cn(
+                            'grid gap-4 sm:grid-cols-2',
+                            tarjetasCumplimiento.length === 3 &&
+                                'lg:grid-cols-3',
+                        )}
+                    >
+                        {tarjetasCumplimiento.map((tarjeta) => (
+                            <TarjetaCumplimiento
+                                key={tarjeta.clave}
+                                titulo={tarjeta.titulo}
+                                icono={tarjeta.icono}
+                                colorBarra={tarjeta.color}
+                                resumen={tarjeta.resumen}
+                                testId={`desempeno-cumplimiento-${tarjeta.clave}`}
+                            />
+                        ))}
+                    </div>
+
                     <div className="grid auto-rows-min gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {verMantenimientos ? (
                             <>
@@ -358,7 +740,7 @@ export default function IndicadorDesempenoTecnicos() {
                         ) : null}
                     </div>
 
-                    <div className="grid gap-4 xl:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <BloqueIndicador
                             titulo="Tiempo promedio por periodo"
                             icono={Timer}
@@ -394,8 +776,26 @@ export default function IndicadorDesempenoTecnicos() {
                         icono={Users}
                     >
                         <DataTable
-                            data={datos.responsables}
+                            data={filas}
                             columns={columns}
+                            filaExpandida={(fila) =>
+                                expandidos.has(claveResponsable(fila))
+                            }
+                            renderDetalle={(fila) => (
+                                <RegistrosDelResponsable
+                                    datos={datos}
+                                    servicios={datos.servicios.filter(
+                                        (servicio) =>
+                                            servicio.responsable_tipo ===
+                                                fila.tipo &&
+                                            servicio.responsable_id ===
+                                                fila.responsable_id &&
+                                            servicios.includes(
+                                                servicio.tipo_servicio,
+                                            ),
+                                    )}
+                                />
+                            )}
                             searchPlaceholder="Buscar técnico o empresa..."
                             emptyMessage="No hay servicios finalizados en este periodo."
                             rowTestId="desempeno-tecnicos-row"
@@ -403,7 +803,10 @@ export default function IndicadorDesempenoTecnicos() {
                         <p className="mt-3 text-xs text-muted-foreground">
                             Los servicios sin tiempo registrado (Iniciar →
                             Finalizar) cuentan en la cantidad, pero no en el
-                            promedio.
+                            promedio. El cumplimiento de cantidad compara lo
+                            hecho con los objetivos del técnico en el periodo
+                            (Objetivos → Por usuario); el de tiempo, su promedio
+                            con el objetivo de los tipos de equipo que atendió.
                         </p>
                     </BloqueIndicador>
                 </>

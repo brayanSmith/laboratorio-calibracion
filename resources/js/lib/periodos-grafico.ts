@@ -370,35 +370,32 @@ export type ObjetivoMensual = {
     valores: Partial<Record<ConceptoObjetivo, number>>;
 };
 
-/** Un mes que toca un periodo: sus límites dentro del periodo y qué parte de él cubre. */
-type MesDelPeriodo = {
+/** Un mes que toca un rango: sus límites dentro del rango y qué parte de él cubre. */
+type MesDelRango = {
     anio: number;
     mes: number;
     desde: number;
     hasta: number;
-    /** Parte del mes que cubre el periodo (1 si lo cubre completo). */
+    /** Parte del mes que cubre el rango (1 si lo cubre completo). */
     parte: number;
 };
 
-/** Los meses que toca el periodo que empieza en `inicio`, con la parte de cada uno. */
-function mesesDelPeriodo(
-    inicio: string,
-    agrupacion: Agrupacion,
-): MesDelPeriodo[] {
-    const desde = aFecha(inicio).getTime();
-    const hasta = aFecha(siguiente(inicio, agrupacion)).getTime();
-    const meses: MesDelPeriodo[] = [];
+/** Los meses que toca el rango [desde, hasta) (fechas YYYY-MM-DD), con la parte de cada uno. */
+function mesesDelRango(desde: string, hastaSinIncluir: string): MesDelRango[] {
+    const inicio = aFecha(desde).getTime();
+    const fin = aFecha(hastaSinIncluir).getTime();
+    const meses: MesDelRango[] = [];
 
     for (
-        let mes = aFecha(inicioDePeriodo(inicio, 'mes')).getTime();
-        mes < hasta;
+        let mes = aFecha(inicioDePeriodo(desde, 'mes')).getTime();
+        mes < fin;
         mes = aFecha(siguiente(aTexto(new Date(mes)), 'mes')).getTime()
     ) {
         const finMes = aFecha(
             siguiente(aTexto(new Date(mes)), 'mes'),
         ).getTime();
-        const desdeEnMes = Math.max(desde, mes);
-        const hastaEnMes = Math.min(hasta, finMes);
+        const desdeEnMes = Math.max(inicio, mes);
+        const hastaEnMes = Math.min(fin, finMes);
         const fecha = new Date(mes);
 
         meses.push({
@@ -413,22 +410,22 @@ function mesesDelPeriodo(
     return meses;
 }
 
-/**
- * Tiempo objetivo de un periodo a partir de los objetivos por mes y tipo de equipo,
- * combinando los tipos: promedio de los objetivos, ponderado por cuántos servicios tuvo
- * cada tipo en el periodo; sin servicios, ponderado por los días que el periodo cubre de
- * cada mes.
- *
- * Null si ningún mes del periodo tiene objetivo para el concepto.
- */
-export function objetivoMensualDelPeriodo(
+/** Los meses del periodo que empieza en `inicio` (un día, una semana, un mes...). */
+const mesesDelPeriodo = (inicio: string, agrupacion: Agrupacion) =>
+    mesesDelRango(inicio, siguiente(inicio, agrupacion));
+
+/** Los meses del rango de días [desde, hasta], ambos incluidos (el filtro del indicador). */
+const mesesDeLosDias = (desde: string, hasta: string) =>
+    mesesDelRango(desde, siguiente(hasta, 'dia'));
+
+/** Promedio de los tiempos objetivo de los meses dados (ver objetivoMensualDelPeriodo). */
+function tiempoObjetivoDeMeses(
+    meses: MesDelRango[],
     objetivos: ObjetivoMensual[],
     filas: { fecha: string; tipo_equipo_id: number | null }[],
-    inicio: string,
-    agrupacion: Agrupacion,
     concepto: ConceptoObjetivo,
 ): number | null {
-    const items = mesesDelPeriodo(inicio, agrupacion).flatMap((mes) =>
+    const items = meses.flatMap((mes) =>
         objetivos
             .filter(
                 (objetivo) =>
@@ -466,6 +463,66 @@ export function objetivoMensualDelPeriodo(
               pesoTotal;
 }
 
+/** Suma de las cantidades objetivo de los meses dados (ver sumaMensualDelPeriodo). */
+function cantidadObjetivoDeMeses(
+    meses: MesDelRango[],
+    objetivos: { anio: number; mes: number; valor: number }[],
+): number | null {
+    let total: number | null = null;
+
+    meses.forEach((mes) => {
+        objetivos
+            .filter(
+                (objetivo) =>
+                    objetivo.anio === mes.anio && objetivo.mes === mes.mes,
+            )
+            .forEach((objetivo) => {
+                total = (total ?? 0) + objetivo.valor * mes.parte;
+            });
+    });
+
+    return total;
+}
+
+/**
+ * Tiempo objetivo de un periodo a partir de los objetivos por mes y tipo de equipo,
+ * combinando los tipos: promedio de los objetivos, ponderado por cuántos servicios tuvo
+ * cada tipo en el periodo; sin servicios, ponderado por los días que el periodo cubre de
+ * cada mes.
+ *
+ * Null si ningún mes del periodo tiene objetivo para el concepto.
+ */
+export function objetivoMensualDelPeriodo(
+    objetivos: ObjetivoMensual[],
+    filas: { fecha: string; tipo_equipo_id: number | null }[],
+    inicio: string,
+    agrupacion: Agrupacion,
+    concepto: ConceptoObjetivo,
+): number | null {
+    return tiempoObjetivoDeMeses(
+        mesesDelPeriodo(inicio, agrupacion),
+        objetivos,
+        filas,
+        concepto,
+    );
+}
+
+/** Como objetivoMensualDelPeriodo, para el rango de días [desde, hasta]. */
+export function objetivoMensualDelRango(
+    objetivos: ObjetivoMensual[],
+    filas: { fecha: string; tipo_equipo_id: number | null }[],
+    desde: string,
+    hasta: string,
+    concepto: ConceptoObjetivo,
+): number | null {
+    return tiempoObjetivoDeMeses(
+        mesesDeLosDias(desde, hasta),
+        objetivos,
+        filas,
+        concepto,
+    );
+}
+
 /**
  * Cantidad objetivo de un periodo a partir de objetivos por mes (los de los usuarios): se
  * suman los meses del periodo y, de un mes que cubre solo en parte (días, semanas), se
@@ -478,18 +535,17 @@ export function sumaMensualDelPeriodo(
     inicio: string,
     agrupacion: Agrupacion,
 ): number | null {
-    let total: number | null = null;
+    return cantidadObjetivoDeMeses(
+        mesesDelPeriodo(inicio, agrupacion),
+        objetivos,
+    );
+}
 
-    mesesDelPeriodo(inicio, agrupacion).forEach((mes) => {
-        objetivos
-            .filter(
-                (objetivo) =>
-                    objetivo.anio === mes.anio && objetivo.mes === mes.mes,
-            )
-            .forEach((objetivo) => {
-                total = (total ?? 0) + objetivo.valor * mes.parte;
-            });
-    });
-
-    return total;
+/** Como sumaMensualDelPeriodo, para el rango de días [desde, hasta]. */
+export function sumaMensualDelRango(
+    objetivos: { anio: number; mes: number; valor: number }[],
+    desde: string,
+    hasta: string,
+): number | null {
+    return cantidadObjetivoDeMeses(mesesDeLosDias(desde, hasta), objetivos);
 }

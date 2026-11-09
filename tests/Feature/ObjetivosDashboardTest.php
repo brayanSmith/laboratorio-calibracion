@@ -240,7 +240,7 @@ test('desempeno trae los objetivos por mes de los tipos de equipo filtrados', fu
         ->assertJsonPath('objetivos.0.tipo_equipo_id', $balanza->id);
 });
 
-test('desempeno trae la cantidad objetivo de cada mes sumada entre los tecnicos filtrados', function () {
+test('desempeno trae la cantidad objetivo de cada mes de cada tecnico filtrado', function () {
     $ana = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
     $luis = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
 
@@ -254,13 +254,10 @@ test('desempeno trae la cantidad objetivo de cada mes sumada entre los tecnicos 
     $this->actingAs($this->admin)
         ->getJson(route('dashboard.indicadores.desempeno-tecnicos', $rango))
         ->assertOk()
-        ->assertJsonCount(2, 'objetivos_usuarios')
-        ->assertJsonPath('objetivos_usuarios.0.tipo', 'CALIBRACION')
-        ->assertJsonPath('objetivos_usuarios.1.tipo', 'MANTENIMIENTO')
-        ->assertJsonPath('objetivos_usuarios.1.valor', 16);
+        ->assertJsonCount(3, 'objetivos_usuarios');
 
     $this->actingAs($this->admin)
         ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'tecnicos' => [$luis->id]]))
         ->assertJsonCount(1, 'objetivos_usuarios')
-        ->assertJsonPath('objetivos_usuarios.0.valor', 6);
+        ->assertJsonPath('objetivos_usuarios.0', ['user_id' => $luis->id, 'anio' => 2026, 'mes' => 3, 'tipo' => 'MANTENIMIENTO', 'valor' => 6]);
 });

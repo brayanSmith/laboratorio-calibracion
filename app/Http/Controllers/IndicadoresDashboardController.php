@@ -61,8 +61,8 @@ class IndicadoresDashboardController extends Controller
             (int) substr($request->validated('hasta'), 0, 4),
         );
         // Desempeño: los tiempos por mes y tipo de equipo, solo de los tipos filtrados (sin
-        // filtro, de todos); las cantidades, de los objetivos de los técnicos filtrados (sin
-        // filtro, de todos los usuarios). El gráfico los combina.
+        // filtro, de todos); las cantidades, los objetivos de cada técnico filtrado (sin
+        // filtro, de todos los usuarios). El gráfico y el detalle los combinan.
         if ($modulo->porMesYTipoEquipo()) {
             return response()->json([
                 ...$indicador,
@@ -72,7 +72,8 @@ class IndicadoresDashboardController extends Controller
                     $anios,
                     array_map('intval', $request->validated('tipos_equipo', [])),
                 ),
-                'objetivos_usuarios' => ObjetivoUser::sumaPorMes(
+                // Las empresas terceras no tienen objetivos de cantidad.
+                'objetivos_usuarios' => $request->validated('origen') === 'TERCERO' ? [] : ObjetivoUser::porMes(
                     $request->user()->tenant_id,
                     $anios,
                     array_map('intval', $request->validated('tecnicos', [])),
@@ -96,7 +97,7 @@ class IndicadoresDashboardController extends Controller
      * Filtros de selección múltiple de los indicadores: listas de ids como enteros; en los
      * laboratorios, "propio" se mantiene como texto. Cada indicador usa los que le aplican.
      *
-     * @return array{desde: string, hasta: string, areas: list<int>, laboratorios: list<int|string>, tecnicos: list<int>, magnitudes: list<int>, tipos_equipo: list<int>, servicios: list<string>, tipos_mantenimiento: list<string>}
+     * @return array{desde: string, hasta: string, areas: list<int>, laboratorios: list<int|string>, tecnicos: list<int>, magnitudes: list<int>, tipos_equipo: list<int>, servicios: list<string>, origen: string|null, tipos_mantenimiento: list<string>}
      */
     private function filtrosMultiples(IndicadoresDashboardRequest $request): array
     {
@@ -114,6 +115,7 @@ class IndicadoresDashboardController extends Controller
             'magnitudes' => $enteros('magnitudes'),
             'tipos_equipo' => $enteros('tipos_equipo'),
             'servicios' => $request->validated('servicios', []),
+            'origen' => $request->validated('origen'),
             'tipos_mantenimiento' => $request->validated('tipos_mantenimiento', []),
         ];
     }

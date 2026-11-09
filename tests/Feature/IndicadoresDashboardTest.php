@@ -306,6 +306,10 @@ test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo
         ->assertJsonPath('totales.calibraciones.promedio_horas', null)
         ->assertJsonCount(4, 'servicios')
         ->assertJsonPath('servicios.0.fecha', '2026-10-05')
+        ->assertJsonPath('servicios.0.responsable_tipo', 'TECNICO')
+        ->assertJsonPath('servicios.0.responsable_id', $tecnico->id)
+        ->assertJsonPath('servicios.0.equipo', 'EQ-MANT-0')
+        ->assertJsonPath('servicios.0.orden_trabajo', fn (?string $codigo) => $codigo !== null)
         ->assertJsonPath('responsables.0.responsable', 'Ana Técnica')
         ->assertJsonPath('responsables.0.mantenimientos.cantidad', 2)
         ->assertJsonPath('responsables.1.tipo', 'TERCERO')
@@ -318,6 +322,23 @@ test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo
         ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'tecnicos' => [$tecnico->id]]))
         ->assertJsonCount(1, 'responsables')
         ->assertJsonPath('totales.mantenimientos.cantidad', 2);
+
+    // Local: solo el laboratorio propio; tercero: solo las empresas terceras.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'origen' => 'LOCAL']))
+        ->assertJsonCount(1, 'responsables')
+        ->assertJsonPath('responsables.0.tipo', 'TECNICO')
+        ->assertJsonPath('totales.mantenimientos.cantidad', 2);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'origen' => 'TERCERO']))
+        ->assertJsonCount(1, 'responsables')
+        ->assertJsonPath('responsables.0.tipo', 'TERCERO')
+        ->assertJsonPath('objetivos_usuarios', []);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', [...$rango, 'origen' => 'OTRO']))
+        ->assertJsonValidationErrors('origen');
 
     // Solo calibraciones: ni los mantenimientos propios ni los de terceros.
     $this->actingAs($this->admin)

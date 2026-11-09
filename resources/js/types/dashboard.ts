@@ -83,10 +83,11 @@ export type DesempenoTecnicos = {
     /** Tiempos objetivo por mes y tipo de equipo (solo de los tipos filtrados; sin filtro, de todos). */
     objetivos: ObjetivoMensual[];
     /**
-     * Cantidad objetivo de cada mes, sumada entre los técnicos filtrados (sin filtro, entre
-     * todos los usuarios); ver Objetivos por usuario.
+     * Cantidad objetivo de cada mes de cada técnico filtrado (sin filtro, de todos los
+     * usuarios); ver Objetivos por usuario.
      */
     objetivos_usuarios: {
+        user_id: number;
         anio: number;
         mes: number;
         tipo: 'MANTENIMIENTO' | 'CALIBRACION';
@@ -96,7 +97,14 @@ export type DesempenoTecnicos = {
     servicios: {
         fecha: string;
         tipo_servicio: 'MANTENIMIENTO' | 'CALIBRACION';
+        responsable_tipo: 'TECNICO' | 'TERCERO';
+        responsable_id: number;
         tipo_equipo_id: number | null;
+        /** Códigos y nombres para ver los registros de cada responsable en el detalle. */
+        orden_trabajo: string | null;
+        equipo: string | null;
+        tipo_equipo: string | null;
+        magnitud: string | null;
         horas: number | null;
     }[];
     /** Listas dependientes: laboratorio → técnico → magnitud → tipo de equipo. */

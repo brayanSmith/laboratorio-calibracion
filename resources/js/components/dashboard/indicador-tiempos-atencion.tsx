@@ -207,7 +207,10 @@ export default function IndicadorTiemposAtencion() {
     );
 
     return (
-        <div className="grid gap-4" data-test="indicador-tiempos-atencion">
+        <div
+            className="grid min-w-0 grid-cols-1 gap-4"
+            data-test="indicador-tiempos-atencion"
+        >
             <PanelFiltros>
                 <FiltroRango
                     id="tiempos-atencion"

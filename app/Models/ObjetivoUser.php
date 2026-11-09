@@ -44,31 +44,30 @@ class ObjetivoUser extends Model
     public const TIPOS = ['MANTENIMIENTO', 'CALIBRACION'];
 
     /**
-     * Cantidad que deben hacer los usuarios dados (sin usuarios, todos los del tenant) en
-     * cada mes de los años dados, sumada por mes y tipo de servicio.
+     * Cantidad que debe hacer cada uno de los usuarios dados (sin usuarios, todos los del
+     * tenant) en cada mes de los años dados, por tipo de servicio.
      *
      * @param  list<int>  $anios
      * @param  list<int>  $usuarios
-     * @return list<array{anio: int, mes: int, tipo: string, valor: float}>
+     * @return list<array{user_id: int, anio: int, mes: int, tipo: string, valor: float}>
      */
-    public static function sumaPorMes(int $tenantId, array $anios, array $usuarios = []): array
+    public static function porMes(int $tenantId, array $anios, array $usuarios = []): array
     {
         return self::query()
             ->where('tenant_id', $tenantId)
             ->whereIn('anio', $anios)
             ->whereNotNull('mes')
             ->when($usuarios !== [], fn ($query) => $query->whereIn('user_id', $usuarios))
-            ->groupBy('anio', 'mes', 'tipo')
             ->orderBy('anio')
             ->orderBy('mes')
-            ->selectRaw('anio, mes, tipo, sum(valor) as total')
-            ->toBase()
-            ->get()
-            ->map(fn (object $fila): array => [
-                'anio' => (int) $fila->anio,
-                'mes' => (int) $fila->mes,
-                'tipo' => (string) $fila->tipo,
-                'valor' => round((float) $fila->total, 2),
+            ->orderBy('user_id')
+            ->get(['user_id', 'anio', 'mes', 'tipo', 'valor'])
+            ->map(fn (self $objetivo): array => [
+                'user_id' => $objetivo->user_id,
+                'anio' => $objetivo->anio,
+                'mes' => (int) $objetivo->mes,
+                'tipo' => $objetivo->tipo,
+                'valor' => (float) $objetivo->valor,
             ])
             ->all();
     }

@@ -39,7 +39,7 @@ function SeccionIndicador({
     const [recarga, setRecarga] = useState(0);
 
     return (
-        <section className="grid gap-4">
+        <section className="grid min-w-0 grid-cols-1 gap-4">
             <div className="flex flex-wrap items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icono className="h-5 w-5" />

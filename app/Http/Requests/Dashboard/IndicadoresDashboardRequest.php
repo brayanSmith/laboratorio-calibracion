@@ -58,6 +58,9 @@ class IndicadoresDashboardRequest extends FormRequest
             'tecnicos' => ['nullable', 'array'],
             'tecnicos.*' => ['integer', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
 
+            // Desempeño por técnico: servicios del laboratorio propio (LOCAL) o de terceros.
+            'origen' => ['nullable', Rule::in(CalcularDesempenoTecnicos::ORIGENES)],
+
             // Desempeño por técnico: qué servicios ver.
             'servicios' => ['nullable', 'array'],
             'servicios.*' => [Rule::in(CalcularDesempenoTecnicos::TIPOS_SERVICIO)],

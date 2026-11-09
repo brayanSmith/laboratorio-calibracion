@@ -32,36 +32,45 @@ class CalcularDesempenoTecnicos
     /** Tipos de servicio que se pueden ver: mantenimientos y calibraciones. */
     public const TIPOS_SERVICIO = ['MANTENIMIENTO', 'CALIBRACION'];
 
-    /** Relaciones del equipo del servicio que usan los filtros. */
+    /** Origen de los servicios: el laboratorio propio (LOCAL) o empresas terceras. */
+    public const ORIGENES = ['LOCAL', 'TERCERO'];
+
+    /** Relaciones del equipo del servicio que usan los filtros y el detalle por responsable. */
     private const EQUIPO = [
-        'ordenTrabajo:id,equipo_programacion_id',
+        'ordenTrabajo:id,codigo,equipo_programacion_id',
         'ordenTrabajo.equipoProgramacion:id,equipo_id',
-        'ordenTrabajo.equipoProgramacion.equipo:id,tipo_equipo_id',
+        'ordenTrabajo.equipoProgramacion.equipo:id,codigo,tipo_equipo_id',
         'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre',
         'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica:id,equipo_id,tipo_magnitud_id',
         'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica.tipoMagnitud:id,nombre',
     ];
 
     /**
-     * @param  array{desde: string, hasta: string, laboratorios?: list<int|string>, tecnicos?: list<int>, magnitudes?: list<int>, tipos_equipo?: list<int>, servicios?: list<string>}  $filtros
-     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, mensual: list<array<string, mixed>>, servicios: list<array{fecha: string, tipo_servicio: string, tipo_equipo_id: int|null, horas: float|null}>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
+     * @param  array{desde: string, hasta: string, laboratorios?: list<int|string>, tecnicos?: list<int>, magnitudes?: list<int>, tipos_equipo?: list<int>, servicios?: list<string>, origen?: string|null}  $filtros
+     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, mensual: list<array<string, mixed>>, servicios: list<array{fecha: string, tipo_servicio: string, responsable_tipo: string, responsable_id: int, tipo_equipo_id: int|null, orden_trabajo: string|null, equipo: string|null, tipo_equipo: string|null, magnitud: string|null, horas: float|null}>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
      */
     public function handle(int $tenantId, array $filtros): array
     {
         // Mantenimientos, calibraciones o los dos (sin elegir, los dos).
         $tiposServicio = ($filtros['servicios'] ?? []) ?: self::TIPOS_SERVICIO;
 
+        // Del laboratorio propio, de terceros o (sin elegir) de los dos.
+        $origen = $filtros['origen'] ?? null;
+        $verPropios = $origen !== 'TERCERO';
+
         $delPeriodo = collect();
 
-        if (in_array('MANTENIMIENTO', $tiposServicio, true)) {
+        if ($verPropios && in_array('MANTENIMIENTO', $tiposServicio, true)) {
             $delPeriodo = $delPeriodo->concat($this->propios(Mantenimiento::query()->where('estado_mantenimiento', 'FINALIZADO'), 'MANTENIMIENTO', $tenantId, $filtros));
         }
 
-        if (in_array('CALIBRACION', $tiposServicio, true)) {
+        if ($verPropios && in_array('CALIBRACION', $tiposServicio, true)) {
             $delPeriodo = $delPeriodo->concat($this->propios(Calibracion::query()->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA), 'CALIBRACION', $tenantId, $filtros));
         }
 
-        $delPeriodo = $delPeriodo->concat($this->terceros($tenantId, $filtros, $tiposServicio));
+        if ($origen !== 'LOCAL') {
+            $delPeriodo = $delPeriodo->concat($this->terceros($tenantId, $filtros, $tiposServicio));
+        }
 
         ['filas' => $servicios, 'opciones' => $opciones] = FiltrosDependientes::aplicar($delPeriodo, [
             'laboratorios' => $filtros['laboratorios'] ?? [],
@@ -113,7 +122,15 @@ class CalcularDesempenoTecnicos
                 ->map(fn (array $servicio): array => [
                     'fecha' => $servicio['fecha'],
                     'tipo_servicio' => $servicio['tipo_servicio'],
+                    // Quién lo hizo, para el cumplimiento de cada fila del detalle.
+                    'responsable_tipo' => $servicio['tipo'],
+                    'responsable_id' => $servicio['responsable_id'],
                     'tipo_equipo_id' => $servicio['filtros']['tipos_equipo'][0]['id'] ?? null,
+                    // Para ver los registros de cada responsable en el detalle.
+                    'orden_trabajo' => $servicio['orden_trabajo'],
+                    'equipo' => $servicio['equipo'],
+                    'tipo_equipo' => $servicio['filtros']['tipos_equipo'][0]['nombre'] ?? null,
+                    'magnitud' => $servicio['filtros']['magnitudes'][0]['nombre'] ?? null,
                     'horas' => $servicio['segundos'] === null ? null : round($servicio['segundos'] / 3600, 2),
                 ])
                 ->values()
@@ -145,6 +162,7 @@ class CalcularDesempenoTecnicos
                 'orden_trabajo_id' => $servicio->orden_trabajo_id,
                 'mes' => $servicio->fecha_realizacion->format('Y-m'),
                 'fecha' => $servicio->fecha_realizacion->toDateString(),
+                ...$this->codigos($servicio->ordenTrabajo),
                 'filtros' => [
                     'laboratorios' => [['id' => FiltrosDependientes::PROPIO, 'nombre' => 'Laboratorio propio']],
                     'tecnicos' => FiltrosDependientes::opcion($servicio->tecnico, 'name'),
@@ -178,12 +196,26 @@ class CalcularDesempenoTecnicos
                 'orden_trabajo_id' => $servicio->orden_trabajo_id,
                 'mes' => $servicio->fecha_realizacion->format('Y-m'),
                 'fecha' => $servicio->fecha_realizacion->toDateString(),
+                ...$this->codigos($servicio->ordenTrabajo),
                 'filtros' => [
                     'laboratorios' => FiltrosDependientes::opcion($servicio->empresaTercero),
                     'tecnicos' => [],
                     ...$this->filtrosDelEquipo($servicio->ordenTrabajo),
                 ],
             ]);
+    }
+
+    /**
+     * Códigos de la orden y de su equipo, para el detalle por responsable.
+     *
+     * @return array{orden_trabajo: string|null, equipo: string|null}
+     */
+    private function codigos(?OrdenTrabajo $ordenTrabajo): array
+    {
+        return [
+            'orden_trabajo' => $ordenTrabajo?->codigo,
+            'equipo' => $ordenTrabajo?->equipoProgramacion?->equipo?->codigo,
+        ];
     }
 
     /**

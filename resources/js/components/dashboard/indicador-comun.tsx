@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     depurarFiltrosDependientes,
     filtrosConValor,
@@ -222,7 +223,7 @@ export function BloqueIndicador({
     children: ReactNode;
 }) {
     return (
-        <Card>
+        <Card className="min-w-0">
             <CardHeader className="flex flex-row items-center gap-2 space-y-0">
                 <Icono className="h-5 w-5 text-muted-foreground" />
                 <CardTitle className="text-base">{titulo}</CardTitle>
@@ -478,6 +479,53 @@ export function FiltroCasillas({
                     </label>
                 ))}
             </div>
+        </fieldset>
+    );
+}
+
+/**
+ * Filtro de una sola opción entre pocas (ej. Local / Tercero), como botones unidos;
+ * siempre queda una elegida.
+ */
+export function FiltroAlternativa<T extends string>({
+    id,
+    etiqueta,
+    opciones,
+    value,
+    onChange,
+}: {
+    id: string;
+    etiqueta: string;
+    opciones: { value: T; label: string }[];
+    value: T;
+    onChange: (value: T) => void;
+}) {
+    return (
+        <fieldset className="grid gap-1">
+            <legend className="mb-1 text-xs font-medium">{etiqueta}</legend>
+            <ToggleGroup
+                type="single"
+                variant="outline"
+                value={value}
+                onValueChange={(elegida) => {
+                    if (elegida) {
+                        onChange(elegida as T);
+                    }
+                }}
+                className="h-9"
+                data-test={id}
+            >
+                {opciones.map((opcion) => (
+                    <ToggleGroupItem
+                        key={opcion.value}
+                        value={opcion.value}
+                        className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                        data-test={`${id}-${opcion.value}`}
+                    >
+                        {opcion.label}
+                    </ToggleGroupItem>
+                ))}
+            </ToggleGroup>
         </fieldset>
     );
 }
