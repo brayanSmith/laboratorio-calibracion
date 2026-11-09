@@ -4,6 +4,8 @@ import {
     COLOR_CUMPLE,
     COLOR_NO_CUMPLE,
     cortesDeColor,
+    diferenciaConObjetivo,
+    objetivoMensualDelPeriodo,
     agruparPromedios,
     agrupacionSugerida,
     etiquetaPeriodo,
@@ -73,46 +75,17 @@ describe('objetivoDelPeriodo', () => {
         { anio: 2025, valores: { TIEMPO_ATENCION_DIAS: 6 } },
         {
             anio: 2026,
-            valores: { TIEMPO_ATENCION_DIAS: 5, CANTIDAD_MANTENIMIENTOS: 480 },
+            valores: { TIEMPO_ATENCION_DIAS: 5 },
         },
     ];
 
     it('uses the goal of the year where the period starts', () => {
         expect(
-            objetivoDelPeriodo(
-                objetivos,
-                '2025-12-01',
-                'TIEMPO_ATENCION_DIAS',
-                'mes',
-            ),
+            objetivoDelPeriodo(objetivos, '2025-12-01', 'TIEMPO_ATENCION_DIAS'),
         ).toBe(6);
         expect(
-            objetivoDelPeriodo(
-                objetivos,
-                '2026-01-01',
-                'TIEMPO_ATENCION_DIAS',
-                'mes',
-            ),
+            objetivoDelPeriodo(objetivos, '2026-01-01', 'TIEMPO_ATENCION_DIAS'),
         ).toBe(5);
-    });
-
-    it('splits yearly quantities by the periods of a year', () => {
-        expect(
-            objetivoDelPeriodo(
-                objetivos,
-                '2026-01-01',
-                'CANTIDAD_MANTENIMIENTOS',
-                'trimestre',
-            ),
-        ).toBe(120);
-        expect(
-            objetivoDelPeriodo(
-                objetivos,
-                '2025-01-01',
-                'CANTIDAD_MANTENIMIENTOS',
-                'mes',
-            ),
-        ).toBeNull();
     });
 });
 
@@ -199,5 +172,133 @@ describe('cortesDeColor', () => {
             { offset: 0, color: COLOR_CUMPLE },
             { offset: 1, color: COLOR_CUMPLE },
         ]);
+    });
+});
+
+describe('diferenciaConObjetivo', () => {
+    it('meets the goal below it for times and above it for quantities', () => {
+        expect(diferenciaConObjetivo(6.5, 5, true)).toEqual({
+            diferencia: 1.5,
+            cumple: false,
+        });
+        expect(diferenciaConObjetivo(42, 40, false)).toEqual({
+            diferencia: 2,
+            cumple: true,
+        });
+        expect(diferenciaConObjetivo(3, null, true)).toBeNull();
+    });
+});
+
+describe('objetivoMensualDelPeriodo', () => {
+    const objetivos = [
+        {
+            anio: 2026,
+            mes: 3,
+            tipo_equipo_id: 1,
+            valores: {
+                CANTIDAD_MANTENIMIENTOS: 20,
+                PROMEDIO_HORAS_MANTENIMIENTO: 2,
+            },
+        },
+        {
+            anio: 2026,
+            mes: 3,
+            tipo_equipo_id: 2,
+            valores: {
+                CANTIDAD_MANTENIMIENTOS: 10,
+                PROMEDIO_HORAS_MANTENIMIENTO: 5,
+            },
+        },
+        {
+            anio: 2026,
+            mes: 4,
+            tipo_equipo_id: 1,
+            valores: { CANTIDAD_MANTENIMIENTOS: 30 },
+        },
+    ];
+
+    it('adds up the quantities of the types and of the months in the period', () => {
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                [],
+                '2026-03-01',
+                'mes',
+                'CANTIDAD_MANTENIMIENTOS',
+            ),
+        ).toBe(30);
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                [],
+                '2026-01-01',
+                'trimestre',
+                'CANTIDAD_MANTENIMIENTOS',
+            ),
+        ).toBe(30);
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                [],
+                '2026-04-01',
+                'trimestre',
+                'CANTIDAD_MANTENIMIENTOS',
+            ),
+        ).toBe(30);
+    });
+
+    it('takes the share of a month that a day covers', () => {
+        // Marzo tiene 31 días: un día es 30 / 31 del objetivo del mes.
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                [],
+                '2026-03-10',
+                'dia',
+                'CANTIDAD_MANTENIMIENTOS',
+            ),
+        ).toBeCloseTo(30 / 31);
+    });
+
+    it('weights times by how many services each type had', () => {
+        const filas = [
+            { fecha: '2026-03-02', tipo_equipo_id: 1 },
+            { fecha: '2026-03-03', tipo_equipo_id: 1 },
+            { fecha: '2026-03-04', tipo_equipo_id: 1 },
+            { fecha: '2026-03-05', tipo_equipo_id: 2 },
+        ];
+
+        // (2 h × 3 + 5 h × 1) / 4 servicios.
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                filas,
+                '2026-03-01',
+                'mes',
+                'PROMEDIO_HORAS_MANTENIMIENTO',
+            ),
+        ).toBe(2.75);
+        // Sin servicios: promedio simple de los tipos.
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                [],
+                '2026-03-01',
+                'mes',
+                'PROMEDIO_HORAS_MANTENIMIENTO',
+            ),
+        ).toBe(3.5);
+    });
+
+    it('is null when no month of the period has a goal', () => {
+        expect(
+            objetivoMensualDelPeriodo(
+                objetivos,
+                [],
+                '2026-06-01',
+                'mes',
+                'CANTIDAD_MANTENIMIENTOS',
+            ),
+        ).toBeNull();
     });
 });

@@ -56,14 +56,17 @@ type Datos = {
 const anioActual = () => String(new Date().getFullYear());
 
 /** Incremento de cada campo: cantidades enteras; días y porcentaje con un decimal. */
-const PASO: Record<Exclude<FormatoObjetivo, 'horas'>, string> = {
+export const PASO: Record<Exclude<FormatoObjetivo, 'horas'>, string> = {
     cantidad: '1',
     dias: '0.1',
     porcentaje: '0.1',
 };
 
 /** Un objetivo escrito como se lee: "1 h 30 min", "3,5 días", "95 %", "480". */
-function formatearObjetivo(valor: number, formato: FormatoObjetivo): string {
+export function formatearObjetivo(
+    valor: number,
+    formato: FormatoObjetivo,
+): string {
     switch (formato) {
         case 'horas':
             return formatearHoras(valor);
@@ -77,7 +80,7 @@ function formatearObjetivo(valor: number, formato: FormatoObjetivo): string {
 }
 
 /** Unidad que se ve dentro del campo, a la derecha (las cantidades no la llevan). */
-const UNIDAD_EN_CAMPO: Partial<Record<FormatoObjetivo, string>> = {
+export const UNIDAD_EN_CAMPO: Partial<Record<FormatoObjetivo, string>> = {
     dias: 'días',
     porcentaje: '%',
 };
@@ -86,7 +89,7 @@ const UNIDAD_EN_CAMPO: Partial<Record<FormatoObjetivo, string>> = {
  * Campo numérico con su unidad escrita dentro, a la derecha (ej. "30 min", "95 %"), sin
  * las flechas del navegador para que no la tapen.
  */
-function InputConUnidad({
+export function InputConUnidad({
     unidad,
     ancho = 'w-32',
     className,
@@ -120,14 +123,17 @@ function InputConUnidad({
  * Tiempo en horas y minutos (ej. 0 h 30 min, 1 h 30 min), en lugar de un número decimal
  * de horas. Se guarda en horas: 1 h 30 min es 1.5.
  */
-function CampoHorasMinutos({
+export function CampoHorasMinutos({
     id,
     value,
     onChange,
+    ancho = 'w-24',
 }: {
     id: string;
     value: string;
     onChange: (valor: string) => void;
+    /** Ancho de cada una de las dos casillas. */
+    ancho?: string;
 }) {
     const { horas, minutos } = separarHoras(value);
 
@@ -136,7 +142,7 @@ function CampoHorasMinutos({
             <InputConUnidad
                 id={id}
                 unidad="h"
-                ancho="w-24"
+                ancho={ancho}
                 min={0}
                 step={1}
                 placeholder="0"
@@ -148,7 +154,7 @@ function CampoHorasMinutos({
             />
             <InputConUnidad
                 unidad="min"
-                ancho="w-24"
+                ancho={ancho}
                 min={0}
                 max={59}
                 step={5}

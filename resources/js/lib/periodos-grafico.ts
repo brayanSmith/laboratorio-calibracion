@@ -13,16 +13,6 @@ export const AGRUPACIONES: { value: Agrupacion; label: string }[] = [
     { value: 'anio', label: 'Años' },
 ];
 
-/** Cuántos periodos de cada agrupación tiene un año (para repartir objetivos anuales). */
-const PERIODOS_POR_ANIO: Record<Agrupacion, number> = {
-    dia: 365,
-    semana: 52,
-    mes: 12,
-    trimestre: 4,
-    semestre: 2,
-    anio: 1,
-};
-
 /** Meses que dura cada agrupación de meses. */
 const MESES_POR_PERIODO = { mes: 1, trimestre: 3, semestre: 6, anio: 12 };
 
@@ -236,17 +226,6 @@ export function agruparPromedios(
     return puntos;
 }
 
-/** Objetivos de cantidad: se definen por año y en cada periodo se reparte la parte que le toca. */
-const OBJETIVOS_ANUALES: ConceptoObjetivo[] = [
-    'CANTIDAD_MANTENIMIENTOS',
-    'CANTIDAD_CALIBRACIONES',
-];
-
-/** Si el objetivo es una cantidad anual (que se reparte entre los periodos del año). */
-export function esObjetivoAnual(concepto: ConceptoObjetivo): boolean {
-    return OBJETIVOS_ANUALES.includes(concepto);
-}
-
 /**
  * Si en el objetivo es mejor quedar por debajo (tiempos) o por encima (cantidades y
  * cumplimiento): decide si la diferencia se ve en verde o en rojo.
@@ -260,14 +239,13 @@ export function menorEsMejor(concepto: ConceptoObjetivo): boolean {
 }
 
 /**
- * Objetivo de un periodo: el del año en que empieza (así, si el gráfico abarca dos años,
- * cada uno muestra el suyo). Las cantidades anuales se reparten entre los periodos del año.
+ * Objetivo anual de un periodo: el del año en que empieza (así, si el gráfico abarca dos
+ * años, cada uno muestra el suyo). Los objetivos por mes van en objetivoMensualDelPeriodo.
  */
 export function objetivoDelPeriodo(
     objetivos: ObjetivosDelPeriodo,
     inicio: string,
     concepto: ConceptoObjetivo,
-    agrupacion: Agrupacion,
 ): number | null {
     const anio = Number(inicio.slice(0, 4));
     const valor = objetivos.find((objetivo) => objetivo.anio === anio)?.valores[
@@ -278,9 +256,7 @@ export function objetivoDelPeriodo(
         return null;
     }
 
-    return esObjetivoAnual(concepto)
-        ? valor / PERIODOS_POR_ANIO[agrupacion]
-        : valor;
+    return valor;
 }
 
 /** Colores de la línea del valor: verde si cumple el objetivo, rojo si no. */
@@ -363,4 +339,111 @@ export function cortesDeColor(
     cortes.push({ offset: 1, color: colorDe(conValor[conValor.length - 1]) });
 
     return cortes;
+}
+
+/**
+ * Diferencia entre el valor y el objetivo (redondeada a un decimal) y si cumple; null si
+ * falta alguno de los dos.
+ */
+export function diferenciaConObjetivo(
+    valor: number | null,
+    objetivo: number | null,
+    menorMejor: boolean,
+): { diferencia: number; cumple: boolean } | null {
+    if (valor === null || objetivo === null) {
+        return null;
+    }
+
+    const diferencia = Math.round((valor - objetivo) * 10) / 10;
+
+    return {
+        diferencia,
+        cumple: menorMejor ? diferencia <= 0 : diferencia >= 0,
+    };
+}
+
+/** Objetivo de un mes y un tipo de equipo (desempeño por técnico). */
+export type ObjetivoMensual = {
+    anio: number;
+    mes: number;
+    tipo_equipo_id: number;
+    valores: Partial<Record<ConceptoObjetivo, number>>;
+};
+
+/**
+ * Objetivo de un periodo a partir de los objetivos por mes y tipo de equipo, combinando los
+ * tipos:
+ * - Cantidades: se suman los objetivos de los tipos; de un mes que el periodo cubre solo en
+ *   parte (días, semanas) se toma la parte proporcional a sus días.
+ * - Tiempos: promedio de los objetivos, ponderado por cuántos servicios tuvo cada tipo en
+ *   el periodo; sin servicios, ponderado por los días que el periodo cubre de cada mes.
+ *
+ * Null si ningún mes del periodo tiene objetivo para el concepto.
+ */
+export function objetivoMensualDelPeriodo(
+    objetivos: ObjetivoMensual[],
+    filas: { fecha: string; tipo_equipo_id: number | null }[],
+    inicio: string,
+    agrupacion: Agrupacion,
+    concepto: ConceptoObjetivo,
+): number | null {
+    const desde = aFecha(inicio).getTime();
+    const hasta = aFecha(siguiente(inicio, agrupacion)).getTime();
+    const items: { valor: number; servicios: number; dias: number }[] = [];
+
+    for (
+        let mes = aFecha(inicioDePeriodo(inicio, 'mes')).getTime();
+        mes < hasta;
+        mes = aFecha(siguiente(aTexto(new Date(mes)), 'mes')).getTime()
+    ) {
+        const finMes = aFecha(
+            siguiente(aTexto(new Date(mes)), 'mes'),
+        ).getTime();
+        const desdeEnMes = Math.max(desde, mes);
+        const hastaEnMes = Math.min(hasta, finMes);
+        // Parte del mes que cubre el periodo (1 si lo cubre completo).
+        const parte = (hastaEnMes - desdeEnMes) / (finMes - mes);
+        const fecha = new Date(mes);
+
+        objetivos
+            .filter(
+                (objetivo) =>
+                    objetivo.anio === fecha.getUTCFullYear() &&
+                    objetivo.mes === fecha.getUTCMonth() + 1 &&
+                    objetivo.valores[concepto] !== undefined,
+            )
+            .forEach((objetivo) => {
+                items.push({
+                    valor: objetivo.valores[concepto] as number,
+                    dias: parte,
+                    servicios: filas.filter((fila) => {
+                        const dia = aFecha(fila.fecha).getTime();
+
+                        return (
+                            fila.tipo_equipo_id === objetivo.tipo_equipo_id &&
+                            dia >= desdeEnMes &&
+                            dia < hastaEnMes
+                        );
+                    }).length,
+                });
+            });
+    }
+
+    if (items.length === 0) {
+        return null;
+    }
+
+    if (!menorEsMejor(concepto)) {
+        return items.reduce((suma, item) => suma + item.valor * item.dias, 0);
+    }
+
+    const conServicios = items.reduce((suma, item) => suma + item.servicios, 0);
+    const peso = (item: (typeof items)[number]) =>
+        conServicios > 0 ? item.servicios : item.dias;
+    const pesoTotal = items.reduce((suma, item) => suma + peso(item), 0);
+
+    return pesoTotal === 0
+        ? null
+        : items.reduce((suma, item) => suma + item.valor * peso(item), 0) /
+              pesoTotal;
 }

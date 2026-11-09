@@ -12,8 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Objetivos anuales de cada módulo del dashboard (los que se dibujan como línea en sus
- * gráficos). Un objetivo por año y concepto para todo el laboratorio.
+ * Objetivos anuales y generales de los módulos del dashboard (los que se dibujan como línea en sus
+ * gráficos). Un objetivo por año y concepto para todo el laboratorio; los de desempeño por
+ * técnico, que son por mes y tipo de equipo, van en ObjetivosMensualesDashboardController.
  */
 class ObjetivosDashboardController extends Controller
 {
@@ -22,6 +23,7 @@ class ObjetivosDashboardController extends Controller
      */
     public function index(Request $request, ModuloObjetivo $modulo): JsonResponse
     {
+        abort_if($modulo->porMesYTipoEquipo(), 404);
         abort_unless($request->user()->can(TenantPermission::DashboardObjetivos->value), 403);
 
         return response()->json($this->datos($request->user()->tenant_id, $modulo));
@@ -33,6 +35,7 @@ class ObjetivosDashboardController extends Controller
      */
     public function store(GuardarObjetivosDashboardRequest $request, ModuloObjetivo $modulo): JsonResponse
     {
+        abort_if($modulo->porMesYTipoEquipo(), 404);
         $tenantId = $request->user()->tenant_id;
         $anio = (int) $request->validated('anio');
         $valores = $request->validated('valores', []);
@@ -40,7 +43,7 @@ class ObjetivosDashboardController extends Controller
         DB::transaction(function () use ($modulo, $tenantId, $anio, $valores): void {
             foreach ($modulo->conceptos() as $concepto) {
                 $valor = $valores[$concepto->value] ?? null;
-                $clave = ['tenant_id' => $tenantId, 'anio' => $anio, 'concepto' => $concepto];
+                $clave = ['tenant_id' => $tenantId, 'anio' => $anio, 'mes' => null, 'tipo_equipo_id' => null, 'concepto' => $concepto];
 
                 if ($valor === null) {
                     ObjetivoDashboard::query()->where($clave)->delete();
@@ -60,6 +63,7 @@ class ObjetivosDashboardController extends Controller
      */
     public function destroy(Request $request, ModuloObjetivo $modulo, int $anio): JsonResponse
     {
+        abort_if($modulo->porMesYTipoEquipo(), 404);
         abort_unless($request->user()->can(TenantPermission::DashboardObjetivos->value), 403);
 
         $tenantId = $request->user()->tenant_id;
@@ -68,6 +72,7 @@ class ObjetivosDashboardController extends Controller
             ->where('tenant_id', $tenantId)
             ->where('modulo', $modulo)
             ->where('anio', $anio)
+            ->whereNull('mes')
             ->delete();
 
         return response()->json($this->datos($tenantId, $modulo));
@@ -81,6 +86,7 @@ class ObjetivosDashboardController extends Controller
         $anios = ObjetivoDashboard::query()
             ->where('tenant_id', $tenantId)
             ->where('modulo', $modulo)
+            ->whereNull('mes')
             ->orderByDesc('anio')
             ->get()
             ->groupBy('anio')

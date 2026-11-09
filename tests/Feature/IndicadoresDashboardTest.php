@@ -304,6 +304,8 @@ test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo
         ->assertJsonPath('totales.mantenimientos.promedio_horas', 3)
         ->assertJsonPath('totales.calibraciones.cantidad', 1)
         ->assertJsonPath('totales.calibraciones.promedio_horas', null)
+        ->assertJsonCount(4, 'servicios')
+        ->assertJsonPath('servicios.0.fecha', '2026-10-05')
         ->assertJsonPath('responsables.0.responsable', 'Ana Técnica')
         ->assertJsonPath('responsables.0.mantenimientos.cantidad', 2)
         ->assertJsonPath('responsables.1.tipo', 'TERCERO')

@@ -1,4 +1,4 @@
-import { Gauge, Timer, Users, Wrench } from 'lucide-react';
+import { ChartLine, Gauge, Timer, Users, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { desempenoTecnicos } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
@@ -16,8 +16,15 @@ import {
     useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
+import GraficoSeries from '@/components/dashboard/grafico-series';
+import type { SerieGrafico } from '@/components/dashboard/grafico-series';
 import { Badge } from '@/components/ui/badge';
-import { formatearHoras, rangoPorDefecto } from '@/lib/indicadores';
+import {
+    formatearCantidad,
+    formatearHoras,
+    rangoPorDefecto,
+} from '@/lib/indicadores';
+import { objetivoMensualDelPeriodo } from '@/lib/periodos-grafico';
 import type { DesempenoTecnicos } from '@/types';
 
 type Responsable = DesempenoTecnicos['responsables'][number];
@@ -49,6 +56,25 @@ const SERVICIOS = [
 ];
 const COLUMNAS_MANTENIMIENTO = ['mantenimientos', 'promedio_mantenimiento'];
 const COLUMNAS_CALIBRACION = ['calibraciones', 'promedio_calibracion'];
+/** Series de los gráficos por servicio, con sus colores (los de las tarjetas) y objetivos. */ const SERIES_SERVICIO =
+    [
+        {
+            servicio: 'MANTENIMIENTO',
+            clave: 'mantenimientos',
+            etiqueta: 'Mantenimientos',
+            color: '#0284c7',
+            objetivoTiempo: 'PROMEDIO_HORAS_MANTENIMIENTO',
+            objetivoCantidad: 'CANTIDAD_MANTENIMIENTOS',
+        },
+        {
+            servicio: 'CALIBRACION',
+            clave: 'calibraciones',
+            etiqueta: 'Calibraciones',
+            color: '#7c3aed',
+            objetivoTiempo: 'PROMEDIO_HORAS_CALIBRACION',
+            objetivoCantidad: 'CANTIDAD_CALIBRACIONES',
+        },
+    ] as const;
 
 /** Celda de un tiempo promedio; sin tiempo registrado (-1 al ordenar) muestra "—". */
 const celdaHoras = (horas: number | null) => (
@@ -88,6 +114,46 @@ export default function IndicadorDesempenoTecnicos() {
     const servicios = filtros.servicios;
     const verMantenimientos = servicios.includes('MANTENIMIENTO');
     const verCalibraciones = servicios.includes('CALIBRACION');
+
+    /**
+     * Una serie por servicio marcado (mantenimiento, calibración o los dos), cada una con
+     * su objetivo: el tiempo promedio o la cantidad.
+     */
+    const seriesDe = (
+        datosIndicador: DesempenoTecnicos,
+        que: 'tiempo' | 'cantidad',
+    ): SerieGrafico[] =>
+        SERIES_SERVICIO.filter((serie) =>
+            servicios.includes(serie.servicio),
+        ).map((serie) => {
+            const concepto =
+                que === 'tiempo'
+                    ? serie.objetivoTiempo
+                    : serie.objetivoCantidad;
+            const delServicio = datosIndicador.servicios.filter(
+                (fila) => fila.tipo_servicio === serie.servicio,
+            );
+
+            return {
+                clave: serie.clave,
+                etiqueta: serie.etiqueta,
+                color: serie.color,
+                concepto,
+                // Objetivos por mes de los tipos de equipo visibles, combinados.
+                objetivo: (inicio, agrupacion) =>
+                    objetivoMensualDelPeriodo(
+                        datosIndicador.objetivos,
+                        delServicio,
+                        inicio,
+                        agrupacion,
+                        concepto,
+                    ),
+                filas: delServicio.map((fila) => ({
+                    fecha: fila.fecha,
+                    valor: fila.horas,
+                })),
+            };
+        });
 
     const columns = useMemo(
         () =>
@@ -282,6 +348,37 @@ export default function IndicadorDesempenoTecnicos() {
                                 />
                             </>
                         ) : null}
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-2">
+                        <BloqueIndicador
+                            titulo="Tiempo promedio por periodo"
+                            icono={Timer}
+                        >
+                            <GraficoSeries
+                                series={seriesDe(datos, 'tiempo')}
+                                medida="promedio"
+                                desde={filtros.desde}
+                                hasta={filtros.hasta}
+                                formato={formatearHoras}
+                                nombreFilas="servicios"
+                                testId="grafico-desempeno-tiempo"
+                            />
+                        </BloqueIndicador>
+                        <BloqueIndicador
+                            titulo="Cantidad por periodo"
+                            icono={ChartLine}
+                        >
+                            <GraficoSeries
+                                series={seriesDe(datos, 'cantidad')}
+                                medida="cantidad"
+                                desde={filtros.desde}
+                                hasta={filtros.hasta}
+                                formato={formatearCantidad}
+                                nombreFilas="servicios"
+                                testId="grafico-desempeno-cantidad"
+                            />
+                        </BloqueIndicador>
                     </div>
 
                     <BloqueIndicador

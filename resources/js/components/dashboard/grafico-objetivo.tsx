@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import {
     Area,
     CartesianGrid,
@@ -14,21 +14,19 @@ import {
     ChartTooltip,
 } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import SelectorAgrupacion, {
+    useAgrupacion,
+} from '@/components/dashboard/selector-agrupacion';
 import {
-    AGRUPACIONES,
-    agrupacionDisponible,
-    agrupacionSugerida,
     agruparPromedios,
     COLOR_CUMPLE,
     COLOR_NO_CUMPLE,
     cortesDeColor,
     cumpleObjetivo,
-    esObjetivoAnual,
+    diferenciaConObjetivo,
     menorEsMejor,
     objetivoDelPeriodo,
 } from '@/lib/periodos-grafico';
-import type { Agrupacion } from '@/lib/periodos-grafico';
 import { cn } from '@/lib/utils';
 import type { ConceptoObjetivo, ObjetivosDelPeriodo } from '@/types';
 
@@ -76,15 +74,8 @@ export default function GraficoObjetivo({
     nombreFilas,
     testId,
 }: Props) {
-    // Mientras el usuario no elija, la agrupación se ajusta al largo del periodo.
-    const [elegida, setElegida] = useState<Agrupacion | null>(null);
+    const { agrupacion, elegir } = useAgrupacion(desde, hasta);
     const idGradiente = `grafico-${useId().replace(/:/g, '')}`;
-    // Si el periodo cambia y la elegida ya no tiene sentido (meses en una semana), vuelve a
-    // la sugerida.
-    const agrupacion =
-        elegida !== null && agrupacionDisponible(elegida, desde, hasta)
-            ? elegida
-            : agrupacionSugerida(desde, hasta);
 
     const datos: Punto[] = agruparPromedios(
         filas,
@@ -93,12 +84,7 @@ export default function GraficoObjetivo({
         agrupacion,
     ).map((punto) => ({
         ...punto,
-        objetivo: objetivoDelPeriodo(
-            objetivos,
-            punto.inicio,
-            concepto,
-            agrupacion,
-        ),
+        objetivo: objetivoDelPeriodo(objetivos, punto.inicio, concepto),
     }));
     const hayDatos = datos.some(
         (dato) => dato.valor !== null || dato.objetivo !== null,
@@ -127,9 +113,7 @@ export default function GraficoObjetivo({
     const config = {
         valor: { label: etiquetaValor, color: COLOR_CUMPLE },
         objetivo: {
-            label: esObjetivoAnual(concepto)
-                ? 'Objetivo (parte del anual)'
-                : 'Objetivo',
+            label: 'Objetivo',
             color: 'var(--foreground)',
         },
     } satisfies ChartConfig;
@@ -142,37 +126,12 @@ export default function GraficoObjetivo({
                 ) : (
                     <span />
                 )}
-                <ToggleGroup
-                    type="single"
-                    variant="outline"
-                    size="sm"
-                    value={agrupacion}
-                    onValueChange={(valor) => {
-                        if (valor) {
-                            setElegida(valor as Agrupacion);
-                        }
-                    }}
-                    aria-label="Agrupar por"
-                >
-                    {AGRUPACIONES.map((opcion) => (
-                        <ToggleGroupItem
-                            key={opcion.value}
-                            value={opcion.value}
-                            // Una agrupación más larga que el periodo no tiene sentido.
-                            disabled={
-                                !agrupacionDisponible(
-                                    opcion.value,
-                                    desde,
-                                    hasta,
-                                )
-                            }
-                            className="px-2.5 text-xs"
-                            data-test={`agrupar-${opcion.value}`}
-                        >
-                            {opcion.label}
-                        </ToggleGroupItem>
-                    ))}
-                </ToggleGroup>
+                <SelectorAgrupacion
+                    agrupacion={agrupacion}
+                    onChange={elegir}
+                    desde={desde}
+                    hasta={hasta}
+                />
             </div>
 
             {!hayDatos ? (
@@ -365,16 +324,11 @@ function GloboPeriodo({
     nombreFilas: string;
     menorEsMejor: boolean;
 }) {
-    const diferencia =
-        punto.valor !== null && punto.objetivo !== null
-            ? Math.round((punto.valor - punto.objetivo) * 10) / 10
-            : null;
-    const cumple =
-        diferencia === null
-            ? null
-            : menorMejor
-              ? diferencia <= 0
-              : diferencia >= 0;
+    const resultado = diferenciaConObjetivo(
+        punto.valor,
+        punto.objetivo,
+        menorMejor,
+    );
 
     return (
         <div className="grid min-w-48 gap-1.5 rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
@@ -387,7 +341,7 @@ function GloboPeriodo({
             </p>
             <Fila
                 color={
-                    punto.valor === null || cumple !== false
+                    resultado === null || resultado.cumple
                         ? COLOR_CUMPLE
                         : COLOR_NO_CUMPLE
                 }
@@ -399,28 +353,14 @@ function GloboPeriodo({
                 etiqueta="Objetivo"
                 valor={punto.objetivo === null ? '—' : formato(punto.objetivo)}
             />
-            {diferencia !== null ? (
-                <div
-                    className={cn(
-                        'flex items-center justify-between gap-4 rounded-md px-1.5 py-1 font-medium',
-                        cumple
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                            : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300',
-                    )}
-                    data-test="globo-diferencia"
-                >
-                    <span>{cumple ? 'Cumple' : 'No cumple'}</span>
-                    <span className="tabular-nums">
-                        {diferencia > 0 ? '+' : diferencia < 0 ? '−' : ''}
-                        {formato(Math.abs(diferencia))}
-                    </span>
-                </div>
+            {resultado !== null ? (
+                <DiferenciaObjetivo {...resultado} formato={formato} />
             ) : null}
         </div>
     );
 }
 
-function Fila({
+export function Fila({
     color,
     etiqueta,
     valor,
@@ -439,6 +379,35 @@ function Fila({
                 {etiqueta}
             </span>
             <span className="font-medium tabular-nums">{valor}</span>
+        </div>
+    );
+}
+
+/** "Cumple / No cumple" con la diferencia frente al objetivo, en verde o en rojo. */
+export function DiferenciaObjetivo({
+    diferencia,
+    cumple,
+    formato,
+}: {
+    diferencia: number;
+    cumple: boolean;
+    formato: (valor: number) => string;
+}) {
+    return (
+        <div
+            className={cn(
+                'flex items-center justify-between gap-4 rounded-md px-1.5 py-1 font-medium',
+                cumple
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300',
+            )}
+            data-test="globo-diferencia"
+        >
+            <span>{cumple ? 'Cumple' : 'No cumple'}</span>
+            <span className="tabular-nums">
+                {diferencia > 0 ? '+' : diferencia < 0 ? '−' : ''}
+                {formato(Math.abs(diferencia))}
+            </span>
         </div>
     );
 }

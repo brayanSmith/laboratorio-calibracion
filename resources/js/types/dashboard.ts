@@ -1,3 +1,5 @@
+import type { ObjetivoMensual } from '@/lib/periodos-grafico';
+
 /**
  * Qué indicadores ve el usuario (ver DashboardController). Las opciones de sus filtros
  * llegan con los datos de cada indicador, como listas dependientes.
@@ -78,7 +80,15 @@ export type DesempenoTecnicos = {
         mantenimientos: ResumenServicios;
         calibraciones: ResumenServicios;
     }[];
-    objetivos: ObjetivosDelPeriodo;
+    /** Objetivos por mes y tipo de equipo (solo de los tipos filtrados; sin filtro, de todos). */
+    objetivos: ObjetivoMensual[];
+    /** Cada servicio con su día y sus horas (null sin tiempo registrado), para los gráficos. */
+    servicios: {
+        fecha: string;
+        tipo_servicio: 'MANTENIMIENTO' | 'CALIBRACION';
+        tipo_equipo_id: number | null;
+        horas: number | null;
+    }[];
     /** Listas dependientes: laboratorio → técnico → magnitud → tipo de equipo. */
     opciones: {
         /** El laboratorio propio llega con el id "propio". */
@@ -156,4 +166,19 @@ export type ObjetivosModulo = {
         maximo: number | null;
     }[];
     anios: ObjetivosDelPeriodo;
+};
+
+/** Objetivos por mes y tipo de equipo de un módulo (ver ObjetivosMensualesDashboardController). */
+export type ObjetivosMensualesModulo = {
+    conceptos: ObjetivosModulo['conceptos'];
+    tipos_equipo: { id: number; nombre: string }[];
+    registros: {
+        anio: number;
+        tipo_equipo_id: number;
+        tipo_equipo: string;
+        /** Por número de mes (1 a 12), los valores de cada concepto. */
+        meses: Partial<
+            Record<string, Partial<Record<ConceptoObjetivo, number>>>
+        >;
+    }[];
 };

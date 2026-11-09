@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Módulos del dashboard que tienen objetivos anuales.
+ * Módulos del dashboard que tienen objetivos (anuales, o por mes y tipo de equipo).
  */
 enum ModuloObjetivo: string
 {
@@ -21,6 +21,15 @@ enum ModuloObjetivo: string
             self::DesempenoTecnicos => 'Desempeño por técnico',
             self::Cumplimiento => 'Cumplimiento',
         };
+    }
+
+    /**
+     * Si sus objetivos se definen por mes y tipo de equipo (desempeño por técnico) en vez de
+     * uno anual para todo el laboratorio.
+     */
+    public function porMesYTipoEquipo(): bool
+    {
+        return $this === self::DesempenoTecnicos;
     }
 
     /**

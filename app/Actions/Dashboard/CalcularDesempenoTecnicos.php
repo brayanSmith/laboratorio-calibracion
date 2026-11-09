@@ -44,7 +44,7 @@ class CalcularDesempenoTecnicos
 
     /**
      * @param  array{desde: string, hasta: string, laboratorios?: list<int|string>, tecnicos?: list<int>, magnitudes?: list<int>, tipos_equipo?: list<int>, servicios?: list<string>}  $filtros
-     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, mensual: list<array<string, mixed>>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
+     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, mensual: list<array<string, mixed>>, servicios: list<array{fecha: string, tipo_servicio: string, tipo_equipo_id: int|null, horas: float|null}>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
      */
     public function handle(int $tenantId, array $filtros): array
     {
@@ -107,6 +107,17 @@ class CalcularDesempenoTecnicos
                 ],
             ),
             'opciones' => $opciones,
+            // Cada servicio con su día y sus horas (null sin tiempo registrado), para que el
+            // gráfico los agrupe por días, semanas, meses... sin volver a pedirlos.
+            'servicios' => $servicios
+                ->map(fn (array $servicio): array => [
+                    'fecha' => $servicio['fecha'],
+                    'tipo_servicio' => $servicio['tipo_servicio'],
+                    'tipo_equipo_id' => $servicio['filtros']['tipos_equipo'][0]['id'] ?? null,
+                    'horas' => $servicio['segundos'] === null ? null : round($servicio['segundos'] / 3600, 2),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -133,6 +144,7 @@ class CalcularDesempenoTecnicos
                 'tipo_servicio' => $tipoServicio,
                 'orden_trabajo_id' => $servicio->orden_trabajo_id,
                 'mes' => $servicio->fecha_realizacion->format('Y-m'),
+                'fecha' => $servicio->fecha_realizacion->toDateString(),
                 'filtros' => [
                     'laboratorios' => [['id' => FiltrosDependientes::PROPIO, 'nombre' => 'Laboratorio propio']],
                     'tecnicos' => FiltrosDependientes::opcion($servicio->tecnico, 'name'),
@@ -165,6 +177,7 @@ class CalcularDesempenoTecnicos
                 'tipo_servicio' => $servicio->tipo_servicio,
                 'orden_trabajo_id' => $servicio->orden_trabajo_id,
                 'mes' => $servicio->fecha_realizacion->format('Y-m'),
+                'fecha' => $servicio->fecha_realizacion->toDateString(),
                 'filtros' => [
                     'laboratorios' => FiltrosDependientes::opcion($servicio->empresaTercero),
                     'tecnicos' => [],

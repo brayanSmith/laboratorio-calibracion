@@ -1,7 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ListChecks, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
+import ObjetivosMensualesModal from '@/components/dashboard/objetivos-mensuales-modal';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -28,6 +29,7 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
     const canEdit = can('tipos-equipo.editar');
     const canDelete = can('tipos-equipo.eliminar');
     const canChecklist = can('tipos-equipo.checklist');
+    const canObjetivos = can('dashboard.objetivos');
     const [editingTipoEquipoId, setEditingTipoEquipoId] = useState<
         number | null
     >(null);
@@ -44,6 +46,9 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
             (tipoEquipo) => tipoEquipo.id === checklistTipoEquipoId,
         ) ?? null;
     const [checklistOpen, setChecklistOpen] = useState(false);
+    // Objetivos de desempeño por mes de un tipo de equipo (los que usa el Dashboard).
+    const [objetivosTipoEquipo, setObjetivosTipoEquipo] =
+        useState<TipoEquipo | null>(null);
     const [deletingTipoEquipo, setDeletingTipoEquipo] =
         useState<TipoEquipo | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -99,6 +104,16 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                                     }}
                                 />
                             ) : null}
+                            {canObjetivos ? (
+                                <BotonAccion
+                                    icono={Target}
+                                    etiqueta="Objetivos de desempeño"
+                                    data-test="tipo-equipo-objetivos-button"
+                                    onClick={() =>
+                                        setObjetivosTipoEquipo(row.original)
+                                    }
+                                />
+                            ) : null}
                             {canEdit ? (
                                 <BotonAccion
                                     icono={Pencil}
@@ -125,7 +140,7 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                     ),
                 }),
             ]),
-        [canEdit, canDelete, canChecklist],
+        [canEdit, canDelete, canChecklist, canObjetivos],
     );
 
     return (
@@ -160,6 +175,18 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                 />
             </div>
 
+            {objetivosTipoEquipo ? (
+                <ObjetivosMensualesModal
+                    modulo="DESEMPENO_TECNICOS"
+                    tipoEquipo={objetivosTipoEquipo}
+                    open
+                    onOpenChange={(abierto) => {
+                        if (!abierto) {
+                            setObjetivosTipoEquipo(null);
+                        }
+                    }}
+                />
+            ) : null}
             <ChecklistTipoEquipoModal
                 tipoEquipo={checklistTipoEquipo}
                 open={checklistOpen}

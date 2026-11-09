@@ -59,6 +59,20 @@ class IndicadoresDashboardController extends Controller
             (int) substr($request->validated('desde'), 0, 4),
             (int) substr($request->validated('hasta'), 0, 4),
         );
+        // Desempeño: objetivos por mes y tipo de equipo, solo de los tipos filtrados (sin
+        // filtro, de todos); el gráfico los combina.
+        if ($modulo->porMesYTipoEquipo()) {
+            return response()->json([
+                ...$indicador,
+                'objetivos' => ObjetivoDashboard::mensualesPorTipo(
+                    $request->user()->tenant_id,
+                    $modulo,
+                    $anios,
+                    array_map('intval', $request->validated('tipos_equipo', [])),
+                ),
+            ]);
+        }
+
         $porAnio = ObjetivoDashboard::porAnio($request->user()->tenant_id, $modulo, $anios);
 
         return response()->json([

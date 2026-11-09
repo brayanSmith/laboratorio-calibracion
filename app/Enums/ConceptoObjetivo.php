@@ -52,8 +52,8 @@ enum ConceptoObjetivo: string
     {
         return match ($this) {
             self::TiempoAtencionDias => 'días',
-            self::CantidadMantenimientos => 'mantenimientos al año',
-            self::CantidadCalibraciones => 'calibraciones al año',
+            self::CantidadMantenimientos => 'mantenimientos al mes',
+            self::CantidadCalibraciones => 'calibraciones al mes',
             self::PromedioHorasMantenimiento,
             self::PromedioHorasCalibracion => 'horas',
             self::CumplimientoPorcentaje => '%',

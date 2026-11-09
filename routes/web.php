@@ -5,6 +5,7 @@ use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\ForcePasswordChangeController;
 use App\Http\Controllers\IndicadoresDashboardController;
 use App\Http\Controllers\ObjetivosDashboardController;
+use App\Http\Controllers\ObjetivosMensualesDashboardController;
 use App\Http\Controllers\Plataforma\AjustePlataformaController;
 use App\Http\Controllers\Plataforma\DashboardController as PlataformaDashboardController;
 use App\Http\Controllers\Plataforma\TenantController;
@@ -57,6 +58,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'index'])->name('dashboard.objetivos.index');
     Route::put('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'store'])->name('dashboard.objetivos.store');
     Route::delete('dashboard/objetivos/{modulo}/{anio}', [ObjetivosDashboardController::class, 'destroy'])->whereNumber('anio')->name('dashboard.objetivos.destroy');
+    Route::get('dashboard/objetivos-mensuales/{modulo}', [ObjetivosMensualesDashboardController::class, 'index'])->name('dashboard.objetivos-mensuales.index');
+    Route::put('dashboard/objetivos-mensuales/{modulo}', [ObjetivosMensualesDashboardController::class, 'store'])->name('dashboard.objetivos-mensuales.store');
+    Route::delete('dashboard/objetivos-mensuales/{modulo}/{anio}/{tipoEquipo}', [ObjetivosMensualesDashboardController::class, 'destroy'])->whereNumber(['anio', 'tipoEquipo'])->name('dashboard.objetivos-mensuales.destroy');
 
     Route::get('password-change', [ForcePasswordChangeController::class, 'edit'])->name('password-change.edit');
     Route::put('password-change', [ForcePasswordChangeController::class, 'update'])

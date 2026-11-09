@@ -50,7 +50,9 @@ function SeccionIndicador({
                         {descripcion}
                     </p>
                 </div>
-                {can('dashboard.objetivos') ? (
+                {/* Los de desempeño (por mes) se definen en cada tipo de equipo. */}
+                {can('dashboard.objetivos') &&
+                modulo !== 'DESEMPENO_TECNICOS' ? (
                     <ObjetivosModal
                         modulo={modulo}
                         titulo={titulo}
