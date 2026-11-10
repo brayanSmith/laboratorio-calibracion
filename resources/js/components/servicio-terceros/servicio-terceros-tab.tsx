@@ -135,13 +135,15 @@ export default function ServicioTercerosTab({
             filtros: [{ id: 'estado_servicio', value: 'FINALIZADO' }],
         },
         {
-            id: 'terceros-rechazados',
-            titulo: 'Rechazados',
-            valor: contar((s) => s.estado_final_equipo === 'RECHAZADO'),
+            id: 'terceros-fuera-de-servicio',
+            titulo: 'Fuera de servicio',
+            valor: contar((s) => s.estado_final_equipo === 'FUERA_DE_SERVICIO'),
             icono: ShieldAlert,
             tono: 'red',
             detalle: 'El tercero rechazó el equipo',
-            filtros: [{ id: 'estado_final_equipo', value: 'RECHAZADO' }],
+            filtros: [
+                { id: 'estado_final_equipo', value: 'FUERA_DE_SERVICIO' },
+            ],
         },
     ];
 
@@ -230,18 +232,28 @@ export default function ServicioTercerosTab({
                     cell: (info) => {
                         const estadoFinal = info.getValue();
 
-                        return estadoFinal ? (
+                        if (!estadoFinal) {
+                            return (
+                                <span className="text-muted-foreground">—</span>
+                            );
+                        }
+
+                        // Un estado que ya no existe (ej. sin correr una migración) se muestra
+                        // tal cual en vez de romper la tabla.
+                        const estado = estadosFinalesEquipoTercero[
+                            estadoFinal
+                        ] as
+                            | (typeof estadosFinalesEquipoTercero)[keyof typeof estadosFinalesEquipoTercero]
+                            | undefined;
+
+                        return (
                             <Badge
-                                className={
-                                    estadosFinalesEquipoTercero[estadoFinal]
-                                        .className
-                                }
+                                className={estado?.className}
+                                variant={estado ? undefined : 'secondary'}
                                 data-test="servicio-tercero-estado-final-equipo"
                             >
-                                {estadosFinalesEquipoTercero[estadoFinal].label}
+                                {estado?.label ?? estadoFinal}
                             </Badge>
-                        ) : (
-                            <span className="text-muted-foreground">—</span>
                         );
                     },
                 }),

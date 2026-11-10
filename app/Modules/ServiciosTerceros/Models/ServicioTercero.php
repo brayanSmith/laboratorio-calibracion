@@ -69,13 +69,13 @@ class ServicioTercero extends Model
         });
 
         static::saved(function (ServicioTercero $servicio): void {
-            // Rechazado sin volver a agendarlo: el equipo no tiene arreglo, queda inactivo.
-            $rechazadoSinReAgendar = $servicio->estado_servicio === 'FINALIZADO'
-                && $servicio->estado_final_equipo === 'RECHAZADO'
+            // Fuera de servicio sin volver a agendarlo: el equipo no tiene arreglo, queda inactivo.
+            $fueraDeServicioSinReAgendar = $servicio->estado_servicio === 'FINALIZADO'
+                && $servicio->estado_final_equipo === 'FUERA_DE_SERVICIO'
                 && ! $servicio->re_agendar
                 && ($servicio->wasRecentlyCreated || $servicio->wasChanged(['estado_servicio', 'estado_final_equipo', 're_agendar']));
 
-            if ($rechazadoSinReAgendar) {
+            if ($fueraDeServicioSinReAgendar) {
                 $modulo = $servicio->tipo_servicio === 'CALIBRACION' ? 'Calibración' : 'Mantenimiento';
 
                 $servicio->ordenTrabajo?->equipoProgramacion?->equipo?->inactivar("{$modulo} de tercero: Fuera de servicio");

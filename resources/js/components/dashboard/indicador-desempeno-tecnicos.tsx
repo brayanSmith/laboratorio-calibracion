@@ -8,6 +8,7 @@ import DataTable, {
 import {
     aOpcionesDependientes,
     BloqueIndicador,
+    ErrorIndicador,
     FiltroAlternativa,
     FiltroCasillas,
     FiltroRango,
@@ -19,7 +20,9 @@ import {
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
 import BarraCumplimiento from '@/components/dashboard/barra-cumplimiento';
-import GraficoSeries from '@/components/dashboard/grafico-series';
+import GraficoSeries, {
+    VariacionAnterior,
+} from '@/components/dashboard/grafico-series';
 import RegistrosResponsableModal from '@/components/dashboard/registros-responsable-modal';
 import TarjetaCumplimiento from '@/components/dashboard/tarjeta-cumplimiento';
 import type { SerieGrafico } from '@/components/dashboard/grafico-series';
@@ -41,6 +44,7 @@ import type {
 import {
     objetivoMensualDelPeriodo,
     sumaMensualDelPeriodo,
+    variacionConAnterior,
 } from '@/lib/periodos-grafico';
 import { cn } from '@/lib/utils';
 import type { DesempenoTecnicos } from '@/types';
@@ -226,6 +230,38 @@ const SERIES_SERVICIO = [
     },
 ] as const;
 
+/**
+ * Un total de las tarjetas frente al del periodo anterior: en cantidad, mejora si sube; en
+ * tiempo promedio, si baja.
+ */
+function ComparacionAnterior({
+    datos,
+    servicio,
+    medida,
+}: {
+    datos: DesempenoTecnicos;
+    servicio: 'mantenimientos' | 'calibraciones';
+    medida: 'cantidad' | 'promedio_horas';
+}) {
+    const anterior = datos.periodo_anterior;
+
+    return (
+        <div className="mt-1 text-xs">
+            <VariacionAnterior
+                variacion={variacionConAnterior(
+                    datos.totales[servicio][medida],
+                    anterior.totales[servicio][medida],
+                    medida === 'promedio_horas',
+                )}
+                formato={
+                    medida === 'cantidad' ? formatearCantidad : formatearHoras
+                }
+                titulo={`Periodo anterior: ${anterior.desde} a ${anterior.hasta}`}
+            />
+        </div>
+    );
+}
+
 /** Celda de un tiempo promedio; sin tiempo registrado (-1 al ordenar) muestra "—". */
 const celdaHoras = (horas: number | null) => (
     <span className="tabular-nums">{formatearHoras(horas)}</span>
@@ -246,10 +282,8 @@ export default function IndicadorDesempenoTecnicos() {
             tipos_equipo: [],
             servicios: SERVICIOS.map((servicio) => servicio.value),
         });
-    const { datos, cargando } = useIndicador<DesempenoTecnicos>(
-        desempenoTecnicos,
-        filtros,
-    );
+    const { datos, cargando, error, actualizar } =
+        useIndicador<DesempenoTecnicos>(desempenoTecnicos, filtros);
 
     const cambiar = (cambios: Partial<FiltrosDesempeno>) =>
         setBorrador((actuales) => ({ ...actuales, ...cambios }));
@@ -399,14 +433,17 @@ export default function IndicadorDesempenoTecnicos() {
         return [
             ...visibles.map((serie) => ({
                 clave: serie.clave,
-                titulo: serie.etiqueta,
+                titulo:
+                    serie.servicio === 'MANTENIMIENTO'
+                        ? 'Avance Mantenimientos'
+                        : 'Avance Calibraciones',
                 icono: serie.servicio === 'MANTENIMIENTO' ? Wrench : Gauge,
                 color: serie.color,
                 resumen: resumen([serie.servicio]),
             })),
             {
                 clave: 'general',
-                titulo: 'General',
+                titulo: 'Avance General',
                 icono: Target,
                 color: 'var(--primary)',
                 resumen: resumen(visibles.map((serie) => serie.servicio)),
@@ -421,6 +458,7 @@ export default function IndicadorDesempenoTecnicos() {
         >
             <PanelFiltros
                 onBuscar={buscar}
+                onActualizar={actualizar}
                 hayCambios={hayCambios}
                 buscando={cargando}
             >
@@ -485,7 +523,9 @@ export default function IndicadorDesempenoTecnicos() {
                 />
             </PanelFiltros>
 
-            {cargando || !datos ? (
+            {error ? (
+                <ErrorIndicador onReintentar={actualizar} />
+            ) : cargando || !datos ? (
                 <CargandoContenido mensaje="Calculando desempeño..." />
             ) : (
                 <>
@@ -512,7 +552,7 @@ export default function IndicadorDesempenoTecnicos() {
                         {verMantenimientos ? (
                             <>
                                 <StatTile
-                                    etiqueta="Mantenimientos"
+                                    etiqueta="Mantenimientos Realizados"
                                     valor={String(
                                         datos.totales.mantenimientos.cantidad,
                                     )}
@@ -520,9 +560,15 @@ export default function IndicadorDesempenoTecnicos() {
                                     icono={Wrench}
                                     tono="sky"
                                     testId="desempeno-mantenimientos"
-                                />
+                                >
+                                    <ComparacionAnterior
+                                        datos={datos}
+                                        servicio="mantenimientos"
+                                        medida="cantidad"
+                                    />
+                                </StatTile>
                                 <StatTile
-                                    etiqueta="Tiempo promedio de mantenimiento"
+                                    etiqueta="TAT Promedio Mantenimiento"
                                     valor={formatearHoras(
                                         datos.totales.mantenimientos
                                             .promedio_horas,
@@ -530,13 +576,19 @@ export default function IndicadorDesempenoTecnicos() {
                                     detalle="Según los tiempos registrados"
                                     icono={Timer}
                                     tono="sky"
-                                />
+                                >
+                                    <ComparacionAnterior
+                                        datos={datos}
+                                        servicio="mantenimientos"
+                                        medida="promedio_horas"
+                                    />
+                                </StatTile>
                             </>
                         ) : null}
                         {verCalibraciones ? (
                             <>
                                 <StatTile
-                                    etiqueta="Calibraciones"
+                                    etiqueta="Calibraciones Realizadas"
                                     valor={String(
                                         datos.totales.calibraciones.cantidad,
                                     )}
@@ -544,9 +596,15 @@ export default function IndicadorDesempenoTecnicos() {
                                     icono={Gauge}
                                     tono="violet"
                                     testId="desempeno-calibraciones"
-                                />
+                                >
+                                    <ComparacionAnterior
+                                        datos={datos}
+                                        servicio="calibraciones"
+                                        medida="cantidad"
+                                    />
+                                </StatTile>
                                 <StatTile
-                                    etiqueta="Tiempo promedio de calibración"
+                                    etiqueta="TAT Promedio Calibración"
                                     valor={formatearHoras(
                                         datos.totales.calibraciones
                                             .promedio_horas,
@@ -554,14 +612,20 @@ export default function IndicadorDesempenoTecnicos() {
                                     detalle="Según los tiempos registrados"
                                     icono={Timer}
                                     tono="violet"
-                                />
+                                >
+                                    <ComparacionAnterior
+                                        datos={datos}
+                                        servicio="calibraciones"
+                                        medida="promedio_horas"
+                                    />
+                                </StatTile>
                             </>
                         ) : null}
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <BloqueIndicador
-                            titulo="Tiempo promedio por periodo"
+                            titulo="Tiempo Promedio por Periodo"
                             icono={Timer}
                         >
                             <GraficoSeries
@@ -571,11 +635,12 @@ export default function IndicadorDesempenoTecnicos() {
                                 hasta={filtros.hasta}
                                 formato={formatearHoras}
                                 nombreFilas="servicios"
+                                sombrearObjetivo
                                 testId="grafico-desempeno-tiempo"
                             />
                         </BloqueIndicador>
                         <BloqueIndicador
-                            titulo="Cantidad por periodo"
+                            titulo="Cantidad por Periodo"
                             icono={ChartLine}
                         >
                             <GraficoSeries
@@ -585,6 +650,7 @@ export default function IndicadorDesempenoTecnicos() {
                                 hasta={filtros.hasta}
                                 formato={formatearCantidad}
                                 nombreFilas="servicios"
+                                sombrearObjetivo
                                 testId="grafico-desempeno-cantidad"
                             />
                         </BloqueIndicador>

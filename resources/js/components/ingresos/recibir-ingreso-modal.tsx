@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { ChevronRight, Plus, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { actualizarEstado } from '@/actions/App/Modules/Ingresos/Http/Controllers/IngresoController';
 import Combobox from '@/components/combobox';
 import FirmaCanvas from '@/components/firma-canvas';
@@ -150,6 +150,17 @@ function RecibirIngresoFormulario({
     const equiposNoProgramados = ingreso.equipo_programaciones.filter(
         (item) => item.tipo_mantenimiento === 'CORRECTIVO',
     );
+    // Al cancelar el ingreso se cancelan de una vez todos sus equipos con la misma
+    // novedad, previa confirmación (ver IngresoController::cancelarEquiposDelIngreso()).
+    const totalEquipos = ingreso.equipo_programaciones.length;
+    const [novedadCancelacionId, setNovedadCancelacionId] = useState(
+        ingreso.estado_ingreso === 'CANCELADO'
+            ? (ingreso.equipo_programaciones[0]?.novedad_ingreso_id?.toString() ??
+                  '')
+            : '',
+    );
+    const [confirmarCancelacion, setConfirmarCancelacion] = useState(false);
+    const cancelacionConfirmada = useRef(false);
 
     return (
         <Form
@@ -162,11 +173,27 @@ function RecibirIngresoFormulario({
                     return false;
                 }
 
+                if (cancelado && totalEquipos > 0) {
+                    if (!novedadCancelacionId) {
+                        setIntentoGuardar(true);
+
+                        return false;
+                    }
+
+                    if (!cancelacionConfirmada.current) {
+                        setConfirmarCancelacion(true);
+
+                        return false;
+                    }
+
+                    cancelacionConfirmada.current = false;
+                }
+
                 return true;
             }}
             onSuccess={onSuccess}
         >
-            {({ errors, processing }) => (
+            {({ errors, processing, submit }) => (
                 <>
                     <DialogHeader>
                         <DialogTitle>Recibir equipos</DialogTitle>
@@ -444,6 +471,90 @@ function RecibirIngresoFormulario({
                         </div>
                     ) : null}
 
+                    {cancelado && totalEquipos > 0 ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="novedad_cancelacion_id">
+                                Novedad de cancelación{' '}
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Combobox
+                                id="novedad_cancelacion_id"
+                                name="novedad_cancelacion_id"
+                                value={novedadCancelacionId}
+                                onValueChange={setNovedadCancelacionId}
+                                options={novedadesIngreso.map((option) => ({
+                                    id: option.id,
+                                    label: option.nombre,
+                                    aviso: option.inactivar_equipo
+                                        ? 'Inactiva el equipo'
+                                        : undefined,
+                                    insignia: option.es_motivo_cancelacion
+                                        ? 'Motivo cancelación'
+                                        : undefined,
+                                }))}
+                                placeholder="Selecciona una novedad"
+                                searchPlaceholder="Buscar novedad..."
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Se aplica a los {totalEquipos} equipos del
+                                ingreso, que quedan como no ingresados.
+                            </p>
+                            <InputError
+                                message={
+                                    errors.novedad_cancelacion_id ??
+                                    (intentoGuardar && !novedadCancelacionId
+                                        ? 'Selecciona la novedad de cancelación.'
+                                        : undefined)
+                                }
+                            />
+                        </div>
+                    ) : null}
+
+                    <Dialog
+                        open={confirmarCancelacion}
+                        onOpenChange={setConfirmarCancelacion}
+                    >
+                        <DialogContent data-test="confirmar-cancelacion-ingreso">
+                            <DialogHeader>
+                                <DialogTitle>¿Cancelar el ingreso?</DialogTitle>
+                                <DialogDescription>
+                                    Todos los equipos sujetos a este ingreso (
+                                    {totalEquipos}) se cancelarán con la misma
+                                    novedad:{' '}
+                                    <span className="font-medium text-foreground">
+                                        {
+                                            novedadesIngreso.find(
+                                                (novedad) =>
+                                                    novedad.id.toString() ===
+                                                    novedadCancelacionId,
+                                            )?.nombre
+                                        }
+                                    </span>
+                                    . ¿Desea continuar?
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="gap-2">
+                                <DialogClose asChild>
+                                    <Button type="button" variant="secondary">
+                                        No
+                                    </Button>
+                                </DialogClose>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    data-test="confirmar-cancelacion-ingreso-si"
+                                    onClick={() => {
+                                        cancelacionConfirmada.current = true;
+                                        setConfirmarCancelacion(false);
+                                        submit();
+                                    }}
+                                >
+                                    Sí, cancelar equipos
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
                     {cancelado ? (
                         <div className="grid gap-2">
                             <Label htmlFor="motivo_cancelacion">
@@ -540,11 +651,22 @@ function EquipoRecibido({
         }
     };
 
-    // Un equipo que sí llegó no puede quedar con una novedad que lo inactive.
+    const esMotivoCancelacion = (novedadId: string) =>
+        novedadesIngreso.some(
+            (novedad) =>
+                novedad.id.toString() === novedadId &&
+                novedad.es_motivo_cancelacion,
+        );
+
+    // Un equipo que sí llegó no puede quedar con una novedad que lo inactive ni con un
+    // motivo de cancelación.
     const cambiarIngresado = (valor: boolean) => {
         setIngresado(valor);
 
-        if (valor && novedadInactiva) {
+        if (
+            valor &&
+            (novedadInactiva || esMotivoCancelacion(novedadIngresoId))
+        ) {
             setNovedadIngresoId('');
         }
     };
@@ -568,8 +690,15 @@ function EquipoRecibido({
                         aviso: option.inactivar_equipo
                             ? 'Inactiva el equipo'
                             : undefined,
-                        // Si el equipo llegó, no se puede elegir una novedad que lo inactive.
-                        disabled: ingresado && option.inactivar_equipo,
+                        insignia: option.es_motivo_cancelacion
+                            ? 'Motivo cancelación'
+                            : undefined,
+                        // Si el equipo llegó, no se puede elegir una novedad que lo inactive
+                        // ni un motivo de cancelación: se desbloquean al cancelarlo.
+                        disabled:
+                            ingresado &&
+                            (option.inactivar_equipo ||
+                                option.es_motivo_cancelacion),
                     }))}
                     placeholder="Selecciona un motivo"
                     searchPlaceholder="Buscar motivo..."
@@ -590,8 +719,9 @@ function EquipoRecibido({
                 ) : null}
                 {ingresado ? (
                     <p className="text-xs text-muted-foreground">
-                        Las novedades que inactivan el equipo solo se pueden
-                        elegir si el equipo no ingresó.
+                        Las novedades que inactivan el equipo y los motivos de
+                        cancelación solo se pueden elegir si el equipo no
+                        ingresó.
                     </p>
                 ) : null}
                 <InputError message={errors[`${prefijo}.novedad_ingreso_id`]} />

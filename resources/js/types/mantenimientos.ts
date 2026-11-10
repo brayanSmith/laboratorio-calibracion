@@ -4,10 +4,7 @@ import type {
 } from './equipos';
 
 export type EstadoMantenimiento =
-    | 'PENDIENTE'
-    | 'EN_PROCESO'
-    | 'FALTA_REPUESTOS'
-    | 'FINALIZADO';
+    'PENDIENTE' | 'EN_PROCESO' | 'FALTA_REPUESTOS' | 'FINALIZADO';
 
 export type EstadoEquipoMantenimiento = 'OPERATIVO' | 'FUERA_DE_SERVICIO';
 export type NivelRiesgo = 'ALTO' | 'MEDIO' | 'BAJO';
@@ -139,6 +136,6 @@ export type ServicioTerceroListado = {
     pdf_url: string | null;
     tiempo_servicio_inicio: string | null;
     estado_servicio: 'PENDIENTE' | 'EN_PROCESO' | 'FINALIZADO';
-    estado_final_equipo: 'APROBADO' | 'RECHAZADO' | null;
+    estado_final_equipo: 'APROBADO' | 'FUERA_DE_SERVICIO' | null;
     re_agendar: boolean;
 };

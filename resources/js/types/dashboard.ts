@@ -75,6 +75,15 @@ export type DesempenoTecnicos = {
         mantenimientos: ResumenServicios;
         calibraciones: ResumenServicios;
     };
+    /** El periodo justo antes del filtrado (mismo largo y filtros), para comparar. */
+    periodo_anterior: {
+        desde: string;
+        hasta: string;
+        totales: {
+            mantenimientos: ResumenServicios;
+            calibraciones: ResumenServicios;
+        };
+    };
     mensual: {
         mes: string;
         mantenimientos: ResumenServicios;
@@ -121,8 +130,20 @@ export type Cumplimiento = {
     resumen: {
         programados: number;
         atendidos: number;
+        /** De los atendidos, los que quedaron fuera de servicio. */
+        fuera_de_servicio: number;
+        /** En qué servicio quedaron fuera de servicio (cada equipo una vez). */
+        fuera_de_servicio_por_servicio: Record<
+            'MANTENIMIENTO' | 'CALIBRACION',
+            number
+        >;
         pendientes: number;
         porcentaje: number | null;
+        /** Por el servicio en que va cada equipo (cuenta una sola vez: suman los totales). */
+        por_servicio: Record<
+            'MANTENIMIENTO' | 'CALIBRACION',
+            { atendidos: number; pendientes: number }
+        >;
     };
     por_area: {
         area: string;
@@ -145,6 +166,8 @@ export type Cumplimiento = {
         atendidos: number;
         porcentaje: number | null;
     }[];
+    /** Cada equipo programado con su fecha y si se atendió, para el gráfico combinado. */
+    por_fecha: { fecha: string; atendido: boolean }[];
     objetivos: ObjetivosDelPeriodo;
     /** Listas dependientes: área → magnitud → tipo de equipo. */
     opciones: {

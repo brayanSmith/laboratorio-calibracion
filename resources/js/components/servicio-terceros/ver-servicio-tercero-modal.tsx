@@ -80,7 +80,7 @@ export default function VerServicioTerceroModal({
                             >
                                 {servicio.estado_final_equipo === 'APROBADO'
                                     ? 'Aprobado'
-                                    : 'Rechazado'}
+                                    : 'Fuera de servicio'}
                             </Badge>
                         ) : (
                             <span className="text-muted-foreground">

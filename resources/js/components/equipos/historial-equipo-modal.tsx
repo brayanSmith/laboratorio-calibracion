@@ -534,9 +534,7 @@ export default function HistorialEquipoModal({
                                                 />
                                                 <Dato
                                                     label="Bahía"
-                                                    value={
-                                                        ingreso.bahia_nombre
-                                                    }
+                                                    value={ingreso.bahia_nombre}
                                                 />
                                                 <Dato
                                                     label="Equipo"
@@ -810,7 +808,7 @@ export default function HistorialEquipoModal({
                                                                 : servicio.estado_final_equipo ===
                                                                     'APROBADO'
                                                                   ? 'Aprobado'
-                                                                  : 'Rechazado'
+                                                                  : 'Fuera de servicio'
                                                         }
                                                     />
                                                 </Tarjeta>

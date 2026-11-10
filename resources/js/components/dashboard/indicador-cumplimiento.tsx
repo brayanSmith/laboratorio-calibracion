@@ -1,12 +1,17 @@
 import {
     CalendarClock,
+    ChartColumn,
     CheckCircle2,
+    ChevronDown,
     Clock,
+    Gauge,
     LayoutGrid,
     ListTodo,
     Target,
+    TriangleAlert,
+    Wrench,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { cumplimiento } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
 import DataTable, {
@@ -15,19 +20,23 @@ import DataTable, {
 import {
     aOpcionesDependientes,
     BloqueIndicador,
+    ErrorIndicador,
     FiltroCasillas,
     FiltroRango,
     FiltroSeleccionMultiple,
     Medidor,
     PanelFiltros,
     StatTile,
+    TarjetaProgresoCircular,
     tonoDePorcentaje,
     useFiltrosConBusqueda,
     useFiltrosDependientes,
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
+import GraficoCumplimiento from '@/components/dashboard/grafico-cumplimiento';
 import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fields';
-import { formatearPorcentaje, rangoPorDefecto } from '@/lib/indicadores';
+import { rangoPorDefecto } from '@/lib/indicadores';
+import { cn } from '@/lib/utils';
 import type { Cumplimiento } from '@/types';
 
 type Pendiente = Cumplimiento['pendientes'][number];
@@ -57,6 +66,117 @@ const SIN_OPCIONES: Cumplimiento['opciones'] = {
 const columnHelper = createDataTableColumnHelper<Pendiente>();
 
 /**
+ * Cuántos equipos quedaron fuera de servicio en el periodo (por la fecha del servicio) y,
+ * con "Ver más", en qué servicio: mantenimiento o calibración (propios o de terceros).
+ */
+function FueraDeServicio({ resumen }: { resumen: Cumplimiento['resumen'] }) {
+    const [abierto, setAbierto] = useState(false);
+    const porServicio = resumen.fuera_de_servicio_por_servicio;
+
+    return (
+        <div
+            className="grid gap-1 text-xs"
+            data-test="cumplimiento-fuera-de-servicio"
+        >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 font-medium">
+                    <TriangleAlert className="h-3.5 w-3.5" />
+                    {resumen.fuera_de_servicio === 1
+                        ? '1 quedó fuera de servicio'
+                        : `${resumen.fuera_de_servicio} quedaron fuera de servicio`}
+                </span>
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
+                    aria-expanded={abierto}
+                    onClick={() => setAbierto((actual) => !actual)}
+                    data-test="cumplimiento-fuera-de-servicio-ver-mas"
+                >
+                    {abierto ? 'Ver menos' : 'Ver más'}
+                    <ChevronDown
+                        className={cn(
+                            'h-3.5 w-3.5 transition-transform',
+                            abierto && 'rotate-180',
+                        )}
+                    />
+                </button>
+            </div>
+            {abierto ? (
+                <div
+                    className="grid gap-1 rounded-md bg-background/60 px-2 py-1.5 text-foreground"
+                    data-test="cumplimiento-fuera-de-servicio-detalle"
+                >
+                    <span className="text-[11px] text-muted-foreground">
+                        Por la fecha del mantenimiento o de la calibración
+                    </span>
+                    <span className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1">
+                            <Wrench className="h-3.5 w-3.5" />
+                            En mantenimiento
+                        </span>
+                        <strong className="tabular-nums">
+                            {porServicio.MANTENIMIENTO}
+                        </strong>
+                    </span>
+                    <span className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1">
+                            <Gauge className="h-3.5 w-3.5" />
+                            En calibración
+                        </span>
+                        <strong className="tabular-nums">
+                            {porServicio.CALIBRACION}
+                        </strong>
+                    </span>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+/**
+ * De dónde son los atendidos o los pendientes: en qué servicio va cada equipo (cuenta una
+ * sola vez, así que suman el total de la tarjeta).
+ */
+function DesgloseServicios({
+    porServicio,
+    clave,
+    testId,
+}: {
+    porServicio: Cumplimiento['resumen']['por_servicio'];
+    /** Programados: los atendidos más los pendientes de cada servicio. */
+    clave: 'programados' | 'atendidos' | 'pendientes';
+    testId: string;
+}) {
+    const cuantos = (servicio: keyof typeof porServicio) =>
+        clave === 'programados'
+            ? porServicio[servicio].atendidos + porServicio[servicio].pendientes
+            : porServicio[servicio][clave];
+
+    return (
+        <div
+            className="flex flex-wrap gap-x-3 gap-y-1 text-xs"
+            data-test={testId}
+            title="Cada equipo cuenta una vez, en el servicio en que va: en calibración si su orden ya pasó a calibración (o solo tiene calibración programada); si no, en mantenimiento"
+        >
+            <span className="inline-flex items-center gap-1">
+                <Wrench className="h-3.5 w-3.5" />
+                Mantenimientos:{' '}
+                <strong className="tabular-nums">
+                    {cuantos('MANTENIMIENTO')}
+                </strong>
+            </span>
+            <span className="inline-flex items-center gap-1">
+                <Gauge className="h-3.5 w-3.5" />
+                Calibraciones:{' '}
+                <strong className="tabular-nums">
+                    {cuantos('CALIBRACION')}
+                </strong>
+            </span>
+        </div>
+    );
+}
+
+/**
  * Equipos con mantenimiento preventivo programado en el periodo frente a los que ya
  * tienen su servicio finalizado, en total y por área.
  */
@@ -69,10 +189,8 @@ export default function IndicadorCumplimiento() {
             tipos_equipo: [],
             tipos_mantenimiento: TIPOS_MANTENIMIENTO.map((tipo) => tipo.value),
         });
-    const { datos, cargando } = useIndicador<Cumplimiento>(
-        cumplimiento,
-        filtros,
-    );
+    const { datos, cargando, error, actualizar } =
+        useIndicador<Cumplimiento>(cumplimiento, filtros);
 
     const cambiar = (cambios: Partial<FiltrosCumplimiento>) =>
         setBorrador((actuales) => ({ ...actuales, ...cambios }));
@@ -140,6 +258,7 @@ export default function IndicadorCumplimiento() {
         >
             <PanelFiltros
                 onBuscar={buscar}
+                onActualizar={actualizar}
                 hayCambios={hayCambios}
                 buscando={cargando}
             >
@@ -186,7 +305,9 @@ export default function IndicadorCumplimiento() {
                 />
             </PanelFiltros>
 
-            {cargando || !datos ? (
+            {error ? (
+                <ErrorIndicador onReintentar={actualizar} />
+            ) : cargando || !datos ? (
                 <CargandoContenido mensaje="Calculando cumplimiento..." />
             ) : (
                 <>
@@ -198,7 +319,13 @@ export default function IndicadorCumplimiento() {
                             icono={CalendarClock}
                             tono="sky"
                             testId="cumplimiento-programados"
-                        />
+                        >
+                            <DesgloseServicios
+                                porServicio={datos.resumen.por_servicio}
+                                clave="programados"
+                                testId="cumplimiento-programados-por-servicio"
+                            />
+                        </StatTile>
                         <StatTile
                             etiqueta="Equipos atendidos"
                             valor={String(datos.resumen.atendidos)}
@@ -206,7 +333,14 @@ export default function IndicadorCumplimiento() {
                             icono={CheckCircle2}
                             tono="emerald"
                             testId="cumplimiento-atendidos"
-                        />
+                        >
+                            <DesgloseServicios
+                                porServicio={datos.resumen.por_servicio}
+                                clave="atendidos"
+                                testId="cumplimiento-atendidos-por-servicio"
+                            />
+                            <FueraDeServicio resumen={datos.resumen} />
+                        </StatTile>
                         <StatTile
                             etiqueta="Equipos pendientes"
                             valor={String(datos.resumen.pendientes)}
@@ -214,26 +348,40 @@ export default function IndicadorCumplimiento() {
                             icono={Clock}
                             tono="amber"
                             testId="cumplimiento-pendientes-total"
-                        />
-                        <StatTile
+                        >
+                            <DesgloseServicios
+                                porServicio={datos.resumen.por_servicio}
+                                clave="pendientes"
+                                testId="cumplimiento-pendientes-por-servicio"
+                            />
+                        </StatTile>
+                        <TarjetaProgresoCircular
                             etiqueta="Cumplimiento"
-                            valor={formatearPorcentaje(
-                                datos.resumen.porcentaje,
-                            )}
+                            porcentaje={datos.resumen.porcentaje}
                             icono={Target}
                             tono={tonoDePorcentaje(datos.resumen.porcentaje)}
                             testId="cumplimiento-porcentaje"
-                        >
-                            <Medidor
-                                porcentaje={datos.resumen.porcentaje}
-                                etiqueta="Cumplimiento total"
-                                tono={tonoDePorcentaje(
-                                    datos.resumen.porcentaje,
-                                )}
-                                sinTexto
-                            />
-                        </StatTile>
+                            detalle={
+                                <span className="opacity-80">
+                                    {datos.resumen.atendidos} de{' '}
+                                    {datos.resumen.programados} equipos
+                                    atendidos
+                                </span>
+                            }
+                        />
                     </div>
+
+                    <BloqueIndicador
+                        titulo="Programados, atendidos y cumplimiento"
+                        icono={ChartColumn}
+                    >
+                        <GraficoCumplimiento
+                            equipos={datos.por_fecha}
+                            desde={filtros.desde}
+                            hasta={filtros.hasta}
+                            objetivos={datos.objetivos}
+                        />
+                    </BloqueIndicador>
 
                     {datos.por_area.length > 0 ? (
                         <BloqueIndicador

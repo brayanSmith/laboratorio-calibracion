@@ -156,7 +156,7 @@ class EquipoController extends Controller
                 ->orderByDesc('id')
                 ->get()
                 ->map(fn (EquipoHistorico $historico) => $historico->resumen()),
-            'novedadesIngreso' => Novedad::query()->where('tenant_id', $equipo->tenant_id)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre', 'inactivar_equipo']),
+            'novedadesIngreso' => Novedad::query()->where('tenant_id', $equipo->tenant_id)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre', 'inactivar_equipo', 'es_motivo_cancelacion']),
             'laboratorioPropio' => Empresa::laboratorioDelTenant($equipo->tenant_id),
             'empresasTerceras' => EmpresaTercero::query()->where('tenant_id', $equipo->tenant_id)->orderBy('nombre')->get(['id', 'nombre']),
         ]);

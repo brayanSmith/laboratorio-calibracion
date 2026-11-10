@@ -1,4 +1,13 @@
-import { CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { useId } from 'react';
+import {
+    Area,
+    CartesianGrid,
+    ComposedChart,
+    Line,
+    useXAxisScale,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import {
     DiferenciaObjetivo,
     Fila,
@@ -15,8 +24,15 @@ import {
 import type { ChartConfig } from '@/components/ui/chart';
 import {
     agruparPromedios,
+    COLOR_CUMPLE,
+    COLOR_NO_CUMPLE,
+    cortesDeColor,
     diferenciaConObjetivo,
+    techoDelEje,
+    variacionConAnterior,
 } from '@/lib/periodos-grafico';
+import { formatearPorcentaje } from '@/lib/indicadores';
+import { cn } from '@/lib/utils';
 import type { Agrupacion } from '@/lib/periodos-grafico';
 
 /** Una serie del gráfico (ej. mantenimientos) con las filas que la forman. */
@@ -40,6 +56,12 @@ type Props = {
     formato: (valor: number) => string;
     /** Cómo se llaman las filas en el globo (ej. "servicios"). */
     nombreFilas: string;
+    /**
+     * Sombrea las zonas por encima y por debajo del objetivo de cada serie (en tiempos,
+     * encima rojo y debajo verde; en cantidades al revés), más intensas lejos del objetivo,
+     * y colorea su línea: verde en los tramos que cumplen y roja donde no.
+     */
+    sombrearObjetivo?: boolean;
     testId?: string;
 };
 
@@ -60,9 +82,11 @@ export default function GraficoSeries({
     hasta,
     formato,
     nombreFilas,
+    sombrearObjetivo = false,
     testId,
 }: Props) {
     const { agrupacion, elegir } = useAgrupacion(desde, hasta);
+    const idGradiente = `series-${useId().replace(/:/g, '')}`;
 
     const porSerie = series.map((serie) =>
         agruparPromedios(serie.filas, desde, hasta, agrupacion),
@@ -90,6 +114,50 @@ export default function GraficoSeries({
         datos.some((dato) =>
             series.some((serie) => dato[claveObjetivo(serie.clave)] !== null),
         );
+
+    /** El periodo anterior al del globo (por su etiqueta); null en el primero. */
+    const anteriorDe = (punto: Punto): Punto | null => {
+        const indice = datos.findIndex(
+            (dato) => dato.etiqueta === punto.etiqueta,
+        );
+
+        return indice > 0 ? datos[indice - 1] : null;
+    };
+
+    // Con zonas: el eje tiene un techo fijo (con un poco de aire sobre el máximo) hasta el
+    // que llega la zona de encima del objetivo.
+    const eje = techoDelEje(
+        Math.max(
+            0,
+            ...datos.flatMap((dato) =>
+                series.flatMap((serie) =>
+                    [dato[serie.clave], dato[claveObjetivo(serie.clave)]].map(
+                        (valor) => (typeof valor === 'number' ? valor : 0),
+                    ),
+                ),
+            ),
+        ) * 1.1,
+        medida === 'cantidad',
+    );
+
+    // Cortes verde/rojo de la línea de cada objetivo, de su primer a su último periodo con
+    // objetivo. Un periodo sin valor no incumple: cuenta como si llegara justo al objetivo.
+    const cortesPorSerie = series.map((serie) =>
+        cortesDeColor(
+            datos.map((dato) => {
+                const objetivo = dato[claveObjetivo(serie.clave)] as
+                    | number
+                    | null;
+                const valor = dato[serie.clave] as number | null;
+
+                return {
+                    valor: objetivo === null ? null : (valor ?? objetivo),
+                    objetivo,
+                };
+            }),
+            serie.menorEsMejor,
+        ),
+    );
 
     const config = Object.fromEntries(
         series.flatMap((serie) => [
@@ -140,6 +208,13 @@ export default function GraficoSeries({
                             width={72}
                             allowDecimals={medida !== 'cantidad'}
                             tickFormatter={(valor: number) => formato(valor)}
+                            {...(sombrearObjetivo
+                                ? {
+                                      domain: [0, eje.techo],
+                                      ticks: eje.marcas,
+                                      allowDataOverflow: true,
+                                  }
+                                : {})}
                         />
                         <ChartTooltip
                             cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
@@ -147,6 +222,9 @@ export default function GraficoSeries({
                                 active && payload?.length ? (
                                     <GloboSeries
                                         punto={payload[0].payload as Punto}
+                                        anterior={anteriorDe(
+                                            payload[0].payload as Punto,
+                                        )}
                                         series={series}
                                         formato={formato}
                                         nombreFilas={nombreFilas}
@@ -155,6 +233,55 @@ export default function GraficoSeries({
                             }
                         />
                         <ChartLegend content={<ChartLegendContent />} />
+                        {sombrearObjetivo ? (
+                            <DegradadosObjetivo
+                                idGradiente={idGradiente}
+                                series={series}
+                                cortesPorSerie={cortesPorSerie}
+                                datos={datos}
+                            />
+                        ) : null}
+                        {/* Dos zonas por serie, partidas por su objetivo: encima (del objetivo al
+                            techo) y debajo (del eje al objetivo), cada una más intensa cuanto
+                            más lejos del objetivo, como un mapa de calor. */}
+                        {sombrearObjetivo
+                            ? series.flatMap((serie) => {
+                                  const clave = claveObjetivo(serie.clave);
+
+                                  return [
+                                      <Area
+                                          key={`encima_${serie.clave}`}
+                                          dataKey={(dato: Punto) =>
+                                              dato[clave] === null
+                                                  ? null
+                                                  : [dato[clave], eje.techo]
+                                          }
+                                          type="linear"
+                                          stroke="none"
+                                          fill={`url(#${idGradiente}-encima-${serie.clave})`}
+                                          dot={false}
+                                          activeDot={false}
+                                          legendType="none"
+                                          tooltipType="none"
+                                          connectNulls={false}
+                                          isAnimationActive={false}
+                                      />,
+                                      <Area
+                                          key={`debajo_${serie.clave}`}
+                                          dataKey={clave}
+                                          type="linear"
+                                          stroke="none"
+                                          fill={`url(#${idGradiente}-debajo-${serie.clave})`}
+                                          dot={false}
+                                          activeDot={false}
+                                          legendType="none"
+                                          tooltipType="none"
+                                          connectNulls={false}
+                                          isAnimationActive={false}
+                                      />,
+                                  ];
+                              })
+                            : null}
                         {series.map((serie) => (
                             <Line
                                 key={serie.clave}
@@ -176,8 +303,14 @@ export default function GraficoSeries({
                                 key={claveObjetivo(serie.clave)}
                                 dataKey={claveObjetivo(serie.clave)}
                                 type="linear"
-                                stroke={`var(--color-${serie.clave})`}
-                                strokeOpacity={0.7}
+                                // Sombreado: la línea también va verde donde cumple y roja donde se pasa.
+                                stroke={
+                                    sombrearObjetivo &&
+                                    cortesPorSerie[posicion].length > 0
+                                        ? `url(#${idGradiente}-${serie.clave})`
+                                        : `var(--color-${serie.clave})`
+                                }
+                                strokeOpacity={sombrearObjetivo ? 0.9 : 0.7}
                                 strokeWidth={2}
                                 strokeDasharray="6 4"
                                 dot={false}
@@ -226,14 +359,184 @@ export default function GraficoSeries({
     );
 }
 
+/** Opacidad de las zonas en su parte más lejana del objetivo. */
+const OPACIDAD_ZONA = 0.16;
+
+/** Parte de cada zona, junto al objetivo, que queda sin color (la franja blanca del medio). */
+const FRANJA_BLANCA = 0.35;
+
+/**
+ * Degradados del sombreado, por serie: uno horizontal verde/rojo para la línea del
+ * objetivo y uno vertical por zona (encima y debajo del objetivo). El horizontal va en
+ * píxeles, del primer al último periodo con objetivo: una línea plana no tiene alto y el
+ * SVG no le pinta un degradado relativo a su caja.
+ */
+function DegradadosObjetivo({
+    idGradiente,
+    series,
+    cortesPorSerie,
+    datos,
+}: {
+    idGradiente: string;
+    series: SerieGrafico[];
+    cortesPorSerie: { offset: number; color: string }[][];
+    datos: Punto[];
+}) {
+    const escalaX = useXAxisScale();
+
+    return (
+        <defs>
+            {series.map((serie, posicion) => {
+                const clave = claveObjetivo(serie.clave);
+                const conObjetivo = datos.filter(
+                    (dato) => dato[clave] !== null,
+                );
+                const x1 = escalaX?.(conObjetivo[0]?.etiqueta) ?? 0;
+                const x2 = escalaX?.(conObjetivo.at(-1)?.etiqueta) ?? 0;
+
+                return (
+                    <linearGradient
+                        key={serie.clave}
+                        id={`${idGradiente}-${serie.clave}`}
+                        gradientUnits="userSpaceOnUse"
+                        x1={x1}
+                        y1={0}
+                        // Con un solo periodo, un ancho mínimo para que tome su color.
+                        x2={x2 > x1 ? x2 : x1 + 1}
+                        y2={0}
+                    >
+                        {cortesPorSerie[posicion].map((corte, indice) => (
+                            <stop
+                                key={indice}
+                                offset={corte.offset}
+                                stopColor={corte.color}
+                            />
+                        ))}
+                    </linearGradient>
+                );
+            })}
+            {series.flatMap((serie) => {
+                // En tiempos lo de encima del objetivo incumple; en cantidades, lo de debajo.
+                const encima = serie.menorEsMejor
+                    ? COLOR_NO_CUMPLE
+                    : COLOR_CUMPLE;
+                const debajo = serie.menorEsMejor
+                    ? COLOR_CUMPLE
+                    : COLOR_NO_CUMPLE;
+
+                return [
+                    // De arriba (intenso) hacia el objetivo (casi transparente).
+                    <linearGradient
+                        key={`encima-${serie.clave}`}
+                        id={`${idGradiente}-encima-${serie.clave}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                    >
+                        <stop
+                            offset="0"
+                            stopColor={encima}
+                            stopOpacity={OPACIDAD_ZONA}
+                        />
+                        <stop
+                            offset={1 - FRANJA_BLANCA}
+                            stopColor={encima}
+                            stopOpacity={0}
+                        />
+                        <stop offset="1" stopColor={encima} stopOpacity={0} />
+                    </linearGradient>,
+                    // Del objetivo (casi transparente) hacia el eje (intenso).
+                    <linearGradient
+                        key={`debajo-${serie.clave}`}
+                        id={`${idGradiente}-debajo-${serie.clave}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                    >
+                        <stop offset="0" stopColor={debajo} stopOpacity={0} />
+                        <stop
+                            offset={FRANJA_BLANCA}
+                            stopColor={debajo}
+                            stopOpacity={0}
+                        />
+                        <stop
+                            offset="1"
+                            stopColor={debajo}
+                            stopOpacity={OPACIDAD_ZONA}
+                        />
+                    </linearGradient>,
+                ];
+            })}
+        </defs>
+    );
+}
+
+/**
+ * Cuánto subió o bajó frente al periodo anterior, en valor y en porcentaje: verde si
+ * mejora, rojo si empeora y gris sin cambio o sin datos para comparar.
+ */
+export function VariacionAnterior({
+    variacion,
+    formato,
+    titulo,
+}: {
+    variacion: ReturnType<typeof variacionConAnterior>;
+    formato: (valor: number) => string;
+    /** Al pasar el puntero: qué periodo es el anterior (ej. sus fechas). */
+    titulo?: string;
+}) {
+    if (variacion === null) {
+        return (
+            <div
+                className="flex items-center justify-between gap-4 text-muted-foreground"
+                title={titulo}
+            >
+                <span>vs. periodo anterior</span>
+                <span>Sin datos para comparar</span>
+            </div>
+        );
+    }
+
+    const { diferencia, porcentaje, mejora } = variacion;
+    const flecha = diferencia > 0 ? '▲' : diferencia < 0 ? '▼' : '=';
+    const signo = diferencia > 0 ? '+' : diferencia < 0 ? '−' : '';
+
+    return (
+        <div
+            className={cn(
+                'flex items-center justify-between gap-4 font-medium',
+                mejora === true && 'text-emerald-700 dark:text-emerald-400',
+                mejora === false && 'text-red-700 dark:text-red-400',
+                mejora === null && 'text-muted-foreground',
+            )}
+            title={titulo}
+            data-test="globo-variacion"
+        >
+            <span>vs. periodo anterior</span>
+            <span className="tabular-nums">
+                {flecha} {signo}
+                {formato(Math.abs(diferencia))}
+                {porcentaje !== null
+                    ? ` (${signo}${formatearPorcentaje(Math.abs(porcentaje))})`
+                    : ''}
+            </span>
+        </div>
+    );
+}
+
 /** Globo de un periodo: por cada serie, su valor, su objetivo y si cumple. */
 function GloboSeries({
     punto,
+    anterior,
     series,
     formato,
     nombreFilas,
 }: {
     punto: Punto;
+    /** El periodo anterior, para comparar; null si es el primero. */
+    anterior: Punto | null;
     series: SerieGrafico[];
     formato: (valor: number) => string;
     nombreFilas: string;
@@ -266,6 +569,16 @@ function GloboSeries({
                         {resultado !== null ? (
                             <DiferenciaObjetivo
                                 {...resultado}
+                                formato={formato}
+                            />
+                        ) : null}
+                        {anterior !== null ? (
+                            <VariacionAnterior
+                                variacion={variacionConAnterior(
+                                    valor,
+                                    anterior[serie.clave] as number | null,
+                                    serie.menorEsMejor,
+                                )}
                                 formato={formato}
                             />
                         ) : null}

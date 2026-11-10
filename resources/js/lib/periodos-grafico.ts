@@ -362,6 +362,68 @@ export function diferenciaConObjetivo(
     };
 }
 
+/**
+ * Variación frente al periodo anterior: la diferencia (redondeada a un decimal), su
+ * porcentaje (null si el anterior es 0) y si mejora; null si falta alguno de los dos
+ * valores. Sin cambio no mejora ni empeora (mejora: null).
+ */
+export function variacionConAnterior(
+    valor: number | null,
+    anterior: number | null,
+    menorMejor: boolean,
+): {
+    diferencia: number;
+    porcentaje: number | null;
+    mejora: boolean | null;
+} | null {
+    if (valor === null || anterior === null) {
+        return null;
+    }
+
+    const diferencia = Math.round((valor - anterior) * 10) / 10;
+
+    return {
+        diferencia,
+        porcentaje:
+            anterior === 0
+                ? null
+                : Math.round(((valor - anterior) / anterior) * 1000) / 10,
+        mejora:
+            diferencia === 0
+                ? null
+                : menorMejor
+                  ? diferencia < 0
+                  : diferencia > 0,
+    };
+}
+
+/**
+ * Techo "redondo" del eje vertical (desde 0) para que quepa el máximo, con sus marcas: unas
+ * cuatro, de pasos de 1, 2, 2.5 o 5 por una potencia de 10 (sin el 2.5 si son enteros).
+ */
+export function techoDelEje(
+    maximo: number,
+    enteros: boolean,
+): { techo: number; marcas: number[] } {
+    const bruto = Math.max(maximo, enteros ? 1 : 0.1) / 4;
+    const magnitud = 10 ** Math.floor(Math.log10(bruto));
+    const factores = enteros ? [1, 2, 5, 10] : [1, 2, 2.5, 5, 10];
+    const factor =
+        factores.find((posible) => posible * magnitud >= bruto) ?? 10;
+    const paso = enteros
+        ? Math.max(1, Math.ceil(factor * magnitud))
+        : factor * magnitud;
+    const pasos = Math.max(1, Math.ceil(maximo / paso - 1e-9));
+    const redondear = (valor: number) => Math.round(valor * 1e6) / 1e6;
+
+    return {
+        techo: redondear(pasos * paso),
+        marcas: Array.from({ length: pasos + 1 }, (_, indice) =>
+            redondear(indice * paso),
+        ),
+    };
+}
+
 /** Objetivo de un mes y un tipo de equipo (desempeño por técnico). */
 export type ObjetivoMensual = {
     anio: number;
@@ -548,4 +610,55 @@ export function sumaMensualDelRango(
     hasta: string,
 ): number | null {
     return cantidadObjetivoDeMeses(mesesDeLosDias(desde, hasta), objetivos);
+}
+
+/** Un periodo del gráfico de cumplimiento: programados, atendidos y su porcentaje. */
+export type PuntoCumplimiento = {
+    inicio: string;
+    etiqueta: string;
+    programados: number;
+    atendidos: number;
+    /** Null sin equipos programados en el periodo. */
+    porcentaje: number | null;
+};
+
+/**
+ * Un punto por cada periodo entre `desde` y `hasta` (aunque no tenga equipos) con los
+ * equipos programados en él, cuántos se atendieron y el porcentaje.
+ */
+export function agruparCumplimiento(
+    equipos: { fecha: string; atendido: boolean }[],
+    desde: string,
+    hasta: string,
+    agrupacion: Agrupacion,
+): PuntoCumplimiento[] {
+    const programados = agruparPromedios(
+        equipos.map(({ fecha }) => ({ fecha, valor: null })),
+        desde,
+        hasta,
+        agrupacion,
+    );
+    const atendidos = agruparPromedios(
+        equipos
+            .filter(({ atendido }) => atendido)
+            .map(({ fecha }) => ({ fecha, valor: null })),
+        desde,
+        hasta,
+        agrupacion,
+    );
+
+    return programados.map((punto, indice) => {
+        const delPeriodo = atendidos[indice].cantidad;
+
+        return {
+            inicio: punto.inicio,
+            etiqueta: punto.etiqueta,
+            programados: punto.cantidad,
+            atendidos: delPeriodo,
+            porcentaje:
+                punto.cantidad === 0
+                    ? null
+                    : Math.round((delPeriodo * 1000) / punto.cantidad) / 10,
+        };
+    });
 }

@@ -1,10 +1,11 @@
 import { useHttp } from '@inertiajs/react';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { AlertCircle, RotateCw, Search, SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import Combobox from '@/components/combobox';
 import MultiCombobox from '@/components/multi-combobox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,6 +40,11 @@ export function useIndicador<T>(
     const { get, response, processing } = useHttp<Record<string, string>, T>();
     const clave = JSON.stringify(filtros);
     const recarga = useContext(RecargaIndicadorContext);
+    // Si falló la última petición: sin esto se seguirían viendo los datos de la anterior
+    // como si fueran los de los filtros nuevos.
+    const [error, setError] = useState(false);
+    const [intento, setIntento] = useState(0);
+    const ultimaPeticion = useRef(0);
 
     useEffect(() => {
         if (
@@ -49,14 +55,53 @@ export function useIndicador<T>(
             return;
         }
 
-        void get(ruta({ query: filtrosConValor(filtros) }).url).catch(
-            () => undefined,
-        );
-        // Solo se vuelve a pedir si cambian los filtros o se guardan objetivos del módulo.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [clave, recarga]);
+        const peticion = ++ultimaPeticion.current;
+        setError(false);
 
-    return { datos: response, cargando: processing };
+        get(ruta({ query: filtrosConValor(filtros) }).url).catch(() => {
+            // Una petición reemplazada por otra más nueva no cuenta como error.
+            if (peticion === ultimaPeticion.current) {
+                setError(true);
+            }
+        });
+        // Solo se vuelve a pedir si cambian los filtros, se guardan objetivos del módulo
+        // o se reintenta.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [clave, recarga, intento]);
+
+    return {
+        datos: response,
+        cargando: processing,
+        error,
+        /** Vuelve a pedir los datos con los mismos filtros (actualizar o reintentar). */
+        actualizar: () => setIntento((actual) => actual + 1),
+    };
+}
+
+/** Aviso de que el indicador no se pudo calcular, con un botón para volver a pedirlo. */
+export function ErrorIndicador({ onReintentar }: { onReintentar: () => void }) {
+    return (
+        <Alert variant="destructive" data-test="error-indicador">
+            <AlertCircle />
+            <AlertTitle>No se pudo calcular el indicador</AlertTitle>
+            <AlertDescription>
+                <p>
+                    Ocurrió un error al consultar los datos con estos filtros.
+                    Intenta de nuevo y, si sigue pasando, avisa al administrador.
+                </p>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={onReintentar}
+                >
+                    <RotateCw />
+                    Reintentar
+                </Button>
+            </AlertDescription>
+        </Alert>
+    );
 }
 
 /**
@@ -112,30 +157,35 @@ const TONOS = {
         tarjeta:
             'border-sky-200 bg-sky-100 text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200',
         barra: 'bg-sky-600',
+        anillo: 'stroke-sky-600',
         pista: 'bg-sky-600/15',
     },
     emerald: {
         tarjeta:
             'border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
         barra: 'bg-emerald-600',
+        anillo: 'stroke-emerald-600',
         pista: 'bg-emerald-600/15',
     },
     amber: {
         tarjeta:
             'border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
         barra: 'bg-amber-500',
+        anillo: 'stroke-amber-500',
         pista: 'bg-amber-500/15',
     },
     red: {
         tarjeta:
             'border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200',
         barra: 'bg-red-600',
+        anillo: 'stroke-red-600',
         pista: 'bg-red-600/15',
     },
     violet: {
         tarjeta:
             'border-violet-200 bg-violet-100 text-violet-900 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200',
         barra: 'bg-violet-600',
+        anillo: 'stroke-violet-600',
         pista: 'bg-violet-600/15',
     },
 } as const;
@@ -202,12 +252,15 @@ export function StatTile({
 export function PanelFiltros({
     children,
     onBuscar,
+    onActualizar,
     hayCambios,
     buscando,
 }: {
     children: ReactNode;
     /** Aplica los filtros: el indicador solo se vuelve a pedir al buscar. */
     onBuscar: () => void;
+    /** Vuelve a pedir los datos con los filtros aplicados (por si hay registros nuevos). */
+    onActualizar: () => void;
     /** Si hay filtros cambiados que aún no se aplicaron. */
     hayCambios: boolean;
     buscando: boolean;
@@ -226,7 +279,20 @@ export function PanelFiltros({
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {children}
             </div>
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onActualizar}
+                    disabled={buscando}
+                    title="Vuelve a consultar los datos con los filtros aplicados"
+                    data-test="indicador-actualizar"
+                >
+                    <RotateCw
+                        className={cn('h-4 w-4', buscando && 'animate-spin')}
+                    />
+                    Actualizar
+                </Button>
                 <Button
                     type="button"
                     onClick={onBuscar}
@@ -575,5 +641,95 @@ export function FiltroAlternativa<T extends string>({
                 ))}
             </ToggleGroup>
         </fieldset>
+    );
+}
+
+/**
+ * Tarjeta de un porcentaje con un progreso circular (llena al 100 %) que ocupa la
+ * tarjeta, con el valor y debajo un detalle corto, los dos dentro del círculo.
+ */
+export function TarjetaProgresoCircular({
+    etiqueta,
+    porcentaje,
+    detalle,
+    icono: Icono,
+    tono,
+    testId,
+}: {
+    etiqueta: string;
+    porcentaje: number | null;
+    detalle?: ReactNode;
+    icono: LucideIcon;
+    tono: TonoIndicador;
+    testId?: string;
+}) {
+    const radio = 30;
+    const circunferencia = 2 * Math.PI * radio;
+    const avance = Math.min(100, Math.max(0, porcentaje ?? 0));
+
+    return (
+        <Card
+            className={cn(TONOS[tono].tarjeta, 'flex h-full flex-col')}
+            data-test={testId}
+        >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-sm font-medium">
+                    {etiqueta}
+                </CardTitle>
+                <Icono className="h-5 w-5" />
+            </CardHeader>
+            <CardContent className="flex flex-1 items-center justify-center">
+                <div
+                    className="relative aspect-square w-full max-w-40"
+                    role="progressbar"
+                    aria-label={etiqueta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(avance)}
+                >
+                    <svg
+                        viewBox="0 0 72 72"
+                        className="h-full w-full -rotate-90"
+                    >
+                        <circle
+                            cx="36"
+                            cy="36"
+                            r={radio}
+                            fill="none"
+                            strokeWidth="7"
+                            className="stroke-current opacity-15"
+                        />
+                        <circle
+                            cx="36"
+                            cy="36"
+                            r={radio}
+                            fill="none"
+                            strokeWidth="7"
+                            strokeLinecap="round"
+                            strokeDasharray={circunferencia}
+                            strokeDashoffset={
+                                circunferencia * (1 - avance / 100)
+                            }
+                            className={cn(
+                                TONOS[tono].anillo,
+                                'transition-[stroke-dashoffset] duration-500',
+                            )}
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-5 text-center">
+                        <span className="text-3xl leading-none font-bold tabular-nums">
+                            {porcentaje === null
+                                ? '—'
+                                : `${Math.round(porcentaje)}%`}
+                        </span>
+                        {detalle ? (
+                            <span className="text-[11px] leading-tight">
+                                {detalle}
+                            </span>
+                        ) : null}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 }

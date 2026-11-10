@@ -65,6 +65,26 @@ export default function NovedadesIndex({ novedades }: Props) {
                             <span className="text-muted-foreground">No</span>
                         ),
                 }),
+                columnHelper.accessor('es_motivo_cancelacion', {
+                    header: 'Motivo de cancelación',
+                    meta: {
+                        filterOptions: [
+                            { value: 'true', label: 'Sí' },
+                            { value: 'false', label: 'No' },
+                        ],
+                    },
+                    cell: (info) =>
+                        info.getValue() ? (
+                            <Badge
+                                className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                data-test="badge-motivo-cancelacion"
+                            >
+                                Motivo cancelación
+                            </Badge>
+                        ) : (
+                            <span className="text-muted-foreground">No</span>
+                        ),
+                }),
                 columnHelper.accessor('usos_count', { header: 'Usos' }),
                 columnHelper.display({
                     id: 'acciones',

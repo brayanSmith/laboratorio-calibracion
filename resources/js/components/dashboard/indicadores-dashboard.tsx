@@ -93,12 +93,12 @@ export function pestanasIndicadores(
         },
         {
             value: 'desempeno-tecnicos',
-            titulo: 'Desempeño por técnico',
+            titulo: 'Desempeño operativo',
             icono: Activity,
             visible: indicadores.permisos.desempeno_tecnicos,
             contenido: (
                 <SeccionIndicador
-                    titulo="Desempeño por técnico"
+                    titulo="Desempeño operativo"
                     icono={Activity}
                     modulo="DESEMPENO_TECNICOS"
                     descripcion="Mantenimientos y calibraciones finalizados y su tiempo promedio."

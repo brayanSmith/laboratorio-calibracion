@@ -22,6 +22,8 @@ export type ComboboxOption = {
     label: string;
     /** Texto corto en rojo al lado de la opción (ej. "Inactiva el equipo"). */
     aviso?: string;
+    /** Etiqueta corta en ámbar al lado de la opción (ej. "Motivo cancelación"). */
+    insignia?: string;
     /** No se puede elegir: se muestra atenuada. */
     disabled?: boolean;
 };
@@ -146,6 +148,11 @@ export default function Combobox({
                                         <span className="min-w-0 flex-1 truncate">
                                             {option.label}
                                         </span>
+                                        {option.insignia ? (
+                                            <span className="ml-2 shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                {option.insignia}
+                                            </span>
+                                        ) : null}
                                         {option.aviso ? (
                                             <span className="ml-2 shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
                                                 {option.aviso}

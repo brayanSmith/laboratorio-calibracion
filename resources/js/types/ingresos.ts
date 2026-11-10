@@ -52,4 +52,6 @@ export type ProgramacionPendienteBahia = {
 /** Novedad del catálogo de ingreso, con si al reportarla el equipo queda inactivo. */
 export type NovedadIngresoOption = IngresoOption & {
     inactivar_equipo: boolean;
+    /** Solo se puede elegir si el equipo no ingresó (quedó cancelado). */
+    es_motivo_cancelacion: boolean;
 };

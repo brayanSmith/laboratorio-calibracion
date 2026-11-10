@@ -22,13 +22,14 @@ use Illuminate\Support\Carbon;
  * @property string $nombre
  * @property string $categoria
  * @property bool $inactivar_equipo Si al reportarla el equipo queda inactivo (ver Equipo::inactivarSiLaNovedadLoPide())
+ * @property bool $es_motivo_cancelacion Si es un motivo de cancelación: en un ingreso solo se puede elegir para un equipo que no ingresó
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['nombre', 'categoria', 'inactivar_equipo', 'tenant_id'])]
+#[Fillable(['nombre', 'categoria', 'inactivar_equipo', 'es_motivo_cancelacion', 'tenant_id'])]
 #[UseFactory(NovedadFactory::class)]
 class Novedad extends Model
 {
@@ -101,6 +102,7 @@ class Novedad extends Model
     {
         return [
             'inactivar_equipo' => 'boolean',
+            'es_motivo_cancelacion' => 'boolean',
         ];
     }
 }

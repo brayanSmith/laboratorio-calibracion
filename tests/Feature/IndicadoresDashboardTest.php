@@ -373,6 +373,43 @@ test('desempeno por tecnico cuenta los servicios terminados y promedia su tiempo
         ->assertJsonPath('responsables.0.tipo', 'TERCERO');
 });
 
+test('desempeno por tecnico compara los totales con el periodo anterior del mismo largo', function () {
+    $tecnico = User::factory()->forTenant($this->tenant)->create();
+
+    foreach (['2026-09-30', '2026-10-05', '2026-10-20'] as $indice => $fecha) {
+        $orden = crearOrdenDeIndicador(crearEquipoRecibido($this->bahia, "EQ-ANT-$indice"));
+        Mantenimiento::create([
+            'orden_trabajo_id' => $orden->id,
+            'tipo_mantenimiento' => 'PREVENTIVO',
+            'fecha_mantenimiento' => $fecha,
+            'tecnico_id' => $tecnico->id,
+            'estado_mantenimiento' => 'FINALIZADO',
+            'fecha_realizacion' => $fecha,
+            'tenant_id' => $this->tenant->id,
+        ]);
+        registrarTiempoServicio($orden, 'MANTENIMIENTO', 2);
+    }
+
+    // Un mes completo: el anterior es el mes de antes, aunque tenga otro número de días.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
+        ->assertOk()
+        ->assertJsonPath('totales.mantenimientos.cantidad', 2)
+        ->assertJsonPath('periodo_anterior.desde', '2026-09-01')
+        ->assertJsonPath('periodo_anterior.hasta', '2026-09-30')
+        ->assertJsonPath('periodo_anterior.totales.mantenimientos.cantidad', 1)
+        ->assertJsonPath('periodo_anterior.totales.mantenimientos.promedio_horas', 2)
+        ->assertJsonPath('periodo_anterior.totales.calibraciones.cantidad', 0);
+
+    // Un rango suelto: los mismos días justo antes.
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', ['desde' => '2026-10-10', 'hasta' => '2026-10-24']))
+        ->assertJsonPath('totales.mantenimientos.cantidad', 1)
+        ->assertJsonPath('periodo_anterior.desde', '2026-09-25')
+        ->assertJsonPath('periodo_anterior.hasta', '2026-10-09')
+        ->assertJsonPath('periodo_anterior.totales.mantenimientos.cantidad', 2);
+});
+
 test('cumplimiento compara los equipos con preventivo programado contra los que tienen el servicio finalizado', function () {
     $atendido = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-ATENDIDO'), ['fecha_proximo_servicio' => '2026-10-10']);
     crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-PENDIENTE-1'), ['fecha_proximo_servicio' => '2026-10-15']);
@@ -396,6 +433,8 @@ test('cumplimiento compara los equipos con preventivo programado contra los que 
         ->assertJsonPath('resumen.atendidos', 1)
         ->assertJsonPath('resumen.pendientes', 2)
         ->assertJsonPath('resumen.porcentaje', 33.3)
+        ->assertJsonCount(3, 'por_fecha')
+        ->assertJsonPath('por_fecha.0', ['fecha' => '2026-10-10', 'atendido' => true])
         ->assertJsonPath('por_area.0.programados', 3)
         ->assertJsonCount(2, 'pendientes')
         ->assertJsonPath('pendientes.0.equipo', 'EQ-PENDIENTE-1')
@@ -423,4 +462,110 @@ test('cumplimiento compara los equipos con preventivo programado contra los que 
     $this->actingAs($this->admin)
         ->getJson(route('dashboard.indicadores.cumplimiento', [...$rango, 'tipos_mantenimiento' => ['C']]))
         ->assertJsonValidationErrors('tipos_mantenimiento.0');
+});
+
+test('cumplimiento cuenta como atendidos los que quedaron fuera de servicio, propios o de terceros, y dice cuantos son', function () {
+    $operativo = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-OPERATIVO'), ['fecha_proximo_servicio' => '2026-10-10']);
+    $fueraEnMantenimiento = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-FS-MANT'), ['fecha_proximo_servicio' => '2026-10-11']);
+    $fueraEnCalibracion = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-FS-CAL'), ['fecha_proximo_servicio' => '2026-10-12', 'tipo_servicio' => 'CALIBRACION']);
+    $enProceso = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-EN-PROCESO'), ['fecha_proximo_servicio' => '2026-10-13']);
+
+    foreach ([[$operativo, 'FINALIZADO', 'OPERATIVO'], [$fueraEnMantenimiento, 'FINALIZADO', 'FUERA_DE_SERVICIO'], [$enProceso, 'EN_PROCESO', 'FUERA_DE_SERVICIO']] as [$programacion, $estado, $estadoFinal]) {
+        Mantenimiento::create([
+            'orden_trabajo_id' => crearOrdenDeIndicador($programacion)->id,
+            'tipo_mantenimiento' => 'PREVENTIVO',
+            'fecha_mantenimiento' => '2026-10-10',
+            'tecnico_id' => $this->admin->id,
+            'estado_mantenimiento' => $estado,
+            'estado_final_equipo' => $estadoFinal,
+            'tenant_id' => $this->tenant->id,
+        ]);
+    }
+
+    Calibracion::create([
+        'orden_trabajo_id' => crearOrdenDeIndicador($fueraEnCalibracion)->id,
+        'fecha_calibracion' => '2026-10-12',
+        'tecnico_id' => $this->admin->id,
+        'estado_calibracion' => 'FUERA_DE_SERVICIO',
+        'temperatura' => 20,
+        'humedad' => 50,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    ServicioTercero::create([
+        'orden_trabajo_id' => crearOrdenDeIndicador(crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-FS-TERCERO'), ['fecha_proximo_servicio' => '2026-10-14']))->id,
+        'tipo_servicio' => 'MANTENIMIENTO',
+        'empresa_tercero_id' => EmpresaTercero::factory()->create(['tenant_id' => $this->tenant->id])->id,
+        'estado_servicio' => 'FINALIZADO',
+        'estado_final_equipo' => 'FUERA_DE_SERVICIO',
+        'fecha_realizacion' => '2026-10-14',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    // Con los dos servicios: el mantenimiento terminó y la misma orden ya pasó a calibración.
+    $ordenEnCalibracion = crearOrdenDeIndicador(crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-EN-CALIBRACION'), ['fecha_proximo_servicio' => '2026-10-15', 'tipo_servicio' => 'MANTENIMIENTO,CALIBRACION']));
+    Mantenimiento::create([
+        'orden_trabajo_id' => $ordenEnCalibracion->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => '2026-10-15',
+        'tecnico_id' => $this->admin->id,
+        'estado_mantenimiento' => 'FINALIZADO',
+        'estado_final_equipo' => 'OPERATIVO',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    Calibracion::create([
+        'orden_trabajo_id' => $ordenEnCalibracion->id,
+        'fecha_calibracion' => '2026-10-16',
+        'tecnico_id' => $this->admin->id,
+        'estado_calibracion' => 'EN_PROCESO',
+        'temperatura' => 20,
+        'humedad' => 50,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    // Con los dos servicios y sin orden todavía: va primero por el mantenimiento.
+    crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-SIN-ORDEN'), ['fecha_proximo_servicio' => '2026-10-16', 'tipo_servicio' => 'MANTENIMIENTO,CALIBRACION']);
+
+    // Programado para noviembre, pero el mantenimiento se hizo en octubre: los fuera de
+    // servicio van por la fecha del servicio, no por la programada.
+    Mantenimiento::create([
+        'orden_trabajo_id' => crearOrdenDeIndicador(crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-FS-ADELANTADO'), ['fecha_proximo_servicio' => '2026-11-20']))->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => '2026-10-20',
+        'tecnico_id' => $this->admin->id,
+        'estado_mantenimiento' => 'FINALIZADO',
+        'estado_final_equipo' => 'FUERA_DE_SERVICIO',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
+        ->assertOk()
+        ->assertJsonPath('resumen.programados', 7)
+        ->assertJsonPath('resumen.atendidos', 5)
+        // El que sigue en proceso no cuenta, aunque su estado final diga fuera de servicio.
+        ->assertJsonPath('resumen.fuera_de_servicio', 4)
+        ->assertJsonPath('resumen.fuera_de_servicio_por_servicio', ['MANTENIMIENTO' => 3, 'CALIBRACION' => 1])
+        ->assertJsonPath('resumen.pendientes', 2)
+        // De dónde son: cada equipo una vez, en el servicio en que va (suman los totales). El
+        // que ya pasó a calibración no cuenta en mantenimiento.
+        ->assertJsonPath('resumen.por_servicio.MANTENIMIENTO', ['atendidos' => 3, 'pendientes' => 2])
+        ->assertJsonPath('resumen.por_servicio.CALIBRACION', ['atendidos' => 2, 'pendientes' => 0]);
+});
+
+test('cumplimiento responde con fuera de servicio solo en calibracion y ninguno en mantenimiento', function () {
+    Calibracion::create([
+        'orden_trabajo_id' => crearOrdenDeIndicador(crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-FS-CAL'), ['fecha_proximo_servicio' => '2026-10-12', 'tipo_servicio' => 'CALIBRACION']))->id,
+        'fecha_calibracion' => '2026-10-12',
+        'tecnico_id' => $this->admin->id,
+        'estado_calibracion' => 'FUERA_DE_SERVICIO',
+        'temperatura' => 20,
+        'humedad' => 50,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
+        ->assertOk()
+        ->assertJsonPath('resumen.fuera_de_servicio_por_servicio', ['MANTENIMIENTO' => 0, 'CALIBRACION' => 1]);
 });

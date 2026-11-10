@@ -70,6 +70,24 @@ export default function NovedadFormFields({ novedad, errors }: Props) {
                 </p>
                 <InputError message={errors.inactivar_equipo} />
             </div>
+
+            <div className="grid gap-1 sm:col-span-2">
+                <div className="flex items-center gap-3">
+                    <Checkbox
+                        id="es_motivo_cancelacion"
+                        name="es_motivo_cancelacion"
+                        defaultChecked={novedad?.es_motivo_cancelacion ?? false}
+                    />
+                    <Label htmlFor="es_motivo_cancelacion">
+                        Motivo de cancelación
+                    </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    En un ingreso, esta novedad solo se puede elegir cuando el
+                    equipo no ingresó (queda cancelado).
+                </p>
+                <InputError message={errors.es_motivo_cancelacion} />
+            </div>
         </div>
     );
 }

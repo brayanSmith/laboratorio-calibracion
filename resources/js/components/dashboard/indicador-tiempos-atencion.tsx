@@ -15,6 +15,7 @@ import DataTable, {
 import {
     aOpcionesDependientes,
     BloqueIndicador,
+    ErrorIndicador,
     FiltroRango,
     FiltroSeleccionMultiple,
     PanelFiltros,
@@ -125,10 +126,8 @@ export default function IndicadorTiemposAtencion() {
             magnitudes: [],
             tipos_equipo: [],
         });
-    const { datos, cargando } = useIndicador<TiemposAtencion>(
-        tiemposAtencion,
-        filtros,
-    );
+    const { datos, cargando, error, actualizar } =
+        useIndicador<TiemposAtencion>(tiemposAtencion, filtros);
 
     const cambiar = (cambios: Partial<FiltrosTiempos>) =>
         setBorrador((actuales) => ({ ...actuales, ...cambios }));
@@ -215,6 +214,7 @@ export default function IndicadorTiemposAtencion() {
         >
             <PanelFiltros
                 onBuscar={buscar}
+                onActualizar={actualizar}
                 hayCambios={hayCambios}
                 buscando={cargando}
             >
@@ -260,7 +260,9 @@ export default function IndicadorTiemposAtencion() {
                 />
             </PanelFiltros>
 
-            {cargando || !datos ? (
+            {error ? (
+                <ErrorIndicador onReintentar={actualizar} />
+            ) : cargando || !datos ? (
                 <CargandoContenido mensaje="Calculando tiempos de atención..." />
             ) : (
                 <>

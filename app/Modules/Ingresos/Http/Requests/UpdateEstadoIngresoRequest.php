@@ -23,9 +23,12 @@ class UpdateEstadoIngresoRequest extends FormRequest
             return false;
         }
 
-        // Tocar los equipos (equipos_recibidos/equipos_correctivos_recibidos) requiere
-        // permiso de editar equipos, además del de editar el ingreso.
-        $tocaEquipos = filled($this->input('equipos_recibidos')) || filled($this->input('equipos_correctivos_recibidos'));
+        // Tocar los equipos (equipos_recibidos/equipos_correctivos_recibidos, o cancelarlos
+        // todos con novedad_cancelacion_id) requiere permiso de editar equipos, además del
+        // de editar el ingreso.
+        $tocaEquipos = filled($this->input('equipos_recibidos'))
+            || filled($this->input('equipos_correctivos_recibidos'))
+            || filled($this->input('novedad_cancelacion_id'));
 
         return ! $tocaEquipos || $this->user()->can(TenantPermission::EquiposEditar->value);
     }
@@ -80,6 +83,14 @@ class UpdateEstadoIngresoRequest extends FormRequest
             'novedad' => ['nullable', 'string', 'max:5000'],
             'motivo_cancelacion' => ['nullable', 'required_if:estado_ingreso,CANCELADO', 'string', 'max:5000'],
 
+            // Al cancelar el ingreso, todos sus equipos quedan como no ingresados con esta
+            // novedad (ver IngresoController::cancelarEquiposDelIngreso()).
+            'novedad_cancelacion_id' => [
+                'nullable',
+                Rule::requiredIf($this->input('estado_ingreso') === 'CANCELADO' && $ingreso->equipoProgramacion()->exists()),
+                Rule::exists('novedads', 'id')->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->whereNull('deleted_at'),
+            ],
+
             // Equipos programados (preventivos) ya enlazados a este ingreso, marcados
             // con ingresado = true/false al recibirlo. Si ingresado es false, se trata
             // como un cancelado: exige la novedad y permite registrar el re-agendamiento.
@@ -112,6 +123,7 @@ class UpdateEstadoIngresoRequest extends FormRequest
     /**
      * Una novedad que inactiva el equipo solo se puede reportar si el equipo no ingresó, y
      * entonces no se puede re-agendar: el equipo queda inactivo y no sigue a mantenimiento.
+     * Un motivo de cancelación también se reserva para los equipos que no ingresaron.
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -137,6 +149,19 @@ class UpdateEstadoIngresoRequest extends FormRequest
                     }
                 }
             },
+            function (Validator $validator): void {
+                $motivosCancelacion = Novedad::query()
+                    ->whereIn('id', collect($this->input('equipos_recibidos', []))->pluck('novedad_ingreso_id')->filter()->all())
+                    ->where('es_motivo_cancelacion', true)
+                    ->pluck('id')
+                    ->all();
+
+                foreach ($this->input('equipos_recibidos', []) as $indice => $recibido) {
+                    if ($recibido['ingresado'] && in_array((int) ($recibido['novedad_ingreso_id'] ?? 0), $motivosCancelacion, true)) {
+                        $validator->errors()->add("equipos_recibidos.{$indice}.novedad_ingreso_id", 'Esta novedad es un motivo de cancelación: solo se puede elegir si el equipo no ingresó.');
+                    }
+                }
+            },
         ];
     }
 
@@ -154,6 +179,7 @@ class UpdateEstadoIngresoRequest extends FormRequest
             'firma_cliente_entrega' => 'firma del cliente',
             'novedad' => 'novedad',
             'motivo_cancelacion' => 'motivo de cancelación',
+            'novedad_cancelacion_id' => 'novedad de cancelación',
         ];
     }
 }

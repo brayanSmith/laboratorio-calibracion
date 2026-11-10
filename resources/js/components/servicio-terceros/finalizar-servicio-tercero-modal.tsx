@@ -20,7 +20,7 @@ import EquipoServicioCard from '@/components/servicio-terceros/equipo-servicio-c
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
 import type { ServicioTerceroListado } from '@/types';
 
-type EstadoFinal = 'APROBADO' | 'RECHAZADO';
+type EstadoFinal = 'APROBADO' | 'FUERA_DE_SERVICIO';
 
 type Props = {
     servicio: ServicioTerceroListado | null;
@@ -30,7 +30,7 @@ type Props = {
 
 /** Modal que se abre al presionar "Finalizar" en un servicio de tercero: pide
  * el documento (PDF) del servicio, el estado final del equipo y, si quedó
- * rechazado, si se re-agenda (ver ServicioTerceroController::finalizar()). */
+ * fuera de servicio, si se re-agenda (ver ServicioTerceroController::finalizar()). */
 export default function FinalizarServicioTerceroModal({
     servicio,
     open,
@@ -155,15 +155,15 @@ export default function FinalizarServicioTerceroModal({
                                             Aprobado
                                         </ToggleGroupItem>
                                         <ToggleGroupItem
-                                            value="RECHAZADO"
+                                            value="FUERA_DE_SERVICIO"
                                             className="grow basis-0 data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
                                         >
-                                            Rechazado
+                                            Fuera de servicio
                                         </ToggleGroupItem>
                                     </ToggleGroup>
                                 </div>
 
-                                {estadoFinalEquipo === 'RECHAZADO' ? (
+                                {estadoFinalEquipo === 'FUERA_DE_SERVICIO' ? (
                                     <div className="flex items-center gap-2">
                                         <Checkbox
                                             id="re_agendar"
@@ -190,7 +190,7 @@ export default function FinalizarServicioTerceroModal({
                                 type="hidden"
                                 name="re_agendar"
                                 value={
-                                    estadoFinalEquipo === 'RECHAZADO' &&
+                                    estadoFinalEquipo === 'FUERA_DE_SERVICIO' &&
                                     reAgendar
                                         ? '1'
                                         : '0'

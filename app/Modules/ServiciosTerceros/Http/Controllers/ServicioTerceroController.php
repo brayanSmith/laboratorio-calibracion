@@ -153,7 +153,7 @@ class ServicioTerceroController extends Controller
      * estado final del equipo, y cierra el tiempo_servicio en curso. Si quedó APROBADO
      * crea el despacho de la orden de trabajo (sin técnico todavía) para "Agendar
      * Despachos" (ver OrdenTrabajoController::despachosListos()) y, si el servicio es de
-     * calibración, marca la orden como calibracion_finalizado. Si quedó RECHAZADO y se
+     * calibración, marca la orden como calibracion_finalizado. Si quedó FUERA_DE_SERVICIO y se
      * pidió re-agendar, crea una nueva orden de trabajo para el mismo equipo (sin agendar
      * todavía) para que vuelva a aparecer en "Agendar Mantenimiento"; si el servicio es de
      * calibración, la nueva orden se marca como devolución, igual que al devolver una
@@ -163,7 +163,7 @@ class ServicioTerceroController extends Controller
     {
         DB::transaction(function () use ($request, $servicioTercero): void {
             $estadoFinal = $request->validated('estado_final_equipo');
-            $reAgendar = $estadoFinal === 'RECHAZADO' && $request->validated('re_agendar');
+            $reAgendar = $estadoFinal === 'FUERA_DE_SERVICIO' && $request->validated('re_agendar');
 
             $servicioTercero->deletePdf();
 

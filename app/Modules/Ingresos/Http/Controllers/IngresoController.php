@@ -42,7 +42,7 @@ class IngresoController extends Controller
             'bahias' => Bahia::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
             'tecnicos' => User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name as nombre']),
             'clientes' => Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre']),
-            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre', 'inactivar_equipo']),
+            'novedadesIngreso' => Novedad::query()->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->orderBy('nombre')->get(['id', 'nombre', 'inactivar_equipo', 'es_motivo_cancelacion']),
             'programacionesPendientes' => self::programacionesPendientes($tenantId),
         ]);
     }
@@ -197,7 +197,7 @@ class IngresoController extends Controller
      */
     public function actualizarEstado(UpdateEstadoIngresoRequest $request, Ingreso $ingreso): RedirectResponse
     {
-        $data = $request->safe()->except(['firma_cliente_entrega', 'eliminar_firma', 'equipos_recibidos']);
+        $data = $request->safe()->except(['firma_cliente_entrega', 'eliminar_firma', 'equipos_recibidos', 'novedad_cancelacion_id']);
 
         if ($request->hasFile('firma_cliente_entrega')) {
             $this->deleteFirma($ingreso);
@@ -216,7 +216,11 @@ class IngresoController extends Controller
         DB::transaction(function () use ($request, $ingreso, $data) {
             $ingreso->update($data);
 
-            $this->guardarEquiposRecibidos($request, $ingreso);
+            if ($data['estado_ingreso'] === 'CANCELADO') {
+                $this->cancelarEquiposDelIngreso($ingreso, $request->validated('novedad_cancelacion_id'), $data['motivo_cancelacion']);
+            } else {
+                $this->guardarEquiposRecibidos($request, $ingreso);
+            }
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Estado del ingreso actualizado.')]);
@@ -343,6 +347,26 @@ class IngresoController extends Controller
         foreach ($request->validated('equipos_correctivos_recibidos', []) as $correctivo) {
             $this->crearProgramacionCorrectiva($correctivo, $ingreso, $ingreso->tenant_id, 'RECIBIDO');
         }
+    }
+
+    /**
+     * Al cancelar el ingreso, cancela de una vez todos sus equipos (en vez de uno por
+     * uno al recibir): quedan como no ingresados, sin re-agendar, con la novedad
+     * elegida y el motivo de cancelación como observación. Se actualizan modelo a
+     * modelo para que corran el seguimiento y la inactivación por novedad.
+     */
+    private function cancelarEquiposDelIngreso(Ingreso $ingreso, ?int $novedadId, ?string $motivo): void
+    {
+        $ingreso->equipoProgramacion()
+            ->get()
+            ->each->update([
+                'ingresado' => false,
+                'estado_programacion' => 'CANCELADO',
+                'novedad_ingreso_id' => $novedadId,
+                'observacion_no_ingreso' => $motivo,
+                're_agendar' => false,
+                'datos_re_agendamiento' => null,
+            ]);
     }
 
     /**

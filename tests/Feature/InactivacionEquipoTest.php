@@ -125,11 +125,11 @@ test('finalizar una calibracion como fuera de servicio deja el equipo inactivo y
         ->motivo_inactivo->toBe('Calibración: Fuera de servicio');
 });
 
-test('un servicio de tercero rechazado sin re-agendar deja el equipo inactivo', function () {
+test('un servicio de tercero fuera de servicio sin re-agendar deja el equipo inactivo', function () {
     $servicio = crearServicioTercero($this->bahia);
 
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'RECHAZADO', 'pdf_servicio' => pdfServicio()])
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'pdf_servicio' => pdfServicio()])
         ->assertSessionHasNoErrors();
 
     expect($servicio->ordenTrabajo->equipoProgramacion->equipo->refresh())
@@ -137,7 +137,7 @@ test('un servicio de tercero rechazado sin re-agendar deja el equipo inactivo', 
         ->motivo_inactivo->toBe('Mantenimiento de tercero: Fuera de servicio');
 });
 
-test('un servicio de tercero rechazado con re-agendar o aprobado deja el equipo activo', function (array $datos) {
+test('un servicio de tercero fuera de servicio con re-agendar o aprobado deja el equipo activo', function (array $datos) {
     $servicio = crearServicioTercero($this->bahia);
 
     $this->actingAs($this->admin)
@@ -146,7 +146,7 @@ test('un servicio de tercero rechazado con re-agendar o aprobado deja el equipo 
 
     expect($servicio->ordenTrabajo->equipoProgramacion->equipo->refresh()->activo)->toBeTrue();
 })->with([
-    'rechazado con re-agendar' => [['estado_final_equipo' => 'RECHAZADO', 're_agendar' => true]],
+    'fuera de servicio con re-agendar' => [['estado_final_equipo' => 'FUERA_DE_SERVICIO', 're_agendar' => true]],
     'aprobado' => [['estado_final_equipo' => 'APROBADO']],
 ]);
 
@@ -272,3 +272,51 @@ test('un equipo inactivo no aparece ni se puede agendar para mantenimiento', fun
         ]])
         ->assertSessionHasErrors('equipos_listos.0.id');
 });
+
+test('crea y edita una novedad marcada como motivo de cancelacion', function () {
+    $this->actingAs($this->admin)
+        ->post(route('novedades.store'), ['categoria' => 'INGRESO', 'nombre' => 'Cliente no entregó el equipo', 'es_motivo_cancelacion' => '1'])
+        ->assertSessionHasNoErrors();
+
+    $novedad = Novedad::sole();
+    expect($novedad->es_motivo_cancelacion)->toBeTrue();
+
+    $this->actingAs($this->admin)
+        ->get(route('novedades.index'))
+        ->assertInertia(fn ($page) => $page->where('novedades.0.es_motivo_cancelacion', true));
+
+    $this->actingAs($this->admin)
+        ->put(route('novedades.update', $novedad), ['categoria' => 'INGRESO', 'nombre' => 'Cliente no entregó el equipo'])
+        ->assertSessionHasNoErrors();
+
+    expect($novedad->refresh()->es_motivo_cancelacion)->toBeFalse();
+});
+
+test('al recibir, un motivo de cancelacion solo se acepta si el equipo no ingreso', function (string $ingresado, bool $aceptado) {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $programacion = crearProgramacion(crearEquipoParaBusqueda($this->bahia), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]);
+    $novedad = Novedad::create([
+        'nombre' => 'Cliente no entregó el equipo',
+        'categoria' => 'INGRESO',
+        'es_motivo_cancelacion' => true,
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $respuesta = $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => Cliente::factory()->create(['tenant_id' => $this->tenant->id])->id,
+            'equipos_recibidos' => [$programacion->id => ['ingresado' => $ingresado, 'novedad_ingreso_id' => $novedad->id]],
+        ]);
+
+    if ($aceptado) {
+        $respuesta->assertSessionHasNoErrors();
+        expect($programacion->refresh()->novedad_ingreso_id)->toBe($novedad->id);
+    } else {
+        $respuesta->assertSessionHasErrors('equipos_recibidos.0.novedad_ingreso_id');
+    }
+})->with([
+    'equipo cancelado' => ['0', true],
+    'equipo ingresado' => ['1', false],
+]);

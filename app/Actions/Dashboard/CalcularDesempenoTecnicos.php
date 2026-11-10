@@ -9,6 +9,7 @@ use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -47,44 +48,15 @@ class CalcularDesempenoTecnicos
 
     /**
      * @param  array{desde: string, hasta: string, laboratorios?: list<int|string>, tecnicos?: list<int>, magnitudes?: list<int>, tipos_equipo?: list<int>, servicios?: list<string>, origen?: string|null}  $filtros
-     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, mensual: list<array<string, mixed>>, servicios: list<array{fecha: string, tipo_servicio: string, responsable_tipo: string, responsable_id: int, tipo_equipo_id: int|null, orden_trabajo: string|null, equipo: string|null, tipo_equipo: string|null, magnitud: string|null, horas: float|null}>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
+     * @return array{responsables: list<array<string, mixed>>, totales: array<string, mixed>, periodo_anterior: array{desde: string, hasta: string, totales: array<string, mixed>}, mensual: list<array<string, mixed>>, servicios: list<array{fecha: string, tipo_servicio: string, responsable_tipo: string, responsable_id: int, tipo_equipo_id: int|null, orden_trabajo: string|null, equipo: string|null, tipo_equipo: string|null, magnitud: string|null, horas: float|null}>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
      */
     public function handle(int $tenantId, array $filtros): array
     {
-        // Mantenimientos, calibraciones o los dos (sin elegir, los dos).
-        $tiposServicio = ($filtros['servicios'] ?? []) ?: self::TIPOS_SERVICIO;
+        ['filas' => $servicios, 'opciones' => $opciones] = $this->serviciosDelRango($tenantId, $filtros);
 
-        // Del laboratorio propio, de terceros o (sin elegir) de los dos.
-        $origen = $filtros['origen'] ?? null;
-        $verPropios = $origen !== 'TERCERO';
-
-        $delPeriodo = collect();
-
-        if ($verPropios && in_array('MANTENIMIENTO', $tiposServicio, true)) {
-            $delPeriodo = $delPeriodo->concat($this->propios(Mantenimiento::query()->where('estado_mantenimiento', 'FINALIZADO'), 'MANTENIMIENTO', $tenantId, $filtros));
-        }
-
-        if ($verPropios && in_array('CALIBRACION', $tiposServicio, true)) {
-            $delPeriodo = $delPeriodo->concat($this->propios(Calibracion::query()->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA), 'CALIBRACION', $tenantId, $filtros));
-        }
-
-        if ($origen !== 'LOCAL') {
-            $delPeriodo = $delPeriodo->concat($this->terceros($tenantId, $filtros, $tiposServicio));
-        }
-
-        ['filas' => $servicios, 'opciones' => $opciones] = FiltrosDependientes::aplicar($delPeriodo, [
-            'laboratorios' => $filtros['laboratorios'] ?? [],
-            'tecnicos' => $filtros['tecnicos'] ?? [],
-            'magnitudes' => $filtros['magnitudes'] ?? [],
-            'tipos_equipo' => $filtros['tipos_equipo'] ?? [],
-        ]);
-
-        $duraciones = $this->duraciones($servicios->pluck('orden_trabajo_id')->unique()->values()->all());
-
-        $servicios = $servicios->map(fn (array $servicio): array => [
-            ...$servicio,
-            'segundos' => $duraciones->get("{$servicio['orden_trabajo_id']}|{$servicio['tipo_servicio']}|".($servicio['tipo'] === 'TERCERO' ? 1 : 0)),
-        ]);
+        // El periodo anterior, con los mismos filtros, para comparar los totales.
+        $anterior = $this->periodoAnterior($filtros['desde'], $filtros['hasta']);
+        $serviciosAnteriores = $this->serviciosDelRango($tenantId, [...$filtros, ...$anterior])['filas'];
 
         $responsables = $servicios
             ->groupBy(fn (array $servicio): string => "{$servicio['tipo']}|{$servicio['responsable_id']}")
@@ -103,6 +75,13 @@ class CalcularDesempenoTecnicos
             'totales' => [
                 'mantenimientos' => $this->resumen($servicios->where('tipo_servicio', 'MANTENIMIENTO')),
                 'calibraciones' => $this->resumen($servicios->where('tipo_servicio', 'CALIBRACION')),
+            ],
+            'periodo_anterior' => [
+                ...$anterior,
+                'totales' => [
+                    'mantenimientos' => $this->resumen($serviciosAnteriores->where('tipo_servicio', 'MANTENIMIENTO')),
+                    'calibraciones' => $this->resumen($serviciosAnteriores->where('tipo_servicio', 'CALIBRACION')),
+                ],
             ],
             // Por mes de realización: cantidad y tiempo promedio (para los gráficos con el objetivo).
             'mensual' => $this->serieMensual(
@@ -135,6 +114,83 @@ class CalcularDesempenoTecnicos
                 ])
                 ->values()
                 ->all(),
+        ];
+    }
+
+    /**
+     * Servicios terminados en el rango que pasan los filtros, cada uno con sus segundos de
+     * servicio (null sin tiempo registrado), y las opciones de los filtros dependientes.
+     *
+     * @param  array<string, mixed>  $filtros
+     * @return array{filas: Collection<int, array<string, mixed>>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
+     */
+    private function serviciosDelRango(int $tenantId, array $filtros): array
+    {
+        // Mantenimientos, calibraciones o los dos (sin elegir, los dos).
+        $tiposServicio = ($filtros['servicios'] ?? []) ?: self::TIPOS_SERVICIO;
+
+        // Del laboratorio propio, de terceros o (sin elegir) de los dos.
+        $origen = $filtros['origen'] ?? null;
+        $verPropios = $origen !== 'TERCERO';
+
+        $delPeriodo = collect();
+
+        if ($verPropios && in_array('MANTENIMIENTO', $tiposServicio, true)) {
+            $delPeriodo = $delPeriodo->concat($this->propios(Mantenimiento::query()->where('estado_mantenimiento', 'FINALIZADO'), 'MANTENIMIENTO', $tenantId, $filtros));
+        }
+
+        if ($verPropios && in_array('CALIBRACION', $tiposServicio, true)) {
+            $delPeriodo = $delPeriodo->concat($this->propios(Calibracion::query()->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA), 'CALIBRACION', $tenantId, $filtros));
+        }
+
+        if ($origen !== 'LOCAL') {
+            $delPeriodo = $delPeriodo->concat($this->terceros($tenantId, $filtros, $tiposServicio));
+        }
+
+        ['filas' => $servicios, 'opciones' => $opciones] = FiltrosDependientes::aplicar($delPeriodo, [
+            'laboratorios' => $filtros['laboratorios'] ?? [],
+            'tecnicos' => $filtros['tecnicos'] ?? [],
+            'magnitudes' => $filtros['magnitudes'] ?? [],
+            'tipos_equipo' => $filtros['tipos_equipo'] ?? [],
+        ]);
+
+        $duraciones = $this->duraciones($servicios->pluck('orden_trabajo_id')->unique()->values()->all());
+
+        return [
+            'filas' => $servicios->map(fn (array $servicio): array => [
+                ...$servicio,
+                'segundos' => $duraciones->get("{$servicio['orden_trabajo_id']}|{$servicio['tipo_servicio']}|".($servicio['tipo'] === 'TERCERO' ? 1 : 0)),
+            ]),
+            'opciones' => $opciones,
+        ];
+    }
+
+    /**
+     * El periodo justo antes del rango y del mismo largo: si el rango son meses completos,
+     * los mismos meses de antes (octubre → septiembre); si no, los mismos días.
+     *
+     * @return array{desde: string, hasta: string}
+     */
+    private function periodoAnterior(string $desde, string $hasta): array
+    {
+        $inicio = CarbonImmutable::parse($desde);
+        $fin = CarbonImmutable::parse($hasta);
+        $hastaAnterior = $inicio->subDay();
+
+        if ($inicio->day === 1 && $fin->isLastOfMonth()) {
+            $meses = (int) round($inicio->diffInMonths($fin->addDay()));
+
+            return [
+                'desde' => $inicio->subMonthsNoOverflow($meses)->toDateString(),
+                'hasta' => $hastaAnterior->toDateString(),
+            ];
+        }
+
+        $dias = (int) $inicio->diffInDays($fin) + 1;
+
+        return [
+            'desde' => $hastaAnterior->subDays($dias - 1)->toDateString(),
+            'hasta' => $hastaAnterior->toDateString(),
         ];
     }
 

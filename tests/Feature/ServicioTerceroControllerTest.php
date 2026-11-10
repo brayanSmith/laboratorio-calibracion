@@ -110,13 +110,13 @@ test('finalizar aprobado crea el despacho de la orden de trabajo y cierra el tie
         ->and($tiempo->fin)->not->toBeNull();
 });
 
-test('finalizar rechazado con re-agendar crea una nueva orden de trabajo y ningun despacho', function () {
+test('finalizar fuera de servicio con re-agendar crea una nueva orden de trabajo y ningun despacho', function () {
     $servicio = crearServicioTercero($this->bahia);
     $programacionId = $servicio->ordenTrabajo->equipo_programacion_id;
 
     $this->actingAs($this->admin)
         ->post(route('servicio-terceros.finalizar', $servicio), [
-            'estado_final_equipo' => 'RECHAZADO',
+            'estado_final_equipo' => 'FUERA_DE_SERVICIO',
             're_agendar' => true,
             'pdf_servicio' => pdfServicio(),
         ])
@@ -127,12 +127,12 @@ test('finalizar rechazado con re-agendar crea una nueva orden de trabajo y ningu
         ->and(OrdenTrabajo::where('equipo_programacion_id', $programacionId)->count())->toBe(2);
 });
 
-test('finalizar rechazado sin re-agendar no crea ni orden de trabajo ni despacho', function () {
+test('finalizar fuera de servicio sin re-agendar no crea ni orden de trabajo ni despacho', function () {
     $servicio = crearServicioTercero($this->bahia);
     $programacionId = $servicio->ordenTrabajo->equipo_programacion_id;
 
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'RECHAZADO', 'pdf_servicio' => pdfServicio()])
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'pdf_servicio' => pdfServicio()])
         ->assertRedirect();
 
     expect($servicio->refresh()->re_agendar)->toBeFalse()
@@ -151,12 +151,12 @@ test('finalizar aprobado una calibracion de tercero marca la calibracion como fi
         ->and(Despacho::where('orden_trabajo_id', $servicio->orden_trabajo_id)->count())->toBe(1);
 });
 
-test('finalizar rechazado con re-agendar una calibracion de tercero crea la orden de trabajo como devolucion', function () {
+test('finalizar fuera de servicio con re-agendar una calibracion de tercero crea la orden de trabajo como devolucion', function () {
     $servicio = crearServicioTercero($this->bahia, ['tipo_servicio' => 'CALIBRACION']);
 
     $this->actingAs($this->admin)
         ->post(route('servicio-terceros.finalizar', $servicio), [
-            'estado_final_equipo' => 'RECHAZADO',
+            'estado_final_equipo' => 'FUERA_DE_SERVICIO',
             're_agendar' => true,
             'pdf_servicio' => pdfServicio(),
         ])

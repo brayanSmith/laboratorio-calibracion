@@ -33,7 +33,7 @@ class FinalizarServicioTerceroRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'estado_final_equipo' => ['required', Rule::in(['APROBADO', 'RECHAZADO'])],
+            'estado_final_equipo' => ['required', Rule::in(['APROBADO', 'FUERA_DE_SERVICIO'])],
             're_agendar' => ['boolean'],
             'pdf_servicio' => ['required', 'file', 'mimes:pdf', 'max:10240'],
         ];

@@ -749,6 +749,34 @@ test('cancela un ingreso con su motivo', function () {
         ->motivo_cancelacion->toBe('El cliente canceló el servicio');
 });
 
+test('cancelar un ingreso con equipos exige la novedad y los cancela todos con ella', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $programaciones = collect([1, 2])->map(fn () => crearProgramacion(crearEquipoParaBusqueda($this->bahia), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]));
+    $novedad = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO', 'es_motivo_cancelacion' => true]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'CANCELADO', 'motivo_cancelacion' => 'El cliente no trajo los equipos'])
+        ->assertSessionHasErrors('novedad_cancelacion_id');
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'CANCELADO',
+            'motivo_cancelacion' => 'El cliente no trajo los equipos',
+            'novedad_cancelacion_id' => $novedad->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($ingreso->fresh()->estado_ingreso)->toBe('CANCELADO');
+
+    foreach ($programaciones as $programacion) {
+        expect($programacion->refresh())
+            ->ingresado->toBeFalse()
+            ->estado_programacion->toBe('CANCELADO')
+            ->novedad_ingreso_id->toBe($novedad->id)
+            ->observacion_no_ingreso->toBe('El cliente no trajo los equipos');
+    }
+});
+
 test('vuelve a dejar pendiente un ingreso aprobado, sin exigir mas datos', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
 

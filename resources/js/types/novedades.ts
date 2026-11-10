@@ -10,5 +10,7 @@ export type Novedad = {
     categoria: CategoriaNovedad;
     /** Si al reportarla el equipo queda inactivo. */
     inactivar_equipo: boolean;
+    /** Si es un motivo de cancelación: en un ingreso solo se elige si el equipo no ingresó. */
+    es_motivo_cancelacion: boolean;
     usos_count: number;
 };

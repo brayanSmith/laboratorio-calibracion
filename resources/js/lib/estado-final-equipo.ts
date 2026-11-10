@@ -54,5 +54,8 @@ export const estadosFinalesEquipoTercero: Record<
     { label: string; className: string }
 > = {
     APROBADO: { label: 'Aprobado', className: BADGE_EQUIPO_OK },
-    RECHAZADO: { label: 'Rechazado', className: BADGE_EQUIPO_MAL },
+    FUERA_DE_SERVICIO: {
+        label: 'Fuera de servicio',
+        className: BADGE_EQUIPO_MAL,
+    },
 };

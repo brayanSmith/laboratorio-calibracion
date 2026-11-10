@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    agruparCumplimiento,
     agrupacionDisponible,
     COLOR_CUMPLE,
     COLOR_NO_CUMPLE,
@@ -13,6 +14,8 @@ import {
     inicioDePeriodo,
     menorEsMejor,
     objetivoDelPeriodo,
+    techoDelEje,
+    variacionConAnterior,
 } from './periodos-grafico';
 
 describe('inicioDePeriodo', () => {
@@ -190,6 +193,54 @@ describe('diferenciaConObjetivo', () => {
     });
 });
 
+describe('techoDelEje', () => {
+    it('rounds the top of the axis up to about four round steps', () => {
+        expect(techoDelEje(9.2, false)).toEqual({
+            techo: 10,
+            marcas: [0, 2.5, 5, 7.5, 10],
+        });
+        expect(techoDelEje(13, true)).toEqual({
+            techo: 15,
+            marcas: [0, 5, 10, 15],
+        });
+        expect(techoDelEje(3, true)).toEqual({
+            techo: 3,
+            marcas: [0, 1, 2, 3],
+        });
+    });
+
+    it('keeps an axis without data', () => {
+        expect(techoDelEje(0, true)).toEqual({ techo: 1, marcas: [0, 1] });
+    });
+});
+
+describe('variacionConAnterior', () => {
+    it('improves going down for times and going up for quantities', () => {
+        expect(variacionConAnterior(12, 8, false)).toEqual({
+            diferencia: 4,
+            porcentaje: 50,
+            mejora: true,
+        });
+        expect(variacionConAnterior(3, 4, true)).toEqual({
+            diferencia: -1,
+            porcentaje: -25,
+            mejora: true,
+        });
+        expect(variacionConAnterior(6, 4, true)?.mejora).toBe(false);
+    });
+
+    it('has no percentage from zero, no direction without change, nothing without values', () => {
+        expect(variacionConAnterior(5, 0, false)).toEqual({
+            diferencia: 5,
+            porcentaje: null,
+            mejora: true,
+        });
+        expect(variacionConAnterior(4, 4, false)?.mejora).toBeNull();
+        expect(variacionConAnterior(null, 4, true)).toBeNull();
+        expect(variacionConAnterior(4, null, true)).toBeNull();
+    });
+});
+
 describe('objetivoMensualDelPeriodo', () => {
     const objetivos = [
         {
@@ -276,5 +327,42 @@ describe('sumaMensualDelPeriodo', () => {
         expect(
             sumaMensualDelPeriodo(objetivos, '2026-06-01', 'mes'),
         ).toBeNull();
+    });
+});
+
+describe('agruparCumplimiento', () => {
+    const equipos = [
+        { fecha: '2026-03-02', atendido: true },
+        { fecha: '2026-03-20', atendido: false },
+        { fecha: '2026-03-25', atendido: false },
+        { fecha: '2026-05-04', atendido: true },
+    ];
+
+    it('counts scheduled and attended equipment per period with its percentage', () => {
+        expect(
+            agruparCumplimiento(equipos, '2026-03-01', '2026-05-31', 'mes'),
+        ).toEqual([
+            {
+                inicio: '2026-03-01',
+                etiqueta: expect.any(String),
+                programados: 3,
+                atendidos: 1,
+                porcentaje: 33.3,
+            },
+            {
+                inicio: '2026-04-01',
+                etiqueta: expect.any(String),
+                programados: 0,
+                atendidos: 0,
+                porcentaje: null,
+            },
+            {
+                inicio: '2026-05-01',
+                etiqueta: expect.any(String),
+                programados: 1,
+                atendidos: 1,
+                porcentaje: 100,
+            },
+        ]);
     });
 });

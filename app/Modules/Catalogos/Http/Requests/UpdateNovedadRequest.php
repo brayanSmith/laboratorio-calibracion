@@ -23,7 +23,10 @@ class UpdateNovedadRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge(['inactivar_equipo' => $this->boolean('inactivar_equipo')]);
+        $this->merge([
+            'inactivar_equipo' => $this->boolean('inactivar_equipo'),
+            'es_motivo_cancelacion' => $this->boolean('es_motivo_cancelacion'),
+        ]);
     }
 
     /**
@@ -39,6 +42,7 @@ class UpdateNovedadRequest extends FormRequest
         return [
             'categoria' => ['required', 'string', Rule::in(Novedad::CATEGORIAS)],
             'inactivar_equipo' => ['boolean'],
+            'es_motivo_cancelacion' => ['boolean'],
             'nombre' => [
                 'required',
                 'string',
@@ -62,6 +66,7 @@ class UpdateNovedadRequest extends FormRequest
         return [
             'categoria' => 'categoría',
             'inactivar_equipo' => 'inactivar equipo',
+            'es_motivo_cancelacion' => 'motivo de cancelación',
             'nombre' => 'nombre',
         ];
     }
