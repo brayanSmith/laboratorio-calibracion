@@ -38,7 +38,7 @@ class CalcularCumplimiento
 
     /**
      * @param  array{desde: string, hasta: string, areas?: list<int>, magnitudes?: list<int>, tipos_equipo?: list<int>, tipos_mantenimiento?: list<string>}  $filtros
-     * @return array{resumen: array{programados: int, atendidos: int, fuera_de_servicio: int, fuera_de_servicio_por_servicio: array<string, int>, pendientes: int, porcentaje: float|null, por_servicio: array<string, array{atendidos: int, pendientes: int}>}, por_area: list<array<string, mixed>>, mensual: list<array<string, mixed>>, por_fecha: list<array{fecha: string, atendido: bool}>, pendientes: list<array<string, mixed>>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
+     * @return array{resumen: array{programados: int, atendidos: int, fuera_de_servicio: int, fuera_de_servicio_por_servicio: array<string, int>, pendientes: int, porcentaje: float|null, por_servicio: array<string, array{atendidos: int, pendientes: int}>}, por_area: list<array<string, mixed>>, mensual: list<array<string, mixed>>, por_fecha: list<array{fecha: string, atendido: bool}>, pendientes: list<array<string, mixed>>, no_recibidos: list<array<string, mixed>>, novedades_no_recibidos: list<array{novedad: string, cantidad: int, porcentaje: float|null}>, opciones: array<string, list<array{id: int|string, nombre: string}>>}
      */
     public function handle(int $tenantId, array $filtros): array
     {
@@ -61,7 +61,7 @@ class CalcularCumplimiento
                 ->whereHas('calibraciones')
                 ->orWhereHas('serviciosTerceros', fn (Builder $q) => $q->where('tipo_servicio', 'CALIBRACION')))])
             ->with([
-                'equipo:id,codigo,modelo,area_id,tipo_equipo_id',
+                'equipo:id,codigo,modelo,area_id,tipo_equipo_id,criticidad',
                 'equipo.area:id,nombre',
                 'equipo.tipoEquipo:id,nombre',
                 'equipo.equipoEspecificacionTecnica:id,equipo_id,tipo_magnitud_id',
@@ -98,6 +98,7 @@ class CalcularCumplimiento
         ]);
 
         $atendidos = $equipos->where('atendido', true)->count();
+        $noRecibidos = $this->noRecibidos($tenantId, $filtros, $tiposMantenimiento);
         $fueraDeServicio = $this->fueraDeServicio($tenantId, $filtros, $tiposMantenimiento);
 
         return [
@@ -153,8 +154,14 @@ class CalcularCumplimiento
                 ])
                 ->values()
                 ->all(),
+            // Los más críticos primero (alta, media, baja, sin asignar) y, entre iguales, por
+            // fecha programada; se ordena antes de cortar para no dejar fuera a los críticos.
             'pendientes' => $equipos
                 ->where('atendido', false)
+                ->sortBy([
+                    fn (array $a, array $b): int => self::rangoCriticidad($a['equipo']->criticidad) <=> self::rangoCriticidad($b['equipo']->criticidad),
+                    fn (array $a, array $b): int => $a['fecha_programada'] <=> $b['fecha_programada'],
+                ])
                 ->take(self::MAX_PENDIENTES)
                 ->map(fn (array $fila): array => [
                     'equipo_id' => $fila['equipo']->id,
@@ -162,9 +169,23 @@ class CalcularCumplimiento
                     'modelo' => $fila['equipo']->modelo,
                     'tipo_equipo' => $fila['equipo']->tipoEquipo?->nombre,
                     'area' => $fila['equipo']->area?->nombre,
+                    'criticidad' => $fila['equipo']->criticidad,
                     'fecha_programada' => $fila['fecha_programada'],
                     'estado_programacion' => $fila['estado_programacion'],
                 ])
+                ->values()
+                ->all(),
+            // Equipos que no llegaron al ingreso (cancelados o re-agendados), con su novedad,
+            // para gestionarlos; y cuántos hubo por cada novedad, de la más a la menos usada.
+            'no_recibidos' => $noRecibidos->all(),
+            'novedades_no_recibidos' => $noRecibidos
+                ->groupBy(fn (array $fila): string => $fila['novedad'] ?? 'Sin novedad')
+                ->map(fn (Collection $deUnaNovedad, string $novedad): array => [
+                    'novedad' => $novedad,
+                    'cantidad' => $deUnaNovedad->count(),
+                    'porcentaje' => $this->porcentaje($deUnaNovedad->count(), $noRecibidos->count()),
+                ])
+                ->sortBy([['cantidad', 'desc'], ['novedad', 'asc']])
                 ->values()
                 ->all(),
             'opciones' => $opciones,
@@ -206,12 +227,7 @@ class CalcularCumplimiento
     private function fueraDeServicio(int $tenantId, array $filtros, array $tiposMantenimiento): array
     {
         $delEquipo = function (Builder $servicio) use ($filtros, $tiposMantenimiento): void {
-            $servicio->whereHas('ordenTrabajo.equipoProgramacion.equipo', fn (Builder $equipo) => $equipo
-                ->whereHas('tipoEquipo', fn (Builder $tipo) => $tipo->whereIn('tipo_mantenimiento', $tiposMantenimiento))
-                ->when($filtros['areas'] ?? [], fn (Builder $query, array $areas) => $query->whereIn('area_id', $areas))
-                ->when($filtros['tipos_equipo'] ?? [], fn (Builder $query, array $tipos) => $query->whereIn('tipo_equipo_id', $tipos))
-                ->when($filtros['magnitudes'] ?? [], fn (Builder $query, array $magnitudes) => $query
-                    ->whereHas('equipoEspecificacionTecnica', fn (Builder $especificacion) => $especificacion->whereIn('tipo_magnitud_id', $magnitudes))));
+            $servicio->whereHas('ordenTrabajo.equipoProgramacion.equipo', fn (Builder $equipo) => $this->filtrarEquipo($equipo, $filtros, $tiposMantenimiento));
         };
         $equiposDe = fn (Builder $servicios): Collection => $servicios
             ->where('tenant_id', $tenantId)
@@ -250,6 +266,86 @@ class CalcularCumplimiento
             'MANTENIMIENTO' => $enMantenimiento->count(),
             'CALIBRACION' => $enCalibracion->count(),
         ];
+    }
+
+    /**
+     * Limita los equipos a los filtros del indicador: tipo de mantenimiento del tipo de
+     * equipo, área, tipo de equipo y magnitud de su especificación técnica.
+     *
+     * @param  array<string, mixed>  $filtros
+     * @param  list<string>  $tiposMantenimiento
+     */
+    private function filtrarEquipo(Builder $equipo, array $filtros, array $tiposMantenimiento): Builder
+    {
+        return $equipo
+            ->whereHas('tipoEquipo', fn (Builder $tipo) => $tipo->whereIn('tipo_mantenimiento', $tiposMantenimiento))
+            ->when($filtros['areas'] ?? [], fn (Builder $query, array $areas) => $query->whereIn('area_id', $areas))
+            ->when($filtros['tipos_equipo'] ?? [], fn (Builder $query, array $tipos) => $query->whereIn('tipo_equipo_id', $tipos))
+            ->when($filtros['magnitudes'] ?? [], fn (Builder $query, array $magnitudes) => $query
+                ->whereHas('equipoEspecificacionTecnica', fn (Builder $especificacion) => $especificacion->whereIn('tipo_magnitud_id', $magnitudes)));
+    }
+
+    /**
+     * Los equipos que no llegaron a un ingreso del periodo (marcados como no ingresados al
+     * recibirlo o al cancelar el ingreso), con los filtros del indicador. Cuentan por el
+     * periodo del ingreso, no por la fecha programada: así aparecen en cuanto se reporta
+     * que no llegaron, aunque su servicio estuviera programado para más adelante. Una fila
+     * por programación, los más críticos primero.
+     *
+     * @param  array<string, mixed>  $filtros
+     * @param  list<string>  $tiposMantenimiento
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function noRecibidos(int $tenantId, array $filtros, array $tiposMantenimiento): Collection
+    {
+        return EquipoProgramacion::query()
+            ->where('tenant_id', $tenantId)
+            ->where('ingresado', false)
+            ->whereHas('ingreso', fn (Builder $ingreso) => $ingreso
+                ->whereDate('desde', '<=', $filtros['hasta'])
+                ->whereDate('hasta', '>=', $filtros['desde']))
+            ->whereHas('equipo', fn (Builder $equipo) => $this->filtrarEquipo($equipo, $filtros, $tiposMantenimiento))
+            ->with([
+                'equipo:id,codigo,modelo,area_id,tipo_equipo_id,criticidad',
+                'equipo.area:id,nombre',
+                'equipo.tipoEquipo:id,nombre',
+                'novedadIngreso:id,nombre',
+            ])
+            ->get()
+            ->toBase()
+            ->sortBy([
+                fn (EquipoProgramacion $a, EquipoProgramacion $b): int => self::rangoCriticidad($a->equipo->criticidad) <=> self::rangoCriticidad($b->equipo->criticidad),
+                fn (EquipoProgramacion $a, EquipoProgramacion $b): int => $a->fecha_proximo_servicio <=> $b->fecha_proximo_servicio,
+            ])
+            ->map(fn (EquipoProgramacion $programacion): array => [
+                'programacion_id' => $programacion->id,
+                'ingreso_id' => $programacion->ingreso_id,
+                'equipo_id' => $programacion->equipo->id,
+                'equipo' => $programacion->equipo->codigo,
+                'modelo' => $programacion->equipo->modelo,
+                'tipo_equipo' => $programacion->equipo->tipoEquipo?->nombre,
+                'area' => $programacion->equipo->area?->nombre,
+                'criticidad' => $programacion->equipo->criticidad,
+                'fecha_programada' => $programacion->fecha_proximo_servicio?->toDateString(),
+                'estado_programacion' => $programacion->estado_programacion,
+                'novedad' => $programacion->novedadIngreso?->nombre,
+                'observacion' => $programacion->observacion_no_ingreso,
+                'fecha_re_agendamiento' => $programacion->re_agendar
+                    ? ($programacion->datos_re_agendamiento['fecha_proximo_agendamiento'] ?? null)
+                    : null,
+            ])
+            ->values();
+    }
+
+    /** Orden de la criticidad: alta, media, baja y, al final, sin asignar. */
+    private static function rangoCriticidad(?string $criticidad): int
+    {
+        return match ($criticidad) {
+            'ALTA' => 0,
+            'MEDIA' => 1,
+            'BAJA' => 2,
+            default => 3,
+        };
     }
 
     private function porcentaje(int $parte, int $total): ?float

@@ -197,7 +197,9 @@ export default function IngresosIndex({
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
-                            {row.original.estado_ingreso === 'RECIBIDO' ? (
+                            {/* Un ingreso recibido o cancelado ya no se recibe: solo se ve su detalle. */}
+                            {row.original.estado_ingreso === 'RECIBIDO' ||
+                            row.original.estado_ingreso === 'CANCELADO' ? (
                                 <BotonAccion
                                     icono={Eye}
                                     etiqueta="Ver detalle"

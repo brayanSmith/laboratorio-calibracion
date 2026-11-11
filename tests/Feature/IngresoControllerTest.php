@@ -751,7 +751,7 @@ test('cancela un ingreso con su motivo', function () {
 
 test('cancelar un ingreso con equipos exige la novedad y los cancela todos con ella', function () {
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
-    $programaciones = collect([1, 2])->map(fn () => crearProgramacion(crearEquipoParaBusqueda($this->bahia), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]));
+    $programaciones = collect(['EQ-1', 'EQ-2'])->map(fn (string $codigo) => crearProgramacion(crearEquipoParaBusqueda($this->bahia, $codigo), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]));
     $novedad = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO', 'es_motivo_cancelacion' => true]);
 
     $this->actingAs($this->admin)
@@ -819,3 +819,17 @@ test('un invitado no puede actualizar el estado de un ingreso', function () {
     $this->patch(route('ingresos.estado.update', $ingreso), ['estado_ingreso' => 'PENDIENTE'])
         ->assertRedirect(route('login'));
 });
+
+test('un ingreso cancelado ya no puede cambiar de estado', function (string $estado) {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'CANCELADO', 'motivo_cancelacion' => 'No llegaron']);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => $estado,
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+        ])
+        ->assertSessionHasErrors('estado_ingreso');
+
+    expect($ingreso->fresh()->estado_ingreso)->toBe('CANCELADO');
+})->with(['PENDIENTE', 'RECIBIDO']);

@@ -5,11 +5,13 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoMagnitud;
 use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
 use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
@@ -568,4 +570,53 @@ test('cumplimiento responde con fuera de servicio solo en calibracion y ninguno 
         ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
         ->assertOk()
         ->assertJsonPath('resumen.fuera_de_servicio_por_servicio', ['MANTENIMIENTO' => 0, 'CALIBRACION' => 1]);
+});
+
+test('cumplimiento lista los pendientes de la criticidad mas alta a la mas baja', function () {
+    foreach (['EQ-SIN' => null, 'EQ-BAJA' => 'BAJA', 'EQ-ALTA' => 'ALTA', 'EQ-MEDIA' => 'MEDIA'] as $codigo => $criticidad) {
+        $equipo = crearEquipoParaBusqueda($this->bahia, $codigo);
+        $equipo->update(['criticidad' => $criticidad]);
+        crearProgramacion($equipo, ['fecha_proximo_servicio' => '2026-10-10']);
+    }
+
+    $respuesta = $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
+        ->assertOk();
+
+    expect(collect($respuesta->json('pendientes'))->pluck('criticidad')->all())->toBe(['ALTA', 'MEDIA', 'BAJA', null]);
+});
+
+test('cumplimiento lista los no recibidos de los ingresos del periodo, aunque su servicio fuera despues, y cuenta cuantos hubo por novedad', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'desde' => '2026-10-01', 'hasta' => '2026-10-31']);
+    $ingresoDeOtroPeriodo = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'desde' => '2026-12-01', 'hasta' => '2026-12-31']);
+    $sinEquipo = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO', 'nombre' => 'Cliente no entregó']);
+    $danado = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO', 'nombre' => 'Equipo en uso']);
+    $noRecibido = fn (string $codigo, Novedad $novedad, array $datos = []) => crearProgramacion(crearEquipoParaBusqueda($this->bahia, $codigo), [
+        'fecha_proximo_servicio' => '2026-10-10',
+        'ingreso_id' => $ingreso->id,
+        'ingresado' => false,
+        'estado_programacion' => 'CANCELADO',
+        'novedad_ingreso_id' => $novedad->id,
+        ...$datos,
+    ]);
+
+    $noRecibido('EQ-NR-1', $sinEquipo, ['observacion_no_ingreso' => 'Lo tiene producción']);
+    // Programado para después del rango, pero su ingreso es del periodo: también cuenta.
+    $noRecibido('EQ-NR-2', $sinEquipo, ['fecha_proximo_servicio' => '2026-11-20']);
+    $noRecibido('EQ-OTRO-INGRESO', $sinEquipo, ['ingreso_id' => $ingresoDeOtroPeriodo->id]);
+    $noRecibido('EQ-NR-3', $danado, ['estado_programacion' => 'RE_AGENDADO', 're_agendar' => true, 'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-11-05']]);
+    crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-RECIBIDO'), ['fecha_proximo_servicio' => '2026-10-10', 'ingreso_id' => $ingreso->id]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
+        ->assertOk()
+        ->assertJsonCount(3, 'no_recibidos')
+        ->assertJsonPath('no_recibidos.0.novedad', 'Cliente no entregó')
+        ->assertJsonPath('no_recibidos.0.observacion', 'Lo tiene producción')
+        ->assertJsonPath('no_recibidos.1.fecha_re_agendamiento', '2026-11-05')
+        ->assertJsonPath('no_recibidos.2.equipo', 'EQ-NR-2')
+        ->assertJsonPath('novedades_no_recibidos', [
+            ['novedad' => 'Cliente no entregó', 'cantidad' => 2, 'porcentaje' => 66.7],
+            ['novedad' => 'Equipo en uso', 'cantidad' => 1, 'porcentaje' => 33.3],
+        ]);
 });

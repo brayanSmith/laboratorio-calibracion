@@ -1,4 +1,5 @@
 import type { ObjetivoMensual } from '@/lib/periodos-grafico';
+import type { CriticidadEquipo } from './equipos';
 
 /**
  * Qué indicadores ve el usuario (ver DashboardController). Las opciones de sus filtros
@@ -157,8 +158,31 @@ export type Cumplimiento = {
         modelo: string;
         tipo_equipo: string | null;
         area: string | null;
+        criticidad: CriticidadEquipo | null;
         fecha_programada: string;
         estado_programacion: string;
+    }[];
+    /** Equipos que no llegaron al ingreso (cancelados o re-agendados), una fila por programación. */
+    no_recibidos: {
+        programacion_id: number;
+        ingreso_id: number;
+        equipo_id: number;
+        equipo: string;
+        modelo: string;
+        tipo_equipo: string | null;
+        area: string | null;
+        criticidad: CriticidadEquipo | null;
+        fecha_programada: string | null;
+        estado_programacion: string;
+        novedad: string | null;
+        observacion: string | null;
+        fecha_re_agendamiento: string | null;
+    }[];
+    /** Cuántos no recibidos hubo por cada novedad, de la más a la menos usada. */
+    novedades_no_recibidos: {
+        novedad: string;
+        cantidad: number;
+        porcentaje: number | null;
     }[];
     mensual: {
         mes: string;

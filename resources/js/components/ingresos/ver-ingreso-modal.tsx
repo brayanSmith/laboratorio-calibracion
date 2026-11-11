@@ -98,6 +98,11 @@ export default function VerIngresoModal({
                     <Dato etiqueta="Novedad general">
                         {ingreso.novedad || 'Sin novedad'}
                     </Dato>
+                    {ingreso.estado_ingreso === 'CANCELADO' ? (
+                        <Dato etiqueta="Motivo de cancelación">
+                            {ingreso.motivo_cancelacion || 'Sin motivo'}
+                        </Dato>
+                    ) : null}
                 </div>
 
                 {ingreso.firma_url ? (

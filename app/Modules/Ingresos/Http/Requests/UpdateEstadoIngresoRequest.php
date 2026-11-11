@@ -123,13 +123,22 @@ class UpdateEstadoIngresoRequest extends FormRequest
     /**
      * Una novedad que inactiva el equipo solo se puede reportar si el equipo no ingresó, y
      * entonces no se puede re-agendar: el equipo queda inactivo y no sigue a mantenimiento.
-     * Un motivo de cancelación también se reserva para los equipos que no ingresaron.
+     * Un motivo de cancelación también se reserva para los equipos que no ingresaron, y un
+     * ingreso ya cancelado no puede cambiar de estado.
      *
      * @return array<int, Closure(Validator): void>
      */
     public function after(): array
     {
         return [
+            function (Validator $validator): void {
+                /** @var Ingreso $ingreso */
+                $ingreso = $this->route('ingreso');
+
+                if ($ingreso->estado_ingreso === 'CANCELADO') {
+                    $validator->errors()->add('estado_ingreso', 'Este ingreso ya fue cancelado: su estado no se puede cambiar.');
+                }
+            },
             function (Validator $validator): void {
                 $inactivan = Novedad::query()
                     ->whereIn('id', collect($this->input('equipos_recibidos', []))->pluck('novedad_ingreso_id')->filter()->all())

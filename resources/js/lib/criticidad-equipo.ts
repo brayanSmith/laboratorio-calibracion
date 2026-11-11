@@ -23,3 +23,14 @@ export function etiquetaCriticidadEquipo(
             ?.label ?? null
     );
 }
+
+/** Orden de la criticidad para ordenar listas: alta, media, baja y, al final, sin asignar. */
+export function rangoCriticidadEquipo(
+    criticidad: CriticidadEquipo | null,
+): number {
+    const indice = criticidadesEquipo.findIndex(
+        (opcion) => opcion.value === criticidad,
+    );
+
+    return indice === -1 ? criticidadesEquipo.length : indice;
+}

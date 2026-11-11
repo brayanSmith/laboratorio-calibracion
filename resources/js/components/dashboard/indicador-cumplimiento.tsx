@@ -7,6 +7,8 @@ import {
     Gauge,
     LayoutGrid,
     ListTodo,
+    MessageSquareWarning,
+    PackageX,
     Target,
     TriangleAlert,
     Wrench,
@@ -34,6 +36,13 @@ import {
     useIndicador,
 } from '@/components/dashboard/indicador-comun';
 import GraficoCumplimiento from '@/components/dashboard/grafico-cumplimiento';
+import {
+    CeldaCriticidad,
+    filtroCriticidad,
+    NovedadesNoRecibidos,
+    ordenarPorCriticidad,
+    TablaNoRecibidos,
+} from '@/components/dashboard/no-recibidos-cumplimiento';
 import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fields';
 import { rangoPorDefecto } from '@/lib/indicadores';
 import { cn } from '@/lib/utils';
@@ -229,6 +238,15 @@ export default function IndicadorCumplimiento() {
                     header: 'Área',
                     cell: ({ row }) => row.original.area ?? '—',
                 }),
+                columnHelper.accessor((fila) => fila.criticidad ?? '', {
+                    id: 'criticidad',
+                    header: 'Criticidad',
+                    sortFn: ordenarPorCriticidad,
+                    meta: { filterOptions: filtroCriticidad },
+                    cell: ({ row }) => (
+                        <CeldaCriticidad criticidad={row.original.criticidad} />
+                    ),
+                }),
                 columnHelper.accessor('estado_programacion', {
                     header: 'Estado',
                     meta: {
@@ -413,6 +431,22 @@ export default function IndicadorCumplimiento() {
                             </div>
                         </BloqueIndicador>
                     ) : null}
+
+                    <BloqueIndicador
+                        titulo="Novedades de los equipos no recibidos"
+                        icono={MessageSquareWarning}
+                    >
+                        <NovedadesNoRecibidos
+                            novedades={datos.novedades_no_recibidos}
+                        />
+                    </BloqueIndicador>
+
+                    <BloqueIndicador
+                        titulo="Equipos no recibidos en el ingreso"
+                        icono={PackageX}
+                    >
+                        <TablaNoRecibidos noRecibidos={datos.no_recibidos} />
+                    </BloqueIndicador>
 
                     <BloqueIndicador
                         titulo="Equipos pendientes"
