@@ -7,12 +7,11 @@ import {
     PackageX,
     Route,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
 import { trazaNoRecibido } from '@/actions/App/Http/Controllers/IndicadoresDashboardController';
 import CargandoContenido from '@/components/cargando-contenido';
 import { CeldaCriticidad } from '@/components/dashboard/no-recibidos-cumplimiento';
+import { LineaDeTiempo, Paso } from '@/components/linea-de-tiempo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,6 @@ import {
     formatearFechaSeguimiento,
     seguimientoLabel,
 } from '@/lib/seguimiento-programacion';
-import { cn } from '@/lib/utils';
 import { show } from '@/routes/equipos';
 import type {
     FaseSeguimiento,
@@ -77,41 +75,6 @@ const SERVICIOS: Record<ServicioTraza['servicio'], string> = {
 
 function periodoDe(ingreso: IngresoTraza): string {
     return `${ingreso.bahia ?? 'Sin bahía'} · ${formatearFecha(ingreso.desde)} al ${formatearFecha(ingreso.hasta)}`;
-}
-
-/** Un paso de la línea de tiempo, con su ícono a la izquierda. */
-function Paso({
-    icono: Icono,
-    titulo,
-    tono = 'neutro',
-    children,
-}: {
-    icono: LucideIcon;
-    titulo: ReactNode;
-    tono?: 'neutro' | 'malo' | 'bueno' | 'aviso';
-    children?: ReactNode;
-}) {
-    return (
-        <li className="relative space-y-1" data-test="traza-paso">
-            <span
-                className={cn(
-                    'absolute top-0 -left-[1.95rem] flex size-6 items-center justify-center rounded-full border bg-background',
-                    tono === 'malo' && 'border-red-300 text-red-600',
-                    tono === 'bueno' && 'border-emerald-300 text-emerald-600',
-                    tono === 'aviso' && 'border-amber-300 text-amber-600',
-                    tono === 'neutro' && 'text-muted-foreground',
-                )}
-            >
-                <Icono className="size-3.5" />
-            </span>
-            <div className="text-sm font-medium">{titulo}</div>
-            {children ? (
-                <div className="space-y-1 text-sm text-muted-foreground">
-                    {children}
-                </div>
-            ) : null}
-        </li>
-    );
 }
 
 /**
@@ -184,7 +147,7 @@ export default function TrazaNoRecibidoModal({
                 ) : !traza ? (
                     <CargandoContenido mensaje="Cargando traza..." />
                 ) : (
-                    <LineaDeTiempo traza={traza} />
+                    <TrazaDelEquipo traza={traza} />
                 )}
 
                 <DialogFooter>
@@ -199,15 +162,12 @@ export default function TrazaNoRecibidoModal({
     );
 }
 
-function LineaDeTiempo({ traza }: { traza: TrazaNoRecibido }) {
+function TrazaDelEquipo({ traza }: { traza: TrazaNoRecibido }) {
     const { programacion, re_agendamiento: reAgendamiento } = traza;
     const ingreso = programacion.ingreso;
 
     return (
-        <ol
-            className="ml-3 space-y-5 border-l pl-6"
-            data-test="traza-linea-de-tiempo"
-        >
+        <LineaDeTiempo testId="traza-linea-de-tiempo">
             <Paso icono={CalendarClock} titulo="Programado">
                 <p>
                     {seguimientoLabel(
@@ -356,7 +316,7 @@ function LineaDeTiempo({ traza }: { traza: TrazaNoRecibido }) {
                     </p>
                 </Paso>
             ) : null}
-        </ol>
+        </LineaDeTiempo>
     );
 }
 

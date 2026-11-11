@@ -40,6 +40,7 @@ import {
 } from '@/lib/estado-final-equipo';
 import type { Equipo, EquipoFormOptions, EquipoProgramacion } from '@/types';
 import { formatearFecha, mostrarFecha } from '@/lib/fechas';
+import { etiquetaPeriodicidad } from '@/lib/periodicidad-servicio';
 
 type Props = PropsWithChildren<{
     equipo: Equipo;
@@ -477,6 +478,22 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                                             {
                                                                 programacion.falla_detectada
                                                             }
+                                                        </p>
+                                                    ) : null}
+                                                    {etiquetaPeriodicidad(
+                                                        programacion.intervalo_servicio,
+                                                        programacion.intervalo_unidad,
+                                                    ) ? (
+                                                        <p data-test="programacion-periodicidad">
+                                                            <span className="text-muted-foreground">
+                                                                Periodicidad:
+                                                            </span>{' '}
+                                                            <span className="font-medium">
+                                                                {etiquetaPeriodicidad(
+                                                                    programacion.intervalo_servicio,
+                                                                    programacion.intervalo_unidad,
+                                                                )}
+                                                            </span>
                                                         </p>
                                                     ) : null}
                                                     {programacion.fecha_ultimo_servicio ? (

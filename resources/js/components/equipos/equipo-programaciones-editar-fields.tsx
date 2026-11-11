@@ -21,6 +21,7 @@ import {
 } from '@/lib/seguimiento-programacion';
 import type { EquipoProgramacion, EstadoVencimiento } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
+import { etiquetaPeriodicidad } from '@/lib/periodicidad-servicio';
 
 type Props = {
     programaciones: EquipoProgramacion[];
@@ -142,6 +143,22 @@ export default function EquipoProgramacionesEditarFields({
                                 </div>
 
                                 <div className="space-y-1 text-xs">
+                                    {etiquetaPeriodicidad(
+                                        programacion.intervalo_servicio,
+                                        programacion.intervalo_unidad,
+                                    ) ? (
+                                        <p data-test="programacion-periodicidad">
+                                            <span className="text-muted-foreground">
+                                                Periodicidad:
+                                            </span>{' '}
+                                            <span className="font-medium">
+                                                {etiquetaPeriodicidad(
+                                                    programacion.intervalo_servicio,
+                                                    programacion.intervalo_unidad,
+                                                )}
+                                            </span>
+                                        </p>
+                                    ) : null}
                                     {!gestionada &&
                                     programacion.fecha_proximo_servicio ? (
                                         <p>
