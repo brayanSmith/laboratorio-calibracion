@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 import { BADGE_VENCIMIENTO } from '@/lib/vencimiento-programacion';
 import type { Equipo, EquipoFormOptions, EstadoVencimiento } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 /** Equipo completo, con su estado de vencimiento más urgente y la fecha de ese servicio. */
 export type EquipoUrgente = Equipo & {
@@ -101,7 +102,7 @@ export default function EquiposUrgentes({ equipos, options }: Props) {
                                 <p className="text-xs text-muted-foreground">
                                     {equipo.cliente?.nombre ?? 'Sin cliente'}
                                     {equipo.fecha_proximo_servicio
-                                        ? ` · Próximo servicio: ${equipo.fecha_proximo_servicio}`
+                                        ? ` · Próximo servicio: ${formatearFecha(equipo.fecha_proximo_servicio)}`
                                         : ''}
                                 </p>
                             </div>

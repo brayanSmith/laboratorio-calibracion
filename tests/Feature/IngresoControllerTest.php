@@ -833,3 +833,93 @@ test('un ingreso cancelado ya no puede cambiar de estado', function (string $est
 
     expect($ingreso->fresh()->estado_ingreso)->toBe('CANCELADO');
 })->with(['PENDIENTE', 'RECIBIDO']);
+
+test('al re-agendar un equipo no recibido queda una programacion nueva pendiente para esa fecha, que sale en el buscador', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $programacion = crearProgramacion(crearEquipoParaBusqueda($this->bahia), ['fecha_proximo_servicio' => '2026-10-10', 'ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]);
+    $novedad = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO']);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_recibidos' => [$programacion->id => [
+                'ingresado' => '0',
+                'novedad_ingreso_id' => $novedad->id,
+                're_agendar' => '1',
+                'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-12-04'],
+            ]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $nueva = $programacion->refresh()->reAgendamiento;
+
+    expect($programacion->estado_programacion)->toBe('RE_AGENDADO')
+        ->and($nueva)
+        ->estado_programacion->toBe('PENDIENTE')
+        ->ingreso_id->toBeNull()
+        ->tipo_servicio->toBe($programacion->tipo_servicio)
+        ->and($nueva->fecha_proximo_servicio->toDateString())->toBe('2026-12-04');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('equipo-programaciones.buscar', ['desde' => '2026-12-01', 'hasta' => '2026-12-31', 'bahia_ids' => [$this->bahia->id]]))
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.id', $nueva->id);
+});
+
+test('al cancelar el ingreso se pueden re-agendar todos sus equipos por lote, salvo con una novedad que los inactiva', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $programaciones = collect(['EQ-1', 'EQ-2'])->map(fn (string $codigo) => crearProgramacion(crearEquipoParaBusqueda($this->bahia, $codigo), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]));
+    $novedad = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO']);
+    $inactiva = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO', 'inactivar_equipo' => true]);
+    $cancelar = fn (Novedad $conNovedad) => $this->actingAs($this->admin)->patch(route('ingresos.estado.update', $ingreso), [
+        'estado_ingreso' => 'CANCELADO',
+        'motivo_cancelacion' => 'No hubo transporte',
+        'novedad_cancelacion_id' => $conNovedad->id,
+        're_agendar_equipos' => '1',
+        'fecha_re_agendamiento' => '2026-12-10',
+    ]);
+
+    $cancelar($inactiva)->assertSessionHasErrors('re_agendar_equipos');
+
+    $cancelar($novedad)->assertSessionHasNoErrors();
+
+    foreach ($programaciones as $programacion) {
+        expect($programacion->refresh())
+            ->estado_programacion->toBe('RE_AGENDADO')
+            ->re_agendar->toBeTrue()
+            ->and($programacion->reAgendamiento->estado_programacion)->toBe('PENDIENTE')
+            ->and($programacion->reAgendamiento->fecha_proximo_servicio->toDateString())->toBe('2026-12-10');
+    }
+});
+
+test('si ningun equipo ingreso, se recibe el ingreso sin pedir tecnico ni cliente', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $programacion = crearProgramacion(crearEquipoParaBusqueda($this->bahia), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]);
+    $novedad = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO']);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'equipos_recibidos' => [$programacion->id => ['ingresado' => '0', 'novedad_ingreso_id' => $novedad->id]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($ingreso->fresh())
+        ->estado_ingreso->toBe('RECIBIDO')
+        ->and($programacion->refresh()->estado_programacion)->toBe('CANCELADO');
+});
+
+test('si llego algun equipo, recibir el ingreso sigue pidiendo tecnico y cliente', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'estado_ingreso' => 'PENDIENTE']);
+    $programacion = crearProgramacion(crearEquipoParaBusqueda($this->bahia), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'AGENDADO', 'agendar' => true]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'equipos_recibidos' => [$programacion->id => ['ingresado' => '1']],
+        ])
+        ->assertSessionHasErrors(['tecnico_recibe_id', 'cliente_entrega_id']);
+});

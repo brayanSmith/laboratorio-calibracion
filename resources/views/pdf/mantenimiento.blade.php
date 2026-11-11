@@ -8,7 +8,7 @@
     $condicion = $mantenimiento->estado_final_equipo === null
         ? null
         : ($operativo ? 'Operativo' : 'Inoperativo');
-    $fecha = fn ($valor) => $valor ? $valor->locale('es')->isoFormat('DD/MMM/YYYY') : '—';
+    $fecha = fn ($valor) => $valor ? $valor->locale('es')->format('d/m/Y') : '—';
     $moneda = fn ($valor) => '$ '.number_format((float) $valor, 2, ',', '.');
     $riesgo = [
         'ALTO' => ['Alto', '#ffffff', '#b91c1c'],
@@ -78,14 +78,14 @@
                 </td>
                 <td class="derecha" style="width: 190px;">
                     <strong>{{ $mantenimiento->tecnico->name }}</strong><br>
-                    Creado el {{ $fechaHora->locale('es')->isoFormat('dddd DD [de] MMM [del] YYYY HH:mm') }}
+                    Creado el {{ $fechaHora->locale('es')->format('d/m/Y H:i') }}
                 </td>
             </tr>
         </table>
     </div>
     <h2>I. Información General</h2>
     <div class="caja"><table class="info">
-        <tr><td class="etiqueta">Fecha y Hora:</td><td>{{ $fechaHora->locale('es')->isoFormat('dddd DD [de] MMM [del] YYYY [a las] HH:mm') }}</td></tr>
+        <tr><td class="etiqueta">Fecha y Hora:</td><td>{{ $fechaHora->locale('es')->format('d/m/Y H:i') }}</td></tr>
         <tr><td class="etiqueta">Ubicación:</td><td>{{ $equipo->bahia?->nombre ?? '—' }}</td></tr>
         <tr><td class="etiqueta">ID de Equipo/Activo:</td><td>{{ data_get($equipo->ficha_tecnica, 'numero_activo') ?: $equipo->codigo }}</td></tr>
         <tr><td class="etiqueta">Fabricante:</td><td>{{ $equipo->fabricante->nombre }}</td></tr>
@@ -214,7 +214,7 @@
                 <td>{{ $empresa?->nombre }}</td>
                 <td class="centro">La versión impresa no está controlada</td>
                 <td style="text-align: right;">
-                    Este PDF fue creado el {{ $fechaHora->locale('es')->isoFormat('DD/MMM/YYYY HH:mm') }}
+                    Este PDF fue creado el {{ $fechaHora->locale('es')->format('d/m/Y H:i') }}
                     · Página <span class="pagina"></span>
                 </td>
             </tr>

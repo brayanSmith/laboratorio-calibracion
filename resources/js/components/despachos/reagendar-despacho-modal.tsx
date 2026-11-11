@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { hoyLocal } from '@/lib/plazo-servicio';
 import type { Despacho } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     despacho: Despacho | null;
@@ -54,7 +55,7 @@ export default function ReagendarDespachoModal({
                                     {despacho.orden_trabajo_codigo} ·{' '}
                                     {despacho.equipo.codigo}. Estaba programado
                                     para el{' '}
-                                    <strong>{despacho.fecha_programada}</strong>
+                                    <strong>{formatearFecha(despacho.fecha_programada)}</strong>
                                     ; el cambio queda en su historial.
                                 </DialogDescription>
                             </DialogHeader>

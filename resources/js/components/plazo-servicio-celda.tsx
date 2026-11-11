@@ -4,6 +4,7 @@ import {
     etiquetaPlazo,
     plazoServicio,
 } from '@/lib/plazo-servicio';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     fechaProgramada: string | null;
@@ -26,13 +27,13 @@ export default function PlazoServicioCelda({
 
     return (
         <div className="space-y-1" data-test="plazo-servicio">
-            <p className="text-sm">{fechaProgramada}</p>
+            <p className="text-sm">{formatearFecha(fechaProgramada)}</p>
             <Badge className={BADGE_PLAZO[plazo.estado]}>
                 {etiquetaPlazo(plazo)}
             </Badge>
             {fechaRealizacion ? (
                 <p className="text-xs text-muted-foreground">
-                    Realizado: {fechaRealizacion}
+                    Realizado: {formatearFecha(fechaRealizacion)}
                 </p>
             ) : null}
         </div>

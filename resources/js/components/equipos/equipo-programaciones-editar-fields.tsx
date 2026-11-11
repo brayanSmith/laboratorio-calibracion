@@ -20,6 +20,7 @@ import {
     seguimientoLabel,
 } from '@/lib/seguimiento-programacion';
 import type { EquipoProgramacion, EstadoVencimiento } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     programaciones: EquipoProgramacion[];
@@ -147,10 +148,7 @@ export default function EquipoProgramacionesEditarFields({
                                             <span className="text-muted-foreground">
                                                 Próximo servicio:
                                             </span>{' '}
-                                            {programacion.fecha_proximo_servicio.slice(
-                                                0,
-                                                10,
-                                            )}{' '}
+                                            {formatearFecha(programacion.fecha_proximo_servicio)}{' '}
                                             <span className="text-muted-foreground">
                                                 (aviso{' '}
                                                 {Math.round(

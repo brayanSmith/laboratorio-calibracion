@@ -20,6 +20,7 @@ import {
     estadosMantenimiento,
 } from '@/lib/estados-mantenimiento';
 import type { EstadoEquipoMantenimiento, Mantenimiento } from '@/types';
+import { formatearFechaHora, mostrarFecha } from '@/lib/fechas';
 
 type Props = {
     mantenimiento: Mantenimiento | null;
@@ -37,7 +38,7 @@ function Dato({
     return (
         <div className="grid gap-1">
             <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
-            <div className="text-sm">{children}</div>
+            <div className="text-sm">{mostrarFecha(children)}</div>
         </div>
     );
 }
@@ -247,12 +248,7 @@ export default function VerMantenimientoModal({
                                     <p>{comentario.comentario}</p>
                                     <p className="text-xs text-muted-foreground">
                                         {comentario.autor} ·{' '}
-                                        {new Date(
-                                            comentario.fecha,
-                                        ).toLocaleString('es-PE', {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
-                                        })}
+                                        {formatearFechaHora(comentario.fecha)}
                                     </p>
                                 </li>
                             ))}

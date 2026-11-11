@@ -620,3 +620,157 @@ test('cumplimiento lista los no recibidos de los ingresos del periodo, aunque su
             ['novedad' => 'Equipo en uso', 'cantidad' => 1, 'porcentaje' => 33.3],
         ]);
 });
+
+/**
+ * Un equipo re-agendado que no llegó al ingreso de octubre, para la traza.
+ */
+function crearNoRecibidoReAgendado(Bahia $bahia, string $fechaReAgendada): EquipoProgramacion
+{
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $bahia->id, 'desde' => '2026-10-01', 'hasta' => '2026-10-31', 'estado_ingreso' => 'RECIBIDO']);
+    $novedad = Novedad::factory()->create(['tenant_id' => $bahia->tenant_id, 'categoria' => 'INGRESO', 'nombre' => 'Equipo en uso']);
+
+    return crearProgramacion(crearEquipoParaBusqueda($bahia, 'EQ-TRAZA'), [
+        'fecha_proximo_servicio' => '2026-10-10',
+        'ingreso_id' => $ingreso->id,
+        'ingresado' => false,
+        'estado_programacion' => 'RE_AGENDADO',
+        'novedad_ingreso_id' => $novedad->id,
+        'observacion_no_ingreso' => 'Lo tiene producción',
+        're_agendar' => true,
+        'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => $fechaReAgendada],
+    ]);
+}
+
+test('la traza de un no recibido muestra su seguimiento, la novedad y que el re-agendamiento se cumplio al recibirlo despues', function () {
+    $this->travelTo('2026-11-20');
+    $programacion = crearNoRecibidoReAgendado($this->bahia, '2026-11-05');
+    $ingresoSiguiente = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'desde' => '2026-11-01', 'hasta' => '2026-11-30', 'estado_ingreso' => 'RECIBIDO', 'fecha_recepcion' => '2026-11-06']);
+    $siguiente = crearProgramacion($programacion->equipo, ['fecha_proximo_servicio' => '2026-11-05', 'ingreso_id' => $ingresoSiguiente->id, 'estado_programacion' => 'RECIBIDO']);
+    Mantenimiento::create([
+        'orden_trabajo_id' => crearOrdenDeIndicador($siguiente)->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => '2026-11-07',
+        'tecnico_id' => $this->admin->id,
+        'estado_mantenimiento' => 'FINALIZADO',
+        'tenant_id' => $this->tenant->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertOk()
+        ->assertJsonPath('programacion.equipo', 'EQ-TRAZA')
+        ->assertJsonPath('programacion.novedad', 'Equipo en uso')
+        ->assertJsonPath('programacion.observacion', 'Lo tiene producción')
+        ->assertJsonPath('programacion.ingreso.desde', '2026-10-01')
+        ->assertJsonPath('re_agendamiento.fecha', '2026-11-05')
+        ->assertJsonPath('re_agendamiento.estado', 'CUMPLIDO')
+        ->assertJsonPath('seguimientos.0.seguimiento', 'RE_AGENDADO')
+        ->assertJsonCount(1, 'posteriores')
+        ->assertJsonPath('posteriores.0.ingresado', true)
+        ->assertJsonPath('posteriores.0.ingreso.fecha_recepcion', '2026-11-06')
+        // La fecha es la de realización, que se fija sola el día en que se finaliza.
+        ->assertJsonPath('posteriores.0.servicios.0', ['servicio' => 'MANTENIMIENTO', 'estado' => 'FINALIZADO', 'fecha' => '2026-11-20', 'tercero' => false]);
+});
+
+test('el re-agendamiento sin un ingreso posterior queda pendiente antes de su fecha y vencido despues', function (string $hoy, string $estado) {
+    $this->travelTo($hoy);
+    $programacion = crearNoRecibidoReAgendado($this->bahia, '2026-11-15');
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertOk()
+        ->assertJsonPath('re_agendamiento.estado', $estado)
+        ->assertJsonCount(0, 'posteriores');
+})->with([
+    'antes de la fecha' => ['2026-11-10', 'PENDIENTE'],
+    'despues de la fecha' => ['2026-11-20', 'VENCIDO'],
+]);
+
+test('la traza exige el permiso de cumplimiento y no muestra programaciones de otra empresa', function () {
+    $programacion = crearNoRecibidoReAgendado($this->bahia, '2026-11-15');
+
+    $this->actingAs(usuarioConPermisos($this->tenant, [TenantPermission::DashboardVer]))
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertForbidden();
+
+    $otraEmpresa = Tenant::factory()->create();
+
+    $this->actingAs(User::factory()->forTenant($otraEmpresa)->create())
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertNotFound();
+});
+
+test('la traza da por cumplido el re-agendamiento cuando se recibe la programacion nueva que dejo', function () {
+    $this->travelTo('2026-11-20');
+    $programacion = crearNoRecibidoReAgendado($this->bahia, '2026-11-05');
+    $programacion->refresh()->sincronizarReAgendamiento();
+    $nueva = $programacion->reAgendamiento()->sole();
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertJsonPath('re_agendamiento.estado', 'VENCIDO')
+        ->assertJsonPath('re_agendamiento.cadena.0.estado_programacion', 'PENDIENTE');
+
+    $nueva->update(['estado_programacion' => 'RECIBIDO']);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertJsonPath('re_agendamiento.estado', 'CUMPLIDO');
+});
+
+test('la traza sigue la cadena de re-agendamientos y su estado sale del ultimo', function () {
+    $this->travelTo('2026-11-20');
+    $programacion = crearNoRecibidoReAgendado($this->bahia, '2026-11-05');
+    $programacion->refresh()->sincronizarReAgendamiento();
+
+    // La programación nueva tampoco llegó y se re-agendó otra vez, para el 25.
+    $segunda = $programacion->reAgendamiento()->sole();
+    $segunda->update([
+        'ingreso_id' => Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'desde' => '2026-11-05', 'hasta' => '2026-11-06', 'estado_ingreso' => 'RECIBIDO'])->id,
+        'ingresado' => false,
+        'estado_programacion' => 'RE_AGENDADO',
+        'novedad_ingreso_id' => $programacion->novedad_ingreso_id,
+        're_agendar' => true,
+        'datos_re_agendamiento' => ['fecha_proximo_agendamiento' => '2026-11-25'],
+    ]);
+    $segunda->refresh()->sincronizarReAgendamiento();
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento.traza-no-recibido', $programacion))
+        ->assertOk()
+        ->assertJsonPath('re_agendamiento.veces', 2)
+        ->assertJsonPath('re_agendamiento.fecha', '2026-11-25')
+        ->assertJsonPath('re_agendamiento.estado', 'PENDIENTE')
+        ->assertJsonPath('re_agendamiento.cadena.0.fecha', '2026-11-05')
+        ->assertJsonPath('re_agendamiento.cadena.0.estado_programacion', 'RE_AGENDADO')
+        ->assertJsonPath('re_agendamiento.cadena.0.novedad', 'Equipo en uso')
+        ->assertJsonPath('re_agendamiento.cadena.1.fecha', '2026-11-25')
+        ->assertJsonPath('re_agendamiento.cadena.1.estado_programacion', 'PENDIENTE')
+        // Los eslabones no se repiten como ingresos posteriores.
+        ->assertJsonCount(0, 'posteriores');
+});
+
+test('un equipo que no llego varias veces por re-agendarse sale en una sola fila, y el grafico cuenta cada vez', function () {
+    $primera = crearNoRecibidoReAgendado($this->bahia, '2026-10-20');
+    $primera->refresh()->sincronizarReAgendamiento();
+    $danado = Novedad::factory()->create(['tenant_id' => $this->tenant->id, 'categoria' => 'INGRESO', 'nombre' => 'Equipo dañado']);
+
+    // La re-agendada entró a otro ingreso de octubre y tampoco llegó: se canceló.
+    $primera->reAgendamiento()->sole()->update([
+        'ingreso_id' => Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'desde' => '2026-10-20', 'hasta' => '2026-10-21', 'estado_ingreso' => 'RECIBIDO'])->id,
+        'ingresado' => false,
+        'estado_programacion' => 'CANCELADO',
+        'novedad_ingreso_id' => $danado->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.cumplimiento', ['desde' => '2026-10-01', 'hasta' => '2026-10-31']))
+        ->assertOk()
+        ->assertJsonCount(1, 'no_recibidos')
+        ->assertJsonPath('no_recibidos.0.programacion_id', $primera->id)
+        ->assertJsonPath('no_recibidos.0.fecha_programada', '2026-10-10')
+        ->assertJsonPath('no_recibidos.0.estado_programacion', 'CANCELADO')
+        ->assertJsonPath('no_recibidos.0.novedad', 'Equipo dañado')
+        ->assertJsonPath('no_recibidos.0.veces_no_recibido', 2)
+        ->assertJsonCount(2, 'novedades_no_recibidos');
+});

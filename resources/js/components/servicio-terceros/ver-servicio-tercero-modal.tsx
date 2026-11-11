@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import type { ServicioTerceroListado } from '@/types';
+import { mostrarFecha } from '@/lib/fechas';
 
 type Props = {
     servicio: ServicioTerceroListado | null;
@@ -30,7 +31,7 @@ function Dato({
     return (
         <div className="grid gap-1">
             <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
-            <div className="text-sm">{children}</div>
+            <div className="text-sm">{mostrarFecha(children)}</div>
         </div>
     );
 }

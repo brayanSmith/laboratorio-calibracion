@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import SignatureCanvasImport from 'react-signature-canvas';
 import { Button } from '@/components/ui/button';
 
@@ -17,6 +17,9 @@ type Props = {
     name: string;
 };
 
+/** Ancho del recuadro de firma en pantallas amplias; en un celular, el disponible. */
+const ANCHO_MAXIMO = 440;
+
 /**
  * Canvas para dibujar una firma con el dedo o el mouse. El trazo se convierte a un
  * PNG recortado y se deposita en un input de archivo oculto con el mismo `name`, para
@@ -26,6 +29,19 @@ export default function FirmaCanvas({ name }: Props) {
     const canvasRef = useRef<SignatureCanvasImport>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [vacio, setVacio] = useState(true);
+    const contenedorRef = useRef<HTMLDivElement>(null);
+    const [ancho, setAncho] = useState(ANCHO_MAXIMO);
+
+    // El canvas necesita su ancho en píxeles (si se estira con CSS, el trazo no cae donde
+    // está el dedo): se mide el espacio disponible al montarlo, para que en un celular no
+    // quede recortado.
+    useLayoutEffect(() => {
+        const disponible = contenedorRef.current?.clientWidth;
+
+        if (disponible) {
+            setAncho(Math.min(ANCHO_MAXIMO, disponible));
+        }
+    }, []);
 
     const actualizarArchivo = () => {
         const canvas = canvasRef.current;
@@ -68,12 +84,15 @@ export default function FirmaCanvas({ name }: Props) {
 
     return (
         <div className="space-y-2">
-            <div className="flex justify-center overflow-hidden rounded-md border bg-white">
+            <div
+                ref={contenedorRef}
+                className="flex justify-center overflow-hidden rounded-md border bg-white"
+            >
                 <SignatureCanvas
                     ref={canvasRef}
                     penColor="black"
                     canvasProps={{
-                        width: 440,
+                        width: ancho,
                         height: 160,
                         className: 'touch-none',
                     }}

@@ -13,6 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Item } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Entrada = {
     id: number;
@@ -299,7 +300,7 @@ function columnasSalidas(salidas: Salida[]): Columna<Salida>[] {
             id: 'fecha',
             titulo: 'Fecha',
             valor: (s) => s.fecha,
-            celda: (s) => s.fecha ?? '—',
+            celda: (s) => formatearFecha(s.fecha),
             pie: 'Totales',
         },
         {

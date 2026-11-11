@@ -39,6 +39,7 @@ import {
     BADGE_EQUIPO_INACTIVO,
 } from '@/lib/estado-final-equipo';
 import type { Equipo, EquipoFormOptions, EquipoProgramacion } from '@/types';
+import { formatearFecha, mostrarFecha } from '@/lib/fechas';
 
 type Props = PropsWithChildren<{
     equipo: Equipo;
@@ -52,7 +53,7 @@ function Dato({ label, value }: { label: string; value: ReactNode }) {
             <span className="text-sm font-medium break-words">
                 {value === null || value === undefined || value === ''
                     ? '—'
-                    : value}
+                    : mostrarFecha(value)}
             </span>
         </div>
     );
@@ -483,10 +484,7 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                                             <span className="text-muted-foreground">
                                                                 Último servicio:
                                                             </span>{' '}
-                                                            {programacion.fecha_ultimo_servicio.slice(
-                                                                0,
-                                                                10,
-                                                            )}
+                                                            {formatearFecha(programacion.fecha_ultimo_servicio)}
                                                         </p>
                                                     ) : null}
                                                     {!gestionada &&
@@ -496,10 +494,7 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                                                 Próximo
                                                                 servicio:
                                                             </span>{' '}
-                                                            {programacion.fecha_proximo_servicio.slice(
-                                                                0,
-                                                                10,
-                                                            )}{' '}
+                                                            {formatearFecha(programacion.fecha_proximo_servicio)}{' '}
                                                             <span className="text-muted-foreground">
                                                                 (aviso{' '}
                                                                 {Math.round(

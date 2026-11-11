@@ -266,8 +266,8 @@ export function PanelFiltros({
     buscando: boolean;
 }) {
     return (
-        <div className="rounded-xl border bg-muted/40 p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl border bg-muted/40 p-3 sm:p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-muted-foreground">
                 <SlidersHorizontal className="h-4 w-4" />
                 Filtros
                 {hayCambios ? (
@@ -279,7 +279,7 @@ export function PanelFiltros({
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {children}
             </div>
-            <div className="mt-3 flex justify-end gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                 <Button
                     type="button"
                     variant="outline"
@@ -338,11 +338,13 @@ export function BloqueIndicador({
 }) {
     return (
         <Card className="min-w-0">
-            <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-                <Icono className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-base">{titulo}</CardTitle>
+            <CardHeader className="flex flex-row items-center gap-2 space-y-0 px-4 sm:px-6">
+                <Icono className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <CardTitle className="min-w-0 text-base break-words">
+                    {titulo}
+                </CardTitle>
             </CardHeader>
-            <CardContent>{children}</CardContent>
+            <CardContent className="px-4 sm:px-6">{children}</CardContent>
         </Card>
     );
 }

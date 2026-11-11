@@ -1,6 +1,6 @@
 import { createColumnHelper, useTable } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type { ColumnDef, RowData } from '@tanstack/react-table';
 import {
     ChevronDown,
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { useResizableTable } from '@/hooks/use-resizable-table';
 import { cn } from '@/lib/utils';
 import { dataTableFeatures, withColumnFilters } from '@/lib/data-table';
+import { esFecha, formatearFecha } from '@/lib/fechas';
 import { SELECTOR_INTERACTIVO } from '@/lib/menu-acciones-fila';
 import type { DataTableFeatures } from '@/lib/data-table';
 
@@ -45,10 +46,33 @@ type Props<TData extends RowData> = {
     initialColumnFilters?: { id: string; value: unknown }[];
     /** Al tocar una fila (si la tabla no tiene columna de acciones), ej. abrir su detalle. */
     onFilaClick?: (fila: TData) => void;
+    /** Clases extra de una fila, ej. para resaltar las prioritarias. */
+    claseFila?: (fila: TData) => string | undefined;
 };
 
 /** Columna con los botones de acción de cada fila (la misma que muestra el menú de la fila). */
 const COLUMNA_ACCIONES = 'acciones';
+
+/**
+ * A las columnas sin celda propia, les muestra las fechas en DD/MM/AAAA (el valor, para
+ * ordenar y filtrar, sigue siendo AAAA-MM-DD). Las que tienen celda propia la formatean ahí.
+ */
+function conFechaFormateada<TData extends RowData>(
+    columna: DataTableColumn<TData>,
+): DataTableColumn<TData> {
+    if (columna.cell) {
+        return columna;
+    }
+
+    return {
+        ...columna,
+        cell: (info: { getValue: () => unknown }) => {
+            const valor = info.getValue();
+
+            return esFecha(valor) ? formatearFecha(valor) : (valor as ReactNode);
+        },
+    } as DataTableColumn<TData>;
+}
 
 const selectClassName =
     'h-8 w-full min-w-24 rounded-md border border-input bg-background px-2 text-xs font-normal text-foreground shadow-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none';
@@ -62,11 +86,15 @@ export default function DataTable<TData extends RowData>({
     rowTestId,
     initialColumnFilters,
     onFilaClick,
+    claseFila,
 }: Props<TData>) {
     // Cada columna filtra por texto (sin tildes ni mayúsculas) o, si declara opciones, por
     // coincidencia exacta con la opción elegida.
     const columnsConFiltro = useMemo(
-        () => withColumnFilters(columns) as DataTableColumn<TData>[],
+        () =>
+            withColumnFilters(
+                columns.map(conFechaFormateada),
+            ) as DataTableColumn<TData>[],
         [columns],
     );
 
@@ -314,6 +342,7 @@ export default function DataTable<TData extends RowData>({
                                 }
                                 className={cn(
                                     'transition-colors hover:bg-primary/10',
+                                    claseFila?.(row.original),
                                     (tieneAcciones || onFilaClick) &&
                                         'cursor-pointer',
                                     menu?.visible &&
@@ -357,7 +386,7 @@ export default function DataTable<TData extends RowData>({
             ) : null}
 
             {totalRows > 0 ? (
-                <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <span data-test="data-table-summary">
                         Mostrando {firstRow}–{lastRow} de {totalRows}
                     </span>

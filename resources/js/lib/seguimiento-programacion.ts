@@ -1,4 +1,5 @@
 import type { FaseSeguimiento } from '@/types';
+import { formatearFechaHora } from '@/lib/fechas';
 
 export const fasesSeguimiento: { value: FaseSeguimiento; label: string }[] = [
     { value: 'BAHIA', label: 'Bahía' },
@@ -25,9 +26,7 @@ export function seguimientoLabel(seguimiento: string | null): string {
     return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
+/** Fecha y hora del registro, en DD/MM/AAAA HH:mm. */
 export function formatearFechaSeguimiento(iso: string): string {
-    return new Date(iso).toLocaleString('es-PE', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    });
+    return formatearFechaHora(iso);
 }

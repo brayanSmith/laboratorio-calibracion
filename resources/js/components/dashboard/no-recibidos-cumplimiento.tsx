@@ -1,10 +1,11 @@
 import { Link } from '@inertiajs/react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pie, PieChart } from 'recharts';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import { Fila } from '@/components/dashboard/grafico-objetivo';
+import TrazaNoRecibidoModal from '@/components/dashboard/traza-no-recibido-modal';
 import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fields';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
@@ -16,8 +17,10 @@ import {
     rangoCriticidadEquipo,
 } from '@/lib/criticidad-equipo';
 import { formatearPorcentaje } from '@/lib/indicadores';
+import { cn } from '@/lib/utils';
 import { show } from '@/routes/equipos';
 import type { CriticidadEquipo, Cumplimiento } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type NoRecibido = Cumplimiento['no_recibidos'][number];
 
@@ -155,7 +158,9 @@ export function NovedadesNoRecibidos({
 
     return (
         <div
-            className="grid items-center gap-6 md:grid-cols-[16rem_1fr]"
+            // grid-cols-1 (y no la columna automática) para que la leyenda no crezca con
+            // los nombres largos y se salga de la tarjeta.
+            className="grid min-w-0 grid-cols-1 items-center gap-6 sm:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-1 2xl:grid-cols-[16rem_minmax(0,1fr)]"
             data-test="cumplimiento-novedades-no-recibidos"
         >
             <div className="relative mx-auto h-64 w-64">
@@ -170,8 +175,8 @@ export function NovedadesNoRecibidos({
                                 const porcion = payload[0].payload as Porcion;
 
                                 return (
-                                    <div className="grid min-w-48 gap-1 rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
-                                        <span className="font-medium">
+                                    <div className="grid w-56 max-w-[70vw] gap-1 rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
+                                        <span className="font-medium break-words">
                                             {porcion.novedad}
                                         </span>
                                         <Fila
@@ -201,23 +206,24 @@ export function NovedadesNoRecibidos({
                         {total}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                        no recibidos
+                        {total === 1 ? 'vez que no llegó' : 'veces que no llegó'}
                     </span>
                 </div>
             </div>
 
-            <ul className="grid gap-2 text-sm">
+            <ul className="grid min-w-0 gap-2 text-sm">
                 {porciones.map((porcion) => (
                     <li
                         key={porcion.clave}
-                        className="flex items-center justify-between gap-3"
+                        className="flex min-w-0 items-start justify-between gap-3"
                     >
-                        <span className="flex min-w-0 items-center gap-2">
+                        {/* El nombre se parte en varias líneas: se lee completo y no se sale. */}
+                        <span className="flex min-w-0 items-start gap-2">
                             <span
-                                className="h-3 w-3 shrink-0 rounded-sm"
+                                className="mt-1 h-3 w-3 shrink-0 rounded-sm"
                                 style={{ backgroundColor: porcion.fill }}
                             />
-                            <span className="truncate" title={porcion.novedad}>
+                            <span className="min-w-0 break-words">
                                 {porcion.novedad}
                             </span>
                         </span>
@@ -237,6 +243,12 @@ export function NovedadesNoRecibidos({
 
 const columnHelper = createDataTableColumnHelper<NoRecibido>();
 
+/** Cancelado en rojo, re-agendado en ámbar. */
+const COLOR_ESTADO: Record<string, string> = {
+    CANCELADO: '!border-transparent !bg-red-500 !text-white',
+    RE_AGENDADO: '!border-transparent !bg-amber-500 !text-white',
+};
+
 /**
  * Equipos que no llegaron al ingreso, los más críticos primero, con su novedad y si se
  * re-agendaron, para gestionarlos (el código abre la ficha del equipo).
@@ -246,6 +258,8 @@ export function TablaNoRecibidos({
 }: {
     noRecibidos: Cumplimiento['no_recibidos'];
 }) {
+    const [trazaDe, setTrazaDe] = useState<number | null>(null);
+    const [trazaAbierta, setTrazaAbierta] = useState(false);
     const columns = useMemo(
         () =>
             columnHelper.columns([
@@ -256,6 +270,8 @@ export function TablaNoRecibidos({
                             <Link
                                 href={show(row.original.equipo_id)}
                                 className="font-medium underline-offset-2 hover:underline"
+                                // Abre la ficha del equipo, no la traza de la fila.
+                                onClick={(evento) => evento.stopPropagation()}
                             >
                                 {row.original.equipo}
                             </Link>
@@ -301,21 +317,38 @@ export function TablaNoRecibidos({
                 columnHelper.accessor('estado_programacion', {
                     header: 'Estado',
                     meta: {
-                        filterOptions: estadosProgramacion.map((estado) => ({
-                            value: estado.value,
-                            label: estado.label,
-                        })),
+                        filterOptions: estadosProgramacion
+                            .filter((estado) => estado.value in COLOR_ESTADO)
+                            .map((estado) => ({
+                                value: estado.value,
+                                label: estado.label,
+                            })),
                     },
                     cell: ({ row }) => (
                         <>
-                            {estadosProgramacion.find(
-                                (estado) =>
-                                    estado.value ===
-                                    row.original.estado_programacion,
-                            )?.label ?? row.original.estado_programacion}
-                            {row.original.fecha_re_agendamiento ? (
-                                <span className="block text-xs text-muted-foreground">
-                                    Para el {row.original.fecha_re_agendamiento}
+                            <Badge
+                                className={
+                                    COLOR_ESTADO[row.original.estado_programacion]
+                                }
+                                variant={
+                                    COLOR_ESTADO[row.original.estado_programacion]
+                                        ? 'default'
+                                        : 'secondary'
+                                }
+                                data-test="no-recibido-estado"
+                            >
+                                {estadosProgramacion.find(
+                                    (estado) =>
+                                        estado.value ===
+                                        row.original.estado_programacion,
+                                )?.label ?? row.original.estado_programacion}
+                            </Badge>
+                            {row.original.veces_no_recibido > 1 ? (
+                                <span
+                                    className="block text-xs text-muted-foreground"
+                                    data-test="no-recibido-veces"
+                                >
+                                    No llegó {row.original.veces_no_recibido} veces
                                 </span>
                             ) : null}
                         </>
@@ -323,18 +356,61 @@ export function TablaNoRecibidos({
                 }),
                 columnHelper.accessor('fecha_programada', {
                     header: 'Programado',
+                    // La fecha original y, si se re-agendó, la nueva debajo.
+                    cell: ({ row }) => (
+                        <>
+                            <span
+                                className={cn(
+                                    row.original.fecha_re_agendamiento &&
+                                        'text-muted-foreground line-through',
+                                )}
+                            >
+                                {formatearFecha(row.original.fecha_programada)}
+                            </span>
+                            {row.original.fecha_re_agendamiento ? (
+                                <span
+                                    className="block text-xs font-medium text-amber-700 dark:text-amber-400"
+                                    data-test="no-recibido-fecha-re-agendada"
+                                >
+                                    Re-agendado al{' '}
+                                    {formatearFecha(row.original.fecha_re_agendamiento)}
+                                </span>
+                            ) : null}
+                        </>
+                    ),
                 }),
             ]),
         [],
     );
 
     return (
-        <DataTable
-            data={noRecibidos}
-            columns={columns}
-            searchPlaceholder="Buscar equipo, novedad o área..."
-            emptyMessage="Todos los equipos programados llegaron a su ingreso."
-            rowTestId="cumplimiento-no-recibido-row"
-        />
+        <div className="grid gap-2">
+            <p className="text-xs text-muted-foreground">
+                Haz clic en un equipo para ver su traza: el seguimiento, el
+                re-agendamiento y lo que pasó después.
+            </p>
+            <DataTable
+                data={noRecibidos}
+                columns={columns}
+                searchPlaceholder="Buscar equipo, novedad o área..."
+                emptyMessage="Todos los equipos programados llegaron a su ingreso."
+                rowTestId="cumplimiento-no-recibido-row"
+                // Los de criticidad alta, resaltados en rojo: se deben atender primero.
+                claseFila={(fila) =>
+                    fila.criticidad === 'ALTA'
+                        ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60 [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-red-500'
+                        : undefined
+                }
+                onFilaClick={(fila) => {
+                    setTrazaDe(fila.programacion_id);
+                    setTrazaAbierta(true);
+                }}
+            />
+            <TrazaNoRecibidoModal
+                programacionId={trazaDe}
+                open={trazaAbierta}
+                onOpenChange={setTrazaAbierta}
+            />
+        </div>
     );
 }

@@ -401,6 +401,8 @@ export default function IndicadorCumplimiento() {
                         />
                     </BloqueIndicador>
 
+                    {/* Lado a lado en pantallas amplias; uno debajo del otro en las angostas. */}
+                    <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
                     {datos.por_area.length > 0 ? (
                         <BloqueIndicador
                             titulo="Cumplimiento por área"
@@ -410,7 +412,7 @@ export default function IndicadorCumplimiento() {
                                 {datos.por_area.map((area) => (
                                     <div
                                         key={area.area}
-                                        className="grid items-center gap-1 sm:grid-cols-[minmax(0,14rem)_6rem_1fr] sm:gap-3"
+                                        className="grid items-center gap-1 sm:grid-cols-[minmax(0,10rem)_5rem_1fr] sm:gap-3"
                                     >
                                         <span className="truncate text-sm font-medium">
                                             {area.area}
@@ -440,6 +442,7 @@ export default function IndicadorCumplimiento() {
                             novedades={datos.novedades_no_recibidos}
                         />
                     </BloqueIndicador>
+                    </div>
 
                     <BloqueIndicador
                         titulo="Equipos no recibidos en el ingreso"

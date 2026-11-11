@@ -30,6 +30,7 @@ import {
     BADGE_EQUIPO_INACTIVO,
 } from '@/lib/estado-final-equipo';
 import type { Equipo, EquipoFormOptions } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     equipos: Equipo[];
@@ -85,7 +86,7 @@ function VencimientoEquipo({ equipo }: { equipo: Equipo }) {
             </Badge>
             {vencimiento.fecha ? (
                 <p className="text-xs text-muted-foreground">
-                    Próximo servicio: {vencimiento.fecha}
+                    Próximo servicio: {formatearFecha(vencimiento.fecha)}
                 </p>
             ) : null}
         </div>

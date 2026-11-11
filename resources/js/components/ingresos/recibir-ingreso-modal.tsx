@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { ChevronRight, Plus, TriangleAlert } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { actualizarEstado } from '@/actions/App/Modules/Ingresos/Http/Controllers/IngresoController';
 import Combobox from '@/components/combobox';
 import FirmaCanvas from '@/components/firma-canvas';
@@ -84,7 +84,7 @@ export default function RecibirIngresoModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogContent className="max-h-[92dvh] overflow-y-auto p-4 sm:max-w-3xl sm:p-6">
                 <RecibirIngresoFormulario
                     key={`${ingreso.id}-${String(open)}`}
                     ingreso={ingreso}
@@ -142,6 +142,32 @@ function RecibirIngresoFormulario({
     // Se activa si se intenta guardar sin técnico/cliente, para mostrar el error ahí
     // mismo en el navegador, sin gastar una petición al servidor solo para eso.
     const [intentoGuardar, setIntentoGuardar] = useState(false);
+    // Equipos re-agendados sin fecha del próximo agendamiento (los avisa cada fila): no se
+    // avanza con "Siguiente" ni se guarda hasta completarla.
+    const [sinFecha, setSinFecha] = useState<Record<number, boolean>>({});
+    const [revisarEquipos, setRevisarEquipos] = useState(false);
+    const reportarSinFecha = useCallback(
+        (id: number, falta: boolean) =>
+            setSinFecha((actuales) =>
+                actuales[id] === falta ? actuales : { ...actuales, [id]: falta },
+            ),
+        [],
+    );
+    const hayFechasPendientes = Object.values(sinFecha).some(Boolean);
+    // Si llegó cada equipo (lo avisa cada fila): si ninguno llegó, no hay recepción que
+    // registrar y no se piden técnico, cliente ni firma.
+    const [ingresados, setIngresados] = useState<
+        Record<number, boolean | null>
+    >({});
+    const reportarIngresado = useCallback(
+        (id: number, ingresado: boolean | null) =>
+            setIngresados((actuales) =>
+                actuales[id] === ingresado
+                    ? actuales
+                    : { ...actuales, [id]: ingresado },
+            ),
+        [],
+    );
     const aprobado = estadoIngreso === 'RECIBIDO';
     const cancelado = estadoIngreso === 'CANCELADO';
     const equiposProgramados = ingreso.equipo_programaciones.filter(
@@ -150,6 +176,12 @@ function RecibirIngresoFormulario({
     const equiposNoProgramados = ingreso.equipo_programaciones.filter(
         (item) => item.tipo_mantenimiento === 'CORRECTIVO',
     );
+    const filasEquipos = [...equiposProgramados, ...equiposNoProgramados];
+    const ningunoIngreso =
+        filasEquipos.length > 0 &&
+        correctivosPendientes.length === 0 &&
+        filasEquipos.every((item) => ingresados[item.id] === false);
+    const pideRecepcion = !ningunoIngreso;
     // Al cancelar el ingreso se cancelan de una vez todos sus equipos con la misma
     // novedad, previa confirmación (ver IngresoController::cancelarEquiposDelIngreso()).
     const totalEquipos = ingreso.equipo_programaciones.length;
@@ -161,20 +193,37 @@ function RecibirIngresoFormulario({
     );
     const [confirmarCancelacion, setConfirmarCancelacion] = useState(false);
     const cancelacionConfirmada = useRef(false);
+    // Por lote: se re-agendan todos para la misma fecha, salvo que la novedad los inactive.
+    const [reAgendarEquipos, setReAgendarEquipos] = useState(true);
+    const [fechaReAgendamiento, setFechaReAgendamiento] = useState('');
+    const novedadCancelacion = novedadesIngreso.find(
+        (novedad) => novedad.id.toString() === novedadCancelacionId,
+    );
+    const reAgendaPorLote =
+        reAgendarEquipos && !novedadCancelacion?.inactivar_equipo;
 
     return (
         <Form
             {...actualizarEstado.form(ingreso.id)}
             className="space-y-6"
             onBefore={() => {
-                if (aprobado && (!tecnicoId || !clienteId)) {
+                if (aprobado && hayFechasPendientes) {
+                    setRevisarEquipos(true);
+
+                    return false;
+                }
+
+                if (aprobado && pideRecepcion && (!tecnicoId || !clienteId)) {
                     setIntentoGuardar(true);
 
                     return false;
                 }
 
                 if (cancelado && totalEquipos > 0) {
-                    if (!novedadCancelacionId) {
+                    if (
+                        !novedadCancelacionId ||
+                        (reAgendaPorLote && !fechaReAgendamiento)
+                    ) {
                         setIntentoGuardar(true);
 
                         return false;
@@ -238,7 +287,7 @@ function RecibirIngresoFormulario({
                         <div className="space-y-1.5">
                             <Label>Equipos programados</Label>
                             <ul
-                                className="max-h-48 divide-y overflow-y-auto rounded-lg border bg-background"
+                                className="max-h-[50vh] divide-y overflow-y-auto rounded-lg border bg-background"
                                 data-test="equipos-recibidos-list"
                             >
                                 {equiposProgramados.map((item) => (
@@ -247,6 +296,9 @@ function RecibirIngresoFormulario({
                                         item={item}
                                         novedadesIngreso={novedadesIngreso}
                                         errors={errors}
+                                        mostrarErrores={revisarEquipos}
+                                        onSinFecha={reportarSinFecha}
+                                        onIngresado={reportarIngresado}
                                     />
                                 ))}
                             </ul>
@@ -259,7 +311,7 @@ function RecibirIngresoFormulario({
                         <div className="space-y-1.5">
                             <Label>Equipos no programados</Label>
                             <ul
-                                className="max-h-48 divide-y overflow-y-auto rounded-lg border bg-background"
+                                className="max-h-[50vh] divide-y overflow-y-auto rounded-lg border bg-background"
                                 data-test="correctivos-recibidos-list"
                             >
                                 {equiposNoProgramados.map((item) => (
@@ -268,6 +320,9 @@ function RecibirIngresoFormulario({
                                         item={item}
                                         novedadesIngreso={novedadesIngreso}
                                         errors={errors}
+                                        mostrarErrores={revisarEquipos}
+                                        onSinFecha={reportarSinFecha}
+                                        onIngresado={reportarIngresado}
                                     />
                                 ))}
                                 {correctivosPendientes.map(
@@ -325,7 +380,7 @@ function RecibirIngresoFormulario({
                         )
                     ) : null}
 
-                    {aprobado && mostrarDatosRecepcion ? (
+                    {aprobado && pideRecepcion && mostrarDatosRecepcion ? (
                         <div className="grid gap-6 sm:grid-cols-2">
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="fecha_recepcion">
@@ -507,6 +562,78 @@ function RecibirIngresoFormulario({
                                         : undefined)
                                 }
                             />
+
+                            <div className="mt-2 space-y-2 rounded-md bg-muted/40 p-3">
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="re_agendar_equipos"
+                                        checked={reAgendaPorLote}
+                                        disabled={
+                                            novedadCancelacion?.inactivar_equipo
+                                        }
+                                        onCheckedChange={(checked) =>
+                                            setReAgendarEquipos(
+                                                checked === true,
+                                            )
+                                        }
+                                        data-test="re-agendar-equipos-checkbox"
+                                    />
+                                    <Label
+                                        htmlFor="re_agendar_equipos"
+                                        className="font-normal"
+                                    >
+                                        Re-agendar los {totalEquipos} equipos
+                                        {novedadCancelacion?.inactivar_equipo
+                                            ? ' (no disponible: la novedad inactiva los equipos)'
+                                            : ''}
+                                    </Label>
+                                </div>
+                                <input
+                                    type="hidden"
+                                    name="re_agendar_equipos"
+                                    value={reAgendaPorLote ? '1' : '0'}
+                                />
+                                {reAgendaPorLote ? (
+                                    <div className="grid gap-2">
+                                        <Label
+                                            htmlFor="fecha_re_agendamiento"
+                                            className="text-xs"
+                                        >
+                                            Fecha del próximo agendamiento{' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
+                                        </Label>
+                                        <Input
+                                            id="fecha_re_agendamiento"
+                                            name="fecha_re_agendamiento"
+                                            type="date"
+                                            value={fechaReAgendamiento}
+                                            onChange={(evento) =>
+                                                setFechaReAgendamiento(
+                                                    evento.target.value,
+                                                )
+                                            }
+                                            className="w-full sm:w-48"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Quedan disponibles de nuevo para
+                                            esa fecha y saldrán en el próximo
+                                            ingreso de su bahía.
+                                        </p>
+                                        <InputError
+                                            message={
+                                                errors.fecha_re_agendamiento ??
+                                                errors.re_agendar_equipos ??
+                                                (intentoGuardar &&
+                                                !fechaReAgendamiento
+                                                    ? 'Elige la fecha del re-agendamiento.'
+                                                    : undefined)
+                                            }
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
                     ) : null}
 
@@ -530,6 +657,9 @@ function RecibirIngresoFormulario({
                                             )?.nombre
                                         }
                                     </span>
+                                    {reAgendaPorLote
+                                        ? ` y se re-agendarán para el ${fechaReAgendamiento}`
+                                        : ' y no se re-agendarán'}
                                     . ¿Desea continuar?
                                 </DialogDescription>
                             </DialogHeader>
@@ -570,15 +700,43 @@ function RecibirIngresoFormulario({
                         </div>
                     ) : null}
 
+                    {aprobado && ningunoIngreso ? (
+                        <p
+                            className="text-sm text-muted-foreground"
+                            data-test="ningun-equipo-ingreso"
+                        >
+                            Ningún equipo ingresó: no se piden los datos de
+                            recepción (técnico, cliente ni firma).
+                        </p>
+                    ) : null}
+
+                    {aprobado && revisarEquipos && hayFechasPendientes ? (
+                        <p
+                            className="text-sm text-destructive"
+                            data-test="equipos-sin-fecha-re-agendamiento"
+                        >
+                            Completa la fecha del próximo agendamiento de los
+                            equipos re-agendados para continuar.
+                        </p>
+                    ) : null}
+
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
                         </DialogClose>
 
-                        {aprobado && !mostrarDatosRecepcion ? (
+                        {aprobado && pideRecepcion && !mostrarDatosRecepcion ? (
                             <Button
                                 type="button"
-                                onClick={() => setMostrarDatosRecepcion(true)}
+                                onClick={() => {
+                                    if (hayFechasPendientes) {
+                                        setRevisarEquipos(true);
+
+                                        return;
+                                    }
+
+                                    setMostrarDatosRecepcion(true);
+                                }}
                                 data-test="ingreso-recibir-siguiente"
                             >
                                 Siguiente
@@ -603,6 +761,12 @@ type EquipoRecibidoProps = {
     item: EquipoProgramacionBusquedaItem;
     novedadesIngreso: NovedadIngresoOption[];
     errors: Partial<Record<string, string>>;
+    /** Marca la fecha del re-agendamiento faltante, tras intentar avanzar o guardar. */
+    mostrarErrores: boolean;
+    /** Avisa si la fila quedó re-agendada sin fecha, para no dejar avanzar. */
+    onSinFecha: (id: number, falta: boolean) => void;
+    /** Avisa si el equipo llegó (nulo al quitar la fila), para saber si alguno ingresó. */
+    onIngresado: (id: number, ingresado: boolean | null) => void;
 };
 
 /**
@@ -617,6 +781,9 @@ function EquipoRecibido({
     item,
     novedadesIngreso,
     errors,
+    mostrarErrores,
+    onSinFecha,
+    onIngresado,
 }: EquipoRecibidoProps) {
     const [ingresado, setIngresado] = useState(item.ingresado);
     const [novedadIngresoId, setNovedadIngresoId] = useState(
@@ -628,7 +795,13 @@ function EquipoRecibido({
     const [novedadAbierta, setNovedadAbierta] = useState(
         Boolean(item.novedad_ingreso_id || item.observacion_no_ingreso),
     );
-    const [reAgendar, setReAgendar] = useState(item.re_agendar);
+    // Uno que ya llegó con el estado guardado conserva su elección; uno nuevo sin llegar
+    // (o al desmarcarlo) se re-agenda por defecto.
+    const [reAgendar, setReAgendar] = useState(
+        item.ingresado || item.novedad_ingreso_id !== null
+            ? item.re_agendar
+            : true,
+    );
     const [fechaAgendamiento, setFechaAgendamiento] = useState(
         item.datos_re_agendamiento?.fecha_proximo_agendamiento ?? '',
     );
@@ -643,11 +816,31 @@ function EquipoRecibido({
     // Si la novedad elegida inactiva el equipo, no tiene sentido re-agendarlo.
     const novedadInactiva = inactiva(novedadIngresoId);
 
+    // Re-agendado sin fecha: se avisa al formulario para no dejar avanzar ni guardar.
+    const faltaFecha =
+        !ingresado && reAgendar && !novedadInactiva && !fechaAgendamiento;
+
+    useEffect(() => {
+        onSinFecha(item.id, faltaFecha);
+    }, [item.id, faltaFecha, onSinFecha]);
+
+    // Al quitar la fila (ej. al cambiar de estado), deja de contar.
+    useEffect(() => () => onSinFecha(item.id, false), [item.id, onSinFecha]);
+
+    useEffect(() => {
+        onIngresado(item.id, ingresado);
+    }, [item.id, ingresado, onIngresado]);
+
+    useEffect(() => () => onIngresado(item.id, null), [item.id, onIngresado]);
+
+    // Un equipo que no llegó se re-agenda por defecto, salvo que la novedad lo inactive.
     const elegirNovedad = (novedadId: string) => {
         setNovedadIngresoId(novedadId);
 
         if (inactiva(novedadId)) {
             setReAgendar(false);
+        } else if (novedadInactiva) {
+            setReAgendar(true);
         }
     };
 
@@ -662,6 +855,10 @@ function EquipoRecibido({
     // motivo de cancelación.
     const cambiarIngresado = (valor: boolean) => {
         setIngresado(valor);
+
+        if (!valor && !novedadInactiva) {
+            setReAgendar(true);
+        }
 
         if (
             valor &&
@@ -758,8 +955,8 @@ function EquipoRecibido({
             data-test="equipo-recibido-item"
         >
             <div className="flex items-center justify-between gap-3">
-                <div>
-                    <span className="text-sm font-medium">
+                <div className="min-w-0">
+                    <span className="text-sm font-medium break-words">
                         {item.equipo.codigo} · {item.equipo.tipo_equipo.nombre}{' '}
                         · {item.equipo.modelo}
                     </span>
@@ -801,51 +998,64 @@ function EquipoRecibido({
                 <div className="space-y-2 rounded-md bg-muted/40 p-2">
                     {camposNovedad}
 
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id={`re-agendar-${item.id}`}
-                            checked={reAgendar}
-                            disabled={novedadInactiva}
-                            onCheckedChange={(checked) =>
-                                setReAgendar(checked === true)
-                            }
-                        />
-                        <Label
-                            htmlFor={`re-agendar-${item.id}`}
-                            className="text-xs font-normal"
-                        >
-                            Re-agendar
-                            {novedadInactiva
-                                ? ' (no disponible: la novedad inactiva el equipo)'
-                                : ''}
-                        </Label>
+                    {/* El check y la fecha en la misma línea (en pantallas angostas, la fecha baja). */}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id={`re-agendar-${item.id}`}
+                                checked={reAgendar}
+                                disabled={novedadInactiva}
+                                onCheckedChange={(checked) =>
+                                    setReAgendar(checked === true)
+                                }
+                            />
+                            <Label
+                                htmlFor={`re-agendar-${item.id}`}
+                                className="text-xs font-normal"
+                            >
+                                Re-agendar
+                                {novedadInactiva
+                                    ? ' (no disponible: la novedad inactiva el equipo)'
+                                    : ''}
+                            </Label>
+                        </div>
+
+                        {reAgendar ? (
+                            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                                <Label
+                                    htmlFor={`fecha-agendamiento-${item.id}`}
+                                    className="text-xs sm:whitespace-nowrap"
+                                >
+                                    Fecha del próximo agendamiento{' '}
+                                    <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id={`fecha-agendamiento-${item.id}`}
+                                    type="date"
+                                    value={fechaAgendamiento}
+                                    onChange={(event) =>
+                                        setFechaAgendamiento(event.target.value)
+                                    }
+                                    className="h-8 w-full sm:w-44"
+                                    aria-invalid={
+                                        mostrarErrores && !fechaAgendamiento
+                                    }
+                                />
+                            </div>
+                        ) : null}
                     </div>
 
                     {reAgendar ? (
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={`fecha-agendamiento-${item.id}`}
-                                className="text-xs"
-                            >
-                                Fecha del próximo agendamiento
-                            </Label>
-                            <Input
-                                id={`fecha-agendamiento-${item.id}`}
-                                type="date"
-                                value={fechaAgendamiento}
-                                onChange={(event) =>
-                                    setFechaAgendamiento(event.target.value)
-                                }
-                                className="w-48"
-                            />
-                            <InputError
-                                message={
-                                    errors[
-                                        `${prefijo}.datos_re_agendamiento.fecha_proximo_agendamiento`
-                                    ]
-                                }
-                            />
-                        </div>
+                        <InputError
+                            message={
+                                errors[
+                                    `${prefijo}.datos_re_agendamiento.fecha_proximo_agendamiento`
+                                ] ??
+                                (mostrarErrores && !fechaAgendamiento
+                                    ? 'Elige la fecha del próximo agendamiento.'
+                                    : undefined)
+                            }
+                        />
                     ) : null}
                 </div>
             )}

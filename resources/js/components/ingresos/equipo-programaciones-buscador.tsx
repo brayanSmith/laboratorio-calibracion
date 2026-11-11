@@ -20,6 +20,7 @@ import type {
     EquipoProgramacionBusquedaItem,
     EstadoVencimiento,
 } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     desde: string;
@@ -109,7 +110,7 @@ function ProgramacionResultado({ item, puedeEditar, errors }: ResultadoProps) {
                                 ? ` · ${item.equipo.bahia.nombre}`
                                 : ''}
                             {item.fecha_proximo_servicio
-                                ? ` · Próximo servicio: ${item.fecha_proximo_servicio.slice(0, 10)}`
+                                ? ` · Próximo servicio: ${formatearFecha(item.fecha_proximo_servicio)}`
                                 : item.falla_detectada
                                   ? ` · Falla: ${item.falla_detectada}`
                                   : ''}

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import type { Despacho } from '@/types';
+import { formatearFecha, formatearFechaHora, mostrarFecha } from '@/lib/fechas';
 
 type Props = {
     despacho: Despacho | null;
@@ -29,7 +30,7 @@ function Dato({
     return (
         <div className="grid gap-1">
             <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
-            <div className="text-sm">{children}</div>
+            <div className="text-sm">{mostrarFecha(children)}</div>
         </div>
     );
 }
@@ -112,17 +113,12 @@ export default function VerDespachoModal({
                                     className="rounded-md border px-3 py-2 text-sm"
                                 >
                                     <p className="font-medium">
-                                        {reagendamiento.fecha_anterior} →{' '}
-                                        {reagendamiento.fecha_nueva}
+                                        {formatearFecha(reagendamiento.fecha_anterior)} →{' '}
+                                        {formatearFecha(reagendamiento.fecha_nueva)}
                                     </p>
                                     <p>{reagendamiento.motivo}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {new Date(
-                                            reagendamiento.fecha,
-                                        ).toLocaleString('es-PE', {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
-                                        })}{' '}
+                                        {formatearFechaHora(reagendamiento.fecha)}{' '}
                                         · {reagendamiento.usuario ?? 'Sistema'}
                                     </p>
                                 </li>

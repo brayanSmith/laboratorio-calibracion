@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { destroy } from '@/routes/ingresos';
 import type { Ingreso } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     ingreso: Ingreso | null;
@@ -52,7 +53,7 @@ export default function DeleteIngresoModal({
                                             </strong>
                                         </>
                                     ) : null}{' '}
-                                    del {ingreso.desde}. Solo es posible si no
+                                    del {formatearFecha(ingreso.desde)}. Solo es posible si no
                                     tiene órdenes de trabajo asociadas.
                                 </DialogDescription>
                             </DialogHeader>

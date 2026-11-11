@@ -177,7 +177,9 @@ class CalcularCumplimiento
                 ->all(),
             // Equipos que no llegaron al ingreso (cancelados o re-agendados), con su novedad,
             // para gestionarlos; y cuántos hubo por cada novedad, de la más a la menos usada.
-            'no_recibidos' => $noRecibidos->all(),
+            // Una fila por equipo y cadena de re-agendamientos (no una por cada vez que no
+            // llegó); el gráfico de novedades sí cuenta cada vez, con su novedad.
+            'no_recibidos' => $this->agruparPorCadena($noRecibidos)->all(),
             'novedades_no_recibidos' => $noRecibidos
                 ->groupBy(fn (array $fila): string => $fila['novedad'] ?? 'Sin novedad')
                 ->map(fn (Collection $deUnaNovedad, string $novedad): array => [
@@ -298,7 +300,7 @@ class CalcularCumplimiento
      */
     private function noRecibidos(int $tenantId, array $filtros, array $tiposMantenimiento): Collection
     {
-        return EquipoProgramacion::query()
+        $programaciones = EquipoProgramacion::query()
             ->where('tenant_id', $tenantId)
             ->where('ingresado', false)
             ->whereHas('ingreso', fn (Builder $ingreso) => $ingreso
@@ -312,13 +314,28 @@ class CalcularCumplimiento
                 'novedadIngreso:id,nombre',
             ])
             ->get()
-            ->toBase()
-            ->sortBy([
-                fn (EquipoProgramacion $a, EquipoProgramacion $b): int => self::rangoCriticidad($a->equipo->criticidad) <=> self::rangoCriticidad($b->equipo->criticidad),
-                fn (EquipoProgramacion $a, EquipoProgramacion $b): int => $a->fecha_proximo_servicio <=> $b->fecha_proximo_servicio,
-            ])
+            ->toBase();
+
+        // De qué programación salió cada una al re-agendar, para saber a qué cadena pertenece.
+        $reAgendadaDe = EquipoProgramacion::withTrashed()
+            ->whereIn('equipo_id', $programaciones->pluck('equipo_id')->unique()->all())
+            ->whereNotNull('re_agendada_de_id')
+            ->pluck('re_agendada_de_id', 'id');
+        $raizDe = function (int $id) use ($reAgendadaDe): int {
+            $visitados = [];
+
+            while (isset($reAgendadaDe[$id]) && ! isset($visitados[$id])) {
+                $visitados[$id] = true;
+                $id = (int) $reAgendadaDe[$id];
+            }
+
+            return $id;
+        };
+
+        return $programaciones
             ->map(fn (EquipoProgramacion $programacion): array => [
                 'programacion_id' => $programacion->id,
+                'cadena' => $raizDe($programacion->id),
                 'ingreso_id' => $programacion->ingreso_id,
                 'equipo_id' => $programacion->equipo->id,
                 'equipo' => $programacion->equipo->codigo,
@@ -334,6 +351,41 @@ class CalcularCumplimiento
                     ? ($programacion->datos_re_agendamiento['fecha_proximo_agendamiento'] ?? null)
                     : null,
             ])
+            ->values();
+    }
+
+    /**
+     * Junta las veces que un mismo equipo no llegó a lo largo de una cadena de
+     * re-agendamientos en una sola fila: la fecha programada de la primera, y el estado, la
+     * novedad y la fecha re-agendada de la última, con cuántas veces no llegó. La traza se
+     * abre desde la primera, para ver toda la cadena. Los más críticos primero.
+     *
+     * @param  Collection<int, array<string, mixed>>  $noRecibidos
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function agruparPorCadena(Collection $noRecibidos): Collection
+    {
+        return $noRecibidos
+            ->groupBy('cadena')
+            ->map(function (Collection $deUnaCadena): array {
+                $enOrden = $deUnaCadena->sortBy('programacion_id')->values();
+                $primera = $enOrden->first();
+                $ultima = $enOrden->last();
+
+                return [
+                    ...$primera,
+                    'estado_programacion' => $ultima['estado_programacion'],
+                    'novedad' => $ultima['novedad'],
+                    'observacion' => $ultima['observacion'],
+                    'fecha_re_agendamiento' => $ultima['fecha_re_agendamiento'],
+                    'veces_no_recibido' => $enOrden->count(),
+                ];
+            })
+            ->sortBy([
+                fn (array $a, array $b): int => self::rangoCriticidad($a['criticidad']) <=> self::rangoCriticidad($b['criticidad']),
+                fn (array $a, array $b): int => $a['fecha_programada'] <=> $b['fecha_programada'],
+            ])
+            ->map(fn (array $fila): array => collect($fila)->except('cadena')->all())
             ->values();
     }
 

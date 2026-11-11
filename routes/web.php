@@ -56,6 +56,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/indicadores/tiempos-atencion', [IndicadoresDashboardController::class, 'tiemposAtencion'])->name('dashboard.indicadores.tiempos-atencion');
     Route::get('dashboard/indicadores/desempeno-tecnicos', [IndicadoresDashboardController::class, 'desempenoTecnicos'])->name('dashboard.indicadores.desempeno-tecnicos');
     Route::get('dashboard/indicadores/cumplimiento', [IndicadoresDashboardController::class, 'cumplimiento'])->name('dashboard.indicadores.cumplimiento');
+    Route::get('dashboard/indicadores/cumplimiento/no-recibidos/{programacion}/traza', [IndicadoresDashboardController::class, 'trazaNoRecibido'])->name('dashboard.indicadores.cumplimiento.traza-no-recibido');
     Route::get('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'index'])->name('dashboard.objetivos.index');
     Route::put('dashboard/objetivos/{modulo}', [ObjetivosDashboardController::class, 'store'])->name('dashboard.objetivos.store');
     Route::delete('dashboard/objetivos/{modulo}/{anio}', [ObjetivosDashboardController::class, 'destroy'])->whereNumber('anio')->name('dashboard.objetivos.destroy');

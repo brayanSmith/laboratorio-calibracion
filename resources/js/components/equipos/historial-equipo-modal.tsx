@@ -53,6 +53,7 @@ import {
     rangoDelPeriodo,
 } from '@/lib/periodo-historial';
 import type { Equipo, HistorialEquipo } from '@/types';
+import { formatearFecha, mostrarFecha } from '@/lib/fechas';
 
 type Props = {
     equipo: Equipo | null;
@@ -134,7 +135,7 @@ function Dato({ label, value }: { label: string; value: ReactNode }) {
             <span className="text-muted-foreground">{label}: </span>
             {value === null || value === undefined || value === ''
                 ? '—'
-                : value}
+                : mostrarFecha(value)}
         </span>
     );
 }
@@ -506,7 +507,7 @@ export default function HistorialEquipoModal({
                                         {filtrados.ingresos.map((ingreso) => (
                                             <Tarjeta
                                                 key={ingreso.id}
-                                                titulo={`Ingreso del ${ingreso.desde} al ${ingreso.hasta}`}
+                                                titulo={`Ingreso del ${formatearFecha(ingreso.desde)} al ${formatearFecha(ingreso.hasta)}`}
                                                 onVer={() =>
                                                     ver('ingreso', ingreso.id)
                                                 }
@@ -559,7 +560,7 @@ export default function HistorialEquipoModal({
                                             (mantenimiento) => (
                                                 <Tarjeta
                                                     key={mantenimiento.id}
-                                                    titulo={`${mantenimiento.orden_trabajo_codigo} · ${mantenimiento.fecha_mantenimiento}`}
+                                                    titulo={`${mantenimiento.orden_trabajo_codigo} · ${formatearFecha(mantenimiento.fecha_mantenimiento)}`}
                                                     onVer={() =>
                                                         ver(
                                                             'mantenimiento',
@@ -622,7 +623,7 @@ export default function HistorialEquipoModal({
                                             (calibracion) => (
                                                 <Tarjeta
                                                     key={calibracion.id}
-                                                    titulo={`${calibracion.orden_trabajo_codigo} · ${calibracion.fecha_calibracion}`}
+                                                    titulo={`${calibracion.orden_trabajo_codigo} · ${formatearFecha(calibracion.fecha_calibracion)}`}
                                                     onVer={() =>
                                                         ver(
                                                             'calibracion',
@@ -751,7 +752,7 @@ export default function HistorialEquipoModal({
                                             (servicio) => (
                                                 <Tarjeta
                                                     key={servicio.id}
-                                                    titulo={`${servicio.orden_trabajo_codigo} · ${servicio.fecha}`}
+                                                    titulo={`${servicio.orden_trabajo_codigo} · ${formatearFecha(servicio.fecha)}`}
                                                     onVer={() =>
                                                         ver(
                                                             'servicio_tercero',

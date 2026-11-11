@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
 import type { Mantenimiento, MantenimientoItemOption } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     mantenimiento: Mantenimiento | null;
@@ -244,7 +245,7 @@ function GestionarMantenimientoFormulario({
                                     Fecha
                                 </Label>
                                 <p className="text-sm">
-                                    {mantenimiento.fecha_mantenimiento}
+                                    {formatearFecha(mantenimiento.fecha_mantenimiento)}
                                 </p>
                             </div>
                             <div className="grid gap-1">

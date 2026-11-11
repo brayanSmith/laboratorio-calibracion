@@ -14,17 +14,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { useMarcarImportacionLeida } from '@/hooks/use-marcar-importacion-leida';
 import { cn } from '@/lib/utils';
 import type { ResumenImportacion } from '@/types';
+import { formatearFechaHora } from '@/lib/fechas';
 
 /** Cada cuánto se refresca el avance de las importaciones que siguen cargando. */
 const INTERVALO_AVANCE_MS = 2000;
 
 function formatearFecha(fecha: string | null): string {
-    return fecha
-        ? new Date(fecha).toLocaleString('es-CO', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-          })
-        : '';
+    return formatearFechaHora(fecha, '');
 }
 
 function TarjetaImportacion({

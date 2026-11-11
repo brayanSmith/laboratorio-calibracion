@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { destroy } from '@/routes/comentarios';
 import type { MantenimientoComentario } from '@/types';
+import { formatearFechaHora } from '@/lib/fechas';
 
 type Props = {
     comentarios: MantenimientoComentario[];
@@ -53,9 +54,7 @@ export default function MantenimientoComentarios({
                                     </p>
                                     <p className="text-xs text-muted-foreground">
                                         {comentario.autor} ·{' '}
-                                        {new Date(
-                                            comentario.fecha,
-                                        ).toLocaleString()}
+                                        {formatearFechaHora(comentario.fecha)}
                                     </p>
                                 </div>
                                 <Button

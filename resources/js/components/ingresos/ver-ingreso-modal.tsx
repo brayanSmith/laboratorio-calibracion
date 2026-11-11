@@ -16,6 +16,7 @@ import type {
     Ingreso,
     IngresoOption,
 } from '@/types';
+import { formatearFecha, mostrarFecha } from '@/lib/fechas';
 
 type Props = {
     ingreso: Ingreso | null;
@@ -34,7 +35,7 @@ function Dato({
     return (
         <div className="grid gap-1">
             <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
-            <div className="text-sm">{children}</div>
+            <div className="text-sm">{mostrarFecha(children)}</div>
         </div>
     );
 }
@@ -68,8 +69,8 @@ export default function VerIngresoModal({
                 <DialogHeader>
                     <DialogTitle>Detalle del ingreso</DialogTitle>
                     <DialogDescription>
-                        {ingreso.bahia_nombre} · {ingreso.desde} al{' '}
-                        {ingreso.hasta}
+                        {ingreso.bahia_nombre} · {formatearFecha(ingreso.desde)} al{' '}
+                        {formatearFecha(ingreso.hasta)}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -209,7 +210,7 @@ function EquipoDetalle({
                     <span className="text-muted-foreground">
                         Re-agendado para:
                     </span>{' '}
-                    {item.datos_re_agendamiento.fecha_proximo_agendamiento}
+                    {formatearFecha(item.datos_re_agendamiento.fecha_proximo_agendamiento)}
                 </p>
             ) : null}
         </li>

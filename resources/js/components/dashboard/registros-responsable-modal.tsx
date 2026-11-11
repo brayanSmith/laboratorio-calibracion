@@ -15,6 +15,7 @@ import { cumplimientoDelRegistro } from '@/lib/cumplimiento-responsable';
 import type { CumplimientoTiempo } from '@/lib/cumplimiento-responsable';
 import { formatearHoras } from '@/lib/indicadores';
 import type { DesempenoTecnicos } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Registro = DesempenoTecnicos['servicios'][number] & {
     cumplimiento: CumplimientoTiempo | null;
@@ -32,13 +33,6 @@ type Props = {
 };
 
 const columnHelper = createDataTableColumnHelper<Registro>();
-
-const formatoFecha = new Intl.DateTimeFormat('es', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-});
 
 /** Badge del servicio, con el color de su serie en los gráficos. */
 export function BadgeServicio({
@@ -64,7 +58,7 @@ const columns = columnHelper.columns([
         header: 'Fecha',
         cell: (info) => (
             <span className="whitespace-nowrap tabular-nums">
-                {formatoFecha.format(new Date(`${info.getValue()}T00:00:00Z`))}
+                {formatearFecha(info.getValue())}
             </span>
         ),
     }),

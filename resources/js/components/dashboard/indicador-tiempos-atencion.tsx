@@ -32,6 +32,7 @@ import {
     tonoMapaCalor,
 } from '@/lib/indicadores';
 import type { TiemposAtencion } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type EquipoAtendido = TiemposAtencion['equipos'][number];
 
@@ -186,7 +187,7 @@ export default function IndicadorTiemposAtencion() {
                 columnHelper.accessor((fila) => fila.fecha_recepcion ?? '', {
                     id: 'fecha_recepcion',
                     header: 'Ingreso',
-                    cell: ({ row }) => row.original.fecha_recepcion ?? '—',
+                    cell: ({ row }) => formatearFecha(row.original.fecha_recepcion),
                 }),
                 columnHelper.accessor('fecha_despacho', {
                     header: 'Despacho',

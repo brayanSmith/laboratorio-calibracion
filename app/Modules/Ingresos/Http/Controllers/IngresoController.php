@@ -217,7 +217,12 @@ class IngresoController extends Controller
             $ingreso->update($data);
 
             if ($data['estado_ingreso'] === 'CANCELADO') {
-                $this->cancelarEquiposDelIngreso($ingreso, $request->validated('novedad_cancelacion_id'), $data['motivo_cancelacion']);
+                $this->cancelarEquiposDelIngreso(
+                    $ingreso,
+                    $request->validated('novedad_cancelacion_id'),
+                    $data['motivo_cancelacion'],
+                    $request->boolean('re_agendar_equipos') ? $request->validated('fecha_re_agendamiento') : null,
+                );
             } else {
                 $this->guardarEquiposRecibidos($request, $ingreso);
             }
@@ -272,16 +277,20 @@ class IngresoController extends Controller
         $ingreso->equipoProgramacion()
             ->where('tipo_mantenimiento', 'PREVENTIVO')
             ->get()
-            ->each->update([
-                'estado_programacion' => 'PENDIENTE',
-                'agendar' => true,
-                'ingresado' => true,
-                'novedad_ingreso_id' => null,
-                'observacion_no_ingreso' => null,
-                're_agendar' => false,
-                'datos_re_agendamiento' => null,
-                'ingreso_id' => null,
-            ]);
+            ->each(function (EquipoProgramacion $programacion): void {
+                $programacion->update([
+                    'estado_programacion' => 'PENDIENTE',
+                    'agendar' => true,
+                    'ingresado' => true,
+                    'novedad_ingreso_id' => null,
+                    'observacion_no_ingreso' => null,
+                    're_agendar' => false,
+                    'datos_re_agendamiento' => null,
+                    'ingreso_id' => null,
+                ]);
+                // Vuelve a estar pendiente ella misma: se quita la re-agendada que aún no se agendó.
+                $programacion->sincronizarReAgendamiento();
+            });
     }
 
     /**
@@ -326,22 +335,24 @@ class IngresoController extends Controller
             $ingresado = $recibido['ingresado'] ?? true;
             $reAgendar = ! $ingresado && ($recibido['re_agendar'] ?? false);
 
-            EquipoProgramacion::query()
+            $programacion = EquipoProgramacion::query()
                 ->where('id', $recibido['id'])
                 ->where('tenant_id', $ingreso->tenant_id)
-                ->first()
-                ?->update([
-                    'ingresado' => $ingresado,
-                    'estado_programacion' => match (true) {
-                        $ingresado => 'RECIBIDO',
-                        $reAgendar => 'RE_AGENDADO',
-                        default => 'CANCELADO',
-                    },
-                    'novedad_ingreso_id' => $recibido['novedad_ingreso_id'] ?? null,
-                    'observacion_no_ingreso' => $recibido['observacion_no_ingreso'] ?? null,
-                    're_agendar' => $reAgendar,
-                    'datos_re_agendamiento' => $reAgendar ? $recibido['datos_re_agendamiento'] : null,
-                ]);
+                ->first();
+
+            $programacion?->update([
+                'ingresado' => $ingresado,
+                'estado_programacion' => match (true) {
+                    $ingresado => 'RECIBIDO',
+                    $reAgendar => 'RE_AGENDADO',
+                    default => 'CANCELADO',
+                },
+                'novedad_ingreso_id' => $recibido['novedad_ingreso_id'] ?? null,
+                'observacion_no_ingreso' => $recibido['observacion_no_ingreso'] ?? null,
+                're_agendar' => $reAgendar,
+                'datos_re_agendamiento' => $reAgendar ? $recibido['datos_re_agendamiento'] : null,
+            ]);
+            $programacion?->sincronizarReAgendamiento();
         }
 
         foreach ($request->validated('equipos_correctivos_recibidos', []) as $correctivo) {
@@ -351,22 +362,27 @@ class IngresoController extends Controller
 
     /**
      * Al cancelar el ingreso, cancela de una vez todos sus equipos (en vez de uno por
-     * uno al recibir): quedan como no ingresados, sin re-agendar, con la novedad
-     * elegida y el motivo de cancelación como observación. Se actualizan modelo a
-     * modelo para que corran el seguimiento y la inactivación por novedad.
+     * uno al recibir): quedan como no ingresados, con la novedad elegida y el motivo de
+     * cancelación como observación. Si se re-agendan (por lote, todos para la misma
+     * fecha), cada uno queda disponible de nuevo para esa fecha (ver
+     * EquipoProgramacion::sincronizarReAgendamiento()). Se actualizan modelo a modelo
+     * para que corran el seguimiento y la inactivación por novedad.
      */
-    private function cancelarEquiposDelIngreso(Ingreso $ingreso, ?int $novedadId, ?string $motivo): void
+    private function cancelarEquiposDelIngreso(Ingreso $ingreso, ?int $novedadId, ?string $motivo, ?string $fechaReAgendamiento): void
     {
         $ingreso->equipoProgramacion()
             ->get()
-            ->each->update([
-                'ingresado' => false,
-                'estado_programacion' => 'CANCELADO',
-                'novedad_ingreso_id' => $novedadId,
-                'observacion_no_ingreso' => $motivo,
-                're_agendar' => false,
-                'datos_re_agendamiento' => null,
-            ]);
+            ->each(function (EquipoProgramacion $programacion) use ($novedadId, $motivo, $fechaReAgendamiento): void {
+                $programacion->update([
+                    'ingresado' => false,
+                    'estado_programacion' => $fechaReAgendamiento ? 'RE_AGENDADO' : 'CANCELADO',
+                    'novedad_ingreso_id' => $novedadId,
+                    'observacion_no_ingreso' => $motivo,
+                    're_agendar' => $fechaReAgendamiento !== null,
+                    'datos_re_agendamiento' => $fechaReAgendamiento ? ['fecha_proximo_agendamiento' => $fechaReAgendamiento] : null,
+                ]);
+                $programacion->sincronizarReAgendamiento();
+            });
     }
 
     /**

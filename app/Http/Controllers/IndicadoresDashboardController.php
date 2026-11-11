@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Actions\Dashboard\CalcularCumplimiento;
 use App\Actions\Dashboard\CalcularDesempenoTecnicos;
 use App\Actions\Dashboard\CalcularTiemposAtencion;
+use App\Actions\Dashboard\CalcularTrazaNoRecibido;
 use App\Enums\ModuloObjetivo;
 use App\Enums\TenantPermission;
 use App\Http\Requests\Dashboard\IndicadoresDashboardRequest;
 use App\Models\ObjetivoDashboard;
 use App\Models\ObjetivoUser;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Indicadores del dashboard. Cada uno se pide por separado (según sus filtros) y solo lo
@@ -46,6 +49,18 @@ class IndicadoresDashboardController extends Controller
         abort_unless($request->user()->can(TenantPermission::DashboardCumplimiento->value), 403);
 
         return $this->conObjetivos($request, ModuloObjetivo::Cumplimiento, $calcular->handle($request->user()->tenant_id, $this->filtrosMultiples($request)));
+    }
+
+    /**
+     * Traza de un equipo no recibido en el ingreso (de la tabla de cumplimiento): su
+     * seguimiento, el re-agendamiento y lo que pasó después con el equipo.
+     */
+    public function trazaNoRecibido(Request $request, EquipoProgramacion $programacion, CalcularTrazaNoRecibido $calcular): JsonResponse
+    {
+        abort_unless($request->user()->can(TenantPermission::DashboardCumplimiento->value), 403);
+        abort_unless($programacion->tenant_id === $request->user()->tenant_id, 404);
+
+        return response()->json($calcular->handle($programacion));
     }
 
     /**

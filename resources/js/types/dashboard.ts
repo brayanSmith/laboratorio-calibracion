@@ -162,7 +162,7 @@ export type Cumplimiento = {
         fecha_programada: string;
         estado_programacion: string;
     }[];
-    /** Equipos que no llegaron al ingreso (cancelados o re-agendados), una fila por programación. */
+    /** Equipos que no llegaron al ingreso (cancelados o re-agendados), una fila por equipo y cadena de re-agendamientos. */
     no_recibidos: {
         programacion_id: number;
         ingreso_id: number;
@@ -177,6 +177,8 @@ export type Cumplimiento = {
         novedad: string | null;
         observacion: string | null;
         fecha_re_agendamiento: string | null;
+        /** Cuántas veces no llegó a lo largo de su cadena de re-agendamientos (la fila las junta). */
+        veces_no_recibido: number;
     }[];
     /** Cuántos no recibidos hubo por cada novedad, de la más a la menos usada. */
     novedades_no_recibidos: {
@@ -243,5 +245,84 @@ export type ObjetivosMensualesModulo = {
         meses: Partial<
             Record<string, Partial<Record<ConceptoObjetivo, number>>>
         >;
+    }[];
+};
+
+/** Una vez en que cambió el estado de la programación, con quién y cuándo. */
+export type SeguimientoTraza = {
+    id: number;
+    fase: string;
+    seguimiento: string | null;
+    observaciones: string | null;
+    usuario: string | null;
+    /** Fecha y hora ISO 8601. */
+    fecha: string | null;
+};
+
+/** Mantenimiento, calibración (propio o de tercero) o despacho de una orden de trabajo. */
+export type ServicioTraza = {
+    servicio: 'MANTENIMIENTO' | 'CALIBRACION' | 'DESPACHO';
+    estado: string;
+    fecha: string | null;
+    tercero: boolean;
+};
+
+export type IngresoTraza = {
+    id: number;
+    bahia: string | null;
+    desde: string;
+    hasta: string;
+    estado_ingreso: string;
+    fecha_recepcion: string | null;
+};
+
+/**
+ * Traza de un equipo no recibido en el ingreso: la programación, si se re-agendó (y si
+ * se cumplió), su seguimiento y lo que pasó después en los ingresos siguientes.
+ */
+export type TrazaNoRecibido = {
+    programacion: {
+        id: number;
+        equipo_id: number;
+        equipo: string;
+        modelo: string;
+        criticidad: CriticidadEquipo | null;
+        tipo_servicio: string;
+        fecha_programada: string | null;
+        estado_programacion: string;
+        novedad: string | null;
+        observacion: string | null;
+        ingreso: (IngresoTraza & { motivo_cancelacion: string | null }) | null;
+    };
+    re_agendamiento: {
+        fecha: string | null;
+        estado: 'CUMPLIDO' | 'PENDIENTE' | 'VENCIDO';
+        /** Cuántas veces se re-agendó, siguiendo la cadena. */
+        veces: number;
+        /**
+         * Cada programación que dejó un re-agendamiento, en orden (vacía en los re-agendados
+         * de antes del enlace): la fecha que se eligió y qué pasó con ella.
+         */
+        cadena: {
+            id: number;
+            /** La fecha elegida al re-agendar. */
+            fecha: string | null;
+            estado_programacion: string;
+            ingresado: boolean;
+            novedad: string | null;
+            observacion: string | null;
+            ingreso: IngresoTraza | null;
+            servicios: ServicioTraza[];
+        }[];
+    } | null;
+    seguimientos: SeguimientoTraza[];
+    posteriores: {
+        id: number;
+        estado_programacion: string;
+        /** Si el equipo llegó a ese ingreso y el ingreso quedó recibido. */
+        ingresado: boolean;
+        novedad: string | null;
+        ingreso: IngresoTraza;
+        servicios: ServicioTraza[];
     }[];
 };

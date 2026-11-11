@@ -48,6 +48,7 @@ import {
 } from '@/lib/periodos-grafico';
 import { cn } from '@/lib/utils';
 import type { DesempenoTecnicos } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Responsable = DesempenoTecnicos['responsables'][number];
 
@@ -256,7 +257,7 @@ function ComparacionAnterior({
                 formato={
                     medida === 'cantidad' ? formatearCantidad : formatearHoras
                 }
-                titulo={`Periodo anterior: ${anterior.desde} a ${anterior.hasta}`}
+                titulo={`Periodo anterior: ${formatearFecha(anterior.desde)} a ${formatearFecha(anterior.hasta)}`}
             />
         </div>
     );

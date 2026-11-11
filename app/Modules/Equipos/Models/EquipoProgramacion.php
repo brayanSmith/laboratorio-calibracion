@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -40,6 +41,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $observacion_no_ingreso Detalle adicional opcional
  * @property bool $re_agendar Solo tiene sentido junto con novedad_ingreso_id
  * @property array<string, mixed>|null $datos_re_agendamiento Fecha del próximo agendamiento, si re_agendar es true
+ * @property int|null $re_agendada_de_id La programación no recibida de la que sale esta, al re-agendar el equipo (ver reAgendar())
+ * @property-read EquipoProgramacion|null $reAgendadaDe
+ * @property-read EquipoProgramacion|null $reAgendamiento La programación nueva que dejó disponible al equipo, si se re-agendó
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -56,7 +60,7 @@ use Illuminate\Support\Carbon;
     'intervalo_servicio', 'intervalo_unidad', 'fecha_apertura_historial_servicio',
     'fecha_ultimo_servicio', 'fecha_proximo_servicio', 'dias_plazo_vencimiento',
     'ingreso_id', 'agendar', 'ingresado', 'estado_programacion', 'novedad_ingreso_id', 'observacion_no_ingreso',
-    're_agendar', 'datos_re_agendamiento', 'tenant_id',
+    're_agendar', 'datos_re_agendamiento', 're_agendada_de_id', 'tenant_id',
 ])]
 class EquipoProgramacion extends Model
 {
@@ -216,6 +220,68 @@ class EquipoProgramacion extends Model
             ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'))
             // Un equipo inactivo (ej. por una novedad del ingreso) no sigue a mantenimiento.
             ->whereHas('equipo', fn ($q) => $q->where('activo', true));
+    }
+
+    /**
+     * Get the programación no recibida de la que sale esta, si es un re-agendamiento.
+     *
+     * @return BelongsTo<EquipoProgramacion, $this>
+     */
+    public function reAgendadaDe(): BelongsTo
+    {
+        return $this->belongsTo(EquipoProgramacion::class, 're_agendada_de_id');
+    }
+
+    /**
+     * Get the programación nueva que dejó disponible al equipo al re-agendarlo.
+     *
+     * @return HasOne<EquipoProgramacion, $this>
+     */
+    public function reAgendamiento(): HasOne
+    {
+        return $this->hasOne(EquipoProgramacion::class, 're_agendada_de_id');
+    }
+
+    /**
+     * Aplica el re-agendamiento de un equipo que no llegó al ingreso: si se re-agendó, deja
+     * una programación nueva en PENDIENTE para esa fecha (con el mismo servicio), que sale en
+     * el buscador del próximo ingreso de su bahía; si ya existía y aún no se agenda, solo le
+     * cambia la fecha. Si se quitó el re-agendamiento, borra la que aún no se agendó. Solo
+     * los preventivos: los correctivos se agregan directo desde un ingreso.
+     */
+    public function sincronizarReAgendamiento(): void
+    {
+        $fecha = $this->re_agendar ? ($this->datos_re_agendamiento['fecha_proximo_agendamiento'] ?? null) : null;
+        $pendiente = $this->reAgendamiento()->where('estado_programacion', 'PENDIENTE')->first();
+
+        if ($fecha === null || $this->tipo_mantenimiento !== 'PREVENTIVO') {
+            $pendiente?->delete();
+
+            return;
+        }
+
+        if ($pendiente) {
+            $pendiente->update(['fecha_proximo_servicio' => $fecha]);
+
+            return;
+        }
+
+        if ($this->reAgendamiento()->exists()) {
+            return;
+        }
+
+        $this->reAgendamiento()->create([
+            'equipo_id' => $this->equipo_id,
+            'tipo_servicio' => $this->tipo_servicio,
+            'tipo_mantenimiento' => 'PREVENTIVO',
+            'intervalo_servicio' => $this->intervalo_servicio,
+            'intervalo_unidad' => $this->intervalo_unidad,
+            'fecha_apertura_historial_servicio' => $this->fecha_apertura_historial_servicio?->toDateString(),
+            'fecha_ultimo_servicio' => $this->fecha_ultimo_servicio?->toDateString(),
+            'fecha_proximo_servicio' => $fecha,
+            'dias_plazo_vencimiento' => $this->dias_plazo_vencimiento,
+            'tenant_id' => $this->tenant_id,
+        ]);
     }
 
     /**

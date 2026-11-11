@@ -38,7 +38,10 @@ class UpdateEstadoIngresoRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge(['eliminar_firma' => $this->boolean('eliminar_firma')]);
+        $this->merge([
+            'eliminar_firma' => $this->boolean('eliminar_firma'),
+            're_agendar_equipos' => $this->boolean('re_agendar_equipos'),
+        ]);
 
         // equipos_recibidos llega como {id: {...}}, indexado por el id de la
         // programación (así lo arma el formulario, con un input hidden por campo). Se
@@ -73,11 +76,14 @@ class UpdateEstadoIngresoRequest extends FormRequest
         /** @var Ingreso $ingreso */
         $ingreso = $this->route('ingreso');
         $tenantId = $ingreso->tenant_id;
+        // Quién recibe y quién entrega solo se piden si llegó algún equipo: si todos quedaron
+        // como no ingresados, no hubo recepción que registrar.
+        $pideRecepcion = $this->input('estado_ingreso') === 'RECIBIDO' && $this->llegoAlgunEquipo();
 
         return [
             'estado_ingreso' => ['required', Rule::in(['PENDIENTE', 'RECIBIDO', 'CANCELADO'])],
-            'tecnico_recibe_id' => ['nullable', 'required_if:estado_ingreso,RECIBIDO', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
-            'cliente_entrega_id' => ['nullable', 'required_if:estado_ingreso,RECIBIDO', Rule::exists('clientes', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at')],
+            'tecnico_recibe_id' => ['nullable', Rule::requiredIf($pideRecepcion), Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
+            'cliente_entrega_id' => ['nullable', Rule::requiredIf($pideRecepcion), Rule::exists('clientes', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at')],
             'firma_cliente_entrega' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
             'eliminar_firma' => ['boolean'],
             'novedad' => ['nullable', 'string', 'max:5000'],
@@ -90,6 +96,9 @@ class UpdateEstadoIngresoRequest extends FormRequest
                 Rule::requiredIf($this->input('estado_ingreso') === 'CANCELADO' && $ingreso->equipoProgramacion()->exists()),
                 Rule::exists('novedads', 'id')->where('tenant_id', $tenantId)->where('categoria', 'INGRESO')->whereNull('deleted_at'),
             ],
+            // Re-agendar por lote los equipos del ingreso cancelado, todos para esta fecha.
+            're_agendar_equipos' => ['boolean'],
+            'fecha_re_agendamiento' => ['nullable', 'required_if:re_agendar_equipos,true', 'date'],
 
             // Equipos programados (preventivos) ya enlazados a este ingreso, marcados
             // con ingresado = true/false al recibirlo. Si ingresado es false, se trata
@@ -121,6 +130,19 @@ class UpdateEstadoIngresoRequest extends FormRequest
     }
 
     /**
+     * Si al recibir llegó algún equipo: uno programado marcado como ingresado o uno no
+     * programado agregado de último momento. Sin equipos que revisar, se asume que sí.
+     */
+    private function llegoAlgunEquipo(): bool
+    {
+        $recibidos = collect($this->input('equipos_recibidos', []));
+
+        return $recibidos->isEmpty()
+            || $recibidos->contains(fn (array $recibido): bool => (bool) ($recibido['ingresado'] ?? true))
+            || filled($this->input('equipos_correctivos_recibidos'));
+    }
+
+    /**
      * Una novedad que inactiva el equipo solo se puede reportar si el equipo no ingresó, y
      * entonces no se puede re-agendar: el equipo queda inactivo y no sigue a mantenimiento.
      * Un motivo de cancelación también se reserva para los equipos que no ingresaron, y un
@@ -137,6 +159,15 @@ class UpdateEstadoIngresoRequest extends FormRequest
 
                 if ($ingreso->estado_ingreso === 'CANCELADO') {
                     $validator->errors()->add('estado_ingreso', 'Este ingreso ya fue cancelado: su estado no se puede cambiar.');
+                }
+
+                $inactivaLosEquipos = Novedad::query()
+                    ->whereKey($this->input('novedad_cancelacion_id'))
+                    ->where('inactivar_equipo', true)
+                    ->exists();
+
+                if ($this->boolean('re_agendar_equipos') && $inactivaLosEquipos) {
+                    $validator->errors()->add('re_agendar_equipos', 'No se pueden re-agendar los equipos con una novedad que los inactiva.');
                 }
             },
             function (Validator $validator): void {
@@ -189,6 +220,7 @@ class UpdateEstadoIngresoRequest extends FormRequest
             'novedad' => 'novedad',
             'motivo_cancelacion' => 'motivo de cancelación',
             'novedad_cancelacion_id' => 'novedad de cancelación',
+            'fecha_re_agendamiento' => 'fecha del re-agendamiento',
         ];
     }
 }

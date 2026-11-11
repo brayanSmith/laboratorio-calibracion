@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ValoresInstrumento } from '@/lib/calibracion-resultado';
 import type { Calibracion, CalibracionOption } from '@/types';
+import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
     calibracion: Calibracion;
@@ -38,7 +39,7 @@ function DatoDetalle({
         <div className="grid gap-1">
             <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
             <p className="text-sm" data-test={testId}>
-                {valor || vacio}
+                {formatearFecha(valor, vacio)}
             </p>
         </div>
     );
