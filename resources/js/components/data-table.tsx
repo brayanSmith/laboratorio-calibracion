@@ -1,6 +1,7 @@
 import { createColumnHelper, useTable } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import type { ColumnDef, RowData } from '@tanstack/react-table';
 import {
     ChevronDown,
@@ -21,6 +22,7 @@ import { useResizableTable } from '@/hooks/use-resizable-table';
 import { cn } from '@/lib/utils';
 import { dataTableFeatures, withColumnFilters } from '@/lib/data-table';
 import { esFecha, formatearFecha } from '@/lib/fechas';
+import { iconoDeColumna } from '@/lib/iconos-columnas';
 import { SELECTOR_INTERACTIVO } from '@/lib/menu-acciones-fila';
 import type { DataTableFeatures } from '@/lib/data-table';
 
@@ -72,6 +74,17 @@ function conFechaFormateada<TData extends RowData>(
             return esFecha(valor) ? formatearFecha(valor) : (valor as ReactNode);
         },
     } as DataTableColumn<TData>;
+}
+
+/** Ícono opcional antes del título de una columna (ver DataTableColumnMeta). */
+function IconoColumna({
+    icono: Icono,
+}: {
+    icono?: LucideIcon | null;
+}) {
+    return Icono ? (
+        <Icono className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    ) : null;
 }
 
 const selectClassName =
@@ -240,6 +253,17 @@ export default function DataTable<TData extends RowData>({
                                                     className="inline-flex items-center gap-1 hover:text-foreground"
                                                     onClick={header.column.getToggleSortingHandler()}
                                                 >
+                                                    <IconoColumna
+                                                        icono={
+                                                            header.column.columnDef
+                                                                .meta?.icono ??
+                                                            iconoDeColumna(
+                                                                header.column
+                                                                    .columnDef
+                                                                    .header,
+                                                            )
+                                                        }
+                                                    />
                                                     <table.FlexRender
                                                         header={header}
                                                     />
@@ -252,9 +276,22 @@ export default function DataTable<TData extends RowData>({
                                                     )}
                                                 </button>
                                             ) : (
-                                                <table.FlexRender
-                                                    header={header}
-                                                />
+                                                <span className="inline-flex items-center gap-1">
+                                                    <IconoColumna
+                                                        icono={
+                                                            header.column.columnDef
+                                                                .meta?.icono ??
+                                                            iconoDeColumna(
+                                                                header.column
+                                                                    .columnDef
+                                                                    .header,
+                                                            )
+                                                        }
+                                                    />
+                                                    <table.FlexRender
+                                                        header={header}
+                                                    />
+                                                </span>
                                             )}
                                             {header.isPlaceholder ? null : (
                                                 <ColumnResizeHandle

@@ -1,4 +1,16 @@
-import { Eye, History, Pencil, Trash2 } from 'lucide-react';
+import {
+    Building2,
+    CalendarClock,
+    Cpu,
+    Eye,
+    History,
+    MapPin,
+    Pencil,
+    Power,
+    Ruler,
+    Trash2,
+    TriangleAlert,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
@@ -31,6 +43,10 @@ import {
 } from '@/lib/estado-final-equipo';
 import type { Equipo, EquipoFormOptions } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
+import {
+    CeldaEquipo,
+    CeldaUbicacion,
+} from '@/components/equipos/celdas-equipo';
 
 type Props = {
     equipos: Equipo[];
@@ -111,32 +127,62 @@ export default function EquiposTabla({
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.accessor('codigo', {
-                    header: 'Código',
-                    cell: (info) => (
-                        <span className="font-medium">{info.getValue()}</span>
-                    ),
-                }),
-                columnHelper.accessor('modelo', { header: 'Modelo' }),
-                columnHelper.accessor((row) => row.tipo_equipo?.nombre ?? '', {
-                    id: 'tipo_equipo',
-                    header: 'Tipo de equipo',
-                    cell: (info) => info.getValue() || '—',
-                }),
-                columnHelper.accessor((row) => row.fabricante?.nombre ?? '', {
-                    id: 'fabricante',
-                    header: 'Fabricante',
-                    cell: (info) => info.getValue() || '—',
-                }),
+                // Código y tipo arriba; modelo y número de serie debajo, en una sola columna
+                // para no tener tantas. Se ordena por el código y su filtro busca en los cuatro.
+                columnHelper.accessor(
+                    (row) =>
+                        [
+                            row.codigo,
+                            row.tipo_equipo?.nombre,
+                            row.modelo,
+                            row.numero_serie,
+                        ]
+                            .filter(Boolean)
+                            .join(' · '),
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        meta: { icono: Cpu },
+                        cell: ({ row }) => (
+                            <CeldaEquipo
+                                codigo={row.original.codigo}
+                                tipo={row.original.tipo_equipo?.nombre}
+                                modelo={row.original.modelo}
+                                serie={row.original.numero_serie}
+                            />
+                        ),
+                    },
+                ),
+                // Dónde está el equipo: el área arriba y la bahía debajo. Se ordena por el área
+                // y su filtro busca en las dos.
+                columnHelper.accessor(
+                    (row) =>
+                        [row.area?.nombre, row.bahia?.nombre]
+                            .filter(Boolean)
+                            .join(' · '),
+                    {
+                        id: 'ubicacion',
+                        header: 'Área / Bahía',
+                        meta: { icono: MapPin },
+                        cell: ({ row }) => (
+                            <CeldaUbicacion
+                                area={row.original.area?.nombre}
+                                bahia={row.original.bahia?.nombre}
+                            />
+                        ),
+                    },
+                ),
                 columnHelper.accessor((row) => row.cliente?.nombre ?? '', {
                     id: 'cliente',
                     header: 'Cliente',
+                    meta: { icono: Building2 },
                     cell: (info) => info.getValue() || '—',
                 }),
                 columnHelper.accessor((row) => row.criticidad ?? 'NINGUNA', {
                     id: 'criticidad',
                     header: 'Criticidad',
                     meta: {
+                        icono: TriangleAlert,
                         filterOptions: [
                             ...criticidadesEquipo,
                             { value: 'NINGUNA', label: 'Sin criticidad' },
@@ -171,6 +217,7 @@ export default function EquiposTabla({
                     id: 'vencimiento',
                     header: 'Vencimiento',
                     meta: {
+                        icono: CalendarClock,
                         filterOptions: [
                             ...estadosVencimiento,
                             {
@@ -199,6 +246,7 @@ export default function EquiposTabla({
                         id: 'alcance_medicion',
                         header: 'Alcance de medición',
                         meta: {
+                            icono: Ruler,
                             filterOptions: Object.entries(
                                 ETIQUETA_ALCANCE_MEDICION,
                             ).map(([value, label]) => ({ value, label })),
@@ -223,6 +271,7 @@ export default function EquiposTabla({
                 columnHelper.accessor('activo', {
                     header: 'Estado',
                     meta: {
+                        icono: Power,
                         filterOptions: [
                             { value: 'true', label: 'Activo' },
                             { value: 'false', label: 'Inactivo' },

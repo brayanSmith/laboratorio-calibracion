@@ -150,15 +150,6 @@ export default function ServicioTercerosTab({
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.accessor('fecha_programada', {
-                    header: 'Programado',
-                    cell: ({ row }) => (
-                        <PlazoServicioCelda
-                            fechaProgramada={row.original.fecha_programada}
-                            fechaRealizacion={row.original.fecha_realizacion}
-                        />
-                    ),
-                }),
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),

@@ -40,7 +40,7 @@ class CalcularDesempenoTecnicos
     private const EQUIPO = [
         'ordenTrabajo:id,codigo,equipo_programacion_id',
         'ordenTrabajo.equipoProgramacion:id,equipo_id',
-        'ordenTrabajo.equipoProgramacion.equipo:id,codigo,tipo_equipo_id',
+        'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,tipo_equipo_id',
         'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre',
         'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica:id,equipo_id,tipo_magnitud_id',
         'ordenTrabajo.equipoProgramacion.equipo.equipoEspecificacionTecnica.tipoMagnitud:id,nombre',
@@ -108,6 +108,8 @@ class CalcularDesempenoTecnicos
                     // Para ver los registros de cada responsable en el detalle.
                     'orden_trabajo' => $servicio['orden_trabajo'],
                     'equipo' => $servicio['equipo'],
+                    'modelo' => $servicio['modelo'] ?? null,
+                    'numero_serie' => $servicio['numero_serie'] ?? null,
                     'tipo_equipo' => $servicio['filtros']['tipos_equipo'][0]['nombre'] ?? null,
                     'magnitud' => $servicio['filtros']['magnitudes'][0]['nombre'] ?? null,
                     'horas' => $servicio['segundos'] === null ? null : round($servicio['segundos'] / 3600, 2),
@@ -262,15 +264,19 @@ class CalcularDesempenoTecnicos
     }
 
     /**
-     * Códigos de la orden y de su equipo, para el detalle por responsable.
+     * Códigos de la orden y de su equipo (con modelo y serie), para el detalle por responsable.
      *
-     * @return array{orden_trabajo: string|null, equipo: string|null}
+     * @return array{orden_trabajo: string|null, equipo: string|null, modelo: string|null, numero_serie: string|null}
      */
     private function codigos(?OrdenTrabajo $ordenTrabajo): array
     {
+        $equipo = $ordenTrabajo?->equipoProgramacion?->equipo;
+
         return [
             'orden_trabajo' => $ordenTrabajo?->codigo,
-            'equipo' => $ordenTrabajo?->equipoProgramacion?->equipo?->codigo,
+            'equipo' => $equipo?->codigo,
+            'modelo' => $equipo?->modelo,
+            'numero_serie' => $equipo?->numero_serie,
         ];
     }
 

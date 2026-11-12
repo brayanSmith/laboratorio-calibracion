@@ -109,12 +109,12 @@ export function pestanasIndicadores(
         },
         {
             value: 'cumplimiento',
-            titulo: 'Cumplimiento',
+            titulo: 'Cumplimiento del plan',
             icono: ClipboardCheck,
             visible: indicadores.permisos.cumplimiento,
             contenido: (
                 <SeccionIndicador
-                    titulo="Cumplimiento"
+                    titulo="Cumplimiento del plan"
                     icono={ClipboardCheck}
                     modulo="CUMPLIMIENTO"
                     descripcion="Equipos programados frente a los equipos atendidos."

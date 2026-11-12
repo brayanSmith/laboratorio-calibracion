@@ -51,8 +51,15 @@ const colorDe = (punto: Punto) =>
     (punto.porcentaje ?? 0) >= metaDe(punto) ? COLOR_CUMPLE : COLOR_NO_CUMPLE;
 
 const config = {
-    programados: { label: 'Equipos programados', color: '#0284c7' },
-    atendidos: { label: 'Equipos atendidos', color: '#16a34a' },
+    // Celeste y verde, como las tarjetas de arriba: con color, sin llegar a los tonos fuertes.
+    programados: {
+        label: 'Equipos programados',
+        theme: { light: '#38bdf8', dark: '#0ea5e9' },
+    },
+    atendidos: {
+        label: 'Equipos atendidos',
+        theme: { light: '#34d399', dark: '#10b981' },
+    },
     porcentaje: { label: 'Cumplimiento', color: COLOR_CUMPLE },
     objetivo: { label: 'Objetivo', color: '#64748b' },
 } satisfies ChartConfig;
@@ -329,12 +336,12 @@ function Globo({ punto }: { punto: Punto }) {
         <div className="grid min-w-52 gap-1.5 rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
             <p className="font-medium">{punto.etiqueta}</p>
             <Fila
-                color={config.programados.color}
+                color="var(--color-programados)"
                 etiqueta="Equipos programados"
                 valor={String(punto.programados)}
             />
             <Fila
-                color={config.atendidos.color}
+                color="var(--color-atendidos)"
                 etiqueta="Equipos atendidos"
                 valor={String(punto.atendidos)}
             />

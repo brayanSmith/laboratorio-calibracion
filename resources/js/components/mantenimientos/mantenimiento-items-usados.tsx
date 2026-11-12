@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useResizableColumns } from '@/hooks/use-resizable-columns';
 import { destroy } from '@/routes/item-mantenimientos';
 import type { MantenimientoItemOption, MantenimientoItemUsado } from '@/types';
+import TituloColumna from '@/components/titulo-columna';
 
 type Props = {
     mantenimientoId: number;
@@ -179,21 +180,21 @@ export default function MantenimientoItemsUsados({
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         <tr>
                             <th className="relative px-3 py-2 font-medium">
-                                Ítem
+                                <TituloColumna titulo="Ítem" />
                                 <ColumnResizeHandle
                                     label="Ítem"
                                     onPointerDown={iniciarRedimension('item')}
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Con stock
+                                <TituloColumna titulo="Con stock" />
                                 <ColumnResizeHandle
                                     label="Con stock"
                                     onPointerDown={iniciarRedimension('stock')}
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Cantidad
+                                <TituloColumna titulo="Cantidad" />
                                 <ColumnResizeHandle
                                     label="Cantidad"
                                     onPointerDown={iniciarRedimension(
@@ -202,14 +203,14 @@ export default function MantenimientoItemsUsados({
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Precio unit.
+                                <TituloColumna titulo="Precio unit." />
                                 <ColumnResizeHandle
                                     label="Precio unitario"
                                     onPointerDown={iniciarRedimension('precio')}
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Subtotal
+                                <TituloColumna titulo="Subtotal" />
                                 <ColumnResizeHandle
                                     label="Subtotal"
                                     onPointerDown={iniciarRedimension(

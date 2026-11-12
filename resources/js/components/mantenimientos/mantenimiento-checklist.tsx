@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizableColumns } from '@/hooks/use-resizable-columns';
 import type { MantenimientoCheckListItem } from '@/types';
+import TituloColumna from '@/components/titulo-columna';
 
 type Props = {
     checklist: MantenimientoCheckListItem[];
@@ -58,21 +59,21 @@ export default function MantenimientoChecklist({ checklist }: Props) {
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         <tr>
                             <th className="relative px-3 py-2 font-medium">
-                                Cumple
+                                <TituloColumna titulo="Cumple" />
                                 <ColumnResizeHandle
                                     label="Cumple"
                                     onPointerDown={iniciarRedimension('cumple')}
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Ítem
+                                <TituloColumna titulo="Ítem" />
                                 <ColumnResizeHandle
                                     label="Ítem"
                                     onPointerDown={iniciarRedimension('item')}
                                 />
                             </th>
                             <th className="px-3 py-2 font-medium">
-                                Observación
+                                <TituloColumna titulo="Observación" />
                             </th>
                         </tr>
                     </thead>

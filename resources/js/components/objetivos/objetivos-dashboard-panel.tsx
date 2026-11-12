@@ -52,7 +52,7 @@ const ANUALES: {
     },
     {
         modulo: 'CUMPLIMIENTO',
-        titulo: 'Cumplimiento',
+        titulo: 'Cumplimiento del plan',
         descripcion:
             'Objetivos anuales de equipos programados frente a atendidos.',
         icono: ClipboardCheck,

@@ -33,6 +33,10 @@ import {
 } from '@/lib/indicadores';
 import type { TiemposAtencion } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
+import {
+    CeldaEquipo,
+    textoEquipo,
+} from '@/components/equipos/celdas-equipo';
 
 type EquipoAtendido = TiemposAtencion['equipos'][number];
 
@@ -152,22 +156,28 @@ export default function IndicadorTiemposAtencion() {
                 columnHelper.accessor('orden_trabajo', {
                     header: 'Orden de trabajo',
                 }),
-                columnHelper.accessor('equipo', {
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <>
-                            <span className="font-medium">
-                                {row.original.equipo}
-                            </span>
-                            <span className="block text-xs text-muted-foreground">
-                                {row.original.modelo}
-                            </span>
-                        </>
-                    ),
-                }),
-                columnHelper.accessor('tipo_equipo', {
-                    header: 'Tipo de equipo',
-                }),
+                // Como en la tabla de equipos: código y tipo; modelo y serie debajo.
+                columnHelper.accessor(
+                    (fila) =>
+                        textoEquipo(
+                            fila.equipo,
+                            fila.tipo_equipo,
+                            fila.modelo,
+                            fila.numero_serie,
+                        ),
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <CeldaEquipo
+                                codigo={row.original.equipo}
+                                tipo={row.original.tipo_equipo}
+                                modelo={row.original.modelo}
+                                serie={row.original.numero_serie}
+                            />
+                        ),
+                    },
+                ),
                 columnHelper.accessor((fila) => fila.cliente ?? '', {
                     id: 'cliente',
                     header: 'Cliente',

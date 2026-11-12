@@ -19,7 +19,7 @@ enum ModuloObjetivo: string
         return match ($this) {
             self::TiemposAtencion => 'Tiempos de atención',
             self::DesempenoTecnicos => 'Desempeño por técnico',
-            self::Cumplimiento => 'Cumplimiento',
+            self::Cumplimiento => 'Cumplimiento del plan',
         };
     }
 

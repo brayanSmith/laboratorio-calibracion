@@ -16,6 +16,10 @@ import type { CumplimientoTiempo } from '@/lib/cumplimiento-responsable';
 import { formatearHoras } from '@/lib/indicadores';
 import type { DesempenoTecnicos } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
+import {
+    CeldaEquipo,
+    textoEquipo,
+} from '@/components/equipos/celdas-equipo';
 
 type Registro = DesempenoTecnicos['servicios'][number] & {
     cumplimiento: CumplimientoTiempo | null;
@@ -77,14 +81,28 @@ const columns = columnHelper.columns([
         header: 'Orden de trabajo',
         cell: (info) => <span className="font-medium">{info.getValue()}</span>,
     }),
-    columnHelper.accessor((fila) => textoOGuion(fila.equipo), {
-        id: 'equipo',
-        header: 'Equipo',
-    }),
-    columnHelper.accessor((fila) => textoOGuion(fila.tipo_equipo), {
-        id: 'tipo_equipo',
-        header: 'Tipo de equipo',
-    }),
+    // Como en la tabla de equipos: código y tipo; modelo y serie debajo.
+    columnHelper.accessor(
+        (fila) =>
+            textoEquipo(
+                fila.equipo,
+                fila.tipo_equipo,
+                fila.modelo,
+                fila.numero_serie,
+            ),
+        {
+            id: 'equipo',
+            header: 'Equipo',
+            cell: ({ row }) => (
+                <CeldaEquipo
+                    codigo={textoOGuion(row.original.equipo)}
+                    tipo={row.original.tipo_equipo}
+                    modelo={row.original.modelo}
+                    serie={row.original.numero_serie}
+                />
+            ),
+        },
+    ),
     columnHelper.accessor((fila) => textoOGuion(fila.magnitud), {
         id: 'magnitud',
         header: 'Magnitud',

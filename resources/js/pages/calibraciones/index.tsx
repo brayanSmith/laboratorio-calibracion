@@ -50,6 +50,10 @@ import type {
     CalibracionOptions,
     ServicioTerceroListado,
 } from '@/types';
+import {
+    CeldaEquipo,
+    textoEquipo,
+} from '@/components/equipos/celdas-equipo';
 
 /** Convierte un ISO string a Date, o null si no hay nada que convertir. */
 function toDateOrNull(value: string | null): Date | null {
@@ -183,16 +187,25 @@ export default function CalibracionesIndex({
                         />
                     ),
                 }),
+                // Como en la tabla de equipos: código y tipo; modelo y serie debajo.
                 columnHelper.accessor(
-                    (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
+                    (row) =>
+                        textoEquipo(
+                            row.equipo.codigo,
+                            row.equipo.tipo_equipo.nombre,
+                            row.equipo.modelo,
+                            row.equipo.numero_serie,
+                        ),
                     {
                         id: 'equipo',
                         header: 'Equipo',
                         cell: ({ row }) => (
-                            <span className="font-medium">
-                                {row.original.equipo.codigo} ·{' '}
-                                {row.original.equipo.modelo}
-                            </span>
+                            <CeldaEquipo
+                                codigo={row.original.equipo.codigo}
+                                tipo={row.original.equipo.tipo_equipo.nombre}
+                                modelo={row.original.equipo.modelo}
+                                serie={row.original.equipo.numero_serie}
+                            />
                         ),
                     },
                 ),

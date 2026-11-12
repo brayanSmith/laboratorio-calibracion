@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Item } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
+import TituloColumna from '@/components/titulo-columna';
 
 type Entrada = {
     id: number;
@@ -167,7 +168,7 @@ function TablaOrdenable<T extends { id: number }>({
                                                 : ''
                                         }`}
                                     >
-                                        {columna.titulo}
+                                        <TituloColumna titulo={columna.titulo} />
                                         <Icono
                                             className={`size-3.5 ${activa ? '' : 'opacity-50'}`}
                                         />

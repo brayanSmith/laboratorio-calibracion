@@ -47,6 +47,11 @@ import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fi
 import { rangoPorDefecto } from '@/lib/indicadores';
 import { cn } from '@/lib/utils';
 import type { Cumplimiento } from '@/types';
+import {
+    CeldaEquipo,
+    CeldaUbicacion,
+    textoEquipo,
+} from '@/components/equipos/celdas-equipo';
 
 type Pendiente = Cumplimiento['pendientes'][number];
 
@@ -215,29 +220,41 @@ export default function IndicadorCumplimiento() {
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.accessor('equipo', {
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <>
-                            <span className="font-medium">
-                                {row.original.equipo}
-                            </span>
-                            <span className="block text-xs text-muted-foreground">
-                                {row.original.modelo}
-                            </span>
-                        </>
-                    ),
-                }),
-                columnHelper.accessor((fila) => fila.tipo_equipo ?? '', {
-                    id: 'tipo_equipo',
-                    header: 'Tipo de equipo',
-                    cell: ({ row }) => row.original.tipo_equipo ?? '—',
-                }),
-                columnHelper.accessor((fila) => fila.area ?? '', {
-                    id: 'area',
-                    header: 'Área',
-                    cell: ({ row }) => row.original.area ?? '—',
-                }),
+                // Como en la tabla de equipos: código y tipo; modelo y serie debajo.
+                columnHelper.accessor(
+                    (fila) =>
+                        textoEquipo(
+                            fila.equipo,
+                            fila.tipo_equipo,
+                            fila.modelo,
+                            fila.numero_serie,
+                        ),
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <CeldaEquipo
+                                codigo={row.original.equipo}
+                                tipo={row.original.tipo_equipo}
+                                modelo={row.original.modelo}
+                                serie={row.original.numero_serie}
+                            />
+                        ),
+                    },
+                ),
+                columnHelper.accessor(
+                    (fila) => textoEquipo(fila.area, fila.bahia),
+                    {
+                        id: 'ubicacion',
+                        header: 'Área / Bahía',
+                        cell: ({ row }) => (
+                            <CeldaUbicacion
+                                area={row.original.area}
+                                bahia={row.original.bahia}
+                            />
+                        ),
+                    },
+                ),
                 columnHelper.accessor((fila) => fila.criticidad ?? '', {
                     id: 'criticidad',
                     header: 'Criticidad',
@@ -458,7 +475,7 @@ export default function IndicadorCumplimiento() {
                         <DataTable
                             data={datos.pendientes}
                             columns={columns}
-                            searchPlaceholder="Buscar equipo, tipo o área..."
+                            searchPlaceholder="Buscar equipo, serie, área o bahía..."
                             emptyMessage="Todos los equipos programados fueron atendidos."
                             rowTestId="cumplimiento-pendiente-row"
                         />

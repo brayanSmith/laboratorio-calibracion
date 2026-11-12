@@ -21,6 +21,11 @@ import { cn } from '@/lib/utils';
 import { show } from '@/routes/equipos';
 import type { CriticidadEquipo, Cumplimiento } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
+import {
+    CeldaEquipo,
+    CeldaUbicacion,
+    textoEquipo,
+} from '@/components/equipos/celdas-equipo';
 
 type NoRecibido = Cumplimiento['no_recibidos'][number];
 
@@ -59,21 +64,24 @@ export function ordenarPorCriticidad(
 }
 
 /** Hasta cuántas porciones se dibujan: las demás novedades se juntan en "Otras". */
-const MAX_PORCIONES = 6;
+const MAX_PORCIONES = 5;
 
 /**
- * Colores de las porciones, en orden fijo (la más usada siempre en azul), con su versión
- * para el modo oscuro; validados para daltonismo. "Otras" va en gris.
+ * Colores de las porciones (la paleta que pidió el cliente), en orden fijo: la más usada
+ * siempre en rojo. Iguales en modo claro y oscuro. El azul y el verde azulado no van
+ * seguidos, porque juntos casi no se distinguen. Con más de 5 novedades, las últimas se
+ * juntan en "Otras", en el gris de la misma paleta.
  */
 const COLORES_PORCION: { light: string; dark: string }[] = [
-    { light: '#2a78d6', dark: '#3987e5' },
-    { light: '#eb6834', dark: '#d95926' },
-    { light: '#1baf7a', dark: '#199e70' },
-    { light: '#eda100', dark: '#c98500' },
-    { light: '#e87ba4', dark: '#d55181' },
-    { light: '#6250d6', dark: '#9085e9' },
+    { light: '#E57373', dark: '#E57373' },
+    { light: '#64B5F6', dark: '#64B5F6' },
+    { light: '#FFB74D', dark: '#FFB74D' },
+    { light: '#4DB6AC', dark: '#4DB6AC' },
+    // Solo si hay justo 5 novedades (con más, la quinta porción es "Otras").
+    { light: '#9575CD', dark: '#9575CD' },
 ];
-const COLOR_OTRAS = { light: '#a3a29d', dark: '#6f6e69' };
+/** "Otras": el gris de la paleta del cliente. */
+const COLOR_OTRAS = { light: '#B0BEC5', dark: '#B0BEC5' };
 
 type Porcion = {
     clave: string;
@@ -263,34 +271,52 @@ export function TablaNoRecibidos({
     const columns = useMemo(
         () =>
             columnHelper.columns([
-                columnHelper.accessor('equipo', {
-                    header: 'Equipo',
-                    cell: ({ row }) => (
-                        <>
-                            <Link
-                                href={show(row.original.equipo_id)}
-                                className="font-medium underline-offset-2 hover:underline"
-                                // Abre la ficha del equipo, no la traza de la fila.
-                                onClick={(evento) => evento.stopPropagation()}
-                            >
-                                {row.original.equipo}
-                            </Link>
-                            <span className="block text-xs text-muted-foreground">
-                                {row.original.modelo}
-                            </span>
-                        </>
-                    ),
-                }),
-                columnHelper.accessor((fila) => fila.tipo_equipo ?? '', {
-                    id: 'tipo_equipo',
-                    header: 'Tipo de equipo',
-                    cell: ({ row }) => row.original.tipo_equipo ?? '—',
-                }),
-                columnHelper.accessor((fila) => fila.area ?? '', {
-                    id: 'area',
-                    header: 'Área',
-                    cell: ({ row }) => row.original.area ?? '—',
-                }),
+                // Como en la tabla de equipos: código (enlace a su ficha) y tipo; modelo y serie.
+                columnHelper.accessor(
+                    (fila) =>
+                        textoEquipo(
+                            fila.equipo,
+                            fila.tipo_equipo,
+                            fila.modelo,
+                            fila.numero_serie,
+                        ),
+                    {
+                        id: 'equipo',
+                        header: 'Equipo',
+                        cell: ({ row }) => (
+                            <CeldaEquipo
+                                codigo={
+                                    <Link
+                                        href={show(row.original.equipo_id)}
+                                        className="underline-offset-2 hover:underline"
+                                        // Abre la ficha del equipo, no la traza de la fila.
+                                        onClick={(evento) =>
+                                            evento.stopPropagation()
+                                        }
+                                    >
+                                        {row.original.equipo}
+                                    </Link>
+                                }
+                                tipo={row.original.tipo_equipo}
+                                modelo={row.original.modelo}
+                                serie={row.original.numero_serie}
+                            />
+                        ),
+                    },
+                ),
+                columnHelper.accessor(
+                    (fila) => textoEquipo(fila.area, fila.bahia),
+                    {
+                        id: 'ubicacion',
+                        header: 'Área / Bahía',
+                        cell: ({ row }) => (
+                            <CeldaUbicacion
+                                area={row.original.area}
+                                bahia={row.original.bahia}
+                            />
+                        ),
+                    },
+                ),
                 columnHelper.accessor((fila) => fila.criticidad ?? '', {
                     id: 'criticidad',
                     header: 'Criticidad',
@@ -392,7 +418,7 @@ export function TablaNoRecibidos({
             <DataTable
                 data={noRecibidos}
                 columns={columns}
-                searchPlaceholder="Buscar equipo, novedad o área..."
+                searchPlaceholder="Buscar equipo, serie, novedad, área o bahía..."
                 emptyMessage="Todos los equipos programados llegaron a su ingreso."
                 rowTestId="cumplimiento-no-recibido-row"
                 // Los de criticidad alta, resaltados en rojo: se deben atender primero.

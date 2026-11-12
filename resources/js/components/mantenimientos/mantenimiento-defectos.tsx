@@ -11,6 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useResizableColumns } from '@/hooks/use-resizable-columns';
 import { destroy } from '@/routes/defectos';
 import type { MantenimientoDefecto, NivelRiesgo } from '@/types';
+import TituloColumna from '@/components/titulo-columna';
 
 const nivelesRiesgo: { value: NivelRiesgo; label: string }[] = [
     { value: 'ALTO', label: 'Alto' },
@@ -151,7 +152,7 @@ export default function MantenimientoDefectos({ defectos, errors }: Props) {
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         <tr>
                             <th className="relative px-3 py-2 font-medium">
-                                Defecto
+                                <TituloColumna titulo="Defecto" />
                                 <ColumnResizeHandle
                                     label="Defecto"
                                     onPointerDown={iniciarRedimension(
@@ -160,7 +161,7 @@ export default function MantenimientoDefectos({ defectos, errors }: Props) {
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Nivel de riesgo
+                                <TituloColumna titulo="Nivel de riesgo" />
                                 <ColumnResizeHandle
                                     label="Nivel de riesgo"
                                     onPointerDown={iniciarRedimension(
@@ -169,7 +170,7 @@ export default function MantenimientoDefectos({ defectos, errors }: Props) {
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Acción correctiva
+                                <TituloColumna titulo="Acción correctiva" />
                                 <ColumnResizeHandle
                                     label="Acción correctiva"
                                     onPointerDown={iniciarRedimension(

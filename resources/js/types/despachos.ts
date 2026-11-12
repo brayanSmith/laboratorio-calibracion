@@ -26,6 +26,7 @@ export type Despacho = {
     equipo: {
         codigo: string;
         modelo: string;
+        numero_serie: string;
         tipo_equipo: { nombre: string };
         cliente: { nombre: string };
     };

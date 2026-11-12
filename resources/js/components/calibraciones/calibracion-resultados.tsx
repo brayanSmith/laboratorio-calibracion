@@ -11,6 +11,7 @@ import {
 } from '@/lib/calibracion-resultado';
 import type { ValoresInstrumento } from '@/lib/calibracion-resultado';
 import type { CalibracionDetalleMedicion } from '@/types';
+import TituloColumna from '@/components/titulo-columna';
 
 type Props = {
     detalles: CalibracionDetalleMedicion[];
@@ -84,7 +85,7 @@ export default function CalibracionResultados({
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         <tr>
                             <th className="relative px-3 py-2 font-medium">
-                                Valor referencia
+                                <TituloColumna titulo="Valor referencia" />
                                 <ColumnResizeHandle
                                     label="Valor referencia"
                                     onPointerDown={iniciarRedimension(
@@ -93,7 +94,7 @@ export default function CalibracionResultados({
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Valor instrumento
+                                <TituloColumna titulo="Valor instrumento" />
                                 <ColumnResizeHandle
                                     label="Valor instrumento"
                                     onPointerDown={iniciarRedimension(
@@ -102,21 +103,21 @@ export default function CalibracionResultados({
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Error encontrado
+                                <TituloColumna titulo="Error encontrado" />
                                 <ColumnResizeHandle
                                     label="Error encontrado"
                                     onPointerDown={iniciarRedimension('error')}
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                EMP
+                                <TituloColumna titulo="EMP" />
                                 <ColumnResizeHandle
                                     label="EMP"
                                     onPointerDown={iniciarRedimension('emp')}
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                EMP %
+                                <TituloColumna titulo="EMP %" />
                                 <ColumnResizeHandle
                                     label="EMP %"
                                     onPointerDown={iniciarRedimension(
@@ -125,7 +126,7 @@ export default function CalibracionResultados({
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                Incertidumbre
+                                <TituloColumna titulo="Incertidumbre" />
                                 <ColumnResizeHandle
                                     label="Incertidumbre"
                                     onPointerDown={iniciarRedimension(

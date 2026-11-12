@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react';
 import {
     columnFilteringFeature,
     constructFilterFn,
@@ -57,7 +58,11 @@ export const OPCIONES_SI_NO: FilterOption[] = [
  * Extra data a column can declare. With `filterOptions` its filter is a dropdown of those
  * options (matched exactly) instead of a free-text box.
  */
-export type DataTableColumnMeta = { filterOptions?: FilterOption[] };
+export type DataTableColumnMeta = {
+    filterOptions?: FilterOption[];
+    /** Ícono que se muestra antes del título de la columna. */
+    icono?: LucideIcon;
+};
 
 /**
  * Gives every column its filter: text without accents or case by default, or an exact match

@@ -32,6 +32,10 @@ import { OPCIONES_SI_NO } from '@/lib/data-table';
 import { hoyLocal } from '@/lib/plazo-servicio';
 import { index } from '@/routes/despachos';
 import type { Despacho, DespachoOptions } from '@/types';
+import {
+    CeldaEquipo,
+    textoEquipo,
+} from '@/components/equipos/celdas-equipo';
 
 type Props = DespachoOptions & {
     despachos: Despacho[];
@@ -131,16 +135,25 @@ export default function DespachosIndex({
                 columnHelper.accessor('orden_trabajo_codigo', {
                     header: 'Orden de trabajo',
                 }),
+                // Como en la tabla de equipos: código y tipo; modelo y serie debajo.
                 columnHelper.accessor(
-                    (row) => `${row.equipo.codigo} ${row.equipo.modelo}`,
+                    (row) =>
+                        textoEquipo(
+                            row.equipo.codigo,
+                            row.equipo.tipo_equipo.nombre,
+                            row.equipo.modelo,
+                            row.equipo.numero_serie,
+                        ),
                     {
                         id: 'equipo',
                         header: 'Equipo',
                         cell: ({ row }) => (
-                            <span className="font-medium">
-                                {row.original.equipo.codigo} ·{' '}
-                                {row.original.equipo.modelo}
-                            </span>
+                            <CeldaEquipo
+                                codigo={row.original.equipo.codigo}
+                                tipo={row.original.equipo.tipo_equipo.nombre}
+                                modelo={row.original.equipo.modelo}
+                                serie={row.original.equipo.numero_serie}
+                            />
                         ),
                     },
                 ),

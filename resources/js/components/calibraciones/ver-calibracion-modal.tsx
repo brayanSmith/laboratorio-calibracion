@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { colorEstadoCalibracion } from '@/lib/estados-calibracion';
 import type { Calibracion } from '@/types';
 import { mostrarFecha } from '@/lib/fechas';
+import TituloColumna from '@/components/titulo-columna';
 
 type Props = {
     calibracion: Calibracion | null;
@@ -151,22 +152,22 @@ export default function VerCalibracionModal({
                                 <thead className="bg-muted/50 text-left text-muted-foreground">
                                     <tr>
                                         <th className="px-3 py-2 font-medium">
-                                            Valor de referencia
+                                            <TituloColumna titulo="Valor de referencia" />
                                         </th>
                                         <th className="px-3 py-2 font-medium">
-                                            Valor del instrumento
+                                            <TituloColumna titulo="Valor del instrumento" />
                                         </th>
                                         <th className="px-3 py-2 font-medium">
-                                            Error encontrado
+                                            <TituloColumna titulo="Error encontrado" />
                                         </th>
                                         <th className="px-3 py-2 font-medium">
-                                            EMP
+                                            <TituloColumna titulo="EMP" />
                                         </th>
                                         <th className="px-3 py-2 font-medium">
-                                            Incertidumbre
+                                            <TituloColumna titulo="Incertidumbre" />
                                         </th>
                                         <th className="px-3 py-2 font-medium">
-                                            Resultado
+                                            <TituloColumna titulo="Resultado" />
                                         </th>
                                     </tr>
                                 </thead>

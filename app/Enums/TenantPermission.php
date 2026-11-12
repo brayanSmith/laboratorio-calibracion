@@ -340,7 +340,7 @@ enum TenantPermission: string
             self::DashboardTablaEquipos => 'Tabla de equipos',
             self::DashboardTiemposAtencion => 'Indicador: tiempos de atención de equipos',
             self::DashboardDesempenoTecnicos => 'Indicador: desempeño por técnico',
-            self::DashboardCumplimiento => 'Indicador: cumplimiento de lo programado',
+            self::DashboardCumplimiento => 'Indicador: cumplimiento del plan',
             self::DashboardObjetivos => 'Definir los objetivos anuales de los indicadores',
             self::AgendaVer => 'Ver la agenda',
             self::AgendaVerTodos => 'Ver la agenda de todos los técnicos (sin marcar, solo la propia)',

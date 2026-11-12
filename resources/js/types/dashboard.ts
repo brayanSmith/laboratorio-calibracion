@@ -27,6 +27,7 @@ export type TiemposAtencion = {
         orden_trabajo: string;
         equipo: string;
         modelo: string;
+        numero_serie: string | null;
         tipo_equipo: string;
         cliente: string | null;
         laboratorio: string;
@@ -113,6 +114,8 @@ export type DesempenoTecnicos = {
         /** Códigos y nombres para ver los registros de cada responsable en el detalle. */
         orden_trabajo: string | null;
         equipo: string | null;
+        modelo: string | null;
+        numero_serie: string | null;
         tipo_equipo: string | null;
         magnitud: string | null;
         horas: number | null;
@@ -156,8 +159,10 @@ export type Cumplimiento = {
         equipo_id: number;
         equipo: string;
         modelo: string;
+        numero_serie: string | null;
         tipo_equipo: string | null;
         area: string | null;
+        bahia: string | null;
         criticidad: CriticidadEquipo | null;
         fecha_programada: string;
         estado_programacion: string;
@@ -169,8 +174,10 @@ export type Cumplimiento = {
         equipo_id: number;
         equipo: string;
         modelo: string;
+        numero_serie: string | null;
         tipo_equipo: string | null;
         area: string | null;
+        bahia: string | null;
         criticidad: CriticidadEquipo | null;
         fecha_programada: string | null;
         estado_programacion: string;

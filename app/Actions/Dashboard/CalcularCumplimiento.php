@@ -61,8 +61,9 @@ class CalcularCumplimiento
                 ->whereHas('calibraciones')
                 ->orWhereHas('serviciosTerceros', fn (Builder $q) => $q->where('tipo_servicio', 'CALIBRACION')))])
             ->with([
-                'equipo:id,codigo,modelo,area_id,tipo_equipo_id,criticidad',
+                'equipo:id,codigo,modelo,numero_serie,area_id,bahia_id,tipo_equipo_id,criticidad',
                 'equipo.area:id,nombre',
+                'equipo.bahia:id,nombre',
                 'equipo.tipoEquipo:id,nombre',
                 'equipo.equipoEspecificacionTecnica:id,equipo_id,tipo_magnitud_id',
                 'equipo.equipoEspecificacionTecnica.tipoMagnitud:id,nombre',
@@ -167,8 +168,10 @@ class CalcularCumplimiento
                     'equipo_id' => $fila['equipo']->id,
                     'equipo' => $fila['equipo']->codigo,
                     'modelo' => $fila['equipo']->modelo,
+                    'numero_serie' => $fila['equipo']->numero_serie,
                     'tipo_equipo' => $fila['equipo']->tipoEquipo?->nombre,
                     'area' => $fila['equipo']->area?->nombre,
+                    'bahia' => $fila['equipo']->bahia?->nombre,
                     'criticidad' => $fila['equipo']->criticidad,
                     'fecha_programada' => $fila['fecha_programada'],
                     'estado_programacion' => $fila['estado_programacion'],
@@ -308,8 +311,9 @@ class CalcularCumplimiento
                 ->whereDate('hasta', '>=', $filtros['desde']))
             ->whereHas('equipo', fn (Builder $equipo) => $this->filtrarEquipo($equipo, $filtros, $tiposMantenimiento))
             ->with([
-                'equipo:id,codigo,modelo,area_id,tipo_equipo_id,criticidad',
+                'equipo:id,codigo,modelo,numero_serie,area_id,bahia_id,tipo_equipo_id,criticidad',
                 'equipo.area:id,nombre',
+                'equipo.bahia:id,nombre',
                 'equipo.tipoEquipo:id,nombre',
                 'novedadIngreso:id,nombre',
             ])
@@ -340,8 +344,10 @@ class CalcularCumplimiento
                 'equipo_id' => $programacion->equipo->id,
                 'equipo' => $programacion->equipo->codigo,
                 'modelo' => $programacion->equipo->modelo,
+                'numero_serie' => $programacion->equipo->numero_serie,
                 'tipo_equipo' => $programacion->equipo->tipoEquipo?->nombre,
                 'area' => $programacion->equipo->area?->nombre,
+                'bahia' => $programacion->equipo->bahia?->nombre,
                 'criticidad' => $programacion->equipo->criticidad,
                 'fecha_programada' => $programacion->fecha_proximo_servicio?->toDateString(),
                 'estado_programacion' => $programacion->estado_programacion,

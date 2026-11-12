@@ -36,6 +36,7 @@ import type {
     ModuloObjetivo,
     ObjetivosMensualesModulo,
 } from '@/types';
+import TituloColumna from '@/components/titulo-columna';
 
 type Props = {
     modulo: ModuloObjetivo;
@@ -329,7 +330,7 @@ export default function ObjetivosMensualesModal({
                                     <thead className="sticky top-0 bg-muted text-left text-muted-foreground">
                                         <tr>
                                             <th className="px-3 py-2 font-medium">
-                                                Año
+                                                <TituloColumna titulo="Año" />
                                             </th>
                                             {objetivos.conceptos.map(
                                                 ({
@@ -341,7 +342,7 @@ export default function ObjetivosMensualesModal({
                                                         key={concepto}
                                                         className="px-3 py-2 text-right font-medium"
                                                     >
-                                                        {label}
+                                                        <TituloColumna titulo={label} />
                                                         <span className="block text-xs font-normal">
                                                             {unidad}
                                                         </span>
