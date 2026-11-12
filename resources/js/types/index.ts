@@ -17,6 +17,7 @@ export type * from './mantenimientos';
 export type * from './novedades';
 export type * from './navigation';
 export type * from './procedimientos-calibracion';
+export type * from './recordatorios';
 export type * from './roles';
 export type * from './tenants';
 export type * from './tipos-equipo';

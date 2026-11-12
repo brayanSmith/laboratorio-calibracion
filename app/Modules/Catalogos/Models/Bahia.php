@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * @property int $id
@@ -34,6 +35,30 @@ class Bahia extends Model
 {
     /** @use HasFactory<BahiaFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Las bahías del tenant con su área, cantidad de equipos y usuarios asignados, como las
+     * muestra el listado de bahías y las usa el modal de asignar usuarios.
+     *
+     * @return Collection<int, array{id: int, nombre: string, area_id: int, area_nombre: string, equipos_count: int, usuario_ids: Collection<int, int>}>
+     */
+    public static function listadoConUsuarios(int $tenantId): Collection
+    {
+        return static::query()
+            ->where('tenant_id', $tenantId)
+            ->with(['area:id,nombre', 'usuarios:id'])
+            ->withCount('equipo as equipos_count')
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'area_id'])
+            ->map(fn (Bahia $bahia) => [
+                'id' => $bahia->id,
+                'nombre' => $bahia->nombre,
+                'area_id' => $bahia->area_id,
+                'area_nombre' => $bahia->area->nombre,
+                'equipos_count' => (int) $bahia->getAttribute('equipos_count'),
+                'usuario_ids' => $bahia->usuarios->pluck('id')->values(),
+            ]);
+    }
 
     /**
      * Get the area this bahia belongs to.

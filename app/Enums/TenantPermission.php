@@ -154,6 +154,10 @@ enum TenantPermission: string
     case ImportarChecklistMantenimiento = 'importaciones.checklist-mantenimiento';
     case ImportarEquipoHistoricos = 'importaciones.equipo-historicos';
 
+    // Configuración del recordatorio por correo de equipos vencidos y próximos a vencer.
+    case RecordatoriosVer = 'recordatorios.ver';
+    case RecordatoriosEditar = 'recordatorios.editar';
+
     case RolesGestionar = 'roles.gestionar';
     case UsuariosGestionar = 'usuarios.gestionar';
 
@@ -280,6 +284,8 @@ enum TenantPermission: string
             self::ImportarTiposEquipo,
             self::ImportarChecklistMantenimiento,
             self::ImportarEquipoHistoricos => 'Importaciones',
+            self::RecordatoriosVer,
+            self::RecordatoriosEditar => 'Recordatorios',
             self::RolesGestionar => 'Roles',
             self::UsuariosGestionar => 'Usuarios',
         };
@@ -448,6 +454,8 @@ enum TenantPermission: string
             self::ImportarTiposEquipo => 'Importar tipos de equipo',
             self::ImportarChecklistMantenimiento => 'Importar checklist de mantenimiento',
             self::ImportarEquipoHistoricos => 'Importar histórico de equipos',
+            self::RecordatoriosVer => 'Ver la configuración de recordatorios',
+            self::RecordatoriosEditar => 'Configurar recordatorios y enviar una prueba',
             self::RolesGestionar => 'Gestionar roles',
             self::UsuariosGestionar => 'Gestionar usuarios',
         };

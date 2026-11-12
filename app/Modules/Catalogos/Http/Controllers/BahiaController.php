@@ -27,23 +27,8 @@ class BahiaController extends Controller
 
         $tenantId = $request->user()->tenant_id;
 
-        $bahias = Bahia::query()
-            ->where('tenant_id', $tenantId)
-            ->with(['area:id,nombre', 'usuarios:id'])
-            ->withCount('equipo as equipos_count')
-            ->orderBy('nombre')
-            ->get(['id', 'nombre', 'area_id'])
-            ->map(fn (Bahia $bahia) => [
-                'id' => $bahia->id,
-                'nombre' => $bahia->nombre,
-                'area_id' => $bahia->area_id,
-                'area_nombre' => $bahia->area->nombre,
-                'equipos_count' => (int) $bahia->getAttribute('equipos_count'),
-                'usuario_ids' => $bahia->usuarios->pluck('id')->values(),
-            ]);
-
         return Inertia::render('bahias/index', [
-            'bahias' => $bahias,
+            'bahias' => Bahia::listadoConUsuarios($tenantId),
             'usuarios' => $request->user()->can('asignarUsuarios', Bahia::class)
                 ? User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email'])
                 : [],
@@ -84,7 +69,8 @@ class BahiaController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Usuarios asignados a las bahías.')]);
 
-        return to_route('bahias.index');
+        // Vuelve a la pantalla desde la que se asignó (Bahías o Recordatorios).
+        return back(fallback: route('bahias.index'));
     }
 
     /**

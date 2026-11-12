@@ -20,19 +20,21 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Bahia, BahiaUsuarioOption } from '@/types';
 
-type Props = PropsWithChildren<{
-    bahias: Bahia[];
-    usuarios: BahiaUsuarioOption[];
-}>;
-
-/** Ids de usuarios asignados, por id de bahía. */
-type Asignaciones = Map<number, Set<number>>;
-
 /**
  * Por bahía: las bahías a la izquierda reciben los usuarios que se arrastran desde la
  * derecha. Por usuario: al revés.
  */
 type Modo = 'porBahia' | 'porUsuario';
+
+type Props = PropsWithChildren<{
+    bahias: Bahia[];
+    usuarios: BahiaUsuarioOption[];
+    /** Con qué lado se abre el modal (ej. "por usuario" desde Recordatorios). */
+    modoInicial?: Modo;
+}>;
+
+/** Ids de usuarios asignados, por id de bahía. */
+type Asignaciones = Map<number, Set<number>>;
 
 type Item = { id: number; titulo: string; detalle: string };
 
@@ -88,13 +90,14 @@ function Buscador({
 export default function AsignarUsuariosBahiasModal({
     bahias,
     usuarios,
+    modoInicial = 'porBahia',
     children,
 }: Props) {
     const [open, setOpen] = useState(false);
     const [asignaciones, setAsignaciones] = useState<Asignaciones>(() =>
         asignacionesIniciales(bahias),
     );
-    const [modo, setModo] = useState<Modo>('porBahia');
+    const [modo, setModo] = useState<Modo>(modoInicial);
     const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
     const [ultimoElegido, setUltimoElegido] = useState<number | null>(null);
     const [destinoResaltado, setDestinoResaltado] = useState<number | null>(
@@ -266,7 +269,7 @@ export default function AsignarUsuariosBahiasModal({
 
         if (abierto) {
             setAsignaciones(asignacionesIniciales(bahias));
-            setModo('porBahia');
+            setModo(modoInicial);
             limpiarSeleccion();
             setBusquedaDestinos('');
             setBusquedaOrigenes('');

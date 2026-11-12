@@ -45,6 +45,7 @@ use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoDefectoIdentificadoController;
 use App\Modules\Objetivos\Http\Controllers\ObjetivoUserController;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
+use App\Modules\Recordatorios\Http\Controllers\RecordatorioController;
 use App\Modules\ServiciosTerceros\Http\Controllers\EmpresaTerceroController;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use Illuminate\Support\Facades\Route;
@@ -202,6 +203,10 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('unidades-medida', UnidadMedidaController::class)
         ->parameters(['unidades-medida' => 'unidadMedida'])
         ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::get('recordatorio/vista-previa', [RecordatorioController::class, 'vistaPrevia'])->name('recordatorio.vista-previa');
+    Route::post('recordatorio/prueba', [RecordatorioController::class, 'enviarPrueba'])->name('recordatorio.prueba');
+    Route::singleton('recordatorio', RecordatorioController::class)->only(['show', 'update']);
 
     Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);
 

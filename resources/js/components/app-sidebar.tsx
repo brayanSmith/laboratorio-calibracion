@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    BellRing,
     Building,
     Building2,
     ClipboardCheck,
@@ -58,6 +59,7 @@ import { show as empresaShow } from '@/routes/empresa';
 import { index as novedadesIndex } from '@/routes/novedades';
 import { index as objetivosIndex } from '@/routes/objetivos';
 import { index as procedimientosCalibracionIndex } from '@/routes/procedimientos-calibracion';
+import { show as recordatorioShow } from '@/routes/recordatorio';
 import { index as rolesIndex } from '@/routes/roles';
 import { index as tiposEquipoIndex } from '@/routes/tipos-equipo';
 import { index as tiposMagnitudIndex } from '@/routes/tipos-magnitud';
@@ -346,6 +348,15 @@ export function AppSidebar() {
               {
                   title: 'Administración',
                   items: [
+                      ...(can('recordatorios.ver')
+                          ? [
+                                {
+                                    title: 'Recordatorios',
+                                    href: recordatorioShow(),
+                                    icon: BellRing,
+                                },
+                            ]
+                          : []),
                       ...(can('usuarios.gestionar')
                           ? [
                                 {
