@@ -342,7 +342,9 @@ export default function ObjetivosMensualesModal({
                                                         key={concepto}
                                                         className="px-3 py-2 text-right font-medium"
                                                     >
-                                                        <TituloColumna titulo={label} />
+                                                        <TituloColumna
+                                                            titulo={label}
+                                                        />
                                                         <span className="block text-xs font-normal">
                                                             {unidad}
                                                         </span>

@@ -203,8 +203,10 @@ export default function IndicadorCumplimiento() {
             tipos_equipo: [],
             tipos_mantenimiento: TIPOS_MANTENIMIENTO.map((tipo) => tipo.value),
         });
-    const { datos, cargando, error, actualizar } =
-        useIndicador<Cumplimiento>(cumplimiento, filtros);
+    const { datos, cargando, error, actualizar } = useIndicador<Cumplimiento>(
+        cumplimiento,
+        filtros,
+    );
 
     const cambiar = (cambios: Partial<FiltrosCumplimiento>) =>
         setBorrador((actuales) => ({ ...actuales, ...cambios }));
@@ -420,45 +422,45 @@ export default function IndicadorCumplimiento() {
 
                     {/* Lado a lado en pantallas amplias; uno debajo del otro en las angostas. */}
                     <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-                    {datos.por_area.length > 0 ? (
-                        <BloqueIndicador
-                            titulo="Cumplimiento por área"
-                            icono={LayoutGrid}
-                        >
-                            <div className="grid gap-3">
-                                {datos.por_area.map((area) => (
-                                    <div
-                                        key={area.area}
-                                        className="grid items-center gap-1 sm:grid-cols-[minmax(0,10rem)_5rem_1fr] sm:gap-3"
-                                    >
-                                        <span className="truncate text-sm font-medium">
-                                            {area.area}
-                                        </span>
-                                        <span className="text-sm text-muted-foreground tabular-nums">
-                                            {area.atendidos} de{' '}
-                                            {area.programados}
-                                        </span>
-                                        <Medidor
-                                            porcentaje={area.porcentaje}
-                                            etiqueta={`Cumplimiento de ${area.area}`}
-                                            tono={tonoDePorcentaje(
-                                                area.porcentaje,
-                                            )}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </BloqueIndicador>
-                    ) : null}
+                        {datos.por_area.length > 0 ? (
+                            <BloqueIndicador
+                                titulo="Cumplimiento por área"
+                                icono={LayoutGrid}
+                            >
+                                <div className="grid gap-3">
+                                    {datos.por_area.map((area) => (
+                                        <div
+                                            key={area.area}
+                                            className="grid items-center gap-1 sm:grid-cols-[minmax(0,10rem)_5rem_1fr] sm:gap-3"
+                                        >
+                                            <span className="truncate text-sm font-medium">
+                                                {area.area}
+                                            </span>
+                                            <span className="text-sm text-muted-foreground tabular-nums">
+                                                {area.atendidos} de{' '}
+                                                {area.programados}
+                                            </span>
+                                            <Medidor
+                                                porcentaje={area.porcentaje}
+                                                etiqueta={`Cumplimiento de ${area.area}`}
+                                                tono={tonoDePorcentaje(
+                                                    area.porcentaje,
+                                                )}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </BloqueIndicador>
+                        ) : null}
 
-                    <BloqueIndicador
-                        titulo="Novedades de los equipos no recibidos"
-                        icono={MessageSquareWarning}
-                    >
-                        <NovedadesNoRecibidos
-                            novedades={datos.novedades_no_recibidos}
-                        />
-                    </BloqueIndicador>
+                        <BloqueIndicador
+                            titulo="Novedades de los equipos no recibidos"
+                            icono={MessageSquareWarning}
+                        >
+                            <NovedadesNoRecibidos
+                                novedades={datos.novedades_no_recibidos}
+                            />
+                        </BloqueIndicador>
                     </div>
 
                     <BloqueIndicador

@@ -17,7 +17,9 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type EstadoFinalCalibracion =
-    'FINALIZADO' | 'DEVOLVER_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
+    | 'FINALIZADO'
+    | 'DEVOLVER_MANTENIMIENTO'
+    | 'FUERA_DE_SERVICIO';
 
 type Props = {
     calibracionId: number;

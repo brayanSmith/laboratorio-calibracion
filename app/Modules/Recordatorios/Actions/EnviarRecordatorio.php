@@ -7,21 +7,30 @@ use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Recordatorios\Mail\RecordatorioEquipos;
 use App\Modules\Recordatorios\Models\Recordatorio;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class EnviarRecordatorio
 {
-    public function __construct(private readonly ObtenerEquiposRecordatorio $obtenerEquipos) {}
+    public function __construct(
+        private readonly ObtenerEquiposRecordatorio $obtenerEquipos,
+        private readonly RegistrarEnvioRecordatorio $registrarEnvio,
+    ) {}
 
     /**
      * Encola los correos del recordatorio: a cada cliente con sus equipos y a cada usuario
      * asignado a bahías con los equipos de sus bahías. Los correos "con copia" reciben el
-     * resumen de todos los equipos por bahía. Quien no tenga nada que avisar no recibe correo. Deja anotado el envío para no repetirlo el mismo día.
+     * resumen de todos los equipos por bahía. Quien no tenga nada que avisar no recibe correo.
+     * Cada correo queda en el historial de envíos. Deja anotado el envío para no repetirlo el
+     * mismo día.
      *
      * @return int Cantidad de correos encolados
      */
     public function handle(Recordatorio $recordatorio): int
     {
-        $equipos = $this->obtenerEquipos->handle($recordatorio->tenant_id, $recordatorio->dias_anticipacion);
+        $diasAviso = $recordatorio->diasAviso();
+        $equipos = $this->obtenerEquipos->handle($recordatorio->tenant_id, $diasAviso, $recordatorio->diasHastaInicioAviso());
+        $plantillaCliente = $recordatorio->plantilla('cliente');
+        $plantillaBahia = $recordatorio->plantilla('bahia');
         $enviados = 0;
 
         if ($recordatorio->enviar_a_clientes) {
@@ -34,12 +43,14 @@ class EnviarRecordatorio
                     continue;
                 }
 
-                Mail::to($cliente->email)->queue(new RecordatorioEquipos(
+                $this->encolar($cliente->email, 'cliente', new RecordatorioEquipos(
                     $recordatorio->tenant_id,
                     $cliente->nombre,
                     $equipos->where('cliente_id', $cliente->id)->values()->all(),
                     'cliente',
-                    $recordatorio->dias_anticipacion,
+                    $diasAviso,
+                    $plantillaCliente['asunto'],
+                    $plantillaCliente['mensaje'],
                 ));
                 $enviados++;
             }
@@ -59,12 +70,14 @@ class EnviarRecordatorio
                     continue;
                 }
 
-                Mail::to($usuario->email)->queue(new RecordatorioEquipos(
+                $this->encolar($usuario->email, 'bahia', new RecordatorioEquipos(
                     $recordatorio->tenant_id,
                     $usuario->name,
                     $deSusBahias->all(),
                     'bahia',
-                    $recordatorio->dias_anticipacion,
+                    $diasAviso,
+                    $plantillaBahia['asunto'],
+                    $plantillaBahia['mensaje'],
                 ));
                 $enviados++;
             }
@@ -72,12 +85,14 @@ class EnviarRecordatorio
 
         if ($equipos->isNotEmpty()) {
             foreach ($recordatorio->correos_copia ?? [] as $correo) {
-                Mail::to($correo)->queue(new RecordatorioEquipos(
+                $this->encolar($correo, 'copia', new RecordatorioEquipos(
                     $recordatorio->tenant_id,
                     $correo,
                     $equipos->all(),
                     'bahia',
-                    $recordatorio->dias_anticipacion,
+                    $diasAviso,
+                    $plantillaBahia['asunto'],
+                    $plantillaBahia['mensaje'],
                 ));
                 $enviados++;
             }
@@ -86,5 +101,24 @@ class EnviarRecordatorio
         $recordatorio->update(['ultimo_envio_at' => now()]);
 
         return $enviados;
+    }
+
+    /**
+     * Deja el correo en el historial y lo encola. Si ni siquiera se pudo encolar, queda como
+     * fallido en el historial.
+     *
+     * @param  'cliente'|'bahia'|'copia'  $tipo
+     */
+    private function encolar(string $direccion, string $tipo, RecordatorioEquipos $correo): void
+    {
+        $envio = $this->registrarEnvio->handle($correo, $direccion, $tipo);
+
+        try {
+            Mail::to($direccion)->queue($correo);
+        } catch (Throwable $exception) {
+            $envio->marcarFallido($exception->getMessage());
+
+            throw $exception;
+        }
     }
 }

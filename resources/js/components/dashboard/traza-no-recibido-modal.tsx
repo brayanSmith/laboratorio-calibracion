@@ -173,7 +173,8 @@ function TrazaDelEquipo({ traza }: { traza: TrazaNoRecibido }) {
                     {seguimientoLabel(
                         programacion.tipo_servicio.replaceAll(',', ' + '),
                     )}{' '}
-                    para el {formatearFecha(programacion.fecha_programada, 'sin fecha')}
+                    para el{' '}
+                    {formatearFecha(programacion.fecha_programada, 'sin fecha')}
                 </p>
                 {ingreso ? (
                     <p>
@@ -253,14 +254,16 @@ function TrazaDelEquipo({ traza }: { traza: TrazaNoRecibido }) {
                                 : `Re-agendado ${reAgendamiento.veces} veces`}
                             <Badge
                                 className={
-                                    ESTADO_RE_AGENDAMIENTO[reAgendamiento.estado]
-                                        .clase
+                                    ESTADO_RE_AGENDAMIENTO[
+                                        reAgendamiento.estado
+                                    ].clase
                                 }
                                 data-test="traza-estado-re-agendamiento"
                             >
                                 {
-                                    ESTADO_RE_AGENDAMIENTO[reAgendamiento.estado]
-                                        .etiqueta
+                                    ESTADO_RE_AGENDAMIENTO[
+                                        reAgendamiento.estado
+                                    ].etiqueta
                                 }
                             </Badge>
                         </span>

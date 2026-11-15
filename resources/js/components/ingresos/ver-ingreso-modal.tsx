@@ -69,8 +69,8 @@ export default function VerIngresoModal({
                 <DialogHeader>
                     <DialogTitle>Detalle del ingreso</DialogTitle>
                     <DialogDescription>
-                        {ingreso.bahia_nombre} · {formatearFecha(ingreso.desde)} al{' '}
-                        {formatearFecha(ingreso.hasta)}
+                        {ingreso.bahia_nombre} · {formatearFecha(ingreso.desde)}{' '}
+                        al {formatearFecha(ingreso.hasta)}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -210,7 +210,9 @@ function EquipoDetalle({
                     <span className="text-muted-foreground">
                         Re-agendado para:
                     </span>{' '}
-                    {formatearFecha(item.datos_re_agendamiento.fecha_proximo_agendamiento)}
+                    {formatearFecha(
+                        item.datos_re_agendamiento.fecha_proximo_agendamiento,
+                    )}
                 </p>
             ) : null}
         </li>

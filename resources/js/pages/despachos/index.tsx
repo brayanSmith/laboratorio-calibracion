@@ -32,10 +32,7 @@ import { OPCIONES_SI_NO } from '@/lib/data-table';
 import { hoyLocal } from '@/lib/plazo-servicio';
 import { index } from '@/routes/despachos';
 import type { Despacho, DespachoOptions } from '@/types';
-import {
-    CeldaEquipo,
-    textoEquipo,
-} from '@/components/equipos/celdas-equipo';
+import { CeldaEquipo, textoEquipo } from '@/components/equipos/celdas-equipo';
 
 type Props = DespachoOptions & {
     despachos: Despacho[];

@@ -62,7 +62,9 @@ export default function DetalleAlcanceTableRow({
               ? String(especificacion.unidad_medida_id)
               : '');
     const errorOf = (field: string) => errors[`detalles.${index}.${field}`];
-    const { esPorcentaje, numero } = parsePrecision(especificacion?.precision ?? null);
+    const { esPorcentaje, numero } = parsePrecision(
+        especificacion?.precision ?? null,
+    );
     const empField = esPorcentaje ? 'emp_porcentaje' : 'emp';
     const empGuardado = detalle?.[empField];
 

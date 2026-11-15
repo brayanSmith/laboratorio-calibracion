@@ -245,7 +245,9 @@ function GestionarMantenimientoFormulario({
                                     Fecha
                                 </Label>
                                 <p className="text-sm">
-                                    {formatearFecha(mantenimiento.fecha_mantenimiento)}
+                                    {formatearFecha(
+                                        mantenimiento.fecha_mantenimiento,
+                                    )}
                                 </p>
                             </div>
                             <div className="grid gap-1">

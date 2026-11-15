@@ -113,12 +113,19 @@ export default function VerDespachoModal({
                                     className="rounded-md border px-3 py-2 text-sm"
                                 >
                                     <p className="font-medium">
-                                        {formatearFecha(reagendamiento.fecha_anterior)} →{' '}
-                                        {formatearFecha(reagendamiento.fecha_nueva)}
+                                        {formatearFecha(
+                                            reagendamiento.fecha_anterior,
+                                        )}{' '}
+                                        →{' '}
+                                        {formatearFecha(
+                                            reagendamiento.fecha_nueva,
+                                        )}
                                     </p>
                                     <p>{reagendamiento.motivo}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {formatearFechaHora(reagendamiento.fecha)}{' '}
+                                        {formatearFechaHora(
+                                            reagendamiento.fecha,
+                                        )}{' '}
                                         · {reagendamiento.usuario ?? 'Sistema'}
                                     </p>
                                 </li>

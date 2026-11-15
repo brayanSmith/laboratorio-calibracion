@@ -547,7 +547,8 @@ function GloboSeries({
             {series.map((serie) => {
                 const valor = punto[serie.clave] as number | null;
                 const objetivo = punto[claveObjetivo(serie.clave)] as
-                    number | null;
+                    | number
+                    | null;
                 const resultado = diferenciaConObjetivo(
                     valor,
                     objetivo,

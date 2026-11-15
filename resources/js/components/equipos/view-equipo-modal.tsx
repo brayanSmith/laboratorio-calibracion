@@ -501,7 +501,9 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                                             <span className="text-muted-foreground">
                                                                 Último servicio:
                                                             </span>{' '}
-                                                            {formatearFecha(programacion.fecha_ultimo_servicio)}
+                                                            {formatearFecha(
+                                                                programacion.fecha_ultimo_servicio,
+                                                            )}
                                                         </p>
                                                     ) : null}
                                                     {!gestionada &&
@@ -511,7 +513,9 @@ export default function ViewEquipoModal({ equipo, options, children }: Props) {
                                                                 Próximo
                                                                 servicio:
                                                             </span>{' '}
-                                                            {formatearFecha(programacion.fecha_proximo_servicio)}{' '}
+                                                            {formatearFecha(
+                                                                programacion.fecha_proximo_servicio,
+                                                            )}{' '}
                                                             <span className="text-muted-foreground">
                                                                 (aviso{' '}
                                                                 {Math.round(

@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Modules\Recordatorios\Listeners\MarcarEnvioRecordatorioEnviado;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -29,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
 
         Gate::policy(Role::class, RolePolicy::class);
+
+        // Los listeners de los módulos no están en app/Listeners, donde Laravel los descubre.
+        Event::listen(MessageSent::class, MarcarEnvioRecordatorioEnviado::class);
     }
 
     /**

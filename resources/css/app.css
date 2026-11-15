@@ -145,7 +145,11 @@
        de la barra de navegación de la empresa), en lugar del gris del navegador. */
     [data-slot='sidebar-content'] {
         scrollbar-width: thin;
-        scrollbar-color: color-mix(in srgb, var(--sidebar-foreground) 40%, transparent)
+        scrollbar-color: color-mix(
+                in srgb,
+                var(--sidebar-foreground) 40%,
+                transparent
+            )
             transparent;
     }
 
@@ -309,7 +313,9 @@
 
 .agenda-cal .fc-event {
     cursor: pointer;
-    transition: transform 0.12s, box-shadow 0.12s;
+    transition:
+        transform 0.12s,
+        box-shadow 0.12s;
 }
 
 .agenda-cal .fc-event:hover {

@@ -44,7 +44,8 @@ export default function EditEmpresaTerceroModal({
                                     Editar laboratorio tercero
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Actualiza los datos de el laboratorio tercero
+                                    Actualiza los datos de el laboratorio
+                                    tercero
                                 </DialogDescription>
                             </DialogHeader>
 

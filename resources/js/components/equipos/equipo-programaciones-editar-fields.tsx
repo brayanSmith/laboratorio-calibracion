@@ -165,7 +165,9 @@ export default function EquipoProgramacionesEditarFields({
                                             <span className="text-muted-foreground">
                                                 Próximo servicio:
                                             </span>{' '}
-                                            {formatearFecha(programacion.fecha_proximo_servicio)}{' '}
+                                            {formatearFecha(
+                                                programacion.fecha_proximo_servicio,
+                                            )}{' '}
                                             <span className="text-muted-foreground">
                                                 (aviso{' '}
                                                 {Math.round(

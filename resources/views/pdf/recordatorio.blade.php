@@ -38,6 +38,7 @@
         .grid td { border-bottom: 1px solid #f0f0f0; }
         .grid tr.par td { background: #fafafa; }
         .derecha { text-align: right; }
+        .secundario { color: #737373; font-size: 8px; margin-top: 1px; }
         .vacio { color: #737373; margin-top: 16px; }
         .pie { position: fixed; bottom: -36px; left: 0; right: 0; font-size: 8px; color: #737373; border-top: 1px solid #e5e5e5; padding-top: 6px; }
         .pie td { padding: 0; }
@@ -103,16 +104,13 @@
             <table class="grid">
                 <thead>
                     <tr>
-                        <th>Código</th>
                         <th>Equipo</th>
-                        <th>Modelo</th>
-                        <th>N.º de serie</th>
                         @if ($agruparPor === 'bahia')
                             <th>Cliente</th>
+                            <th>Área</th>
                         @else
-                            <th>Bahía</th>
+                            <th>Área / Bahía</th>
                         @endif
-                        <th>Área</th>
                         <th>Servicio</th>
                         <th>Próximo servicio</th>
                         <th class="derecha">Días</th>
@@ -121,12 +119,20 @@
                 <tbody>
                     @foreach ($filas as $fila)
                         <tr class="{{ $loop->even ? 'par' : '' }}">
-                            <td><strong>{{ $fila['codigo'] }}</strong></td>
-                            <td>{{ $fila['tipo_equipo'] }}</td>
-                            <td>{{ $fila['modelo'] }}</td>
-                            <td>{{ $fila['numero_serie'] }}</td>
-                            <td>{{ $agruparPor === 'bahia' ? $fila['cliente'] : $fila['bahia'] }}</td>
-                            <td>{{ $fila['area'] }}</td>
+                            {{-- Como la columna Equipo de la tabla de equipos: código y tipo arriba, modelo y serie debajo --}}
+                            <td>
+                                <strong>{{ $fila['codigo'] }}</strong> · {{ $fila['tipo_equipo'] }}
+                                <div class="secundario">Modelo: {{ $fila['modelo'] ?: '—' }} · Serie: {{ $fila['numero_serie'] ?: '—' }}</div>
+                            </td>
+                            @if ($agruparPor === 'bahia')
+                                <td>{{ $fila['cliente'] }}</td>
+                                <td>{{ $fila['area'] }}</td>
+                            @else
+                                <td>
+                                    {{ $fila['area'] }}
+                                    <div class="secundario">Bahía: {{ $fila['bahia'] }}</div>
+                                </td>
+                            @endif
                             <td>{{ $fila['tipo_servicio'] }}</td>
                             <td>{{ $fecha($fila['fecha_proximo_servicio']) }}</td>
                             <td class="derecha" style="color: {{ $fila['dias'] < 0 ? '#b91c1c' : '#171717' }};">

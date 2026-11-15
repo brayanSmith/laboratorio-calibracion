@@ -87,7 +87,8 @@ export function ErrorIndicador({ onReintentar }: { onReintentar: () => void }) {
             <AlertDescription>
                 <p>
                     Ocurrió un error al consultar los datos con estos filtros.
-                    Intenta de nuevo y, si sigue pasando, avisa al administrador.
+                    Intenta de nuevo y, si sigue pasando, avisa al
+                    administrador.
                 </p>
                 <Button
                     type="button"

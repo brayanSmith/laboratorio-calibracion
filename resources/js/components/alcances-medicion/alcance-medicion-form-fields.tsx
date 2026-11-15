@@ -1,21 +1,23 @@
-import { useEffect, useState } from "react";
-import Combobox from "@/components/combobox";
-import InputError from "@/components/input-error";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from 'react';
+import Combobox from '@/components/combobox';
+import InputError from '@/components/input-error';
+import { Label } from '@/components/ui/label';
 import type {
     AlcanceMedicion,
     AlcanceMedicionOpcion,
     AlcancesIndicacionPorModelo,
     EspecificacionAlcance,
     EspecificacionesAlcance,
-} from "@/types";
+} from '@/types';
 
 type Props = {
     alcanceMedicion?: AlcanceMedicion;
     tiposEquipo: AlcanceMedicionOpcion[];
     alcancesIndicacion: AlcancesIndicacionPorModelo;
     especificaciones: EspecificacionesAlcance;
-    onEspecificacionChange: (especificacion: EspecificacionAlcance | null) => void;
+    onEspecificacionChange: (
+        especificacion: EspecificacionAlcance | null,
+    ) => void;
     errors: Partial<Record<string, string>>;
 };
 
@@ -28,11 +30,11 @@ export default function AlcanceMedicionFormFields({
     errors,
 }: Props) {
     const [tipoEquipoId, setTipoEquipoId] = useState(
-        alcanceMedicion ? String(alcanceMedicion.tipo_equipo_id) : "",
+        alcanceMedicion ? String(alcanceMedicion.tipo_equipo_id) : '',
     );
-    const [modelo, setModelo] = useState(alcanceMedicion?.modelo ?? "");
+    const [modelo, setModelo] = useState(alcanceMedicion?.modelo ?? '');
     const [alcanceIndicacion, setAlcanceIndicacion] = useState(
-        alcanceMedicion?.alcance_indicacion ?? "",
+        alcanceMedicion?.alcance_indicacion ?? '',
     );
 
     const especificacion =
@@ -70,8 +72,8 @@ export default function AlcanceMedicionFormFields({
                     value={tipoEquipoId}
                     onValueChange={(value) => {
                         setTipoEquipoId(value);
-                        setModelo("");
-                        setAlcanceIndicacion("");
+                        setModelo('');
+                        setAlcanceIndicacion('');
                     }}
                     options={tiposEquipo.map((tipoEquipo) => ({
                         id: tipoEquipo.id,
@@ -92,19 +94,19 @@ export default function AlcanceMedicionFormFields({
                     value={modelo}
                     onValueChange={(value) => {
                         setModelo(value);
-                        setAlcanceIndicacion("");
+                        setAlcanceIndicacion('');
                     }}
                     options={modelos.map((nombre) => ({
                         id: nombre,
                         label: nombre,
                     }))}
-                    disabled={tipoEquipoId === ""}
+                    disabled={tipoEquipoId === ''}
                     placeholder={
-                        tipoEquipoId === ""
-                            ? "Primero selecciona un tipo de equipo"
+                        tipoEquipoId === ''
+                            ? 'Primero selecciona un tipo de equipo'
                             : modelos.length === 0
-                              ? "Este tipo de equipo no tiene modelos registrados"
-                              : "Selecciona un modelo"
+                              ? 'Este tipo de equipo no tiene modelos registrados'
+                              : 'Selecciona un modelo'
                     }
                     searchPlaceholder="Buscar modelo..."
                 />
@@ -125,13 +127,13 @@ export default function AlcanceMedicionFormFields({
                         id: alcance,
                         label: alcance,
                     }))}
-                    disabled={modelo === ""}
+                    disabled={modelo === ''}
                     placeholder={
-                        modelo === ""
-                            ? "Primero selecciona un modelo"
+                        modelo === ''
+                            ? 'Primero selecciona un modelo'
                             : opciones.length === 0
-                              ? "Este modelo no tiene alcances registrados"
-                              : "Selecciona un alcance de indicación"
+                              ? 'Este modelo no tiene alcances registrados'
+                              : 'Selecciona un alcance de indicación'
                     }
                     searchPlaceholder="Buscar alcance..."
                 />

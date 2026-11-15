@@ -1,8 +1,19 @@
-<x-mail::message>
-# Hola, {{ $destinatario }}
+<x-mail::layout>
+{{-- Encabezado con el logo de la empresa (incrustado) o, si no tiene, su nombre --}}
+<x-slot:header>
+<tr>
+<td class="header">
+@if ($logo)
+<img src="{{ $message->embed($logo) }}" alt="{{ $empresa }}" style="max-height: 75px; max-width: 220px; width: auto; height: auto; border: none;">
+@else
+{{ $empresa }}
+@endif
+</td>
+</tr>
+</x-slot:header>
 
-Te enviamos el resumen de {{ $porBahia ? 'los equipos de tus bahías' : 'tus equipos' }} que requieren atención: los vencidos y los que vencen en los próximos {{ $diasAnticipacion }} días.
-
+@foreach ($bloques as $bloque)
+@if ($bloque === null)
 <x-mail::table>
 | Estado | Equipos |
 | :--- | ---: |
@@ -10,9 +21,15 @@ Te enviamos el resumen de {{ $porBahia ? 'los equipos de tus bahías' : 'tus equ
 | Próximos a vencer | {{ $proximos }} |
 | Agendados | {{ $agendados }} |
 </x-mail::table>
+@else
+{!! $bloque !!}
+@endif
 
-Encontrarás el detalle de cada equipo en el PDF adjunto.
+@endforeach
 
-Saludos,<br>
-{{ config('app.name') }}
-</x-mail::message>
+<x-slot:footer>
+<x-mail::footer>
+© {{ date('Y') }} {{ $empresa }}.
+</x-mail::footer>
+</x-slot:footer>
+</x-mail::layout>

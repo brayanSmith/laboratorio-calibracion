@@ -14,19 +14,25 @@ class ObtenerEquiposRecordatorio
      * para ese rango. Quedan fuera las ya recibidas (el servicio ya se gestionó), las
      * re-agendadas (las reemplaza la programación nueva) y las que no tienen fecha (correctivos).
      * Una programación agendada se informa como AGENDADO aunque esté vencida: ya está en camino.
+     * Con $diasHastaInicio, lo que vence antes de ese día (y no está vencido) queda fuera:
+     * ya lo avisó un envío anterior.
      *
      * @return Collection<int, array{programacion_id: int, codigo: string, tipo_equipo: string, modelo: string, numero_serie: string, cliente_id: int, cliente: string, bahia_id: int, bahia: string, area: string, tipo_servicio: string, fecha_proximo_servicio: string, dias: int, estado: 'VENCIDO'|'PROXIMO_A_VENCER'|'AGENDADO'}>
      */
-    public function handle(int $tenantId, int $diasAnticipacion, ?CarbonInterface $hoy = null): Collection
+    public function handle(int $tenantId, int $diasAnticipacion, int $diasHastaInicio = 0, ?CarbonInterface $hoy = null): Collection
     {
         $hoy = ($hoy ?? now())->utc()->startOfDay();
         $limite = $hoy->addDays($diasAnticipacion);
+        $inicio = $hoy->addDays($diasHastaInicio);
 
         return EquipoProgramacion::query()
             ->where('tenant_id', $tenantId)
             ->whereNotIn('estado_programacion', ['RECIBIDO', 'RE_AGENDADO'])
             ->whereNotNull('fecha_proximo_servicio')
             ->whereDate('fecha_proximo_servicio', '<=', $limite->toDateString())
+            ->when($diasHastaInicio > 0, fn ($query) => $query->where(fn ($rango) => $rango
+                ->whereDate('fecha_proximo_servicio', '<', $hoy->toDateString())
+                ->orWhereDate('fecha_proximo_servicio', '>=', $inicio->toDateString())))
             ->whereHas('equipo', fn ($query) => $query->where('activo', true))
             ->with(['equipo.tipoEquipo', 'equipo.cliente', 'equipo.bahia', 'equipo.area'])
             ->orderBy('fecha_proximo_servicio')

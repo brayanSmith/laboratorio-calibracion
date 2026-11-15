@@ -26,7 +26,9 @@ describe('formatearFechaHora', () => {
     it('agrega la hora local a una fecha con hora', () => {
         const fecha = new Date(2026, 10, 4, 9, 5);
 
-        expect(formatearFechaHora(fecha.toISOString())).toBe('04/11/2026 09:05');
+        expect(formatearFechaHora(fecha.toISOString())).toBe(
+            '04/11/2026 09:05',
+        );
     });
 
     it('sin hora, muestra solo la fecha', () => {

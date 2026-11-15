@@ -50,10 +50,7 @@ import type {
     CalibracionOptions,
     ServicioTerceroListado,
 } from '@/types';
-import {
-    CeldaEquipo,
-    textoEquipo,
-} from '@/components/equipos/celdas-equipo';
+import { CeldaEquipo, textoEquipo } from '@/components/equipos/celdas-equipo';
 
 /** Convierte un ISO string a Date, o null si no hay nada que convertir. */
 function toDateOrNull(value: string | null): Date | null {

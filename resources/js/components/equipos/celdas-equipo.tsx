@@ -47,8 +47,6 @@ export function CeldaUbicacion({
 }
 
 /** Texto para ordenar y filtrar la celda "Equipo": busca en código, tipo, modelo y serie. */
-export function textoEquipo(
-    ...partes: (string | null | undefined)[]
-): string {
+export function textoEquipo(...partes: (string | null | undefined)[]): string {
     return partes.filter(Boolean).join(' · ');
 }

@@ -61,5 +61,6 @@ export function etiquetaPeriodicidad(
 
     return periodicidad.nombre
         ? `${periodicidad.nombre} (${periodicidad.cada})`
-        : periodicidad.cada.charAt(0).toUpperCase() + periodicidad.cada.slice(1);
+        : periodicidad.cada.charAt(0).toUpperCase() +
+              periodicidad.cada.slice(1);
 }

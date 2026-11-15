@@ -214,7 +214,9 @@ export function NovedadesNoRecibidos({
                         {total}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                        {total === 1 ? 'vez que no llegó' : 'veces que no llegó'}
+                        {total === 1
+                            ? 'vez que no llegó'
+                            : 'veces que no llegó'}
                     </span>
                 </div>
             </div>
@@ -247,7 +249,6 @@ export function NovedadesNoRecibidos({
         </div>
     );
 }
-
 
 const columnHelper = createDataTableColumnHelper<NoRecibido>();
 
@@ -354,10 +355,14 @@ export function TablaNoRecibidos({
                         <>
                             <Badge
                                 className={
-                                    COLOR_ESTADO[row.original.estado_programacion]
+                                    COLOR_ESTADO[
+                                        row.original.estado_programacion
+                                    ]
                                 }
                                 variant={
-                                    COLOR_ESTADO[row.original.estado_programacion]
+                                    COLOR_ESTADO[
+                                        row.original.estado_programacion
+                                    ]
                                         ? 'default'
                                         : 'secondary'
                                 }
@@ -374,7 +379,8 @@ export function TablaNoRecibidos({
                                     className="block text-xs text-muted-foreground"
                                     data-test="no-recibido-veces"
                                 >
-                                    No llegó {row.original.veces_no_recibido} veces
+                                    No llegó {row.original.veces_no_recibido}{' '}
+                                    veces
                                 </span>
                             ) : null}
                         </>
@@ -399,7 +405,9 @@ export function TablaNoRecibidos({
                                     data-test="no-recibido-fecha-re-agendada"
                                 >
                                     Re-agendado al{' '}
-                                    {formatearFecha(row.original.fecha_re_agendamiento)}
+                                    {formatearFecha(
+                                        row.original.fecha_re_agendamiento,
+                                    )}
                                 </span>
                             ) : null}
                         </>

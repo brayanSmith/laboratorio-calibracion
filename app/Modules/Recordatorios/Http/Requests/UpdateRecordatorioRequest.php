@@ -49,8 +49,10 @@ class UpdateRecordatorioRequest extends FormRequest
             'frecuencia' => ['required', 'string', Rule::in(Recordatorio::FRECUENCIAS)],
             'dia_semana' => ['nullable', 'required_if:frecuencia,SEMANAL', 'integer', 'between:1,7'],
             'dia_mes' => ['nullable', 'required_if:frecuencia,MENSUAL', 'integer', 'between:1,28'],
+            'mes_aviso' => ['nullable', 'required_if:frecuencia,MENSUAL', 'string', Rule::in(Recordatorio::MESES_AVISO)],
             'hora_envio' => ['required', 'date_format:H:i'],
-            'dias_anticipacion' => ['required', 'integer', 'between:1,365'],
+            // En el mensual el rango va hasta fin de mes; los días solo aplican al semanal.
+            'dias_anticipacion' => ['nullable', 'required_if:frecuencia,SEMANAL', 'integer', 'between:1,365'],
             'enviar_a_clientes' => ['boolean'],
             'enviar_resumen_bahia' => ['boolean'],
             'correos_copia' => ['array', 'max:20'],
@@ -70,6 +72,7 @@ class UpdateRecordatorioRequest extends FormRequest
             'frecuencia' => 'frecuencia',
             'dia_semana' => 'día de la semana',
             'dia_mes' => 'día del mes',
+            'mes_aviso' => 'mes a avisar',
             'hora_envio' => 'hora de envío',
             'dias_anticipacion' => 'días de anticipación',
             'enviar_a_clientes' => 'enviar a clientes',
@@ -80,7 +83,8 @@ class UpdateRecordatorioRequest extends FormRequest
     }
 
     /**
-     * Los datos a guardar: solo el día que corresponde a la frecuencia elegida.
+     * Los datos a guardar: solo el día que corresponde a la frecuencia elegida. Los textos
+     * del correo se guardan aparte, desde la pestaña de contenido.
      *
      * @return array<string, mixed>
      */
@@ -88,6 +92,14 @@ class UpdateRecordatorioRequest extends FormRequest
     {
         $datos = $this->validated();
         $mensual = $datos['frecuencia'] === 'MENSUAL';
+
+        // Lo que no aplica a la frecuencia elegida y no llegó se deja como estaba guardado,
+        // para cuando se vuelva a la otra frecuencia.
+        foreach (['dias_anticipacion', 'mes_aviso'] as $campo) {
+            if (blank($datos[$campo] ?? null)) {
+                unset($datos[$campo]);
+            }
+        }
 
         return [
             ...$datos,

@@ -149,7 +149,9 @@ function RecibirIngresoFormulario({
     const reportarSinFecha = useCallback(
         (id: number, falta: boolean) =>
             setSinFecha((actuales) =>
-                actuales[id] === falta ? actuales : { ...actuales, [id]: falta },
+                actuales[id] === falta
+                    ? actuales
+                    : { ...actuales, [id]: falta },
             ),
         [],
     );
@@ -617,8 +619,8 @@ function RecibirIngresoFormulario({
                                             className="w-full sm:w-48"
                                         />
                                         <p className="text-xs text-muted-foreground">
-                                            Quedan disponibles de nuevo para
-                                            esa fecha y saldrán en el próximo
+                                            Quedan disponibles de nuevo para esa
+                                            fecha y saldrán en el próximo
                                             ingreso de su bahía.
                                         </p>
                                         <InputError

@@ -2,7 +2,12 @@ import type { ConceptoObjetivo, ObjetivosDelPeriodo } from '@/types';
 
 /** Cómo se agrupan los datos del gráfico en el eje de tiempo. */
 export type Agrupacion =
-    'dia' | 'semana' | 'mes' | 'trimestre' | 'semestre' | 'anio';
+    | 'dia'
+    | 'semana'
+    | 'mes'
+    | 'trimestre'
+    | 'semestre'
+    | 'anio';
 
 export const AGRUPACIONES: { value: Agrupacion; label: string }[] = [
     { value: 'dia', label: 'Días' },

@@ -13,7 +13,10 @@ type Props = {
 };
 
 const normalize = (text: string) =>
-    text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    text
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase();
 
 export default function RoleFormFields({ role, catalog, errors }: Props) {
     const mandatory = catalog.flatMap((group) =>

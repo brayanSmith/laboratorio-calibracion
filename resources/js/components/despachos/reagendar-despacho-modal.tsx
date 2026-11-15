@@ -55,7 +55,11 @@ export default function ReagendarDespachoModal({
                                     {despacho.orden_trabajo_codigo} ·{' '}
                                     {despacho.equipo.codigo}. Estaba programado
                                     para el{' '}
-                                    <strong>{formatearFecha(despacho.fecha_programada)}</strong>
+                                    <strong>
+                                        {formatearFecha(
+                                            despacho.fecha_programada,
+                                        )}
+                                    </strong>
                                     ; el cambio queda en su historial.
                                 </DialogDescription>
                             </DialogHeader>

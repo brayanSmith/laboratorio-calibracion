@@ -53,8 +53,9 @@ export default function DeleteIngresoModal({
                                             </strong>
                                         </>
                                     ) : null}{' '}
-                                    del {formatearFecha(ingreso.desde)}. Solo es posible si no
-                                    tiene órdenes de trabajo asociadas.
+                                    del {formatearFecha(ingreso.desde)}. Solo es
+                                    posible si no tiene órdenes de trabajo
+                                    asociadas.
                                 </DialogDescription>
                             </DialogHeader>
 

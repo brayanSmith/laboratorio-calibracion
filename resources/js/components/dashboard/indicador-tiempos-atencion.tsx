@@ -33,10 +33,7 @@ import {
 } from '@/lib/indicadores';
 import type { TiemposAtencion } from '@/types';
 import { formatearFecha } from '@/lib/fechas';
-import {
-    CeldaEquipo,
-    textoEquipo,
-} from '@/components/equipos/celdas-equipo';
+import { CeldaEquipo, textoEquipo } from '@/components/equipos/celdas-equipo';
 
 type EquipoAtendido = TiemposAtencion['equipos'][number];
 
@@ -197,7 +194,8 @@ export default function IndicadorTiemposAtencion() {
                 columnHelper.accessor((fila) => fila.fecha_recepcion ?? '', {
                     id: 'fecha_recepcion',
                     header: 'Ingreso',
-                    cell: ({ row }) => formatearFecha(row.original.fecha_recepcion),
+                    cell: ({ row }) =>
+                        formatearFecha(row.original.fecha_recepcion),
                 }),
                 columnHelper.accessor('fecha_despacho', {
                     header: 'Despacho',

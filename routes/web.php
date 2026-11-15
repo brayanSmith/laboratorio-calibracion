@@ -46,6 +46,7 @@ use App\Modules\Mantenimientos\Http\Controllers\MantenimientoDefectoIdentificado
 use App\Modules\Objetivos\Http\Controllers\ObjetivoUserController;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\Recordatorios\Http\Controllers\RecordatorioController;
+use App\Modules\Recordatorios\Http\Controllers\RecordatorioPlantillaController;
 use App\Modules\ServiciosTerceros\Http\Controllers\EmpresaTerceroController;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use Illuminate\Support\Facades\Route;
@@ -204,8 +205,16 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->parameters(['unidades-medida' => 'unidadMedida'])
         ->only(['index', 'store', 'update', 'destroy']);
 
-    Route::get('recordatorio/vista-previa', [RecordatorioController::class, 'vistaPrevia'])->name('recordatorio.vista-previa');
-    Route::post('recordatorio/prueba', [RecordatorioController::class, 'enviarPrueba'])->name('recordatorio.prueba');
+    Route::get('recordatorio/vista-previa/{tipo}', [RecordatorioController::class, 'vistaPrevia'])->whereIn('tipo', ['cliente', 'bahia'])->name('recordatorio.vista-previa');
+    Route::post('recordatorio/prueba/{tipo}', [RecordatorioController::class, 'enviarPrueba'])->whereIn('tipo', ['cliente', 'bahia'])->name('recordatorio.prueba');
+    Route::post('recordatorio/imagenes', [RecordatorioController::class, 'subirImagen'])->name('recordatorio.imagenes');
+    Route::put('recordatorio/plantillas/predeterminada/{tipo}', [RecordatorioPlantillaController::class, 'actualizarPredeterminada'])->whereIn('tipo', ['cliente', 'bahia'])->name('recordatorio.plantillas.predeterminada');
+    Route::put('recordatorio/plantillas/en-uso/{tipo}', [RecordatorioPlantillaController::class, 'usar'])->whereIn('tipo', ['cliente', 'bahia'])->name('recordatorio.plantillas.usar');
+    Route::resource('recordatorio/plantillas', RecordatorioPlantillaController::class)
+        ->only(['store', 'update', 'destroy'])
+        ->parameters(['plantillas' => 'plantilla'])
+        ->whereNumber('plantilla')
+        ->names('recordatorio.plantillas');
     Route::singleton('recordatorio', RecordatorioController::class)->only(['show', 'update']);
 
     Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);

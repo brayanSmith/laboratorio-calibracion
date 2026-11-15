@@ -168,7 +168,9 @@ function TablaOrdenable<T extends { id: number }>({
                                                 : ''
                                         }`}
                                     >
-                                        <TituloColumna titulo={columna.titulo} />
+                                        <TituloColumna
+                                            titulo={columna.titulo}
+                                        />
                                         <Icono
                                             className={`size-3.5 ${activa ? '' : 'opacity-50'}`}
                                         />

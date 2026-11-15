@@ -115,7 +115,9 @@ export default function EquipoSeguimientoModal({
                             return (
                                 <Paso
                                     key={seguimiento.id}
-                                    icono={ICONO_FASE[seguimiento.fase] ?? Route}
+                                    icono={
+                                        ICONO_FASE[seguimiento.fase] ?? Route
+                                    }
                                     tono={tono}
                                     testId="seguimiento-item"
                                     titulo={

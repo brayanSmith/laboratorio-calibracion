@@ -71,17 +71,15 @@ function conFechaFormateada<TData extends RowData>(
         cell: (info: { getValue: () => unknown }) => {
             const valor = info.getValue();
 
-            return esFecha(valor) ? formatearFecha(valor) : (valor as ReactNode);
+            return esFecha(valor)
+                ? formatearFecha(valor)
+                : (valor as ReactNode);
         },
     } as DataTableColumn<TData>;
 }
 
 /** Ícono opcional antes del título de una columna (ver DataTableColumnMeta). */
-function IconoColumna({
-    icono: Icono,
-}: {
-    icono?: LucideIcon | null;
-}) {
+function IconoColumna({ icono: Icono }: { icono?: LucideIcon | null }) {
     return Icono ? (
         <Icono className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     ) : null;
@@ -255,8 +253,9 @@ export default function DataTable<TData extends RowData>({
                                                 >
                                                     <IconoColumna
                                                         icono={
-                                                            header.column.columnDef
-                                                                .meta?.icono ??
+                                                            header.column
+                                                                .columnDef.meta
+                                                                ?.icono ??
                                                             iconoDeColumna(
                                                                 header.column
                                                                     .columnDef
@@ -279,8 +278,9 @@ export default function DataTable<TData extends RowData>({
                                                 <span className="inline-flex items-center gap-1">
                                                     <IconoColumna
                                                         icono={
-                                                            header.column.columnDef
-                                                                .meta?.icono ??
+                                                            header.column
+                                                                .columnDef.meta
+                                                                ?.icono ??
                                                             iconoDeColumna(
                                                                 header.column
                                                                     .columnDef
@@ -314,7 +314,8 @@ export default function DataTable<TData extends RowData>({
                                     column.columnDef.meta?.filterOptions;
                                 const valor =
                                     (column.getFilterValue() as
-                                        string | undefined) ?? '';
+                                        | string
+                                        | undefined) ?? '';
                                 const etiqueta = `Filtrar ${String(column.columnDef.header ?? column.id)}`;
 
                                 return (

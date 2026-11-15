@@ -33,7 +33,9 @@ export default function CreateEmpresaTerceroModal({
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Nuevo laboratorio tercero</DialogTitle>
+                                <DialogTitle>
+                                    Nuevo laboratorio tercero
+                                </DialogTitle>
                                 <DialogDescription>
                                     Registra una empresa que presta servicios
                                     externos

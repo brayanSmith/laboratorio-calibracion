@@ -212,7 +212,9 @@ export type Cumplimiento = {
 
 /** Módulos del dashboard con objetivos anuales (ver ModuloObjetivo). */
 export type ModuloObjetivo =
-    'TIEMPOS_ATENCION' | 'DESEMPENO_TECNICOS' | 'CUMPLIMIENTO';
+    | 'TIEMPOS_ATENCION'
+    | 'DESEMPENO_TECNICOS'
+    | 'CUMPLIMIENTO';
 
 /** Cada objetivo anual que se puede definir (ver ConceptoObjetivo). */
 export type ConceptoObjetivo =

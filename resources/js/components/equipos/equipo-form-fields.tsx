@@ -182,7 +182,8 @@ export default function EquipoFormFields({
                     onValueChange={(value) =>
                         setCriticidad(
                             (value || undefined) as
-                                CriticidadEquipo | undefined,
+                                | CriticidadEquipo
+                                | undefined,
                         )
                     }
                     className="w-full"
