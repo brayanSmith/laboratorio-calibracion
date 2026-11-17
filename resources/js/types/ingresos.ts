@@ -4,6 +4,15 @@ export type EstadoIngreso = 'PENDIENTE' | 'RECIBIDO' | 'CANCELADO';
 
 export type Ingreso = {
     id: number;
+    /** Aleatorio (ej. "ING-7K3QX9MZ"); se le envía al cliente al recibir sus equipos. */
+    codigo: string;
+    /** Clientes con equipos recibidos: a cada uno le llega el correo del ingreso. */
+    clientes_correo: {
+        id: number;
+        nombre: string;
+        email: string | null;
+        equipos: number;
+    }[];
     bahia_id: number;
     bahia_nombre: string;
     fecha_creacion: string;

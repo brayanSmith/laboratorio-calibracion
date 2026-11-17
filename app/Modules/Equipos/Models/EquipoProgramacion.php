@@ -325,6 +325,21 @@ class EquipoProgramacion extends Model
     }
 
     /**
+     * El tipo de servicio para mostrarlo a un cliente: "MANTENIMIENTO,CALIBRACION" como
+     * "Mantenimiento, Calibración".
+     */
+    public function tipoServicioLegible(): string
+    {
+        return collect(explode(',', $this->tipo_servicio))
+            ->map(fn (string $tipo) => match (trim($tipo)) {
+                'MANTENIMIENTO' => 'Mantenimiento',
+                'CALIBRACION' => 'Calibración',
+                default => ucfirst(strtolower(trim($tipo))),
+            })
+            ->implode(', ');
+    }
+
+    /**
      * Calculate fecha_proximo_servicio as fecha_ultimo_servicio plus intervalo_servicio,
      * interpreted in intervalo_unidad (DIAS, SEMANAS or MESES). Returns null when any
      * of the three pieces is missing.

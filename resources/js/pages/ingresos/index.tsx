@@ -113,6 +113,14 @@ export default function IngresosIndex({
     const columns = useMemo(
         () =>
             columnHelper.columns([
+                columnHelper.accessor('codigo', {
+                    header: 'Código',
+                    cell: (info) => (
+                        <span className="font-mono text-xs font-medium">
+                            {info.getValue()}
+                        </span>
+                    ),
+                }),
                 columnHelper.accessor('desde', { header: 'Desde' }),
                 columnHelper.accessor('hasta', { header: 'Hasta' }),
                 columnHelper.accessor('bahia_nombre', { header: 'Bahía' }),
@@ -310,6 +318,7 @@ export default function IngresosIndex({
             <VerIngresoModal
                 ingreso={viendo}
                 novedadesIngreso={novedadesIngreso}
+                puedeReenviarCorreo={canEdit}
                 open={verOpen}
                 onOpenChange={setVerOpen}
             />

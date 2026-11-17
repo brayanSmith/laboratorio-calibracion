@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
+ * @property string $codigo Aleatorio y no adivinable; se le envía al cliente al recibir
  * @property int $bahia_id
  * @property Carbon $desde
  * @property Carbon $hasta
@@ -50,6 +51,37 @@ class Ingreso extends Model
 {
     /** @use HasFactory<IngresoFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Caracteres del código: sin 0/O ni 1/I, que se confunden al dictarlo o copiarlo.
+     */
+    private const ALFABETO_CODIGO = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+    /**
+     * Cada ingreso nace con su código, para enviárselo al cliente al recibir sus equipos.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Ingreso $ingreso): void {
+            $ingreso->codigo ??= static::generarCodigo();
+        });
+    }
+
+    /**
+     * Un código aleatorio y único como "ING-7K3QX9MZ" (32^8 combinaciones): el cliente lo
+     * usará para consultar sus equipos sin iniciar sesión, así que no debe poder adivinarse
+     * ni deducirse de otro ingreso.
+     */
+    public static function generarCodigo(): string
+    {
+        do {
+            $codigo = 'ING-'.collect(range(1, 8))
+                ->map(fn () => self::ALFABETO_CODIGO[random_int(0, strlen(self::ALFABETO_CODIGO) - 1)])
+                ->implode('');
+        } while (static::withTrashed()->where('codigo', $codigo)->exists());
+
+        return $codigo;
+    }
 
     /**
      * Get the public URL path of the cliente signature, if it has one.

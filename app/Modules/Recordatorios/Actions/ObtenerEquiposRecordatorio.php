@@ -51,26 +51,12 @@ class ObtenerEquiposRecordatorio
                     'bahia_id' => $equipo->bahia_id,
                     'bahia' => $equipo->bahia->nombre,
                     'area' => $equipo->area->nombre,
-                    'tipo_servicio' => $this->tipoServicio($programacion->tipo_servicio),
+                    'tipo_servicio' => $programacion->tipoServicioLegible(),
                     'fecha_proximo_servicio' => $programacion->fecha_proximo_servicio->toDateString(),
                     'dias' => $dias,
                     'estado' => $dias < 0 ? 'VENCIDO' : 'PROGRAMADO',
                 ];
             })
             ->values();
-    }
-
-    /**
-     * "MANTENIMIENTO,CALIBRACION" como "Mantenimiento, Calibración".
-     */
-    private function tipoServicio(string $tipoServicio): string
-    {
-        return collect(explode(',', $tipoServicio))
-            ->map(fn (string $tipo) => match (trim($tipo)) {
-                'MANTENIMIENTO' => 'Mantenimiento',
-                'CALIBRACION' => 'Calibración',
-                default => ucfirst(strtolower(trim($tipo))),
-            })
-            ->implode(', ');
     }
 }

@@ -1,3 +1,4 @@
+import CorreoIngresoClientes from '@/components/ingresos/correo-ingreso-clientes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,8 @@ import { formatearFecha, mostrarFecha } from '@/lib/fechas';
 type Props = {
     ingreso: Ingreso | null;
     novedadesIngreso: IngresoOption[];
+    /** Con permiso de editar ingresos se puede reenviar el correo al cliente. */
+    puedeReenviarCorreo?: boolean;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
@@ -47,6 +50,7 @@ function Dato({
 export default function VerIngresoModal({
     ingreso,
     novedadesIngreso,
+    puedeReenviarCorreo = false,
     open,
     onOpenChange,
 }: Props) {
@@ -67,7 +71,12 @@ export default function VerIngresoModal({
                 data-test="ver-ingreso-modal"
             >
                 <DialogHeader>
-                    <DialogTitle>Detalle del ingreso</DialogTitle>
+                    <DialogTitle>
+                        Detalle del ingreso{' '}
+                        <span className="font-mono text-base">
+                            {ingreso.codigo}
+                        </span>
+                    </DialogTitle>
                     <DialogDescription>
                         {ingreso.bahia_nombre} · {formatearFecha(ingreso.desde)}{' '}
                         al {formatearFecha(ingreso.hasta)}
@@ -115,6 +124,11 @@ export default function VerIngresoModal({
                         />
                     </Dato>
                 ) : null}
+
+                <CorreoIngresoClientes
+                    ingreso={ingreso}
+                    puedeReenviar={puedeReenviarCorreo}
+                />
 
                 <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">

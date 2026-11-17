@@ -15,7 +15,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class RecordatorioEquipos extends Mailable implements ShouldQueue
@@ -87,7 +86,7 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
             markdown: 'mail.recordatorio',
             with: [
                 'empresa' => $empresa->nombre ?? config('app.name'),
-                'logo' => $this->logo($empresa),
+                'logo' => $empresa?->logoParaCorreo(),
                 'bloques' => $this->bloquesDelMensaje(),
                 'vencidos' => $conteo->get('VENCIDO', 0),
                 'programados' => $conteo->get('PROGRAMADO', 0),
@@ -179,28 +178,6 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
         ])->render();
 
         return trim(preg_replace(['/\R\s*/', '/>\s+</'], [' ', '><'], $html));
-    }
-
-    /**
-     * El contenido del logo de la empresa, para incrustarlo en el correo: así se ve aunque
-     * la app no tenga una URL pública. Se lee el contenido (no la ruta) para que funcione
-     * también cuando el disco público es un bucket. Null si no tiene logo o no existe.
-     *
-     * @return array{contenido: string, nombre: string, tipo: string|null}|null
-     */
-    private function logo(?Empresa $empresa): ?array
-    {
-        $disco = Storage::disk('public');
-
-        if (! $empresa?->logo || ! $disco->exists($empresa->logo)) {
-            return null;
-        }
-
-        return [
-            'contenido' => $disco->get($empresa->logo),
-            'nombre' => basename($empresa->logo),
-            'tipo' => $disco->mimeType($empresa->logo) ?: null,
-        ];
     }
 
     /**

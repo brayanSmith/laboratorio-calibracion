@@ -56,6 +56,28 @@ class Empresa extends Model
     }
 
     /**
+     * El contenido del logo, para incrustarlo en un correo: así se ve aunque la app no tenga
+     * una URL pública. Se lee el contenido (no la ruta) para que funcione también cuando el
+     * disco público es un bucket. Null si no tiene logo o el archivo no existe.
+     *
+     * @return array{contenido: string, nombre: string, tipo: string|null}|null
+     */
+    public function logoParaCorreo(): ?array
+    {
+        $disco = Storage::disk('public');
+
+        if (! $this->logo || ! $disco->exists($this->logo)) {
+            return null;
+        }
+
+        return [
+            'contenido' => $disco->get($this->logo),
+            'nombre' => basename($this->logo),
+            'tipo' => $disco->mimeType($this->logo) ?: null,
+        ];
+    }
+
+    /**
      * Get the public path of the logo, independent of the host serving the app.
      */
     public function logoUrl(): ?string

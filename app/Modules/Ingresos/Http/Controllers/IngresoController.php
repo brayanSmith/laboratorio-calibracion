@@ -9,6 +9,7 @@ use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Actions\EnviarCorreosIngreso;
 use App\Modules\Ingresos\Http\Requests\StoreIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateEstadoIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateIngresoRequest;
@@ -20,9 +21,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class IngresoController extends Controller
 {
@@ -91,7 +95,7 @@ class IngresoController extends Controller
                 'tecnicoRecibe:id,name',
                 'clienteEntrega:id,nombre',
                 'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
-                'equipoProgramacion.equipo.cliente:id,nombre',
+                'equipoProgramacion.equipo.cliente:id,nombre,email',
                 'equipoProgramacion.equipo.tipoEquipo:id,nombre',
             ])
             ->orderByDesc('desde')
@@ -99,6 +103,7 @@ class IngresoController extends Controller
             ->get()
             ->map(fn (Ingreso $ingreso) => [
                 'id' => $ingreso->id,
+                'codigo' => $ingreso->codigo,
                 'bahia_id' => $ingreso->bahia_id,
                 'bahia_nombre' => $ingreso->bahia->nombre,
                 'fecha_creacion' => $ingreso->created_at->toDateString(),
@@ -113,6 +118,19 @@ class IngresoController extends Controller
                 'estado_ingreso' => $ingreso->estado_ingreso,
                 'novedad' => $ingreso->novedad,
                 'motivo_cancelacion' => $ingreso->motivo_cancelacion,
+                // Los clientes con equipos recibidos: a cada uno le llega el correo del
+                // ingreso, que se le puede reenviar desde el detalle.
+                'clientes_correo' => $ingreso->equipoProgramacion
+                    ->where('estado_programacion', 'RECIBIDO')
+                    ->groupBy('equipo.cliente_id')
+                    ->map(fn (Collection $programaciones) => [
+                        'id' => $programaciones->first()->equipo->cliente->id,
+                        'nombre' => $programaciones->first()->equipo->cliente->nombre,
+                        'email' => $programaciones->first()->equipo->cliente->email ?: null,
+                        'equipos' => $programaciones->count(),
+                    ])
+                    ->sortBy('nombre')
+                    ->values(),
                 'equipo_programaciones' => $ingreso->equipoProgramacion->map(fn (EquipoProgramacion $programacion) => [
                     'id' => $programacion->id,
                     'tipo_servicio' => $programacion->tipo_servicio,
@@ -195,7 +213,7 @@ class IngresoController extends Controller
      * cliente, firma, novedad y el ingresado de cada equipo programado), cancelarlo
      * (queda CANCELADO, con su motivo), o devolverlo a PENDIENTE.
      */
-    public function actualizarEstado(UpdateEstadoIngresoRequest $request, Ingreso $ingreso): RedirectResponse
+    public function actualizarEstado(UpdateEstadoIngresoRequest $request, Ingreso $ingreso, EnviarCorreosIngreso $enviarCorreos): RedirectResponse
     {
         $data = $request->safe()->except(['firma_cliente_entrega', 'eliminar_firma', 'equipos_recibidos', 'novedad_cancelacion_id']);
 
@@ -209,7 +227,9 @@ class IngresoController extends Controller
 
         // La fecha de recepción no se escribe: se fija el día en que el ingreso pasa a RECIBIDO
         // y no vuelve a cambiar, aunque luego se edite o se reciba de nuevo.
-        if ($data['estado_ingreso'] === 'RECIBIDO' && $ingreso->fecha_recepcion === null) {
+        $primeraRecepcion = $data['estado_ingreso'] === 'RECIBIDO' && $ingreso->fecha_recepcion === null;
+
+        if ($primeraRecepcion) {
             $data['fecha_recepcion'] = now()->toDateString();
         }
 
@@ -228,7 +248,54 @@ class IngresoController extends Controller
             }
         });
 
+        // Solo la primera vez que se recibe: cada cliente recibe el código del ingreso con
+        // sus equipos. Si se edita o se vuelve a recibir, no se le escribe de nuevo.
+        if ($primeraRecepcion) {
+            try {
+                $enviarCorreos->handle($ingreso->refresh());
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Estado del ingreso actualizado.')]);
+
+        return back();
+    }
+
+    /**
+     * Send again, right away, the correo of the ingreso to one cliente (with only its
+     * equipos recibidos), for when it did not get it.
+     */
+    public function reenviarCorreo(Request $request, Ingreso $ingreso, EnviarCorreosIngreso $enviarCorreos): RedirectResponse
+    {
+        Gate::authorize('update', $ingreso);
+
+        $request->validate(['cliente_id' => ['required', 'integer']]);
+
+        $envio = $ingreso->estado_ingreso === 'RECIBIDO'
+            ? $enviarCorreos->correos($ingreso, $request->integer('cliente_id'))->first()
+            : null;
+
+        if ($envio === null) {
+            throw ValidationException::withMessages(['cliente_id' => __('Ese cliente no tiene equipos recibidos en este ingreso.')]);
+        }
+
+        if (blank($envio['cliente']->email)) {
+            throw ValidationException::withMessages(['cliente_id' => __(':cliente no tiene un correo registrado.', ['cliente' => $envio['cliente']->nombre])]);
+        }
+
+        try {
+            Mail::to($envio['cliente']->email)->sendNow($envio['correo']);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('No se pudo enviar el correo. Revisa la configuración de correo.')]);
+
+            return back();
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Se envió el correo del ingreso a :email.', ['email' => $envio['cliente']->email])]);
 
         return back();
     }

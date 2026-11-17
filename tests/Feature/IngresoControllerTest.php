@@ -7,10 +7,12 @@ use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Equipos\Models\EquipoProgramacion;
+use App\Modules\Ingresos\Mail\IngresoRecibido;
 use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -922,4 +924,123 @@ test('si llego algun equipo, recibir el ingreso sigue pidiendo tecnico y cliente
             'equipos_recibidos' => [$programacion->id => ['ingresado' => '1']],
         ])
         ->assertSessionHasErrors(['tecnico_recibe_id', 'cliente_entrega_id']);
+});
+
+test('cada ingreso nace con un codigo aleatorio y unico', function () {
+    $this->actingAs($this->admin)
+        ->post(route('ingresos.store'), datosIngreso(['bahia_ids' => [$this->bahia->id, Bahia::factory()->for(crearArea($this->tenant))->create()->id]]))
+        ->assertSessionHasNoErrors();
+
+    $codigos = Ingreso::pluck('codigo');
+
+    expect($codigos)->toHaveCount(2)
+        ->and($codigos->unique())->toHaveCount(2)
+        ->each->toMatch('/^ING-[2-9A-HJ-NP-Z]{8}$/');
+});
+
+test('al recibir el ingreso cada cliente recibe por correo el codigo con solo sus equipos recibidos', function () {
+    Mail::fake();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id]);
+    $this->cliente->update(['email' => 'compras@acme.test']);
+    $novedad = Novedad::create(['nombre' => 'No llegó', 'categoria' => 'INGRESO', 'tenant_id' => $this->tenant->id]);
+
+    $recibido = crearEquipoParaBusqueda($this->bahia, 'EQ-RECIBIDO');
+    $noIngresado = crearEquipoParaBusqueda($this->bahia, 'EQ-NO-INGRESADO');
+    $sinCorreo = crearEquipoParaBusqueda($this->bahia, 'EQ-SIN-CORREO');
+    $recibido->update(['cliente_id' => $this->cliente->id]);
+    $noIngresado->update(['cliente_id' => $this->cliente->id]);
+    $sinCorreo->cliente->update(['email' => '']);
+
+    $programaciones = collect([$recibido, $noIngresado, $sinCorreo])
+        ->map(fn ($equipo) => crearProgramacion($equipo, ['ingreso_id' => $ingreso->id, 'agendar' => true, 'estado_programacion' => 'AGENDADO']));
+    $recibir = fn () => $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $this->admin->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'equipos_recibidos' => [
+                $programaciones[0]->id => ['ingresado' => '1'],
+                $programaciones[1]->id => ['ingresado' => '0', 'novedad_ingreso_id' => $novedad->id],
+                $programaciones[2]->id => ['ingresado' => '1'],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $recibir();
+
+    Mail::assertQueuedCount(1);
+    Mail::assertQueued(IngresoRecibido::class, fn (IngresoRecibido $correo) => $correo->hasTo('compras@acme.test')
+        && $correo->codigo === $ingreso->codigo
+        && collect($correo->equipos)->pluck('codigo')->all() === ['EQ-RECIBIDO']);
+
+    // Al volver a guardar la recepción no se le escribe de nuevo al cliente.
+    $recibir();
+
+    Mail::assertQueuedCount(1);
+});
+
+test('el correo del ingreso muestra el codigo, el cliente y sus equipos', function () {
+    $correo = new IngresoRecibido($this->tenant->id, 'ING-7K3QX9MZ', 'Acme <b>S.A.</b>', 'Bahía 1', '2026-11-10', 'Ana', [[
+        'codigo' => 'EQ-1',
+        'tipo_equipo' => 'Balanza',
+        'modelo' => 'M1',
+        'numero_serie' => 'S1',
+        'area' => 'Metrología',
+        'tipo_servicio' => 'Calibración',
+    ]]);
+
+    $correo->assertHasSubject('[INGRESO] Control de equipos N° ING-7K3QX9MZ - ACME <B>S.A.</B>');
+    $correo->assertSeeInOrderInHtml(['RECEPCIÓN / INGRESO', 'Acme &lt;b&gt;S.A.&lt;/b&gt;', '10/11/2026', 'EQ-1', 'Balanza', 'Calibración', 'SEGUIMIENTO DE EQUIPOS', 'ING-7K3QX9MZ', 'Consultar estado de equipos'], false);
+});
+
+test('reenvia de inmediato el correo del ingreso a un cliente con solo sus equipos recibidos', function () {
+    Mail::fake();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $this->cliente->update(['nombre' => 'Acme', 'email' => 'compras@acme.test']);
+    $equipo = crearEquipoParaBusqueda($this->bahia, 'EQ-1');
+    $equipo->update(['cliente_id' => $this->cliente->id]);
+    crearProgramacion($equipo, ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'RECIBIDO']);
+    crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-OTRO-CLIENTE'), ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'RECIBIDO']);
+
+    $this->actingAs($this->admin)
+        ->get(route('ingresos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('ingresos.0.clientes_correo', 2)
+            ->where('ingresos.0.clientes_correo.0.email', 'compras@acme.test')
+            ->where('ingresos.0.clientes_correo.1.nombre', 'Cliente 1'));
+
+    $this->actingAs($this->admin)
+        ->post(route('ingresos.correo.reenviar', $ingreso), ['cliente_id' => $this->cliente->id])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    Mail::assertSentCount(1);
+    Mail::assertSent(IngresoRecibido::class, fn (IngresoRecibido $correo) => $correo->hasTo('compras@acme.test')
+        && collect($correo->equipos)->pluck('codigo')->all() === ['EQ-1']);
+});
+
+test('no reenvia el correo a un cliente sin equipos recibidos, sin correo o de un ingreso sin recibir', function () {
+    Mail::fake();
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $sinCorreo = crearEquipoParaBusqueda($this->bahia, 'EQ-SIN-CORREO');
+    $sinCorreo->cliente->update(['email' => '']);
+    crearProgramacion($sinCorreo, ['ingreso_id' => $ingreso->id, 'estado_programacion' => 'RECIBIDO']);
+    $pendiente = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'PENDIENTE']);
+
+    foreach ([[$ingreso, $this->cliente->id], [$ingreso, $sinCorreo->cliente_id], [$pendiente, $sinCorreo->cliente_id]] as [$destino, $clienteId]) {
+        $this->actingAs($this->admin)
+            ->post(route('ingresos.correo.reenviar', $destino), ['cliente_id' => $clienteId])
+            ->assertSessionHasErrors('cliente_id');
+    }
+
+    Mail::assertNothingSent();
+});
+
+test('solo quien puede editar ingresos del tenant reenvia el correo', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $ajeno = User::factory()->forTenant(Tenant::factory()->create())->create();
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($ajeno)->post(route('ingresos.correo.reenviar', $ingreso), ['cliente_id' => $this->cliente->id])->assertForbidden();
+    $this->actingAs($sinRol)->post(route('ingresos.correo.reenviar', $ingreso), ['cliente_id' => $this->cliente->id])->assertForbidden();
 });
