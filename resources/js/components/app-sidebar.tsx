@@ -69,7 +69,10 @@ import type { NavGroup, NavItem } from '@/types';
 
 export function AppSidebar() {
     const page = usePage();
-    const isPlatformAdmin = page.props.auth.user.is_platform_admin === true;
+    // Sin multi tenant no hay panel de Plataforma (ver User::usaPanelPlataforma()).
+    const isPlatformAdmin =
+        page.props.auth.user.is_platform_admin === true &&
+        page.props.multiTenant;
     const { can } = usePermissions();
 
     const dashboardUrl: NavItem['href'] = isPlatformAdmin

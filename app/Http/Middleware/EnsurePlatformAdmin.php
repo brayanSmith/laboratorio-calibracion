@@ -15,6 +15,7 @@ class EnsurePlatformAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
+        abort_unless(config('app.multi_tenant'), 404);
         abort_unless($request->user()?->is_platform_admin, 403);
 
         return $next($request);

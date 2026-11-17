@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Multi Tenant
+    |--------------------------------------------------------------------------
+    |
+    | Con varios tenants (laboratorios) hay un panel de Plataforma para crearlos y
+    | administrarlos, y registro público. En false la app atiende a un solo laboratorio
+    | (el primer tenant activo): se bloquea el panel de Plataforma y el registro, y la
+    | bienvenida, el login y el seguimiento usan el nombre y el logo de "Mi empresa".
+    |
+    */
+
+    'multi_tenant' => (bool) env('MULTI_TENANT', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

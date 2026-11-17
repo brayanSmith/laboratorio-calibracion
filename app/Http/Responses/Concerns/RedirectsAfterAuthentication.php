@@ -11,7 +11,7 @@ trait RedirectsAfterAuthentication
      */
     protected function redirectPathAfterAuthentication(Request $request, string $redirect): string
     {
-        if ($request->user()?->is_platform_admin) {
+        if ($request->user()?->usaPanelPlataforma()) {
             return route('plataforma.dashboard', absolute: false);
         }
 

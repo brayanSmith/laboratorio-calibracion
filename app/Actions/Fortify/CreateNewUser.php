@@ -19,6 +19,9 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
+        // Con un solo laboratorio (MULTI_TENANT=false) no hay registro público.
+        abort_unless(config('app.multi_tenant'), 404);
+
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),

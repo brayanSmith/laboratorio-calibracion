@@ -6,6 +6,7 @@ use App\Enums\TenantPermission;
 use App\Enums\TipoImportacion;
 use App\Models\AjustePlataforma;
 use App\Models\Empresa;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Despachos\Models\Despacho;
@@ -59,6 +60,7 @@ class HandleInertiaRequests extends Middleware
                     ? $user->getAllPermissions()->pluck('name')->sort()->values()
                     : [],
             ],
+            'multiTenant' => (bool) config('app.multi_tenant'),
             'plataforma' => fn () => $this->plataforma(),
             'empresa' => fn () => $this->brand($user),
             'pendientes' => fn () => $this->pendientes($user),
@@ -177,12 +179,19 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Public identity of the platform, shown to guests on the welcome page.
+     * Public identity of the platform, shown to guests on the welcome page. Con un solo
+     * laboratorio (MULTI_TENANT=false) es la de su empresa, si ya la registró.
      *
      * @return array{nombre: string, logo_url: string|null}
      */
     private function plataforma(): array
     {
+        $empresa = $this->empresaPrincipal();
+
+        if ($empresa) {
+            return ['nombre' => $empresa->nombre, 'logo_url' => $empresa->logoUrl()];
+        }
+
         $ajuste = AjustePlataforma::query()->first();
 
         return [
@@ -198,11 +207,11 @@ class HandleInertiaRequests extends Middleware
      */
     private function brand(?User $user): ?array
     {
-        if (! $user?->tenant_id) {
-            return null;
-        }
-
-        $empresa = Empresa::query()->where('tenant_id', $user->tenant_id)->first();
+        // Con un solo laboratorio, también los invitados (bienvenida, login, seguimiento)
+        // ven los colores de su empresa.
+        $empresa = $user?->tenant_id
+            ? Empresa::query()->where('tenant_id', $user->tenant_id)->first()
+            : $this->empresaPrincipal();
 
         return $empresa ? [
             'nombre' => $empresa->nombre,
@@ -210,5 +219,20 @@ class HandleInertiaRequests extends Middleware
             'color_tema' => $empresa->color_tema,
             'color_nav' => $empresa->color_nav,
         ] : null;
+    }
+
+    /**
+     * La empresa del único laboratorio cuando la app no es multi tenant; null si lo es o si
+     * aún no la registró.
+     */
+    private function empresaPrincipal(): ?Empresa
+    {
+        if (config('app.multi_tenant')) {
+            return null;
+        }
+
+        $tenant = Tenant::principal();
+
+        return $tenant ? Empresa::query()->where('tenant_id', $tenant->id)->first() : null;
     }
 }

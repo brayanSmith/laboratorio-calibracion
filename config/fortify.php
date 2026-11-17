@@ -161,6 +161,8 @@ return [
     */
 
     'features' => [
+        // Con un solo laboratorio (MULTI_TENANT=false) el registro responde 404 (ver
+        // FortifyServiceProvider y CreateNewUser); la ruta se mantiene para Wayfinder.
         Features::registration(),
         Features::resetPasswords(),
         Features::twoFactorAuthentication([

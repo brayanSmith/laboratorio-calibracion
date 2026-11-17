@@ -110,6 +110,15 @@ class Tenant extends Model
     }
 
     /**
+     * El laboratorio que atiende la app cuando no es multi tenant (MULTI_TENANT=false): el
+     * primer tenant activo.
+     */
+    public static function principal(): ?Tenant
+    {
+        return static::query()->activo()->orderBy('id')->first();
+    }
+
+    /**
      * Scope a query to only include active tenants.
      *
      * @param  Builder<Tenant>  $query

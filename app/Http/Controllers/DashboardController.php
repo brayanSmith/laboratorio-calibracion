@@ -32,9 +32,12 @@ class DashboardController extends Controller
      */
     public function __invoke(Request $request): Response|RedirectResponse
     {
-        if ($request->user()->is_platform_admin) {
+        if ($request->user()->usaPanelPlataforma()) {
             return to_route('plataforma.dashboard');
         }
+
+        // Sin multi tenant, un administrador de plataforma sin laboratorio no tiene panel.
+        abort_unless($request->user()->tenant?->activo, 403, __('Tu cuenta no está asociada a un tenant activo.'));
 
         $tenantId = $request->user()->tenant_id;
         $estadoPorEquipo = EquipoProgramacion::vencimientoPorEquipo($tenantId);

@@ -51,6 +51,15 @@ class User extends Authenticatable implements PasskeyUser
     use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /**
+     * Si el usuario usa el panel de Plataforma: es administrador de plataforma y la app es
+     * multi tenant. Con un solo laboratorio (MULTI_TENANT=false) no hay panel de Plataforma.
+     */
+    public function usaPanelPlataforma(): bool
+    {
+        return $this->is_platform_admin && config('app.multi_tenant');
+    }
+
+    /**
      * Get the public URL path of the user's signature, if they registered one.
      */
     public function firmaUrl(): ?string

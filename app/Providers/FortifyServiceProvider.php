@@ -79,7 +79,13 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        // Con un solo laboratorio (MULTI_TENANT=false) no hay registro público: los usuarios
+        // los crea el Administrador desde Usuarios.
+        Fortify::registerView(function () {
+            abort_unless(config('app.multi_tenant'), 404);
+
+            return Inertia::render('auth/register');
+        });
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 

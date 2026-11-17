@@ -21,6 +21,8 @@ declare module '@inertiajs/core' {
                 color_tema: string | null;
                 color_nav: string | null;
             } | null;
+            /** false: un solo laboratorio, sin panel de Plataforma ni registro (MULTI_TENANT). */
+            multiTenant: boolean;
             sidebarOpen: boolean;
             pendientes: {
                 mantenimientos: { local: number; tercero: number } | null;

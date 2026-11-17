@@ -15,7 +15,7 @@ class EnsureUserHasActiveTenant
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->is_platform_admin) {
+        if ($request->user()?->usaPanelPlataforma()) {
             return to_route('plataforma.dashboard');
         }
 

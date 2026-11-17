@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { colorEstadoIngreso, estadosIngreso } from '@/lib/estados-ingreso';
 import { formatearFecha, formatearFechaHora } from '@/lib/fechas';
-import { login, seguimiento } from '@/routes';
+import { home, seguimiento } from '@/routes';
 import type { EstadoIngreso } from '@/types';
 
 type PasoSeguimiento = {
@@ -88,8 +88,8 @@ export default function SeguimientoShow({ codigo, ingreso }: Props) {
                         <span className="font-semibold">{marca.nombre}</span>
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                        <Link href={login()}>
-                            <ArrowLeft /> Iniciar sesión
+                        <Link href={home()}>
+                            <ArrowLeft /> Volver al inicio
                         </Link>
                     </Button>
                 </div>
