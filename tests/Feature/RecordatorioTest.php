@@ -77,7 +77,7 @@ test('muestra la configuracion por defecto y lo que se enviaria hoy', function (
             ->where('recordatorio.frecuencia', 'SEMANAL')
             ->where('recordatorio.dias_anticipacion', 30)
             ->where('resumen.vencidos', 1)
-            ->where('resumen.proximos_a_vencer', 1)
+            ->where('resumen.programados', 1)
             ->where('resumen.clientes', 2)
             ->has('clientes_recordatorio', 2)
             ->where('clientes_recordatorio.0.nombre', 'Cliente EQ-1')
@@ -244,7 +244,7 @@ test('los correos con copia no reciben nada si no hay equipos que avisar', funct
     Mail::assertNothingQueued();
 });
 
-test('cada cliente recibe solo sus equipos vencidos, proximos y agendados de equipos activos', function () {
+test('cada cliente recibe solo sus equipos vencidos y programados de equipos activos, clasificados por fecha', function () {
     Mail::fake();
     recordatorioActivo($this->tenant, ['enviar_resumen_bahia' => false]);
 
@@ -252,6 +252,7 @@ test('cada cliente recibe solo sus equipos vencidos, proximos y agendados de equ
     programarServicio($vencido, -5);
     programarServicio(crearEquipo($this->tenant, 'EQ-PROXIMO'), 20);
     programarServicio(crearEquipo($this->tenant, 'EQ-AGENDADO'), -2, 'AGENDADO');
+    programarServicio(crearEquipo($this->tenant, 'EQ-AGENDADO-FUTURO'), 10, 'AGENDADO');
     programarServicio(crearEquipo($this->tenant, 'EQ-LEJANO'), 31);
     programarServicio(crearEquipo($this->tenant, 'EQ-RECIBIDO'), -5, 'RECIBIDO');
     $inactivo = crearEquipo($this->tenant, 'EQ-INACTIVO');
@@ -265,15 +266,17 @@ test('cada cliente recibe solo sus equipos vencidos, proximos y agendados de equ
 
     $this->artisan('recordatorios:enviar')->assertSuccessful();
 
-    Mail::assertQueuedCount(3);
+    Mail::assertQueuedCount(4);
     Mail::assertQueued(RecordatorioEquipos::class, fn (RecordatorioEquipos $correo) => $correo->hasTo('eq-vencido@cliente.test')
         && codigosDelCorreo($correo, 'VENCIDO') === ['EQ-VENCIDO']
-        && codigosDelCorreo($correo, 'PROXIMO_A_VENCER') === ['EQ-MISMO-CLIENTE']
+        && codigosDelCorreo($correo, 'PROGRAMADO') === ['EQ-MISMO-CLIENTE']
         && $correo->agruparPor === 'cliente');
     Mail::assertQueued(RecordatorioEquipos::class, fn (RecordatorioEquipos $correo) => $correo->hasTo('eq-proximo@cliente.test')
         && codigosDelCorreo($correo) === ['EQ-PROXIMO']);
     Mail::assertQueued(RecordatorioEquipos::class, fn (RecordatorioEquipos $correo) => $correo->hasTo('eq-agendado@cliente.test')
-        && codigosDelCorreo($correo, 'AGENDADO') === ['EQ-AGENDADO']);
+        && codigosDelCorreo($correo, 'VENCIDO') === ['EQ-AGENDADO']);
+    Mail::assertQueued(RecordatorioEquipos::class, fn (RecordatorioEquipos $correo) => $correo->hasTo('eq-agendado-futuro@cliente.test')
+        && codigosDelCorreo($correo, 'PROGRAMADO') === ['EQ-AGENDADO-FUTURO']);
 });
 
 test('cada usuario asignado a bahias recibe el resumen de los equipos de sus bahias', function () {
@@ -551,7 +554,7 @@ test('la variable detalle pone en el correo la tabla de equipos del pdf', functi
 
     $correo = new RecordatorioEquipos($this->tenant->id, 'ACME', $equipos, 'bahia', 30, 'Asunto', '<p>Hola</p><p>{detalle}</p><p>Gracias</p>');
 
-    $correo->assertSeeInOrderInHtml(['Hola', 'Bahía: Bahía 1', 'Vencidos (1)', 'EQ-VENCIDO', '3 de atraso', 'Próximos a vencer (1)', 'EQ-PROXIMO', 'En 5', 'Gracias']);
+    $correo->assertSeeInOrderInHtml(['Hola', 'Bahía: Bahía 1', 'Vencidos (1)', 'EQ-VENCIDO', '3 de atraso', 'Programados (1)', 'EQ-PROXIMO', 'En 5', 'Gracias']);
     $correo->assertSeeInHtml('Modelo: &lt;b&gt;M1&lt;/b&gt;', false);
     $correo->assertDontSeeInHtml('{detalle}');
 });
@@ -571,7 +574,7 @@ test('la tabla de detalle del correo muestra hasta el maximo de equipos y remite
         'tipo_servicio' => 'Calibración',
         'fecha_proximo_servicio' => '2026-11-20',
         'dias' => 8,
-        'estado' => 'PROXIMO_A_VENCER',
+        'estado' => 'PROGRAMADO',
     ])->all();
 
     $correo = new RecordatorioEquipos($this->tenant->id, 'ACME', $equipos, 'cliente', 30, 'Asunto', '<p>{detalle}</p>');
@@ -682,15 +685,15 @@ test('el correo usa el texto personalizado con las variables reemplazadas y esca
         $equipos,
         'cliente',
         30,
-        '{vencidos} vencidos para {nombre}',
+        '{vencidos} vencidos y {programados} programados ({proximos}) para {nombre}',
         '<p>Estimado <strong>{nombre}</strong>:<br>Revisar en {dias} días.</p><p>{tabla}</p><p><img src="https://lab.test/storage/firma.png"></p><p>Gracias</p><script>alert(1)</script>',
     );
 
-    $correo->assertHasSubject('1 vencidos para ACME <b>S.A.</b>');
+    $correo->assertHasSubject('1 vencidos y 1 programados (1) para ACME <b>S.A.</b>');
     // El correo agrega estilos en línea a cada etiqueta, por eso se revisan por partes.
     $correo->assertSeeInHtml('ACME &lt;b&gt;S.A.&lt;/b&gt;</strong>:<br>Revisar en 30 días.', false);
     $correo->assertSeeInHtml('max-width: 100%; height: auto;" src="https://lab.test/storage/firma.png"', false);
-    $correo->assertSeeInOrderInHtml(['Revisar en 30 días.', 'Próximos a vencer', 'Gracias']);
+    $correo->assertSeeInOrderInHtml(['Revisar en 30 días.', 'Programados', 'Gracias']);
     $correo->assertDontSeeInHtml('{tabla}');
     $correo->assertDontSeeInHtml('<script', false);
 });

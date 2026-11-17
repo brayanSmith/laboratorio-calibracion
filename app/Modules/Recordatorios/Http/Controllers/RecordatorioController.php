@@ -59,8 +59,7 @@ class RecordatorioController extends Controller
                 'avisa_desde' => $recordatorio->fechaInicioAviso()->toDateString(),
                 'avisa_hasta' => $recordatorio->fechaLimiteAviso()->toDateString(),
                 'vencidos' => $conteo->get('VENCIDO', 0),
-                'proximos_a_vencer' => $conteo->get('PROXIMO_A_VENCER', 0),
-                'agendados' => $conteo->get('AGENDADO', 0),
+                'programados' => $conteo->get('PROGRAMADO', 0),
                 'clientes' => $equipos->pluck('cliente_id')->unique()->count(),
                 'usuarios_bahia' => User::query()
                     ->where('tenant_id', $tenantId)

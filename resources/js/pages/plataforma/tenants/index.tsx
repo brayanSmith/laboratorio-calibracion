@@ -10,6 +10,7 @@ import Heading from '@/components/heading';
 import ThRedimensionable from '@/components/th-redimensionable';
 import { ColgroupAnchos } from '@/components/column-resize-handle';
 import { useResizableTable } from '@/hooks/use-resizable-table';
+import { etiquetaPaginacion } from '@/lib/etiqueta-paginacion';
 import { cn } from '@/lib/utils';
 import CreateTenantModal from '@/components/tenants/create-tenant-modal';
 import DeleteTenantModal from '@/components/tenants/delete-tenant-modal';
@@ -214,12 +215,9 @@ export default function TenantsIndex({ tenants, filtros }: Props) {
                                     size="sm"
                                     asChild
                                 >
-                                    <Link
-                                        href={link.url}
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
+                                    <Link href={link.url}>
+                                        {etiquetaPaginacion(link.label)}
+                                    </Link>
                                 </Button>
                             ) : (
                                 <Button
@@ -227,10 +225,9 @@ export default function TenantsIndex({ tenants, filtros }: Props) {
                                     variant="outline"
                                     size="sm"
                                     disabled
-                                    dangerouslySetInnerHTML={{
-                                        __html: link.label,
-                                    }}
-                                />
+                                >
+                                    {etiquetaPaginacion(link.label)}
+                                </Button>
                             ),
                         )}
                     </div>

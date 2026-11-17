@@ -18,8 +18,7 @@
 | Estado | Equipos |
 | :--- | ---: |
 | Vencidos | {{ $vencidos }} |
-| Próximos a vencer | {{ $proximos }} |
-| Agendados | {{ $agendados }} |
+| Programados | {{ $programados }} |
 </x-mail::table>
 @else
 {!! $bloque !!}

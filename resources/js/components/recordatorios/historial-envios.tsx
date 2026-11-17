@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { etiquetaPaginacion } from '@/lib/etiqueta-paginacion';
 import { cn } from '@/lib/utils';
 import type { EnvioRecordatorio, EnviosRecordatorioPaginator } from '@/types';
 
@@ -42,6 +43,11 @@ const ESTADOS_EQUIPO: Record<
     { etiqueta: string; clase: string }
 > = {
     VENCIDO: { etiqueta: 'Vencido', clase: 'text-red-700 dark:text-red-400' },
+    PROGRAMADO: {
+        etiqueta: 'Programado',
+        clase: 'text-sky-700 dark:text-sky-400',
+    },
+    // Envíos registrados antes de unificar en "Programados".
     PROXIMO_A_VENCER: {
         etiqueta: 'Próximo a vencer',
         clase: 'text-amber-700 dark:text-amber-400',
@@ -335,10 +341,9 @@ export default function HistorialEnvios({
                                     only={['envios']}
                                     preserveState
                                     preserveScroll
-                                    dangerouslySetInnerHTML={{
-                                        __html: link.label,
-                                    }}
-                                />
+                                >
+                                    {etiquetaPaginacion(link.label)}
+                                </Link>
                             </Button>
                         ) : (
                             <Button
@@ -346,10 +351,9 @@ export default function HistorialEnvios({
                                 variant="outline"
                                 size="sm"
                                 disabled
-                                dangerouslySetInnerHTML={{
-                                    __html: link.label,
-                                }}
-                            />
+                            >
+                                {etiquetaPaginacion(link.label)}
+                            </Button>
                         ),
                     )}
                 </div>

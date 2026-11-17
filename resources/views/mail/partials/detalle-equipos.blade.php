@@ -1,8 +1,7 @@
 @php
     $secciones = [
         'VENCIDO' => ['Vencidos', '#b91c1c'],
-        'PROXIMO_A_VENCER' => ['Próximos a vencer', '#ca8a04'],
-        'AGENDADO' => ['Agendados', '#2563eb'],
+        'PROGRAMADO' => ['Programados', '#2563eb'],
     ];
     $fecha = fn (string $valor) => \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y');
     $celda = 'padding: 6px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; font-size: 13px; color: #171717; text-align: left;';

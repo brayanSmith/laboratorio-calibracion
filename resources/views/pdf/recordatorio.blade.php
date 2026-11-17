@@ -5,8 +5,7 @@
     $sobreAcento = (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#171717' : '#ffffff';
     $secciones = [
         'VENCIDO' => ['Vencidos', '#b91c1c'],
-        'PROXIMO_A_VENCER' => ['Próximos a vencer', '#ca8a04'],
-        'AGENDADO' => ['Agendados', '#2563eb'],
+        'PROGRAMADO' => ['Programados', '#2563eb'],
     ];
     $fecha = fn (string $valor) => \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y');
     $etiquetaGrupo = $agruparPor === 'bahia' ? 'Bahía' : 'Cliente';
@@ -27,7 +26,7 @@
         .banda h1 { font-size: 16px; margin: 0 0 2px; color: {{ $sobreAcento }}; }
         .banda .derecha { text-align: right; color: {{ $sobreAcento }}; font-size: 8.5px; }
         .resumen { margin-top: 12px; border-collapse: separate; border-spacing: 8px 0; }
-        .resumen td { border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px 12px; width: 33%; }
+        .resumen td { border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px 12px; width: 50%; }
         .resumen .numero { font-size: 16px; font-weight: bold; }
         .resumen .texto { color: #737373; font-size: 8.5px; }
         h2 { font-size: 11.5px; margin: 18px 0 4px; padding-bottom: 4px; border-bottom: 2px solid {{ $acento }}; }
@@ -75,7 +74,7 @@
                 </td>
                 <td class="derecha">
                     Emitido el <strong>{{ $fechaEmision->format('d/m/Y H:i') }} UTC</strong><br>
-                    Vencidos y próximos {{ $diasAnticipacion }} días
+                    Vencidos y programados de los próximos {{ $diasAnticipacion }} días
                 </td>
             </tr>
         </table>
@@ -150,7 +149,7 @@
             </table>
         @endforeach
     @empty
-        <p class="vacio">No hay equipos vencidos, próximos a vencer ni agendados para este periodo.</p>
+        <p class="vacio">No hay equipos vencidos ni programados para este periodo.</p>
     @endforelse
 
     <div class="pie">

@@ -1,7 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import {
     AlertTriangle,
-    CalendarCheck,
     CalendarClock,
     Clock,
     Users,
@@ -191,7 +190,7 @@ export default function RecordatorioShow({
                     <Heading
                         variant="small"
                         title="Recordatorios"
-                        description="Envía por correo un PDF con los equipos vencidos, próximos a vencer y agendados"
+                        description="Envía por correo un PDF con los equipos vencidos y los programados"
                     />
                 </div>
 
@@ -202,7 +201,7 @@ export default function RecordatorioShow({
                         {fechaCorta(fechaLocal(resumen.avisa_desde))} y el{' '}
                         {fechaCorta(fechaLocal(resumen.avisa_hasta))}):
                     </p>
-                    <div className="grid auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+                    <div className="grid auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
                         <StatTile
                             icono={AlertTriangle}
                             valor={String(resumen.vencidos)}
@@ -212,17 +211,11 @@ export default function RecordatorioShow({
                         />
                         <StatTile
                             icono={CalendarClock}
-                            valor={String(resumen.proximos_a_vencer)}
-                            etiqueta="Próximos a vencer"
-                            tono="amber"
-                            testId="recordatorio-resumen-proximos"
-                        />
-                        <StatTile
-                            icono={CalendarCheck}
-                            valor={String(resumen.agendados)}
-                            etiqueta="Agendados"
+                            valor={String(resumen.programados)}
+                            etiqueta="Equipos programados"
+                            detalle={`Del ${fechaCorta(fechaLocal(resumen.avisa_desde))} al ${fechaCorta(fechaLocal(resumen.avisa_hasta))}`}
                             tono="sky"
-                            testId="recordatorio-resumen-agendados"
+                            testId="recordatorio-resumen-programados"
                         />
                         <StatTile
                             icono={UsersRound}

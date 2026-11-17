@@ -10,14 +10,13 @@ class ObtenerEquiposRecordatorio
 {
     /**
      * Las programaciones del tenant que el recordatorio debe avisar, de equipos activos:
-     * las vencidas, las que vencen en los próximos $diasAnticipacion días y las ya agendadas
-     * para ese rango. Quedan fuera las ya recibidas (el servicio ya se gestionó), las
+     * las vencidas (VENCIDO) y las que vencen en los próximos $diasAnticipacion días
+     * (PROGRAMADO). Se clasifican solo por la fecha, estén o no agendadas. Quedan fuera las ya recibidas (el servicio ya se gestionó), las
      * re-agendadas (las reemplaza la programación nueva) y las que no tienen fecha (correctivos).
-     * Una programación agendada se informa como AGENDADO aunque esté vencida: ya está en camino.
      * Con $diasHastaInicio, lo que vence antes de ese día (y no está vencido) queda fuera:
      * ya lo avisó un envío anterior.
      *
-     * @return Collection<int, array{programacion_id: int, codigo: string, tipo_equipo: string, modelo: string, numero_serie: string, cliente_id: int, cliente: string, bahia_id: int, bahia: string, area: string, tipo_servicio: string, fecha_proximo_servicio: string, dias: int, estado: 'VENCIDO'|'PROXIMO_A_VENCER'|'AGENDADO'}>
+     * @return Collection<int, array{programacion_id: int, codigo: string, tipo_equipo: string, modelo: string, numero_serie: string, cliente_id: int, cliente: string, bahia_id: int, bahia: string, area: string, tipo_servicio: string, fecha_proximo_servicio: string, dias: int, estado: 'VENCIDO'|'PROGRAMADO'}>
      */
     public function handle(int $tenantId, int $diasAnticipacion, int $diasHastaInicio = 0, ?CarbonInterface $hoy = null): Collection
     {
@@ -55,11 +54,7 @@ class ObtenerEquiposRecordatorio
                     'tipo_servicio' => $this->tipoServicio($programacion->tipo_servicio),
                     'fecha_proximo_servicio' => $programacion->fecha_proximo_servicio->toDateString(),
                     'dias' => $dias,
-                    'estado' => match (true) {
-                        $programacion->estado_programacion === 'AGENDADO' => 'AGENDADO',
-                        $dias < 0 => 'VENCIDO',
-                        default => 'PROXIMO_A_VENCER',
-                    },
+                    'estado' => $dias < 0 ? 'VENCIDO' : 'PROGRAMADO',
                 ];
             })
             ->values();

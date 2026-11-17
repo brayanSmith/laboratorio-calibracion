@@ -51,8 +51,8 @@ export type ResumenRecordatorio = {
     avisa_desde: string;
     avisa_hasta: string;
     vencidos: number;
-    proximos_a_vencer: number;
-    agendados: number;
+    /** Los que vencen dentro del rango (avisa_desde a avisa_hasta), agendados o no. */
+    programados: number;
     clientes: number;
     usuarios_bahia: number;
 };
@@ -82,7 +82,8 @@ export type EnvioRecordatorio = {
         cliente: string;
         bahia: string;
         fecha_proximo_servicio: string;
-        estado: 'VENCIDO' | 'PROXIMO_A_VENCER' | 'AGENDADO';
+        /** PROXIMO_A_VENCER y AGENDADO solo en envíos anteriores a "Programados". */
+        estado: 'VENCIDO' | 'PROGRAMADO' | 'PROXIMO_A_VENCER' | 'AGENDADO';
     }[];
     estado: 'EN_COLA' | 'ENVIADO' | 'FALLIDO';
     /** Por qué no se pudo enviar. */

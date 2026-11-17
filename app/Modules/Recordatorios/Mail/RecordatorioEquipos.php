@@ -90,8 +90,7 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
                 'logo' => $this->rutaLogo($empresa),
                 'bloques' => $this->bloquesDelMensaje(),
                 'vencidos' => $conteo->get('VENCIDO', 0),
-                'proximos' => $conteo->get('PROXIMO_A_VENCER', 0),
-                'agendados' => $conteo->get('AGENDADO', 0),
+                'programados' => $conteo->get('PROGRAMADO', 0),
             ],
         );
     }
@@ -224,8 +223,10 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
             '{nombre}' => $this->destinatario,
             '{empresa}' => $empresa,
             '{vencidos}' => (string) $conteo->get('VENCIDO', 0),
-            '{proximos}' => (string) $conteo->get('PROXIMO_A_VENCER', 0),
-            '{agendados}' => (string) $conteo->get('AGENDADO', 0),
+            '{programados}' => (string) $conteo->get('PROGRAMADO', 0),
+            // Variables anteriores: las plantillas que aún las usan muestran los programados.
+            '{proximos}' => (string) $conteo->get('PROGRAMADO', 0),
+            '{agendados}' => (string) $conteo->get('PROGRAMADO', 0),
             '{dias}' => (string) $this->diasAnticipacion,
         ];
 

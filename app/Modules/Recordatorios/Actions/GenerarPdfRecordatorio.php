@@ -11,7 +11,7 @@ class GenerarPdfRecordatorio
     /**
      * Genera el PDF resumen del recordatorio y devuelve su contenido. Los equipos se agrupan
      * por bahía (resumen por bahía) o por cliente, y dentro de cada grupo se separan en
-     * vencidos, próximos a vencer y agendados.
+     * vencidos y programados.
      *
      * @param  list<array<string, mixed>>  $equipos  Filas de ObtenerEquiposRecordatorio
      * @param  'bahia'|'cliente'  $agruparPor
