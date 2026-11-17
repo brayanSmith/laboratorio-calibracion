@@ -87,7 +87,7 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
             markdown: 'mail.recordatorio',
             with: [
                 'empresa' => $empresa->nombre ?? config('app.name'),
-                'logo' => $this->rutaLogo($empresa),
+                'logo' => $this->logo($empresa),
                 'bloques' => $this->bloquesDelMensaje(),
                 'vencidos' => $conteo->get('VENCIDO', 0),
                 'programados' => $conteo->get('PROGRAMADO', 0),
@@ -182,10 +182,13 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
     }
 
     /**
-     * La ruta en disco del logo de la empresa, para incrustarlo en el correo: así se ve
-     * aunque la app no tenga una URL pública. Null si no tiene logo o el archivo no existe.
+     * El contenido del logo de la empresa, para incrustarlo en el correo: así se ve aunque
+     * la app no tenga una URL pública. Se lee el contenido (no la ruta) para que funcione
+     * también cuando el disco público es un bucket. Null si no tiene logo o no existe.
+     *
+     * @return array{contenido: string, nombre: string, tipo: string|null}|null
      */
-    private function rutaLogo(?Empresa $empresa): ?string
+    private function logo(?Empresa $empresa): ?array
     {
         $disco = Storage::disk('public');
 
@@ -193,7 +196,11 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
             return null;
         }
 
-        return $disco->path($empresa->logo);
+        return [
+            'contenido' => $disco->get($empresa->logo),
+            'nombre' => basename($empresa->logo),
+            'tipo' => $disco->mimeType($empresa->logo) ?: null,
+        ];
     }
 
     /**

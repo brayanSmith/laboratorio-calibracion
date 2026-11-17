@@ -4,7 +4,7 @@
 <tr>
 <td class="header">
 @if ($logo)
-<img src="{{ $message->embed($logo) }}" alt="{{ $empresa }}" style="max-height: 75px; max-width: 220px; width: auto; height: auto; border: none;">
+<img src="{{ $message->embedData($logo['contenido'], $logo['nombre'], $logo['tipo']) }}" alt="{{ $empresa }}" style="max-height: 75px; max-width: 220px; width: auto; height: auto; border: none;">
 @else
 {{ $empresa }}
 @endif
