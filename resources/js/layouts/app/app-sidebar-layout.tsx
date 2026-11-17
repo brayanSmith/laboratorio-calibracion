@@ -11,7 +11,11 @@ export default function AppSidebarLayout({
     return (
         <AppShell variant="sidebar">
             <AppSidebar />
-            <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
+            {/* En móvil, espacio abajo para que la barra inferior de atajos no tape el contenido. */}
+            <AppContent
+                variant="sidebar"
+                className="min-w-0 overflow-x-clip pb-36 md:pb-0"
+            >
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
             </AppContent>

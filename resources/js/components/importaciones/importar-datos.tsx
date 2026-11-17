@@ -194,6 +194,8 @@ export default function ImportarDatos() {
             <BotonAtajo
                 icono={Upload}
                 titulo={titulo}
+                etiqueta={enProceso.length === 0 ? 'Importar' : 'Importando'}
+                activo={paso === 'archivo' || paso === 'mapeo'}
                 cantidad={importacionesSinLeer ?? 0}
                 cargando={enProceso.length > 0}
                 dataTest="importar-button"

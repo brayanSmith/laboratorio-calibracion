@@ -12,6 +12,8 @@ function Toaster({ ...props }: ToasterProps) {
             theme={appearance}
             className="toaster group"
             position="bottom-right"
+            // En móvil, por encima de la barra inferior de atajos.
+            mobileOffset={{ bottom: 136 }}
             style={
                 {
                     '--normal-bg': 'var(--popover)',
