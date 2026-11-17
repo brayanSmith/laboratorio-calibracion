@@ -19,6 +19,7 @@ import {
     ChartTooltip,
 } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { formatearPorcentaje } from '@/lib/indicadores';
 import {
     agruparCumplimiento,
@@ -92,6 +93,7 @@ export default function GraficoCumplimiento({
     }));
     const hayObjetivo = datos.some((punto) => punto.objetivo !== null);
     const idGradiente = `cumplimiento-${useId().replace(/:/g, '')}`;
+    const esMovil = useIsMobile();
     // Verde donde llega a su meta y rojo donde no: el objetivo del año o, sin él, el 90 %
     // (el mismo corte de las tarjetas).
     const conMeta = datos.map((punto) => ({
@@ -110,7 +112,10 @@ export default function GraficoCumplimiento({
         : COLOR_CUMPLE;
 
     return (
-        <div className="grid gap-3" data-test="grafico-cumplimiento">
+        <div
+            className="grid min-w-0 grid-cols-1 gap-3"
+            data-test="grafico-cumplimiento"
+        >
             <div className="flex justify-end">
                 <SelectorAgrupacion
                     agrupacion={agrupacion}
@@ -121,11 +126,14 @@ export default function GraficoCumplimiento({
             </div>
 
             {equipos.length === 0 ? (
-                <p className="flex h-72 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                <p className="flex h-64 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground sm:h-72">
                     Sin equipos programados en este periodo.
                 </p>
             ) : (
-                <ChartContainer config={config} className="h-72 w-full">
+                <ChartContainer
+                    config={config}
+                    className="h-64 w-full min-w-0 sm:h-72"
+                >
                     <ComposedChart
                         data={datos}
                         margin={{ top: 12, right: 4, left: 4 }}
@@ -135,6 +143,7 @@ export default function GraficoCumplimiento({
                         <XAxis
                             dataKey="etiqueta"
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
                             tickMargin={8}
                             interval="preserveStartEnd"
@@ -143,8 +152,9 @@ export default function GraficoCumplimiento({
                         <YAxis
                             yAxisId="cantidad"
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
-                            width={40}
+                            width={esMovil ? 32 : 40}
                             allowDecimals={false}
                             label={{
                                 value: 'Equipos',
@@ -159,8 +169,9 @@ export default function GraficoCumplimiento({
                             domain={[0, 100]}
                             ticks={[0, 25, 50, 75, 100]}
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
-                            width={44}
+                            width={esMovil ? 36 : 44}
                             tickFormatter={(valor: number) => `${valor} %`}
                         />
                         <ChartTooltip
@@ -173,7 +184,11 @@ export default function GraficoCumplimiento({
                                 ) : null
                             }
                         />
-                        <ChartLegend content={<ChartLegendContent />} />
+                        <ChartLegend
+                            content={
+                                <ChartLegendContent className="flex-wrap gap-x-4 gap-y-1" />
+                            }
+                        />
                         <defs>
                             {/* Verde donde llega a la meta y rojo donde no, de izquierda a derecha. */}
                             <linearGradient

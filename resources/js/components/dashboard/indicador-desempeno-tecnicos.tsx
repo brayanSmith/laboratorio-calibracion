@@ -624,7 +624,7 @@ export default function IndicadorDesempenoTecnicos() {
                         ) : null}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
                         <BloqueIndicador
                             titulo="Tiempo Promedio por Periodo"
                             icono={Timer}

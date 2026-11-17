@@ -36,6 +36,7 @@ use App\Modules\Equipos\Http\Controllers\EquipoHistoricoController;
 use App\Modules\Equipos\Http\Controllers\EquipoProgramacionController;
 use App\Modules\Importaciones\Http\Controllers\ImportacionController;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
+use App\Modules\Ingresos\Http\Controllers\SeguimientoIngresoController;
 use App\Modules\Inventario\Http\Controllers\EntradaItemController;
 use App\Modules\Inventario\Http\Controllers\ItemController;
 use App\Modules\Mantenimientos\Http\Controllers\ComentarioMantenimientoController;
@@ -52,6 +53,11 @@ use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+// Pública: el cliente consulta sus equipos con el código del ingreso, sin iniciar sesión.
+Route::get('seguimiento', SeguimientoIngresoController::class)
+    ->middleware('throttle:seguimiento')
+    ->name('seguimiento');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');

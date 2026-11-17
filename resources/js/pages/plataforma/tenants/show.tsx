@@ -28,7 +28,7 @@ export default function TenantsShow({ tenant }: Props) {
             <h1 className="sr-only">Tenant {tenant.nombre}</h1>
 
             <div className="max-w-xl space-y-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <Heading
                         variant="small"
                         title={`Tenant ${tenant.nombre}`}

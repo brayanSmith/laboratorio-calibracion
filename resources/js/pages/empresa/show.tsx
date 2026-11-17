@@ -52,7 +52,7 @@ export default function EmpresaShow({ empresa }: Props) {
             <h1 className="sr-only">Mi empresa</h1>
 
             <div className="max-w-3xl space-y-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <Heading
                         variant="small"
                         title="Mi empresa"
@@ -60,7 +60,7 @@ export default function EmpresaShow({ empresa }: Props) {
                     />
 
                     {empresa ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             {can('empresa.editar') ? (
                                 <Button
                                     variant="outline"

@@ -1,4 +1,5 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
+import { PackageSearch } from 'lucide-react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { seguimiento } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import PasskeyVerify from '@/components/passkey-verify';
@@ -81,8 +83,21 @@ export default function Login({ status, canResetPassword }: Props) {
                             </div>
 
                             <Button
-                                type="submit"
+                                variant="outline"
                                 className="mt-4 w-full"
+                                asChild
+                            >
+                                <Link
+                                    href={seguimiento()}
+                                    data-test="login-seguimiento"
+                                >
+                                    <PackageSearch /> Ver seguimiento de equipos
+                                </Link>
+                            </Button>
+
+                            <Button
+                                type="submit"
+                                className="w-full"
                                 tabIndex={4}
                                 loading={processing}
                                 data-test="login-button"

@@ -1,27 +1,27 @@
-import { Head } from "@inertiajs/react";
+import { Head } from '@inertiajs/react';
 import {
     AlertTriangle,
     Boxes,
     CheckCircle2,
     Clock,
     LayoutDashboard,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
-import { pestanasIndicadores } from "@/components/dashboard/indicadores-dashboard";
-import type { PestanaDashboard } from "@/components/dashboard/indicadores-dashboard";
-import EquiposTabla from "@/components/equipos/equipos-tabla";
-import EquiposUrgentes from "@/components/equipos/equipos-urgentes";
-import type { EquipoUrgente } from "@/components/equipos/equipos-urgentes";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { dashboard } from "@/routes";
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { pestanasIndicadores } from '@/components/dashboard/indicadores-dashboard';
+import type { PestanaDashboard } from '@/components/dashboard/indicadores-dashboard';
+import EquiposTabla from '@/components/equipos/equipos-tabla';
+import EquiposUrgentes from '@/components/equipos/equipos-urgentes';
+import type { EquipoUrgente } from '@/components/equipos/equipos-urgentes';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { dashboard } from '@/routes';
 import type {
     Equipo,
     EquipoFormOptions,
     IndicadoresDashboard as IndicadoresDashboardData,
-} from "@/types";
+} from '@/types';
 
 type Props = {
     /** Cada conteo llega null si el rol no tiene habilitada esa tarjeta. */
@@ -66,40 +66,40 @@ export default function Dashboard({
     }>({ n: 0, vencimiento: null });
     const tarjetas: TarjetaVencimiento[] = [
         {
-            titulo: "Todos los equipos",
+            titulo: 'Todos los equipos',
             valor: total_equipos,
             icono: Boxes,
-            color: "border-sky-200 bg-sky-100 text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200",
-            colorBoton: "bg-sky-600 text-white hover:bg-sky-700",
-            testId: "tarjeta-todos-los-equipos",
+            color: 'border-sky-200 bg-sky-100 text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200',
+            colorBoton: 'bg-sky-600 text-white hover:bg-sky-700',
+            testId: 'tarjeta-todos-los-equipos',
             vencimiento: null,
         },
         {
-            titulo: "Equipos al día",
+            titulo: 'Equipos al día',
             valor: vencimientos.al_dia,
             icono: CheckCircle2,
-            color: "border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
-            colorBoton: "bg-emerald-600 text-white hover:bg-emerald-700",
-            testId: "tarjeta-al-dia",
-            vencimiento: "AL_DIA",
+            color: 'border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+            colorBoton: 'bg-emerald-600 text-white hover:bg-emerald-700',
+            testId: 'tarjeta-al-dia',
+            vencimiento: 'AL_DIA',
         },
         {
-            titulo: "Equipos próximos a vencer",
+            titulo: 'Equipos próximos a vencer',
             valor: vencimientos.proximos_a_vencer,
             icono: Clock,
-            color: "border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
-            colorBoton: "bg-amber-500 text-white hover:bg-amber-600",
-            testId: "tarjeta-proximos-a-vencer",
-            vencimiento: "PROXIMO_A_VENCER",
+            color: 'border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+            colorBoton: 'bg-amber-500 text-white hover:bg-amber-600',
+            testId: 'tarjeta-proximos-a-vencer',
+            vencimiento: 'PROXIMO_A_VENCER',
         },
         {
-            titulo: "Equipos vencidos",
+            titulo: 'Equipos vencidos',
             valor: vencimientos.vencidos,
             icono: AlertTriangle,
-            color: "border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
-            colorBoton: "bg-red-600 text-white hover:bg-red-700",
-            testId: "tarjeta-vencidos",
-            vencimiento: "VENCIDO",
+            color: 'border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200',
+            colorBoton: 'bg-red-600 text-white hover:bg-red-700',
+            testId: 'tarjeta-vencidos',
+            vencimiento: 'VENCIDO',
         },
     ];
 
@@ -173,8 +173,8 @@ export default function Dashboard({
         ...(tieneResumen
             ? [
                   {
-                      value: "resumen",
-                      titulo: "Resumen",
+                      value: 'resumen',
+                      titulo: 'Resumen',
                       icono: LayoutDashboard,
                       contenido: resumen,
                   },
@@ -198,7 +198,7 @@ export default function Dashboard({
 }
 
 /** Parámetro de la URL que guarda la pestaña abierta, para conservarla al recargar. */
-const PARAMETRO_PESTANA = "pestana";
+const PARAMETRO_PESTANA = 'pestana';
 
 /**
  * Pestañas del Dashboard. Cada una se monta la primera vez que se abre y luego solo se
@@ -207,7 +207,7 @@ const PARAMETRO_PESTANA = "pestana";
 function PestanasDashboard({ pestanas }: { pestanas: PestanaDashboard[] }) {
     const [activa, setActiva] = useState(() => {
         const enUrl =
-            typeof window === "undefined"
+            typeof window === 'undefined'
                 ? null
                 : new URLSearchParams(window.location.search).get(
                       PARAMETRO_PESTANA,
@@ -227,7 +227,7 @@ function PestanasDashboard({ pestanas }: { pestanas: PestanaDashboard[] }) {
 
         const url = new URL(window.location.href);
         url.searchParams.set(PARAMETRO_PESTANA, value);
-        window.history.replaceState(window.history.state, "", url);
+        window.history.replaceState(window.history.state, '', url);
     };
 
     return (
@@ -264,7 +264,7 @@ function PestanasDashboard({ pestanas }: { pestanas: PestanaDashboard[] }) {
 Dashboard.layout = {
     breadcrumbs: [
         {
-            title: "Dashboard",
+            title: 'Dashboard',
             href: dashboard(),
         },
     ],

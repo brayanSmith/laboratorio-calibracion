@@ -171,8 +171,11 @@ export function NovedadesNoRecibidos({
             className="grid min-w-0 grid-cols-1 items-center gap-6 sm:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-1 2xl:grid-cols-[16rem_minmax(0,1fr)]"
             data-test="cumplimiento-novedades-no-recibidos"
         >
-            <div className="relative mx-auto h-64 w-64">
-                <ChartContainer config={config} className="h-64 w-64">
+            <div className="relative mx-auto aspect-square w-full max-w-64">
+                <ChartContainer
+                    config={config}
+                    className="aspect-square h-full w-full"
+                >
                     <PieChart>
                         <ChartTooltip
                             content={({ active, payload }) => {
@@ -200,8 +203,8 @@ export function NovedadesNoRecibidos({
                             data={porciones}
                             dataKey="cantidad"
                             nameKey="novedad"
-                            innerRadius={68}
-                            outerRadius={110}
+                            innerRadius="53%"
+                            outerRadius="86%"
                             stroke="var(--background)"
                             strokeWidth={2}
                             isAnimationActive={false}

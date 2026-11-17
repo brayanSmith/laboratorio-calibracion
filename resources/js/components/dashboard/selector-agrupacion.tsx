@@ -48,6 +48,7 @@ export default function SelectorAgrupacion({
                     onChange(valor as Agrupacion);
                 }
             }}
+            className="grid w-full grid-cols-3 gap-1 data-[variant=outline]:shadow-none sm:flex sm:w-auto sm:gap-0 sm:data-[variant=outline]:shadow-xs"
             aria-label="Agrupar por"
         >
             {AGRUPACIONES.map((opcion) => (
@@ -55,7 +56,7 @@ export default function SelectorAgrupacion({
                     key={opcion.value}
                     value={opcion.value}
                     disabled={!agrupacionDisponible(opcion.value, desde, hasta)}
-                    className="px-2.5 text-xs"
+                    className="rounded-md px-2.5 text-xs data-[variant=outline]:border-l sm:rounded-none sm:first:rounded-l-md sm:last:rounded-r-md sm:data-[variant=outline]:border-l-0 sm:data-[variant=outline]:first:border-l"
                     data-test={`agrupar-${opcion.value}`}
                 >
                     {opcion.label}

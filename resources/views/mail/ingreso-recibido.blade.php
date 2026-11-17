@@ -59,8 +59,7 @@
 Código:
 <span style="display: inline-block; margin-left: 6px; padding: 4px 12px; border: 1px solid #bbf7d0; border-radius: 4px; background: #f0fdf4; font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold; letter-spacing: 1px; color: {{ $acento }};">{{ $codigo }}</span>
 </p>
-{{-- Pendiente: la página pública de consulta. Por ahora el botón no lleva a ningún lado. --}}
-<span style="display: inline-block; padding: 10px 22px; border-radius: 20px; background: {{ $acento }}; color: #ffffff; font-size: 13px; font-weight: bold;">Consultar estado de equipos →</span>
+<a href="{{ route('seguimiento', ['codigo' => $codigo]) }}" target="_blank" rel="noopener" style="display: inline-block; padding: 10px 22px; border-radius: 20px; background: {{ $acento }}; color: #ffffff; font-size: 13px; font-weight: bold; text-decoration: none;">Consultar estado de equipos →</a>
 </td>
 </tr>
 </table>

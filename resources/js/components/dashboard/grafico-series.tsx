@@ -22,6 +22,7 @@ import {
     ChartTooltip,
 } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
     agruparPromedios,
     COLOR_CUMPLE,
@@ -87,6 +88,7 @@ export default function GraficoSeries({
 }: Props) {
     const { agrupacion, elegir } = useAgrupacion(desde, hasta);
     const idGradiente = `series-${useId().replace(/:/g, '')}`;
+    const esMovil = useIsMobile();
 
     const porSerie = series.map((serie) =>
         agruparPromedios(serie.filas, desde, hasta, agrupacion),
@@ -173,7 +175,7 @@ export default function GraficoSeries({
     ) satisfies ChartConfig;
 
     return (
-        <div className="grid gap-3" data-test={testId}>
+        <div className="grid min-w-0 grid-cols-1 gap-3" data-test={testId}>
             <div className="flex justify-end">
                 <SelectorAgrupacion
                     agrupacion={agrupacion}
@@ -184,11 +186,14 @@ export default function GraficoSeries({
             </div>
 
             {!hayDatos ? (
-                <p className="flex h-64 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                <p className="flex h-56 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground sm:h-64">
                     Sin datos ni objetivo en este periodo.
                 </p>
             ) : (
-                <ChartContainer config={config} className="h-64 w-full">
+                <ChartContainer
+                    config={config}
+                    className="h-56 w-full min-w-0 sm:h-64"
+                >
                     <ComposedChart
                         data={datos}
                         margin={{ top: 20, right: 12, left: 4 }}
@@ -197,6 +202,7 @@ export default function GraficoSeries({
                         <XAxis
                             dataKey="etiqueta"
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
                             tickMargin={8}
                             interval="preserveStartEnd"
@@ -204,8 +210,9 @@ export default function GraficoSeries({
                         />
                         <YAxis
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
-                            width={72}
+                            width={esMovil ? 56 : 72}
                             allowDecimals={medida !== 'cantidad'}
                             tickFormatter={(valor: number) => formato(valor)}
                             {...(sombrearObjetivo
@@ -232,7 +239,11 @@ export default function GraficoSeries({
                                 ) : null
                             }
                         />
-                        <ChartLegend content={<ChartLegendContent />} />
+                        <ChartLegend
+                            content={
+                                <ChartLegendContent className="flex-wrap gap-x-4 gap-y-1" />
+                            }
+                        />
                         {sombrearObjetivo ? (
                             <DegradadosObjetivo
                                 idGradiente={idGradiente}

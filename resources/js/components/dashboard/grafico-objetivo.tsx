@@ -17,6 +17,7 @@ import type { ChartConfig } from '@/components/ui/chart';
 import SelectorAgrupacion, {
     useAgrupacion,
 } from '@/components/dashboard/selector-agrupacion';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
     agruparPromedios,
     COLOR_CUMPLE,
@@ -76,6 +77,7 @@ export default function GraficoObjetivo({
 }: Props) {
     const { agrupacion, elegir } = useAgrupacion(desde, hasta);
     const idGradiente = `grafico-${useId().replace(/:/g, '')}`;
+    const esMovil = useIsMobile();
 
     const datos: Punto[] = agruparPromedios(
         filas,
@@ -119,7 +121,7 @@ export default function GraficoObjetivo({
     } satisfies ChartConfig;
 
     return (
-        <div className="grid gap-3" data-test={testId}>
+        <div className="grid min-w-0 grid-cols-1 gap-3" data-test={testId}>
             <div className="flex flex-wrap items-center justify-between gap-2">
                 {titulo ? (
                     <p className="text-sm font-medium">{titulo}</p>
@@ -135,11 +137,14 @@ export default function GraficoObjetivo({
             </div>
 
             {!hayDatos ? (
-                <p className="flex h-64 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                <p className="flex h-56 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground sm:h-64">
                     Sin datos ni objetivo en este periodo.
                 </p>
             ) : (
-                <ChartContainer config={config} className="h-64 w-full">
+                <ChartContainer
+                    config={config}
+                    className="h-56 w-full min-w-0 sm:h-64"
+                >
                     <ComposedChart
                         data={datos}
                         margin={{ top: 16, right: 12, left: 4 }}
@@ -148,6 +153,7 @@ export default function GraficoObjetivo({
                         <XAxis
                             dataKey="etiqueta"
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
                             tickMargin={8}
                             interval="preserveStartEnd"
@@ -155,8 +161,9 @@ export default function GraficoObjetivo({
                         />
                         <YAxis
                             tickLine={false}
+                            tick={{ fontSize: esMovil ? 10 : 12 }}
                             axisLine={false}
-                            width={72}
+                            width={esMovil ? 56 : 72}
                             tickFormatter={(valor: number) => formato(valor)}
                         />
                         <ChartTooltip
@@ -173,7 +180,11 @@ export default function GraficoObjetivo({
                                 ) : null
                             }
                         />
-                        <ChartLegend content={<ChartLegendContent />} />
+                        <ChartLegend
+                            content={
+                                <ChartLegendContent className="flex-wrap gap-x-4 gap-y-1" />
+                            }
+                        />
                         <defs>
                             {/* Verde donde cumple y rojo donde no, para la línea y su relleno. */}
                             <linearGradient

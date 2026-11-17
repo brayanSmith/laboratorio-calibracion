@@ -86,7 +86,7 @@ export default function TiposMagnitudIndex({ tiposMagnitud }: Props) {
             <h1 className="sr-only">Tipos de magnitud</h1>
 
             <div className="flex flex-col space-y-6 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <Heading
                         variant="small"
                         title="Tipos de magnitud"
