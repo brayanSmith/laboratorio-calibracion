@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import type { Ingreso } from '@/types';
 
+/** El reenvío manual está bloqueado mientras se prueba; ponerlo en true para habilitarlo. */
+const REENVIO_HABILITADO = false;
+
 /**
  * Los clientes a los que les llegó el correo del ingreso (los que tienen equipos
  * recibidos), con un botón para reenviárselo si no lo recibieron.
@@ -67,7 +70,14 @@ export default function CorreoIngresoClientes({
                                 variant="outline"
                                 size="sm"
                                 loading={enviandoA === cliente.id}
-                                disabled={enviandoA !== null}
+                                disabled={
+                                    !REENVIO_HABILITADO || enviandoA !== null
+                                }
+                                title={
+                                    REENVIO_HABILITADO
+                                        ? undefined
+                                        : 'Disponible próximamente'
+                                }
                                 onClick={() => reenviar(cliente.id)}
                                 data-test="ingreso-correo-reenviar"
                             >
@@ -80,6 +90,11 @@ export default function CorreoIngresoClientes({
                     </li>
                 ))}
             </ul>
+            {puedeReenviar && !REENVIO_HABILITADO ? (
+                <p className="text-xs text-muted-foreground">
+                    El reenvío del correo estará disponible próximamente.
+                </p>
+            ) : null}
         </div>
     );
 }
