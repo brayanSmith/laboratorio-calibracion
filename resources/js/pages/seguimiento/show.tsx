@@ -1,9 +1,15 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    Activity,
     ArrowLeft,
+    CalendarClock,
+    Clock,
     ChevronLeft,
     ChevronRight,
     Camera,
+    Download,
+    ExternalLink,
+    FileText,
     Gauge,
     History,
     Lock,
@@ -20,8 +26,13 @@ import {
     Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import DataTable, {
+    createDataTableColumnHelper,
+} from '@/components/data-table';
+import type { DataTableColumn } from '@/components/data-table';
+import { CeldaEquipo, textoEquipo } from '@/components/equipos/celdas-equipo';
 import { LineaDeTiempo, Paso } from '@/components/linea-de-tiempo';
 import type { TonoPaso } from '@/components/linea-de-tiempo';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +75,17 @@ type EquipoSeguimiento = {
     siguientes: string[];
     /** Fotos de cómo llegó el equipo, tomadas al recibirlo. */
     fotos: string[];
+    /** PDF de los servicios terminados: informes de mantenimiento y certificados. */
+    documentos: DocumentoEquipo[];
+};
+
+type DocumentoEquipo = {
+    tipo: 'MANTENIMIENTO' | 'CALIBRACION';
+    nombre: string;
+    fecha: string | null;
+    url: string;
+    /** Laboratorio externo que lo emitió; null si es del laboratorio propio. */
+    laboratorio: string | null;
 };
 
 type IngresoSeguimiento = {
@@ -341,17 +363,20 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
         }, {}),
     );
 
+    const columnas = useMemo(() => columnasSeguimiento(setDetalle), []);
+    const porEtapa = ingreso.equipos.filter(
+        (equipo) => etapa === TODAS || etapaActual(equipo) === etapa,
+    );
     const termino = busqueda.trim().toLowerCase();
-    const visibles = ingreso.equipos.filter(
+    const visibles = porEtapa.filter(
         (equipo) =>
-            (etapa === TODAS || etapaActual(equipo) === etapa) &&
-            (termino === '' ||
-                [
-                    equipo.codigo,
-                    equipo.tipo_equipo,
-                    equipo.modelo,
-                    equipo.numero_serie,
-                ].some((valor) => valor?.toLowerCase().includes(termino))),
+            termino === '' ||
+            [
+                equipo.codigo,
+                equipo.tipo_equipo,
+                equipo.modelo,
+                equipo.numero_serie,
+            ].some((valor) => valor?.toLowerCase().includes(termino)),
     );
 
     return (
@@ -424,7 +449,7 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
                         ))}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 md:hidden">
                         <div className="relative w-full sm:w-72">
                             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -463,61 +488,17 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
                         ) : null}
                     </ul>
 
-                    <div className="hidden overflow-x-auto rounded-lg border md:block">
-                        <table className="w-full min-w-[980px] text-sm">
-                            <thead className="bg-muted/60 text-left text-xs text-muted-foreground">
-                                <tr>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Equipo
-                                    </th>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Ingreso
-                                    </th>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Servicio
-                                    </th>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Estado actual
-                                    </th>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Fotos
-                                    </th>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Laboratorio
-                                    </th>
-                                    <th className="px-3 py-2.5 font-medium">
-                                        Actualizado
-                                    </th>
-                                    <th className="px-3 py-2.5">
-                                        <span className="sr-only">
-                                            Historial
-                                        </span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {visibles.map((equipo) => (
-                                    <FilaEquipo
-                                        key={equipo.codigo}
-                                        equipo={equipo}
-                                        onVerHistorial={() =>
-                                            setDetalle(equipo)
-                                        }
-                                    />
-                                ))}
-                                {visibles.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={8}
-                                            className="px-3 py-8 text-center text-sm text-muted-foreground"
-                                        >
-                                            Ningún equipo coincide con la
-                                            búsqueda.
-                                        </td>
-                                    </tr>
-                                ) : null}
-                            </tbody>
-                        </table>
+                    {/* En pantallas grandes, la tabla de la app: se ordena tocando el
+                        encabezado y se filtra por columna. */}
+                    <div className="hidden md:block">
+                        <DataTable
+                            data={porEtapa}
+                            columns={columnas}
+                            searchPlaceholder="Buscar código, tipo, modelo o serie"
+                            emptyMessage="Ningún equipo en esta etapa."
+                            pageSize={25}
+                            rowTestId="seguimiento-equipo"
+                        />
                     </div>
                 </div>
             )}
@@ -646,6 +627,15 @@ function TarjetaEquipo({
                     <MiniaturasFotos equipo={equipo} maximo={4} />
                 </div>
             ) : null}
+            {equipo.documentos.length > 0 ? (
+                <div className="grid gap-1.5 border-t bg-muted/30 px-3 py-2">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <FileText className="size-3.5" />
+                        Certificados e informes
+                    </span>
+                    <DocumentosEquipo equipo={equipo} />
+                </div>
+            ) : null}
         </li>
     );
 }
@@ -665,66 +655,142 @@ function DatoTarjeta({
     );
 }
 
-function FilaEquipo({
-    equipo,
-    onVerHistorial,
-}: {
-    equipo: EquipoSeguimiento;
-    onVerHistorial: () => void;
-}) {
+/** Laboratorio donde va el servicio del equipo; vacío si no aplica. */
+function laboratorioActual(equipo: EquipoSeguimiento): string {
+    return equipo.ingresado === false
+        ? ''
+        : (equipo.historial.at(-1)?.laboratorio ?? '');
+}
+
+/** Texto de la etapa y el estado actuales, para ordenar y filtrar por ellos. */
+function estadoActualTexto(equipo: EquipoSeguimiento): string {
     const actual = equipo.historial.at(-1);
 
-    return (
-        <tr className="border-t align-top" data-test="seguimiento-equipo">
-            <td className="px-3 py-2.5">
-                <span className="font-medium">{equipo.codigo}</span> ·{' '}
-                {equipo.tipo_equipo}
-                <span className="block text-xs text-muted-foreground">
-                    Modelo: {equipo.modelo || '—'} · Serie:{' '}
-                    {equipo.numero_serie || '—'}
-                </span>
-            </td>
-            <td className="px-3 py-2.5 whitespace-nowrap">
-                {equipo.fecha_ingreso ? (
-                    formatearFechaHora(equipo.fecha_ingreso)
+    return equipo.ingresado === false || !actual
+        ? etapaActual(equipo)
+        : [actual.fase, actual.estado].filter(Boolean).join(' · ');
+}
+
+const Vacio = () => <span className="text-muted-foreground">—</span>;
+
+const columnHelper = createDataTableColumnHelper<EquipoSeguimiento>();
+
+/**
+ * Columnas de la tabla de equipos (la DataTable de la app): cada una se ordena tocando su
+ * encabezado y se filtra con su campo. Las fechas se ordenan por su valor ISO.
+ */
+function columnasSeguimiento(
+    onVerHistorial: (equipo: EquipoSeguimiento) => void,
+): DataTableColumn<EquipoSeguimiento>[] {
+    return [
+        columnHelper.accessor(
+            (equipo) =>
+                textoEquipo(
+                    equipo.codigo,
+                    equipo.tipo_equipo,
+                    equipo.modelo,
+                    equipo.numero_serie,
+                ),
+            {
+                id: 'equipo',
+                header: 'Equipo',
+                cell: ({ row }) => (
+                    <CeldaEquipo
+                        codigo={
+                            <span className="font-medium">
+                                {row.original.codigo}
+                            </span>
+                        }
+                        tipo={row.original.tipo_equipo}
+                        modelo={row.original.modelo}
+                        serie={row.original.numero_serie}
+                    />
+                ),
+            },
+        ),
+        columnHelper.accessor((equipo) => equipo.fecha_ingreso ?? '', {
+            id: 'ingreso',
+            header: 'Ingreso',
+            meta: { icono: CalendarClock },
+            cell: ({ row }) =>
+                row.original.fecha_ingreso ? (
+                    <span className="whitespace-nowrap">
+                        {formatearFechaHora(row.original.fecha_ingreso)}
+                    </span>
                 ) : (
-                    <span className="text-muted-foreground">—</span>
-                )}
-            </td>
-            <td className="px-3 py-2.5 whitespace-nowrap">
-                {equipo.tipo_servicio}
-            </td>
-            <td className="px-3 py-2.5">
-                <EstadoEquipo equipo={equipo} />
-            </td>
-            <td className="px-3 py-2">
-                <MiniaturasFotos equipo={equipo} />
-            </td>
-            <td className="px-3 py-2.5">
-                {equipo.ingresado !== false && actual?.laboratorio ? (
-                    actual.laboratorio
-                ) : (
-                    <span className="text-muted-foreground">—</span>
-                )}
-            </td>
-            <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                {formatearFechaHora(actual?.fecha)}
-            </td>
-            <td className="px-3 py-2.5 text-right">
-                {equipo.historial.length > 0 ? (
+                    <Vacio />
+                ),
+        }),
+        columnHelper.accessor(laboratorioActual, {
+            id: 'laboratorio',
+            header: 'Laboratorio',
+            cell: (info) => info.getValue() || <Vacio />,
+        }),
+        columnHelper.accessor('tipo_servicio', { header: 'Servicio' }),
+        columnHelper.accessor(estadoActualTexto, {
+            id: 'estado',
+            header: 'Estado actual',
+            meta: { icono: Activity },
+            cell: ({ row }) => <EstadoEquipo equipo={row.original} />,
+        }),
+        columnHelper.accessor((equipo) => equipo.fotos.length, {
+            id: 'fotos',
+            header: 'Fotos',
+            meta: { icono: Camera },
+            enableColumnFilter: false,
+            cell: ({ row }) => <MiniaturasFotos equipo={row.original} />,
+        }),
+        columnHelper.accessor(
+            (equipo) =>
+                equipo.documentos
+                    .map((documento) =>
+                        [documento.nombre, documento.laboratorio]
+                            .filter(Boolean)
+                            .join(' '),
+                    )
+                    .join(' · '),
+            {
+                id: 'documentos',
+                header: 'Documentos',
+                meta: { icono: FileText },
+                cell: ({ row }) => <DocumentosEquipo equipo={row.original} />,
+            },
+        ),
+        columnHelper.accessor(
+            (equipo) => equipo.historial.at(-1)?.fecha ?? '',
+            {
+                id: 'actualizado',
+                header: 'Actualizado',
+                meta: { icono: Clock },
+                cell: (info) =>
+                    info.getValue() ? (
+                        <span className="whitespace-nowrap text-muted-foreground">
+                            {formatearFechaHora(info.getValue())}
+                        </span>
+                    ) : (
+                        <Vacio />
+                    ),
+            },
+        ),
+        columnHelper.display({
+            id: 'historial',
+            header: '',
+            enableSorting: false,
+            enableColumnFilter: false,
+            cell: ({ row }) =>
+                row.original.historial.length > 0 ? (
                     <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={onVerHistorial}
+                        onClick={() => onVerHistorial(row.original)}
                         data-test="seguimiento-ver-historial"
                     >
                         <History /> Historial
                     </Button>
-                ) : null}
-            </td>
-        </tr>
-    );
+                ) : null,
+        }),
+    ];
 }
 
 /** Ícono de cada fase (por su nombre visible), como en la traza de los equipos. */
@@ -962,6 +1028,147 @@ function MiniaturasFotos({
                 onCambiar={setAbierta}
             />
         </>
+    );
+}
+
+/**
+ * Botones con los PDF de los servicios terminados del equipo (informe de mantenimiento,
+ * certificado de calibración). Al tocar uno se abre su vista previa.
+ */
+function DocumentosEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
+    const [abierto, setAbierto] = useState<DocumentoEquipo | null>(null);
+
+    if (equipo.documentos.length === 0) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    return (
+        <>
+            <ul
+                className="flex flex-wrap gap-1.5"
+                data-test="seguimiento-documentos"
+            >
+                {equipo.documentos.map((documento) => (
+                    <li key={documento.url}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                                'h-7 gap-1 px-2 text-xs',
+                                documento.tipo === 'CALIBRACION'
+                                    ? 'border-violet-200 text-violet-800 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-300 dark:hover:bg-violet-950'
+                                    : 'border-amber-200 text-amber-800 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950',
+                            )}
+                            onClick={() => setAbierto(documento)}
+                            title={`${documento.nombre}${documento.laboratorio ? ` · ${documento.laboratorio}` : ''}${documento.fecha ? ` · ${formatearFecha(documento.fecha)}` : ''}`}
+                            data-test="seguimiento-ver-documento"
+                        >
+                            <FileText className="size-3.5" />
+                            {documento.tipo === 'CALIBRACION'
+                                ? 'Certificado'
+                                : 'Informe mant.'}
+                            {documento.laboratorio ? (
+                                <span className="rounded bg-current/10 px-1 text-[10px] font-normal">
+                                    Externo
+                                </span>
+                            ) : null}
+                        </Button>
+                    </li>
+                ))}
+            </ul>
+            <VisorDocumento
+                equipo={equipo}
+                documento={abierto}
+                onClose={() => setAbierto(null)}
+            />
+        </>
+    );
+}
+
+/**
+ * Vista previa del PDF con el visor del navegador, sin librerías. En los celulares que no
+ * muestran PDF dentro de la página (la mayoría de Android) se ve el aviso con los botones
+ * para abrirlo o descargarlo.
+ */
+function VisorDocumento({
+    equipo,
+    documento,
+    onClose,
+}: {
+    equipo: EquipoSeguimiento;
+    documento: DocumentoEquipo | null;
+    onClose: () => void;
+}) {
+    return (
+        <Dialog
+            open={documento !== null}
+            onOpenChange={(open) => !open && onClose()}
+        >
+            {documento ? (
+                <DialogContent
+                    className="flex h-[92dvh] max-h-[92dvh] flex-col gap-3 p-3 sm:max-w-4xl"
+                    data-test="seguimiento-visor-documento"
+                >
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base">
+                            <FileText className="size-4 text-muted-foreground" />
+                            {documento.nombre}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {equipo.codigo} · {equipo.tipo_equipo}
+                            {documento.fecha
+                                ? ` · ${formatearFecha(documento.fecha)}`
+                                : ''}
+                            {documento.laboratorio
+                                ? ` · Emitido por ${documento.laboratorio}`
+                                : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <object
+                        data={documento.url}
+                        type="application/pdf"
+                        className="min-h-0 w-full flex-1 rounded-md border bg-muted"
+                        aria-label={documento.nombre}
+                    >
+                        <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+                            <FileText className="size-10 text-muted-foreground" />
+                            <p className="max-w-xs text-sm text-muted-foreground">
+                                Tu navegador no puede mostrar el PDF aquí.
+                                Ábrelo o descárgalo para verlo.
+                            </p>
+                            <Button asChild size="sm">
+                                <a
+                                    href={documento.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <ExternalLink /> Abrir PDF
+                                </a>
+                            </Button>
+                        </div>
+                    </object>
+
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <a
+                                href={documento.url}
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                <ExternalLink /> Abrir en otra pestaña
+                            </a>
+                        </Button>
+                        <Button asChild size="sm">
+                            <a href={documento.url} download>
+                                <Download /> Descargar
+                            </a>
+                        </Button>
+                    </div>
+                </DialogContent>
+            ) : null}
+        </Dialog>
     );
 }
 

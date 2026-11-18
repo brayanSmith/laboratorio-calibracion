@@ -2,14 +2,18 @@
 
 use App\Models\Empresa;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Ingresos\Mail\IngresoRecibido;
 use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -155,4 +159,120 @@ test('el cliente ve las fotos de como llego cada equipo', function () {
 
     $this->get(route('seguimiento', ['codigo' => $ingreso->codigo]))
         ->assertInertia(fn ($page) => $page->where('ingreso.equipos.0.fotos', [$foto->url()]));
+});
+
+/**
+ * Un ingreso recibido con un equipo que tiene un mantenimiento y una calibración en una
+ * orden de trabajo, con los estados dados.
+ *
+ * @return array{0: Ingreso, 1: Mantenimiento, 2: Calibracion}
+ */
+function ingresoConServicios(Tenant $tenant, string $estadoMantenimiento, string $estadoCalibracion, string $codigo = 'EQ-1'): array
+{
+    $equipo = crearEquipo($tenant, $codigo);
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $equipo->bahia_id, 'tenant_id' => $tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $orden = OrdenTrabajo::create([
+        'codigo' => 'OT-'.$codigo,
+        'equipo_programacion_id' => programacionEnIngreso($equipo, $ingreso)->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'EN_BAHIA',
+        'tenant_id' => $tenant->id,
+    ]);
+    $tecnico = User::factory()->forTenant($tenant)->create();
+    $mantenimiento = Mantenimiento::create([
+        'orden_trabajo_id' => $orden->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => '2026-11-12',
+        'estado_mantenimiento' => $estadoMantenimiento,
+        'tecnico_id' => $tecnico->id,
+        'tenant_id' => $tenant->id,
+    ]);
+    $calibracion = Calibracion::create([
+        'orden_trabajo_id' => $orden->id,
+        'fecha_calibracion' => '2026-11-13',
+        'estado_calibracion' => $estadoCalibracion,
+        'tecnico_id' => $tecnico->id,
+        'temperatura' => 20,
+        'humedad' => 50,
+        'tenant_id' => $tenant->id,
+    ]);
+
+    return [$ingreso, $mantenimiento, $calibracion];
+}
+
+test('el cliente ve el informe de mantenimiento y el certificado de calibracion de los servicios terminados', function () {
+    Storage::fake('public');
+    [$ingreso, $mantenimiento, $calibracion] = ingresoConServicios($this->tenant, 'FINALIZADO', 'FINALIZADO');
+    $urlInforme = route('seguimiento.mantenimiento.informe', ['codigo' => $ingreso->codigo, 'mantenimiento' => $mantenimiento->id]);
+    $urlCertificado = route('seguimiento.calibracion.certificado', ['codigo' => $ingreso->codigo, 'calibracion' => $calibracion->id]);
+
+    $this->get(route('seguimiento', ['codigo' => $ingreso->codigo]))
+        ->assertInertia(fn ($page) => $page
+            ->has('ingreso.equipos.0.documentos', 2)
+            ->where('ingreso.equipos.0.documentos.0.tipo', 'MANTENIMIENTO')
+            ->where('ingreso.equipos.0.documentos.0.url', $urlInforme)
+            ->where('ingreso.equipos.0.documentos.1.tipo', 'CALIBRACION')
+            ->where('ingreso.equipos.0.documentos.1.url', $urlCertificado));
+
+    $this->get($urlInforme)
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename=informe-mantenimiento-OT-EQ-1.pdf');
+    $this->get($urlCertificado)
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+});
+
+test('no muestra ni entrega los PDF de servicios sin terminar', function () {
+    Storage::fake('public');
+    [$ingreso, $mantenimiento, $calibracion] = ingresoConServicios($this->tenant, 'EN_PROCESO', 'PENDIENTE');
+
+    $this->get(route('seguimiento', ['codigo' => $ingreso->codigo]))
+        ->assertInertia(fn ($page) => $page->where('ingreso.equipos.0.documentos', []));
+
+    $this->get(route('seguimiento.mantenimiento.informe', ['codigo' => $ingreso->codigo, 'mantenimiento' => $mantenimiento->id]))->assertNotFound();
+    $this->get(route('seguimiento.calibracion.certificado', ['codigo' => $ingreso->codigo, 'calibracion' => $calibracion->id]))->assertNotFound();
+});
+
+test('con el codigo de un ingreso no se pueden abrir los PDF de equipos de otro ingreso', function () {
+    Storage::fake('public');
+    [$ingreso] = ingresoConServicios($this->tenant, 'FINALIZADO', 'FINALIZADO');
+    [, $mantenimientoAjeno, $calibracionAjena] = ingresoConServicios(Tenant::factory()->create(), 'FINALIZADO', 'FINALIZADO', 'EQ-AJENO');
+
+    $this->get(route('seguimiento.mantenimiento.informe', ['codigo' => $ingreso->codigo, 'mantenimiento' => $mantenimientoAjeno->id]))->assertNotFound();
+    $this->get(route('seguimiento.calibracion.certificado', ['codigo' => $ingreso->codigo, 'calibracion' => $calibracionAjena->id]))->assertNotFound();
+});
+
+test('el cliente ve el documento que entrego el laboratorio externo por un servicio terminado', function () {
+    Storage::fake('public');
+    $equipo = crearEquipo($this->tenant, 'EQ-1');
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $equipo->bahia_id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $orden = OrdenTrabajo::create([
+        'codigo' => 'OT-EXT',
+        'equipo_programacion_id' => programacionEnIngreso($equipo, $ingreso)->id,
+        'fecha_programada_orden_trabajo' => now()->toDateString(),
+        'estado' => 'EN_BAHIA',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $tercero = EmpresaTercero::factory()->create(['nombre' => 'Metrología Externa', 'tenant_id' => $this->tenant->id]);
+    $datos = ['orden_trabajo_id' => $orden->id, 'tipo_servicio' => 'CALIBRACION', 'empresa_tercero_id' => $tercero->id, 'tenant_id' => $this->tenant->id];
+    $finalizado = ServicioTercero::create([...$datos, 'estado_servicio' => 'FINALIZADO', 'pdf_servicio' => 'servicios-terceros/certificado.pdf']);
+    $enProceso = ServicioTercero::create([...$datos, 'estado_servicio' => 'EN_PROCESO', 'pdf_servicio' => 'servicios-terceros/otro.pdf']);
+    Storage::disk('public')->put('servicios-terceros/certificado.pdf', '%PDF-1.4');
+    Storage::disk('public')->put('servicios-terceros/otro.pdf', '%PDF-1.4');
+    $url = fn (ServicioTercero $servicio) => route('seguimiento.servicio-tercero.documento', ['codigo' => $ingreso->codigo, 'servicio' => $servicio->id]);
+
+    $this->get(route('seguimiento', ['codigo' => $ingreso->codigo]))
+        ->assertInertia(fn ($page) => $page
+            ->has('ingreso.equipos.0.documentos', 1)
+            ->where('ingreso.equipos.0.documentos.0.tipo', 'CALIBRACION')
+            ->where('ingreso.equipos.0.documentos.0.laboratorio', 'Metrología Externa')
+            ->where('ingreso.equipos.0.documentos.0.url', $url($finalizado)));
+
+    $this->get($url($finalizado))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename=certificado-calibracion-OT-EXT.pdf');
+    $this->get($url($enProceso))->assertNotFound();
+    $this->get(route('seguimiento.servicio-tercero.documento', ['codigo' => Ingreso::factory()->create()->codigo, 'servicio' => $finalizado->id]))->assertNotFound();
 });

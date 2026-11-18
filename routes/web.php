@@ -58,6 +58,18 @@ Route::inertia('/', 'welcome')->name('home');
 Route::get('seguimiento', SeguimientoIngresoController::class)
     ->middleware('throttle:seguimiento')
     ->name('seguimiento');
+// Los PDF de los servicios terminados de un equipo del ingreso, para el cliente (sin sesión).
+Route::middleware('throttle:seguimiento')->group(function () {
+    Route::get('seguimiento/{codigo}/calibraciones/{calibracion}/certificado', [SeguimientoIngresoController::class, 'certificadoCalibracion'])
+        ->whereNumber('calibracion')
+        ->name('seguimiento.calibracion.certificado');
+    Route::get('seguimiento/{codigo}/mantenimientos/{mantenimiento}/informe', [SeguimientoIngresoController::class, 'informeMantenimiento'])
+        ->whereNumber('mantenimiento')
+        ->name('seguimiento.mantenimiento.informe');
+    Route::get('seguimiento/{codigo}/servicios-terceros/{servicio}/documento', [SeguimientoIngresoController::class, 'documentoServicioTercero'])
+        ->whereNumber('servicio')
+        ->name('seguimiento.servicio-tercero.documento');
+});
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
