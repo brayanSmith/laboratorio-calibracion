@@ -91,6 +91,9 @@ type ContactoEmpresa = {
 
 const TODAS = 'todas';
 
+/** El botón del historial (traza) de cada equipo está oculto por ahora; true para mostrarlo. */
+const HISTORIAL_VISIBLE = false;
+
 /** Un color por etapa, para distinguirlas de un vistazo en la tabla. */
 const COLOR_ETAPA: Record<string, string> = {
     'En bahía':
@@ -582,7 +585,7 @@ function TarjetaEquipo({
     onVerHistorial: () => void;
 }) {
     const actual = equipo.historial.at(-1);
-    const conHistorial = equipo.historial.length > 0;
+    const conHistorial = HISTORIAL_VISIBLE && equipo.historial.length > 0;
 
     return (
         <li data-test="seguimiento-equipo-tarjeta">
@@ -689,7 +692,7 @@ function FilaEquipo({
                 {formatearFechaHora(actual?.fecha)}
             </td>
             <td className="px-3 py-2.5 text-right">
-                {equipo.historial.length > 0 ? (
+                {HISTORIAL_VISIBLE && equipo.historial.length > 0 ? (
                     <Button
                         type="button"
                         variant="ghost"
