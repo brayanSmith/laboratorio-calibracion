@@ -229,6 +229,34 @@ function EquipoDetalle({
                     )}
                 </p>
             ) : null}
+            {item.fotos_recepcion && item.fotos_recepcion.length > 0 ? (
+                <div className="space-y-1 pt-1">
+                    <p className="text-xs text-muted-foreground">
+                        Fotos de recepción ({item.fotos_recepcion.length})
+                    </p>
+                    <ul
+                        className="flex gap-2 overflow-x-auto pb-1"
+                        data-test="ver-ingreso-fotos"
+                    >
+                        {item.fotos_recepcion.map((foto) => (
+                            <li key={foto.id} className="shrink-0">
+                                <a
+                                    href={foto.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <img
+                                        src={foto.url}
+                                        alt={`Foto de recepción de ${item.equipo.codigo}`}
+                                        className="size-16 rounded-md border object-cover transition-opacity hover:opacity-80"
+                                        loading="lazy"
+                                    />
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
         </li>
     );
 }

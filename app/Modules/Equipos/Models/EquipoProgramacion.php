@@ -4,6 +4,7 @@ namespace App\Modules\Equipos\Models;
 
 use App\Models\Tenant;
 use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -156,6 +157,16 @@ class EquipoProgramacion extends Model
     public function novedadIngreso(): BelongsTo
     {
         return $this->belongsTo(Novedad::class, 'novedad_ingreso_id');
+    }
+
+    /**
+     * Fotos tomadas al recibir el equipo en su ingreso, como evidencia de cómo llegó.
+     *
+     * @return HasMany<FotoRecepcion, $this>
+     */
+    public function fotosRecepcion(): HasMany
+    {
+        return $this->hasMany(FotoRecepcion::class)->orderBy('id');
     }
 
     /**

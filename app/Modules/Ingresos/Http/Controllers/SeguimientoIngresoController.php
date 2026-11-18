@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\Tenant;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Equipos\Models\SeguimientoProgramacionEquipo;
+use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -83,6 +84,7 @@ class SeguimientoIngresoController extends Controller
                 'equipo.cliente:id,nombre',
                 'seguimientos' => fn ($query) => $query->orderBy('id'),
                 'ordenesTrabajo.serviciosTerceros.empresaTercero:id,nombre',
+                'fotosRecepcion',
             ])
             ->get();
         $clientes = $programaciones->pluck('equipo.cliente.nombre')->unique();
@@ -108,6 +110,8 @@ class SeguimientoIngresoController extends Controller
                     ])
                     ->values()
                     ->all(),
+                // Evidencia de cómo llegó el equipo, tomada al recibirlo.
+                'fotos' => $programacion->fotosRecepcion->map(fn (FotoRecepcion $foto) => $foto->url())->values()->all(),
                 'siguientes' => $programacion->ingresado === false ? [] : $this->fasesSiguientes($programacion),
             ])
             ->values();

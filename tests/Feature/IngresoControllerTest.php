@@ -8,6 +8,7 @@ use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Ingresos\Mail\IngresoRecibido;
+use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Illuminate\Http\UploadedFile;
@@ -1043,4 +1044,159 @@ test('solo quien puede editar ingresos del tenant reenvia el correo', function (
 
     $this->actingAs($ajeno)->post(route('ingresos.correo.reenviar', $ingreso), ['cliente_id' => $this->cliente->id])->assertForbidden();
     $this->actingAs($sinRol)->post(route('ingresos.correo.reenviar', $ingreso), ['cliente_id' => $this->cliente->id])->assertForbidden();
+});
+
+/**
+ * Un ingreso de la bahía del test con un equipo programado ya enlazado.
+ *
+ * @return array{0: Ingreso, 1: EquipoProgramacion}
+ */
+function ingresoConEquipoParaFotos(string $codigo = 'EQ-5001'): array
+{
+    $ingreso = Ingreso::factory()->create(['bahia_id' => test()->bahia->id]);
+    $programacion = crearProgramacion(crearEquipoParaBusqueda(test()->bahia, $codigo), [
+        'ingreso_id' => $ingreso->id,
+        'agendar' => true,
+        'estado_programacion' => 'AGENDADO',
+    ]);
+
+    return [$ingreso, $programacion];
+}
+
+function recibirConFotos(array $datos): array
+{
+    return [
+        'estado_ingreso' => 'RECIBIDO',
+        'tecnico_recibe_id' => test()->admin->id,
+        'cliente_entrega_id' => test()->cliente->id,
+        ...$datos,
+    ];
+}
+
+test('al recibir el ingreso guarda las fotos de como llego cada equipo y las muestra en el listado', function () {
+    [$ingreso, $programacion] = ingresoConEquipoParaFotos();
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), recibirConFotos([
+            'equipos_recibidos' => [$programacion->id => ['ingresado' => '1']],
+            'fotos_recepcion' => [$programacion->id => [
+                UploadedFile::fake()->image('frente.jpg'),
+                UploadedFile::fake()->image('lateral.jpg'),
+            ]],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $fotos = $programacion->fotosRecepcion()->get();
+    expect($fotos)->toHaveCount(2)
+        ->and($fotos->pluck('tenant_id')->unique()->all())->toBe([$this->tenant->id]);
+    $fotos->each(fn (FotoRecepcion $foto) => Storage::disk('public')->assertExists($foto->ruta));
+
+    $this->actingAs($this->admin)
+        ->get(route('ingresos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('ingresos.0.equipo_programaciones.0.fotos_recepcion', 2)
+            ->where('ingresos.0.equipo_programaciones.0.fotos_recepcion.0.url', $fotos->first()->url()));
+});
+
+test('al volver a recibir el ingreso quita las fotos marcadas y borra su archivo', function () {
+    [$ingreso, $programacion] = ingresoConEquipoParaFotos();
+    $quitada = FotoRecepcion::factory()->create(['equipo_programacion_id' => $programacion->id, 'tenant_id' => $this->tenant->id]);
+    $conservada = FotoRecepcion::factory()->create(['equipo_programacion_id' => $programacion->id, 'tenant_id' => $this->tenant->id]);
+    Storage::disk('public')->put($quitada->ruta, 'foto');
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), recibirConFotos([
+            'eliminar_fotos_recepcion' => [$quitada->id],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($programacion->fotosRecepcion()->pluck('id')->all())->toBe([$conservada->id]);
+    Storage::disk('public')->assertMissing($quitada->ruta);
+});
+
+test('rechaza fotos que no son imagenes, de un equipo de otro ingreso o que pasan el maximo por equipo', function (Closure $datos, string $error) {
+    [$ingreso, $programacion] = ingresoConEquipoParaFotos();
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), recibirConFotos($datos($programacion)))
+        ->assertSessionHasErrors($error);
+
+    expect(FotoRecepcion::count())->toBe(0);
+})->with([
+    'no es imagen' => [
+        fn (EquipoProgramacion $programacion) => ['fotos_recepcion' => [$programacion->id => [UploadedFile::fake()->create('nota.pdf', 10, 'application/pdf')]]],
+        'fotos_recepcion.*.0',
+    ],
+    'equipo de otro ingreso' => [
+        fn () => ['fotos_recepcion' => [crearProgramacion(crearEquipoParaBusqueda(test()->bahia, 'EQ-OTRO'))->id => [UploadedFile::fake()->image('a.jpg')]]],
+        'fotos_recepcion.*',
+    ],
+    'mas del maximo' => [
+        fn (EquipoProgramacion $programacion) => ['fotos_recepcion' => [$programacion->id => array_map(fn () => UploadedFile::fake()->image('a.jpg'), range(1, 11))]],
+        'fotos_recepcion.*',
+    ],
+]);
+
+test('no deja quitar fotos de un equipo de otro ingreso', function () {
+    [$ingreso] = ingresoConEquipoParaFotos();
+    [, $otraProgramacion] = ingresoConEquipoParaFotos('EQ-OTRO');
+    $ajena = FotoRecepcion::factory()->create(['equipo_programacion_id' => $otraProgramacion->id, 'tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), recibirConFotos(['eliminar_fotos_recepcion' => [$ajena->id]]))
+        ->assertSessionHasErrors('eliminar_fotos_recepcion.0');
+
+    expect($ajena->fresh())->not->toBeNull();
+});
+
+test('un usuario sin permiso de editar equipos no puede subir fotos de recepcion', function () {
+    $recepcion = User::factory()->forTenant($this->tenant, TenantRole::Recepcion)->create();
+    [$ingreso, $programacion] = ingresoConEquipoParaFotos();
+
+    $this->actingAs($recepcion)
+        ->patch(route('ingresos.estado.update', $ingreso), [
+            'estado_ingreso' => 'RECIBIDO',
+            'tecnico_recibe_id' => $recepcion->id,
+            'cliente_entrega_id' => $this->cliente->id,
+            'fotos_recepcion' => [$programacion->id => [UploadedFile::fake()->image('a.jpg')]],
+        ])
+        ->assertForbidden();
+
+    expect(FotoRecepcion::count())->toBe(0);
+});
+
+test('guarda las fotos de un equipo no programado agregado al recibir el ingreso', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), recibirConFotos([
+            'equipos_correctivos_recibidos' => [[
+                'equipo_id' => $equipo->id,
+                'falla_detectada' => 'Pantalla rota',
+                'fotos' => [UploadedFile::fake()->image('pantalla.jpg')],
+            ]],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $programacion = EquipoProgramacion::where('equipo_id', $equipo->id)->sole();
+    expect($programacion->fotosRecepcion)->toHaveCount(1);
+    Storage::disk('public')->assertExists($programacion->fotosRecepcion->first()->ruta);
+});
+
+test('rechaza fotos de un equipo no programado que no son imagenes', function () {
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id]);
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->patch(route('ingresos.estado.update', $ingreso), recibirConFotos([
+            'equipos_correctivos_recibidos' => [[
+                'equipo_id' => $equipo->id,
+                'falla_detectada' => 'Pantalla rota',
+                'fotos' => [UploadedFile::fake()->create('nota.pdf', 10, 'application/pdf')],
+            ]],
+        ]))
+        ->assertSessionHasErrors('equipos_correctivos_recibidos.0.fotos.0');
+
+    expect(EquipoProgramacion::where('equipo_id', $equipo->id)->exists())->toBeFalse();
 });

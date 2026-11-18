@@ -5,6 +5,7 @@ use App\Models\Tenant;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Ingresos\Mail\IngresoRecibido;
+use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
@@ -145,3 +146,13 @@ test('sin codigo el pie muestra el contacto del laboratorio solo cuando hay un u
     'un solo laboratorio' => [false, 'Lab Andino'],
     'multi tenant' => [true, null],
 ]);
+
+test('el cliente ve las fotos de como llego cada equipo', function () {
+    $equipo = crearEquipo($this->tenant, 'EQ-1');
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $equipo->bahia_id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $programacion = programacionEnIngreso($equipo, $ingreso);
+    $foto = FotoRecepcion::factory()->create(['equipo_programacion_id' => $programacion->id, 'tenant_id' => $this->tenant->id]);
+
+    $this->get(route('seguimiento', ['codigo' => $ingreso->codigo]))
+        ->assertInertia(fn ($page) => $page->where('ingreso.equipos.0.fotos', [$foto->url()]));
+});

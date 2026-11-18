@@ -9,6 +9,7 @@ import {
     type CorrectivoPendiente,
     CorrectivoPendienteItem,
 } from '@/components/ingresos/agregar-equipo-correctivo';
+import FotosRecepcionField from '@/components/ingresos/fotos-recepcion-field';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -345,7 +346,23 @@ function RecibirIngresoFormulario({
                                                         ),
                                                 )
                                             }
-                                        />
+                                        >
+                                            <div className="rounded-md border border-dashed p-2">
+                                                <FotosRecepcionField
+                                                    nombre={`equipos_correctivos_recibidos[${index}][fotos]`}
+                                                    fotos={[]}
+                                                    error={
+                                                        Object.entries(
+                                                            errors,
+                                                        ).find(([campo]) =>
+                                                            campo.startsWith(
+                                                                `equipos_correctivos_recibidos.${index}.fotos`,
+                                                            ),
+                                                        )?.[1]
+                                                    }
+                                                />
+                                            </div>
+                                        </CorrectivoPendienteItem>
                                     ),
                                 )}
                             </ul>
@@ -722,6 +739,16 @@ function RecibirIngresoFormulario({
                         </p>
                     ) : null}
 
+                    {Object.keys(errors).length > 0 ? (
+                        <p
+                            className="text-sm text-destructive"
+                            data-test="recibir-ingreso-errores"
+                        >
+                            No se pudo guardar: revisa los campos marcados en
+                            rojo.
+                        </p>
+                    ) : null}
+
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
@@ -996,6 +1023,20 @@ function EquipoRecibido({
                         {camposNovedad}
                     </CollapsibleContent>
                 </Collapsible>
+            ) : null}
+
+            {ingresado ? (
+                <div className="rounded-md border border-dashed p-2">
+                    <FotosRecepcionField
+                        nombre={`fotos_recepcion[${item.id}]`}
+                        fotos={item.fotos_recepcion ?? []}
+                        error={
+                            Object.entries(errors).find(([campo]) =>
+                                campo.startsWith(`fotos_recepcion.${item.id}`),
+                            )?.[1]
+                        }
+                    />
+                </div>
             ) : (
                 <div className="space-y-2 rounded-md bg-muted/40 p-2">
                     {camposNovedad}

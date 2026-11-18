@@ -1,6 +1,7 @@
 import { useHttp } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import Combobox from '@/components/combobox';
 import { estadosProgramacion } from '@/components/equipos/equipo-programacion-fields';
 import InputError from '@/components/input-error';
@@ -137,6 +138,8 @@ type CorrectivoPendienteItemProps = {
     errors: Partial<Record<string, string>>;
     /** Prefijo del campo bajo el que viaja en el formulario, ej: "programaciones_correctivas". */
     campo: string;
+    /** Contenido debajo del equipo, ej. sus fotos de recepción al recibir el ingreso. */
+    children?: ReactNode;
 };
 
 /**
@@ -150,49 +153,54 @@ export function CorrectivoPendienteItem({
     onQuitar,
     errors,
     campo,
+    children,
 }: CorrectivoPendienteItemProps) {
     const prefijo = `${campo}.${index}`;
 
     return (
         <li
-            className="flex items-start justify-between gap-3 px-3 py-2"
+            className="space-y-2 px-3 py-2"
             data-test="correctivo-pendiente-item"
         >
-            <div className="space-y-1">
-                <span className="text-sm font-medium">
-                    {pendiente.equipoLabel}
-                </span>
-                <p className="text-xs text-muted-foreground">
-                    {pendiente.fallaDetectada}
-                </p>
-                <InputError
-                    message={
-                        errors[`${prefijo}.equipo_id`] ??
-                        errors[`${prefijo}.falla_detectada`]
-                    }
-                />
+            <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                    <span className="text-sm font-medium">
+                        {pendiente.equipoLabel}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                        {pendiente.fallaDetectada}
+                    </p>
+                    <InputError
+                        message={
+                            errors[`${prefijo}.equipo_id`] ??
+                            errors[`${prefijo}.falla_detectada`]
+                        }
+                    />
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                    <Badge className={colorBadgeAgendado}>
+                        {
+                            estadosProgramacion.find(
+                                (option) => option.value === 'AGENDADO',
+                            )?.label
+                        }
+                    </Badge>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={onQuitar}
+                        aria-label="Quitar equipo"
+                        data-test="correctivo-pendiente-quitar"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-                <Badge className={colorBadgeAgendado}>
-                    {
-                        estadosProgramacion.find(
-                            (option) => option.value === 'AGENDADO',
-                        )?.label
-                    }
-                </Badge>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={onQuitar}
-                    aria-label="Quitar equipo"
-                    data-test="correctivo-pendiente-quitar"
-                >
-                    <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-            </div>
+            {children}
 
             <input
                 type="hidden"

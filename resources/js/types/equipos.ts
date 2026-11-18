@@ -117,6 +117,8 @@ export type EquipoProgramacionBusquedaItem = {
     observacion_no_ingreso: string | null;
     re_agendar: boolean;
     datos_re_agendamiento: DatosReAgendamiento | null;
+    /** Fotos de cómo llegó el equipo; solo en los equipos de un ingreso. */
+    fotos_recepcion?: FotoRecepcion[];
     equipo: {
         id: number;
         codigo: string;
@@ -126,6 +128,12 @@ export type EquipoProgramacionBusquedaItem = {
         /** Solo en la búsqueda del ingreso, que puede abarcar varias bahías. */
         bahia?: { nombre: string };
     };
+};
+
+/** Foto tomada al recibir un equipo en su ingreso. */
+export type FotoRecepcion = {
+    id: number;
+    url: string;
 };
 
 /** Opción de equipo para agendar un mantenimiento correctivo desde un ingreso. */

@@ -4,6 +4,7 @@ namespace App\Modules\Ingresos\Http\Requests;
 
 use App\Enums\TenantPermission;
 use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -14,6 +15,11 @@ use Illuminate\Validation\Validator;
 
 class UpdateEstadoIngresoRequest extends FormRequest
 {
+    /**
+     * Fotos de recepción que puede tener cada equipo.
+     */
+    public const MAXIMO_FOTOS = 10;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -28,7 +34,9 @@ class UpdateEstadoIngresoRequest extends FormRequest
         // de editar el ingreso.
         $tocaEquipos = filled($this->input('equipos_recibidos'))
             || filled($this->input('equipos_correctivos_recibidos'))
-            || filled($this->input('novedad_cancelacion_id'));
+            || filled($this->input('novedad_cancelacion_id'))
+            || $this->hasFile('fotos_recepcion')
+            || filled($this->input('eliminar_fotos_recepcion'));
 
         return ! $tocaEquipos || $this->user()->can(TenantPermission::EquiposEditar->value);
     }
@@ -126,6 +134,21 @@ class UpdateEstadoIngresoRequest extends FormRequest
                 Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->where('bahia_id', $ingreso->bahia_id)->whereNull('deleted_at'),
             ],
             'equipos_correctivos_recibidos.*.falla_detectada' => ['required', 'string', 'max:2000'],
+            'equipos_correctivos_recibidos.*.fotos' => ['array', 'max:'.self::MAXIMO_FOTOS],
+            'equipos_correctivos_recibidos.*.fotos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+
+            // Fotos de cómo llegó cada equipo, por id de su programación en este ingreso
+            // (ver after()), y las ya guardadas que se quitan.
+            'fotos_recepcion' => ['array'],
+            'fotos_recepcion.*' => ['array', 'max:'.self::MAXIMO_FOTOS],
+            'fotos_recepcion.*.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'eliminar_fotos_recepcion' => ['array'],
+            'eliminar_fotos_recepcion.*' => [
+                'integer',
+                Rule::exists('foto_recepcions', 'id')
+                    ->where('tenant_id', $tenantId)
+                    ->whereIn('equipo_programacion_id', $ingreso->equipoProgramacion()->pluck('id')->all()),
+            ],
         ];
     }
 
@@ -186,6 +209,31 @@ class UpdateEstadoIngresoRequest extends FormRequest
                         $validator->errors()->add("equipos_recibidos.{$indice}.novedad_ingreso_id", 'Esta novedad inactiva el equipo: solo se puede elegir si el equipo no ingresó.');
                     } elseif ($recibido['re_agendar']) {
                         $validator->errors()->add("equipos_recibidos.{$indice}.re_agendar", 'No se puede re-agendar un equipo con una novedad que lo inactiva.');
+                    }
+                }
+            },
+            function (Validator $validator): void {
+                $fotos = $this->file('fotos_recepcion', []);
+
+                if (! is_array($fotos) || $fotos === []) {
+                    return;
+                }
+
+                /** @var Ingreso $ingreso */
+                $ingreso = $this->route('ingreso');
+                $guardadas = $ingreso->equipoProgramacion()
+                    ->withCount('fotosRecepcion as fotos_recepcion_count')
+                    ->pluck('fotos_recepcion_count', 'id');
+                $quitadas = FotoRecepcion::query()
+                    ->whereIn('id', (array) $this->input('eliminar_fotos_recepcion', []))
+                    ->pluck('equipo_programacion_id')
+                    ->countBy();
+
+                foreach ($fotos as $programacionId => $nuevas) {
+                    if (! $guardadas->has($programacionId)) {
+                        $validator->errors()->add("fotos_recepcion.{$programacionId}", 'Este equipo no pertenece al ingreso.');
+                    } elseif ($guardadas[$programacionId] + count((array) $nuevas) - $quitadas->get($programacionId, 0) > self::MAXIMO_FOTOS) {
+                        $validator->errors()->add("fotos_recepcion.{$programacionId}", 'Cada equipo puede tener máximo '.self::MAXIMO_FOTOS.' fotos.');
                     }
                 }
             },

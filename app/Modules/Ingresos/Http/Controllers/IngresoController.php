@@ -13,11 +13,13 @@ use App\Modules\Ingresos\Actions\EnviarCorreosIngreso;
 use App\Modules\Ingresos\Http\Requests\StoreIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateEstadoIngresoRequest;
 use App\Modules\Ingresos\Http\Requests\UpdateIngresoRequest;
+use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -97,6 +99,7 @@ class IngresoController extends Controller
                 'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
                 'equipoProgramacion.equipo.cliente:id,nombre,email',
                 'equipoProgramacion.equipo.tipoEquipo:id,nombre',
+                'equipoProgramacion.fotosRecepcion',
             ])
             ->orderByDesc('desde')
             ->orderByDesc('id')
@@ -145,6 +148,9 @@ class IngresoController extends Controller
                     'observacion_no_ingreso' => $programacion->observacion_no_ingreso,
                     're_agendar' => $programacion->re_agendar,
                     'datos_re_agendamiento' => $programacion->datos_re_agendamiento,
+                    'fotos_recepcion' => $programacion->fotosRecepcion
+                        ->map(fn (FotoRecepcion $foto) => ['id' => $foto->id, 'url' => $foto->url()])
+                        ->values(),
                     'equipo' => [
                         'id' => $programacion->equipo->id,
                         'codigo' => $programacion->equipo->codigo,
@@ -423,7 +429,36 @@ class IngresoController extends Controller
         }
 
         foreach ($request->validated('equipos_correctivos_recibidos', []) as $correctivo) {
-            $this->crearProgramacionCorrectiva($correctivo, $ingreso, $ingreso->tenant_id, 'RECIBIDO');
+            $programacion = $this->crearProgramacionCorrectiva($correctivo, $ingreso, $ingreso->tenant_id, 'RECIBIDO');
+            $this->guardarFotos($programacion->id, $correctivo['fotos'] ?? [], $ingreso->tenant_id);
+        }
+
+        FotoRecepcion::query()
+            ->whereIn('id', $request->validated('eliminar_fotos_recepcion', []))
+            ->get()
+            ->each->delete();
+
+        /** @var array<int, list<UploadedFile>> $fotosPorProgramacion */
+        $fotosPorProgramacion = $request->file('fotos_recepcion', []);
+
+        foreach ($fotosPorProgramacion as $programacionId => $fotos) {
+            $this->guardarFotos($programacionId, $fotos, $ingreso->tenant_id);
+        }
+    }
+
+    /**
+     * Guarda las fotos de cómo llegó un equipo al recibirlo.
+     *
+     * @param  list<UploadedFile>  $fotos
+     */
+    private function guardarFotos(int $programacionId, array $fotos, int $tenantId): void
+    {
+        foreach ($fotos as $foto) {
+            FotoRecepcion::create([
+                'equipo_programacion_id' => $programacionId,
+                'ruta' => $foto->store("fotos-recepcion/{$tenantId}", 'public'),
+                'tenant_id' => $tenantId,
+            ]);
         }
     }
 
@@ -458,7 +493,7 @@ class IngresoController extends Controller
      *
      * @param  array<string, mixed>  $correctivo
      */
-    private function crearProgramacionCorrectiva(array $correctivo, Ingreso|Closure $ingreso, int $tenantId, string $estadoProgramacion): void
+    private function crearProgramacionCorrectiva(array $correctivo, Ingreso|Closure $ingreso, int $tenantId, string $estadoProgramacion): EquipoProgramacion
     {
         $equipo = Equipo::with('tipoEquipo:id,tipo_mantenimiento')
             ->where('id', $correctivo['equipo_id'])
@@ -468,7 +503,7 @@ class IngresoController extends Controller
             $ingreso = $ingreso($equipo->bahia_id);
         }
 
-        $equipo->equipoProgramaciones()->create([
+        return $equipo->equipoProgramaciones()->create([
             'tipo_servicio' => implode(',', $equipo->tipoEquipo->tiposServicio()),
             'tipo_mantenimiento' => 'CORRECTIVO',
             'falla_detectada' => $correctivo['falla_detectada'],

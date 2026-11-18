@@ -1,7 +1,9 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
+    ChevronLeft,
     ChevronRight,
+    Camera,
     Gauge,
     History,
     Lock,
@@ -60,6 +62,8 @@ type EquipoSeguimiento = {
     historial: PasoSeguimiento[];
     /** Etapas que le faltan, en orden; se muestran bloqueadas hasta que pasen. */
     siguientes: string[];
+    /** Fotos de cómo llegó el equipo, tomadas al recibirlo. */
+    fotos: string[];
 };
 
 type IngresoSeguimiento = {
@@ -90,9 +94,6 @@ type ContactoEmpresa = {
 };
 
 const TODAS = 'todas';
-
-/** El botón del historial (traza) de cada equipo está oculto por ahora; true para mostrarlo. */
-const HISTORIAL_VISIBLE = false;
 
 /** Un color por etapa, para distinguirlas de un vistazo en la tabla. */
 const COLOR_ETAPA: Record<string, string> = {
@@ -463,7 +464,7 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
                     </ul>
 
                     <div className="hidden overflow-x-auto rounded-lg border md:block">
-                        <table className="w-full min-w-[860px] text-sm">
+                        <table className="w-full min-w-[980px] text-sm">
                             <thead className="bg-muted/60 text-left text-xs text-muted-foreground">
                                 <tr>
                                     <th className="px-3 py-2.5 font-medium">
@@ -477,6 +478,9 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
                                     </th>
                                     <th className="px-3 py-2.5 font-medium">
                                         Estado actual
+                                    </th>
+                                    <th className="px-3 py-2.5 font-medium">
+                                        Fotos
                                     </th>
                                     <th className="px-3 py-2.5 font-medium">
                                         Laboratorio
@@ -504,7 +508,7 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
                                 {visibles.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="px-3 py-8 text-center text-sm text-muted-foreground"
                                         >
                                             Ningún equipo coincide con la
@@ -585,15 +589,18 @@ function TarjetaEquipo({
     onVerHistorial: () => void;
 }) {
     const actual = equipo.historial.at(-1);
-    const conHistorial = HISTORIAL_VISIBLE && equipo.historial.length > 0;
+    const conHistorial = equipo.historial.length > 0;
 
     return (
-        <li data-test="seguimiento-equipo-tarjeta">
+        <li
+            className="overflow-hidden rounded-lg border bg-background"
+            data-test="seguimiento-equipo-tarjeta"
+        >
             <button
                 type="button"
                 onClick={onVerHistorial}
                 disabled={!conHistorial}
-                className="grid w-full gap-2 rounded-lg border bg-background p-3 text-left text-sm transition-colors active:bg-muted/60 disabled:cursor-default"
+                className="grid w-full gap-2 p-3 text-left text-sm transition-colors active:bg-muted/60 disabled:cursor-default"
             >
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -630,6 +637,15 @@ function TarjetaEquipo({
                     </DatoTarjeta>
                 </dl>
             </button>
+            {equipo.fotos.length > 0 ? (
+                <div className="flex items-center justify-between gap-2 border-t bg-muted/30 px-3 py-2">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Camera className="size-3.5" />
+                        Fotos al recibirlo
+                    </span>
+                    <MiniaturasFotos equipo={equipo} maximo={4} />
+                </div>
+            ) : null}
         </li>
     );
 }
@@ -681,6 +697,9 @@ function FilaEquipo({
             <td className="px-3 py-2.5">
                 <EstadoEquipo equipo={equipo} />
             </td>
+            <td className="px-3 py-2">
+                <MiniaturasFotos equipo={equipo} />
+            </td>
             <td className="px-3 py-2.5">
                 {equipo.ingresado !== false && actual?.laboratorio ? (
                     actual.laboratorio
@@ -692,7 +711,7 @@ function FilaEquipo({
                 {formatearFechaHora(actual?.fecha)}
             </td>
             <td className="px-3 py-2.5 text-right">
-                {HISTORIAL_VISIBLE && equipo.historial.length > 0 ? (
+                {equipo.historial.length > 0 ? (
                     <Button
                         type="button"
                         variant="ghost"
@@ -887,6 +906,266 @@ function ProgresoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
     );
 }
 
+/**
+ * Miniaturas de las fotos de recepción en la tabla o la tarjeta del equipo: las primeras
+ * `maximo` y un recuadro "+N" con las demás. Al tocar una se abre el visor en esa foto.
+ */
+function MiniaturasFotos({
+    equipo,
+    maximo = 3,
+}: {
+    equipo: EquipoSeguimiento;
+    maximo?: number;
+}) {
+    const [abierta, setAbierta] = useState<number | null>(null);
+
+    if (equipo.fotos.length === 0) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    const visibles = equipo.fotos.slice(0, maximo);
+    const restantes = equipo.fotos.length - visibles.length;
+
+    return (
+        <>
+            <ul
+                className="flex shrink-0 items-center gap-1.5"
+                aria-label={`Fotos de recepción de ${equipo.codigo}`}
+                data-test="seguimiento-miniaturas"
+            >
+                {visibles.map((url, indice) => (
+                    <li key={url} className="shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setAbierta(indice)}
+                            className="relative block overflow-hidden rounded-md border transition hover:ring-2 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                            aria-label={`Ver foto ${indice + 1} de ${equipo.codigo}`}
+                        >
+                            <img
+                                src={url}
+                                alt=""
+                                className="size-11 max-w-none object-cover"
+                                loading="lazy"
+                            />
+                            {indice === visibles.length - 1 && restantes > 0 ? (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-xs font-semibold text-white">
+                                    +{restantes}
+                                </span>
+                            ) : null}
+                        </button>
+                    </li>
+                ))}
+            </ul>
+            <VisorFotos
+                equipo={equipo}
+                abierta={abierta}
+                onCambiar={setAbierta}
+            />
+        </>
+    );
+}
+
+/** Flecha sobre la foto grande para pasar a la anterior o la siguiente. */
+function FlechaVisor({
+    lado,
+    disabled,
+    onClick,
+}: {
+    lado: 'izquierda' | 'derecha';
+    disabled: boolean;
+    onClick: () => void;
+}) {
+    if (disabled) {
+        return null;
+    }
+
+    const Icono = lado === 'izquierda' ? ChevronLeft : ChevronRight;
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                'absolute top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white shadow transition hover:bg-black/70',
+                lado === 'izquierda' ? 'left-2' : 'right-2',
+            )}
+            aria-label={
+                lado === 'izquierda' ? 'Foto anterior' : 'Foto siguiente'
+            }
+        >
+            <Icono className="size-5" />
+        </button>
+    );
+}
+
+/**
+ * Una foto de recepción en grande, con flechas encima y debajo las miniaturas de todas para
+ * saltar a cualquiera (también se pasa con las flechas del teclado).
+ */
+function VisorFotos({
+    equipo,
+    abierta,
+    onCambiar,
+}: {
+    equipo: EquipoSeguimiento;
+    abierta: number | null;
+    onCambiar: (indice: number | null) => void;
+}) {
+    const total = equipo.fotos.length;
+
+    return (
+        <Dialog
+            open={abierta !== null}
+            onOpenChange={(open) => !open && onCambiar(null)}
+        >
+            {abierta !== null ? (
+                <DialogContent
+                    className="max-h-[95dvh] gap-3 p-3 sm:max-w-3xl"
+                    onKeyDown={(evento) => {
+                        if (evento.key === 'ArrowLeft' && abierta > 0) {
+                            onCambiar(abierta - 1);
+                        }
+
+                        if (
+                            evento.key === 'ArrowRight' &&
+                            abierta < total - 1
+                        ) {
+                            onCambiar(abierta + 1);
+                        }
+                    }}
+                    data-test="seguimiento-visor-foto"
+                >
+                    <DialogHeader>
+                        <DialogTitle className="text-base">
+                            {equipo.codigo} · Foto {abierta + 1} de {total}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Así llegó el equipo al laboratorio.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="relative">
+                        <a
+                            href={equipo.fotos[abierta]}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Abrir en tamaño original"
+                        >
+                            <img
+                                src={equipo.fotos[abierta]}
+                                alt={`Foto ${abierta + 1} de ${equipo.codigo} al recibirlo`}
+                                className="h-[min(60dvh,32rem)] w-full rounded-md bg-muted object-contain"
+                            />
+                        </a>
+                        {total > 1 ? (
+                            <>
+                                <FlechaVisor
+                                    lado="izquierda"
+                                    disabled={abierta === 0}
+                                    onClick={() => onCambiar(abierta - 1)}
+                                />
+                                <FlechaVisor
+                                    lado="derecha"
+                                    disabled={abierta === total - 1}
+                                    onClick={() => onCambiar(abierta + 1)}
+                                />
+                            </>
+                        ) : null}
+                    </div>
+                    {total > 1 ? (
+                        <ul
+                            className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 py-1"
+                            data-test="seguimiento-visor-miniaturas"
+                        >
+                            {equipo.fotos.map((url, indice) => (
+                                <li
+                                    key={url}
+                                    className="shrink-0 snap-start"
+                                    ref={(elemento) => {
+                                        if (indice === abierta) {
+                                            elemento?.scrollIntoView({
+                                                block: 'nearest',
+                                                inline: 'nearest',
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => onCambiar(indice)}
+                                        className={cn(
+                                            'block overflow-hidden rounded-md border-2 transition',
+                                            indice === abierta
+                                                ? 'border-primary'
+                                                : 'border-transparent opacity-60 hover:opacity-100',
+                                        )}
+                                        aria-label={`Ver foto ${indice + 1}`}
+                                        aria-current={indice === abierta}
+                                    >
+                                        <img
+                                            src={url}
+                                            alt=""
+                                            className="size-14 max-w-none object-cover sm:size-16"
+                                            loading="lazy"
+                                        />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : null}
+                </DialogContent>
+            ) : null}
+        </Dialog>
+    );
+}
+
+/**
+ * Fotos de cómo llegó el equipo, como evidencia de su estado al recibirlo. Al tocar una
+ * se ve en grande; en el celular se desliza de lado para ver las demás.
+ */
+function FotosEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
+    const [abierta, setAbierta] = useState<number | null>(null);
+
+    if (equipo.fotos.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="grid gap-2" data-test="seguimiento-fotos">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+                <Camera className="size-4 text-muted-foreground" />
+                Así llegó el equipo
+                <span className="font-normal text-muted-foreground">
+                    ({equipo.fotos.length})
+                </span>
+            </p>
+            <ul className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
+                {equipo.fotos.map((url, indice) => (
+                    <li key={url} className="shrink-0 snap-start">
+                        <button
+                            type="button"
+                            onClick={() => setAbierta(indice)}
+                            className="block overflow-hidden rounded-lg border transition-opacity hover:opacity-80"
+                        >
+                            <img
+                                src={url}
+                                alt={`Foto ${indice + 1} de ${equipo.codigo} al recibirlo`}
+                                className="size-20 object-cover sm:size-24"
+                                loading="lazy"
+                            />
+                        </button>
+                    </li>
+                ))}
+            </ul>
+
+            <VisorFotos
+                equipo={equipo}
+                abierta={abierta}
+                onCambiar={setAbierta}
+            />
+        </div>
+    );
+}
+
 /** Traza del equipo: cada etapa por la que ha pasado, del más antiguo al más reciente. */
 function HistorialEquipo({
     equipo,
@@ -914,6 +1193,7 @@ function HistorialEquipo({
                         </DialogDescription>
                     </DialogHeader>
                     <ProgresoEquipo equipo={equipo} />
+                    <FotosEquipo equipo={equipo} />
                     <LineaDeTiempo testId="seguimiento-historial">
                         {equipo.historial.map((paso, indice) => {
                             const tono = tonoDelEstado(paso.estado);
