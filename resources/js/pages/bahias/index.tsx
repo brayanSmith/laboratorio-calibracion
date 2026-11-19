@@ -1,7 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { Building2, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
+import AsignarClientesBahiasModal from '@/components/bahias/asignar-clientes-bahias-modal';
 import AsignarUsuariosBahiasModal from '@/components/bahias/asignar-usuarios-bahias-modal';
 import CreateBahiaModal from '@/components/bahias/create-bahia-modal';
 import DeleteBahiaModal from '@/components/bahias/delete-bahia-modal';
@@ -13,17 +14,28 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { index } from '@/routes/bahias';
-import type { Bahia, BahiaAreaOption, BahiaUsuarioOption } from '@/types';
+import type {
+    Bahia,
+    BahiaAreaOption,
+    BahiaClienteOption,
+    BahiaUsuarioOption,
+} from '@/types';
 
 type Props = {
     bahias: Bahia[];
     areas: BahiaAreaOption[];
     usuarios: BahiaUsuarioOption[];
+    clientes: BahiaClienteOption[];
 };
 
 const columnHelper = createDataTableColumnHelper<Bahia>();
 
-export default function BahiasIndex({ bahias, areas, usuarios }: Props) {
+export default function BahiasIndex({
+    bahias,
+    areas,
+    usuarios,
+    clientes,
+}: Props) {
     const { can } = usePermissions();
     const canEdit = can('bahias.editar');
     const canDelete = can('bahias.eliminar');
@@ -47,6 +59,10 @@ export default function BahiasIndex({ bahias, areas, usuarios }: Props) {
                 columnHelper.accessor((row) => row.usuario_ids.length, {
                     id: 'usuarios',
                     header: 'Usuarios',
+                }),
+                columnHelper.accessor((row) => row.cliente_ids.length, {
+                    id: 'clientes',
+                    header: 'Clientes',
                 }),
                 columnHelper.display({
                     id: 'acciones',
@@ -110,6 +126,19 @@ export default function BahiasIndex({ bahias, areas, usuarios }: Props) {
                                     <Users /> Asignar usuarios
                                 </Button>
                             </AsignarUsuariosBahiasModal>
+                        ) : null}
+                        {can('bahias.asignar-clientes') ? (
+                            <AsignarClientesBahiasModal
+                                bahias={bahias}
+                                clientes={clientes}
+                            >
+                                <Button
+                                    variant="outline"
+                                    data-test="bahias-asignar-clientes-button"
+                                >
+                                    <Building2 /> Asignar clientes
+                                </Button>
+                            </AsignarClientesBahiasModal>
                         ) : null}
                         {can('bahias.crear') ? (
                             <CreateBahiaModal areas={areas}>

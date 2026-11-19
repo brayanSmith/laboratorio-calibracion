@@ -4,11 +4,13 @@ namespace App\Modules\Catalogos\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Catalogos\Http\Requests\AsignarClientesBahiasRequest;
 use App\Modules\Catalogos\Http\Requests\AsignarUsuariosBahiasRequest;
 use App\Modules\Catalogos\Http\Requests\StoreBahiaRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateBahiaRequest;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
+use App\Modules\Catalogos\Models\Cliente;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +33,9 @@ class BahiaController extends Controller
             'bahias' => Bahia::listadoConUsuarios($tenantId),
             'usuarios' => $request->user()->can('asignarUsuarios', Bahia::class)
                 ? User::query()->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email'])
+                : [],
+            'clientes' => $request->user()->can('asignarClientes', Bahia::class)
+                ? Cliente::query()->where('tenant_id', $tenantId)->orderBy('nombre')->get(['id', 'nombre', 'numero_documento'])
                 : [],
             'areas' => Area::query()
                 ->where('tenant_id', $tenantId)
@@ -70,6 +75,23 @@ class BahiaController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Usuarios asignados a las bahías.')]);
 
         // Vuelve a la pantalla desde la que se asignó (Bahías o Recordatorios).
+        return back(fallback: route('bahias.index'));
+    }
+
+    /**
+     * Assign clientes to the bahías (varios clientes por bahía y varias bahías por cliente):
+     * cada bahía enviada queda con exactamente los clientes indicados.
+     */
+    public function asignarClientes(AsignarClientesBahiasRequest $request): RedirectResponse
+    {
+        DB::transaction(function () use ($request): void {
+            foreach ($request->validated('asignaciones') as $asignacion) {
+                Bahia::query()->findOrFail($asignacion['bahia_id'])->clientes()->sync($asignacion['cliente_ids']);
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Clientes asignados a las bahías.')]);
+
         return back(fallback: route('bahias.index'));
     }
 

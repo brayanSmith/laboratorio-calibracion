@@ -42,6 +42,14 @@ class BahiaPolicy
     }
 
     /**
+     * Determine whether the user can assign clientes to the bahías.
+     */
+    public function asignarClientes(User $user): bool
+    {
+        return $user->can(TenantPermission::BahiasAsignarClientes->value);
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Bahia $bahia): bool

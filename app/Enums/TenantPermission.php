@@ -89,6 +89,7 @@ enum TenantPermission: string
     case BahiasEditar = 'bahias.editar';
     case BahiasEliminar = 'bahias.eliminar';
     case BahiasAsignarUsuarios = 'bahias.asignar-usuarios';
+    case BahiasAsignarClientes = 'bahias.asignar-clientes';
 
     case FabricantesVer = 'fabricantes.ver';
     case FabricantesCrear = 'fabricantes.crear';
@@ -231,7 +232,8 @@ enum TenantPermission: string
             self::BahiasCrear,
             self::BahiasEditar,
             self::BahiasEliminar,
-            self::BahiasAsignarUsuarios => 'Bahías',
+            self::BahiasAsignarUsuarios,
+            self::BahiasAsignarClientes => 'Bahías',
             self::FabricantesVer,
             self::FabricantesCrear,
             self::FabricantesEditar,
@@ -402,6 +404,7 @@ enum TenantPermission: string
             self::BahiasEditar => 'Editar bahías',
             self::BahiasEliminar => 'Eliminar bahías',
             self::BahiasAsignarUsuarios => 'Asignar usuarios a bahías',
+            self::BahiasAsignarClientes => 'Asignar clientes a bahías',
             self::FabricantesVer => 'Ver fabricantes',
             self::FabricantesCrear => 'Crear fabricantes',
             self::FabricantesEditar => 'Editar fabricantes',
