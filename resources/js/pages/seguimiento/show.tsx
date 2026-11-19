@@ -158,7 +158,20 @@ export default function SeguimientoShow({ codigo, ingreso, contacto }: Props) {
 
     return (
         <div className="flex min-h-svh flex-col bg-muted/40">
-            <Head title="Seguimiento de equipos" />
+            {/* El ícono de la pestaña con el logo de la empresa del ingreso consultado (o la
+                marca de la plataforma); esta página no usa layout, que es donde va. */}
+            <Head title="Seguimiento de equipos">
+                <link
+                    head-key="favicon"
+                    rel="icon"
+                    href={marca.logo_url ?? '/favicon.svg'}
+                />
+                <link
+                    head-key="apple-touch-icon"
+                    rel="apple-touch-icon"
+                    href={marca.logo_url ?? '/apple-touch-icon.png'}
+                />
+            </Head>
 
             <header className="border-b bg-background">
                 <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-4">

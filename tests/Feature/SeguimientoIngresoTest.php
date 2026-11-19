@@ -287,3 +287,13 @@ test('el correo del ingreso sale con el nombre de la empresa del laboratorio com
 
     $correo()->assertFrom('app.calibraciones@gmail.com', 'Ferreyros');
 });
+
+test('la pestana del navegador muestra el logo y el nombre de la empresa del ingreso consultado', function () {
+    Empresa::create(['nit' => '900', 'nombre' => 'Ferreyros', 'direccion' => 'Calle 1', 'telefono' => '1', 'logo' => 'logos/ferreyros.png', 'tenant_id' => $this->tenant->id]);
+    $ingreso = Ingreso::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->get(route('seguimiento', ['codigo' => $ingreso->codigo]))
+        ->assertOk()
+        ->assertSee('<link rel="icon" href="/storage/logos/ferreyros.png"', false)
+        ->assertSee('Seguimiento de equipos - Ferreyros</title>', false);
+});

@@ -33,8 +33,10 @@
         @php
             $empresa = $page['props']['empresa'] ?? null;
             $plataforma = $page['props']['plataforma'] ?? null;
-            $logo = $empresa['logo_url'] ?? $plataforma['logo_url'] ?? null;
-            $marca = $empresa['nombre'] ?? $plataforma['nombre'] ?? config('app.name', 'Laravel');
+            // En el seguimiento público, la empresa es la del ingreso consultado.
+            $empresaIngreso = $page['props']['ingreso']['empresa'] ?? null;
+            $logo = $empresa['logo_url'] ?? $empresaIngreso['logo_url'] ?? $plataforma['logo_url'] ?? null;
+            $marca = $empresa['nombre'] ?? $empresaIngreso['nombre'] ?? $plataforma['nombre'] ?? config('app.name', 'Laravel');
         @endphp
 
         <link rel="icon" href="{{ $logo ?? '/favicon.svg' }}" data-inertia="favicon">
