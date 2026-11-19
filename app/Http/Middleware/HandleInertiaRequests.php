@@ -13,6 +13,7 @@ use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Importaciones\Models\Importacion;
 use App\Modules\Ingresos\Models\Ingreso;
+use App\Modules\Ingresos\Models\IngresoEnvio;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
@@ -66,6 +67,7 @@ class HandleInertiaRequests extends Middleware
             'pendientes' => fn () => $this->pendientes($user),
             'porAgendar' => fn () => $this->porAgendar($user),
             'importacionesSinLeer' => fn () => $this->importacionesSinLeer($user),
+            'notificacionesSinLeer' => fn () => $this->notificacionesSinLeer($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -173,6 +175,22 @@ class HandleInertiaRequests extends Middleware
         }
 
         return Importacion::query()
+            ->where('user_id', $user->id)
+            ->sinLeer()
+            ->count();
+    }
+
+    /**
+     * Cuántos correos de ingreso que disparó el usuario ya salieron o fallaron y aún no ve,
+     * para el globito de la campanita (null si no trabaja con ingresos).
+     */
+    private function notificacionesSinLeer(?User $user): ?int
+    {
+        if (! $user?->tenant_id || ! $user->can(TenantPermission::IngresosVer->value)) {
+            return null;
+        }
+
+        return IngresoEnvio::query()
             ->where('user_id', $user->id)
             ->sinLeer()
             ->count();

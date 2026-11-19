@@ -36,6 +36,7 @@ use App\Modules\Equipos\Http\Controllers\EquipoHistoricoController;
 use App\Modules\Equipos\Http\Controllers\EquipoProgramacionController;
 use App\Modules\Importaciones\Http\Controllers\ImportacionController;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
+use App\Modules\Ingresos\Http\Controllers\NotificacionCorreoController;
 use App\Modules\Ingresos\Http\Controllers\SeguimientoIngresoController;
 use App\Modules\Inventario\Http\Controllers\EntradaItemController;
 use App\Modules\Inventario\Http\Controllers\ItemController;
@@ -130,6 +131,9 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::resource('ingresos', IngresoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('ingresos/{ingreso}/estado', [IngresoController::class, 'actualizarEstado'])->name('ingresos.estado.update');
     Route::post('ingresos/{ingreso}/correo', [IngresoController::class, 'reenviarCorreo'])->name('ingresos.correo.reenviar');
+    Route::post('ingresos/{ingreso}/correo/todos', [IngresoController::class, 'enviarCorreoATodos'])->name('ingresos.correo.todos');
+    Route::get('notificaciones/correos', [NotificacionCorreoController::class, 'index'])->name('notificaciones.correos');
+    Route::patch('notificaciones/correos/leidas', [NotificacionCorreoController::class, 'marcarLeidas'])->name('notificaciones.correos.leidas');
 
     Route::get('orden-trabajos/opciones-agendar', [OrdenTrabajoController::class, 'opcionesAgendar'])->name('orden-trabajos.opciones-agendar');
     Route::get('orden-trabajos/equipos-listos', [OrdenTrabajoController::class, 'equiposListos'])->name('orden-trabajos.equipos-listos');

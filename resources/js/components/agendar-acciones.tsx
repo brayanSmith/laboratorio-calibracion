@@ -9,6 +9,7 @@ import AccesosModulos, {
 } from '@/components/accesos-modulos';
 import BotonAtajo from '@/components/boton-atajo';
 import ImportarDatos from '@/components/importaciones/importar-datos';
+import NotificacionesCorreos from '@/components/notificaciones-correos';
 import AgendarCalibracionesModal from '@/components/ordenes-trabajo/agendar-calibraciones-modal';
 import AgendarDespachosModal from '@/components/ordenes-trabajo/agendar-despachos-modal';
 import AgendarMantenimientoModal from '@/components/ordenes-trabajo/agendar-mantenimiento-modal';
@@ -30,7 +31,7 @@ type Atajo = 'mantenimiento' | 'calibracion' | 'despachos' | 'agenda';
  * de las notificaciones. Cada uno abre la misma modal que antes vivía en Ingresos.
  */
 export function AgendarAcciones() {
-    const { porAgendar } = usePage().props;
+    const { porAgendar, notificacionesSinLeer } = usePage().props;
     const { can } = usePermissions();
     const [abierto, setAbierto] = useState<Atajo | null>(null);
     const desplazamiento = useDesplazamientoHorizontal<HTMLElement>();
@@ -45,7 +46,11 @@ export function AgendarAcciones() {
     );
     const contadores = porAgendar ?? null;
     const modulos = useModulosOperacion();
-    const hayAtajos = contadores !== null || puedeVerAgenda || puedeImportar;
+    const hayAtajos =
+        contadores !== null ||
+        puedeVerAgenda ||
+        puedeImportar ||
+        notificacionesSinLeer != null;
 
     if (!hayAtajos && modulos.length === 0) {
         return null;
@@ -99,6 +104,7 @@ export function AgendarAcciones() {
                         className="mx-1 mb-4 h-8 w-px shrink-0 self-end bg-border md:hidden"
                     />
                 ) : null}
+                <NotificacionesCorreos />
                 {puedeImportar ? <ImportarDatos /> : null}
                 {puedeVerAgenda ? (
                     <BotonAtajo

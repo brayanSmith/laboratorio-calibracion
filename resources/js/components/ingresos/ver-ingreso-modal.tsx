@@ -36,9 +36,9 @@ function Dato({
     children: React.ReactNode;
 }) {
     return (
-        <div className="grid gap-1">
+        <div className="grid min-w-0 gap-1">
             <Label className="text-xs text-muted-foreground">{etiqueta}</Label>
-            <div className="text-sm">{mostrarFecha(children)}</div>
+            <div className="text-sm break-words">{mostrarFecha(children)}</div>
         </div>
     );
 }
@@ -67,7 +67,7 @@ export default function VerIngresoModal({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="max-h-[85vh] overflow-y-auto sm:max-w-lg"
+                className="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-3xl lg:max-w-4xl"
                 data-test="ver-ingreso-modal"
             >
                 <DialogHeader>
@@ -83,7 +83,7 @@ export default function VerIngresoModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Dato etiqueta="Estado">
                         <Badge
                             className={
@@ -179,7 +179,7 @@ function EquipoDetalle({
             data-test="ver-ingreso-equipo"
         >
             <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                     <p className="font-medium">
                         {item.equipo.codigo} · {item.equipo.modelo}
                     </p>
@@ -235,7 +235,7 @@ function EquipoDetalle({
                         Fotos de recepción ({item.fotos_recepcion.length})
                     </p>
                     <ul
-                        className="flex gap-2 overflow-x-auto pb-1"
+                        className="flex flex-wrap gap-2"
                         data-test="ver-ingreso-fotos"
                     >
                         {item.fotos_recepcion.map((foto) => (

@@ -27,11 +27,12 @@
 
 <p>Estimados, {{ $cliente }}:</p>
 
-<p>Les confirmamos la recepción de sus equipos en el ingreso N° <strong>{{ $codigo }}</strong> del {{ $fecha }}, en la bahía {{ $bahia }}@if ($tecnico), recibidos por {{ $tecnico }}@endif.</p>
+<p>Les confirmamos la recepción de los equipos del ingreso N° <strong>{{ $codigo }}</strong> del {{ $fecha }}, en la bahía {{ $bahia }}@if ($tecnico), recibidos por {{ $tecnico }}@endif.</p>
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; border-collapse: collapse; margin: 8px 0 20px;">
 <tr>
 <th style="{{ $encabezado }}">Equipo</th>
+<th style="{{ $encabezado }}">Cliente</th>
 <th style="{{ $encabezado }}">Área</th>
 <th style="{{ $encabezado }}">Servicio</th>
 </tr>
@@ -41,6 +42,7 @@
 <strong>{{ $equipo['codigo'] }}</strong> · {{ $equipo['tipo_equipo'] }}
 <span style="{{ $secundario }}">Modelo: {{ $equipo['modelo'] ?: '—' }} · Serie: {{ $equipo['numero_serie'] ?: '—' }}</span>
 </td>
+<td style="{{ $celda }}">{{ $equipo['cliente'] ?? '—' }}</td>
 <td style="{{ $celda }}">{{ $equipo['area'] }}</td>
 <td style="{{ $celda }}">{{ $equipo['tipo_servicio'] }}</td>
 </tr>

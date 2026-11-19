@@ -160,6 +160,16 @@ class Ingreso extends Model
     }
 
     /**
+     * Historial de los correos del ingreso enviados a los clientes.
+     *
+     * @return HasMany<IngresoEnvio, $this>
+     */
+    public function envios(): HasMany
+    {
+        return $this->hasMany(IngresoEnvio::class);
+    }
+
+    /**
      * Get the programaciones de servicio brought in by this ingreso.
      *
      * @return HasMany<EquipoProgramacion, $this>

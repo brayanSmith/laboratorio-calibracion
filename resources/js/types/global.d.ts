@@ -38,6 +38,8 @@ declare module '@inertiajs/core' {
             } | null;
             /** Importaciones de equipos terminadas que el usuario no ha revisado (null si no puede importar). */
             importacionesSinLeer: number | null;
+            /** Correos de ingreso del usuario que salieron o fallaron y aún no ve (null si no trabaja con ingresos). */
+            notificacionesSinLeer: number | null;
             [key: string]: unknown;
         };
     }

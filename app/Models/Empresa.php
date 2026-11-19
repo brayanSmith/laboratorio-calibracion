@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -53,6 +54,18 @@ class Empresa extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Remitente de los correos del laboratorio: la dirección configurada (MAIL_FROM_ADDRESS)
+     * con el nombre de su empresa, para que el cliente vea quién le escribe. Sin empresa
+     * registrada, el nombre configurado.
+     */
+    public static function remitenteCorreo(int $tenantId): Address
+    {
+        $nombre = static::query()->where('tenant_id', $tenantId)->value('nombre');
+
+        return new Address(config('mail.from.address'), $nombre ?: config('mail.from.name'));
     }
 
     /**

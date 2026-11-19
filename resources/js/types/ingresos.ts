@@ -6,12 +6,24 @@ export type Ingreso = {
     id: number;
     /** Aleatorio (ej. "ING-7K3QX9MZ"); se le envía al cliente al recibir sus equipos. */
     codigo: string;
-    /** Clientes con equipos recibidos: a cada uno le llega el correo del ingreso. */
+    /**
+     * A quiénes les llega el correo del ingreso (con todos los equipos recibidos): los
+     * dueños de los equipos y el cliente que los entregó.
+     */
     clientes_correo: {
         id: number;
         nombre: string;
         email: string | null;
+        /** Cuántos de los equipos recibidos son suyos. */
         equipos: number;
+        /** Si fue quien entregó los equipos. */
+        entrego: boolean;
+        /** Cómo terminó el último correo que se le envió; null si aún no se le envía. */
+        ultimo_envio: {
+            estado: 'EN_COLA' | 'ENVIADO' | 'FALLIDO';
+            error: string | null;
+            fecha: string;
+        } | null;
     }[];
     bahia_id: number;
     bahia_nombre: string;

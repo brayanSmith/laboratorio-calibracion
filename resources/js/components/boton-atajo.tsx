@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ export default function BotonAtajo({
     dataTest,
     href,
     onClick,
+    children,
 }: {
     icono: LucideIcon;
     titulo: string;
@@ -51,6 +53,8 @@ export default function BotonAtajo({
     dataTest: string;
     href?: string;
     onClick?: () => void;
+    /** Algo pegado al botón (dentro de su caja), ej. el ancla de un popover. */
+    children?: ReactNode;
 }) {
     const nombre = cantidad > 0 ? `${titulo} (${cantidad} pendientes)` : titulo;
     const contenido = (
@@ -122,6 +126,7 @@ export default function BotonAtajo({
                     {contenido}
                 </Button>
             )}
+            {children}
         </div>
     );
 }

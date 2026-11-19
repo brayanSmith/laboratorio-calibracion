@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Modules\Ingresos\Listeners\MarcarEnvioIngresoEnviado;
 use App\Modules\Recordatorios\Listeners\MarcarEnvioRecordatorioEnviado;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Los listeners de los módulos no están en app/Listeners, donde Laravel los descubre.
         Event::listen(MessageSent::class, MarcarEnvioRecordatorioEnviado::class);
+        Event::listen(MessageSent::class, MarcarEnvioIngresoEnviado::class);
 
         // La consulta pública de seguimiento no pide sesión: se limitan los intentos por IP
         // para que no se puedan probar códigos al azar.

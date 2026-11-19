@@ -310,3 +310,37 @@ test('no elimina un cliente que tiene ingresos asociados', function () {
 
     expect(Cliente::find($cliente->id))->not->toBeNull();
 });
+
+test('cada cliente nace con un codigo de seguimiento aleatorio y unico que se ve en el listado', function () {
+    $acme = Cliente::factory()->create(['nombre' => 'Acme', 'tenant_id' => $this->tenant->id]);
+    $beta = Cliente::factory()->create(['nombre' => 'Beta', 'tenant_id' => $this->tenant->id]);
+
+    expect($acme->codigo_seguimiento)->toMatch('/^CLI-[2-9A-HJ-NP-Z]{8}$/')
+        ->and($acme->codigo_seguimiento)->not->toBe($beta->codigo_seguimiento);
+
+    $this->actingAs($this->admin)
+        ->get(route('clientes.index'))
+        ->assertInertia(fn ($page) => $page->where('clientes.0.codigo_seguimiento', $acme->codigo_seguimiento));
+});
+
+test('regenerar el codigo de seguimiento cambia el codigo del cliente', function () {
+    $cliente = Cliente::factory()->create(['tenant_id' => $this->tenant->id]);
+    $anterior = $cliente->codigo_seguimiento;
+
+    $this->actingAs($this->admin)
+        ->post(route('clientes.codigo-seguimiento.regenerar', $cliente))
+        ->assertRedirect();
+
+    expect($cliente->fresh()->codigo_seguimiento)->not->toBe($anterior)->toStartWith('CLI-');
+});
+
+test('solo quien puede editar clientes del tenant regenera el codigo de seguimiento', function () {
+    $cliente = Cliente::factory()->create(['tenant_id' => $this->tenant->id]);
+    $ajeno = Cliente::factory()->create(['tenant_id' => Tenant::factory()->create()->id]);
+    $tecnico = User::factory()->forTenant($this->tenant, TenantRole::Tecnico)->create();
+
+    $this->actingAs($tecnico)->post(route('clientes.codigo-seguimiento.regenerar', $cliente))->assertForbidden();
+    $this->actingAs($this->admin)->post(route('clientes.codigo-seguimiento.regenerar', $ajeno))->assertForbidden();
+
+    expect($cliente->fresh()->codigo_seguimiento)->toBe($cliente->codigo_seguimiento);
+});

@@ -939,7 +939,7 @@ test('cada ingreso nace con un codigo aleatorio y unico', function () {
         ->each->toMatch('/^ING-[2-9A-HJ-NP-Z]{8}$/');
 });
 
-test('al recibir el ingreso cada cliente recibe por correo el codigo con solo sus equipos recibidos', function () {
+test('al recibir el ingreso los clientes de los equipos y quien los entrego reciben el codigo con todos los equipos recibidos', function () {
     Mail::fake();
     $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id]);
     $this->cliente->update(['email' => 'compras@acme.test']);
@@ -951,6 +951,7 @@ test('al recibir el ingreso cada cliente recibe por correo el codigo con solo su
     $recibido->update(['cliente_id' => $this->cliente->id]);
     $noIngresado->update(['cliente_id' => $this->cliente->id]);
     $sinCorreo->cliente->update(['email' => '']);
+    $entrega = Cliente::factory()->create(['nombre' => 'Mensajería', 'email' => 'envios@mensajeria.test', 'tenant_id' => $this->tenant->id]);
 
     $programaciones = collect([$recibido, $noIngresado, $sinCorreo])
         ->map(fn ($equipo) => crearProgramacion($equipo, ['ingreso_id' => $ingreso->id, 'agendar' => true, 'estado_programacion' => 'AGENDADO']));
@@ -958,7 +959,7 @@ test('al recibir el ingreso cada cliente recibe por correo el codigo con solo su
         ->patch(route('ingresos.estado.update', $ingreso), [
             'estado_ingreso' => 'RECIBIDO',
             'tecnico_recibe_id' => $this->admin->id,
-            'cliente_entrega_id' => $this->cliente->id,
+            'cliente_entrega_id' => $entrega->id,
             'equipos_recibidos' => [
                 $programaciones[0]->id => ['ingresado' => '1'],
                 $programaciones[1]->id => ['ingresado' => '0', 'novedad_ingreso_id' => $novedad->id],
@@ -969,15 +970,19 @@ test('al recibir el ingreso cada cliente recibe por correo el codigo con solo su
 
     $recibir();
 
-    Mail::assertQueuedCount(1);
-    Mail::assertQueued(IngresoRecibido::class, fn (IngresoRecibido $correo) => $correo->hasTo('compras@acme.test')
-        && $correo->codigo === $ingreso->codigo
-        && collect($correo->equipos)->pluck('codigo')->all() === ['EQ-RECIBIDO']);
+    // El dueño de un equipo y quien los entregó (sin equipos propios) reciben todos los
+    // equipos recibidos; el cliente sin correo se omite.
+    Mail::assertQueuedCount(2);
+    foreach (['compras@acme.test', 'envios@mensajeria.test'] as $destinatario) {
+        Mail::assertQueued(IngresoRecibido::class, fn (IngresoRecibido $correo) => $correo->hasTo($destinatario)
+            && $correo->codigo === $ingreso->codigo
+            && collect($correo->equipos)->pluck('codigo')->all() === ['EQ-RECIBIDO', 'EQ-SIN-CORREO']);
+    }
 
     // Al volver a guardar la recepción no se le escribe de nuevo al cliente.
     $recibir();
 
-    Mail::assertQueuedCount(1);
+    Mail::assertQueuedCount(2);
 });
 
 test('el correo del ingreso muestra el codigo, el cliente y sus equipos', function () {
@@ -994,9 +999,9 @@ test('el correo del ingreso muestra el codigo, el cliente y sus equipos', functi
     $correo->assertSeeInOrderInHtml(['RECEPCIÓN / INGRESO', 'Acme &lt;b&gt;S.A.&lt;/b&gt;', '10/11/2026', 'EQ-1', 'Balanza', 'Calibración', 'SEGUIMIENTO DE EQUIPOS', 'ING-7K3QX9MZ', 'Consultar estado de equipos'], false);
 });
 
-test('reenvia de inmediato el correo del ingreso a un cliente con solo sus equipos recibidos', function () {
+test('reenvia de inmediato el correo del ingreso a un cliente con todos los equipos recibidos', function () {
     Mail::fake();
-    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO']);
+    $ingreso = Ingreso::factory()->create(['bahia_id' => $this->bahia->id, 'tenant_id' => $this->tenant->id, 'estado_ingreso' => 'RECIBIDO', 'cliente_entrega_id' => null]);
     $this->cliente->update(['nombre' => 'Acme', 'email' => 'compras@acme.test']);
     $equipo = crearEquipoParaBusqueda($this->bahia, 'EQ-1');
     $equipo->update(['cliente_id' => $this->cliente->id]);
@@ -1008,6 +1013,7 @@ test('reenvia de inmediato el correo del ingreso a un cliente con solo sus equip
         ->assertInertia(fn ($page) => $page
             ->has('ingresos.0.clientes_correo', 2)
             ->where('ingresos.0.clientes_correo.0.email', 'compras@acme.test')
+            ->where('ingresos.0.clientes_correo.0.equipos', 1)
             ->where('ingresos.0.clientes_correo.1.nombre', 'Cliente 1'));
 
     $this->actingAs($this->admin)
@@ -1017,7 +1023,7 @@ test('reenvia de inmediato el correo del ingreso a un cliente con solo sus equip
 
     Mail::assertSentCount(1);
     Mail::assertSent(IngresoRecibido::class, fn (IngresoRecibido $correo) => $correo->hasTo('compras@acme.test')
-        && collect($correo->equipos)->pluck('codigo')->all() === ['EQ-1']);
+        && collect($correo->equipos)->pluck('codigo')->all() === ['EQ-1', 'EQ-OTRO-CLIENTE']);
 });
 
 test('no reenvia el correo a un cliente sin equipos recibidos, sin correo o de un ingreso sin recibir', function () {

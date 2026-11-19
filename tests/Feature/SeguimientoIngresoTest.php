@@ -276,3 +276,14 @@ test('el cliente ve el documento que entrego el laboratorio externo por un servi
     $this->get($url($enProceso))->assertNotFound();
     $this->get(route('seguimiento.servicio-tercero.documento', ['codigo' => Ingreso::factory()->create()->codigo, 'servicio' => $finalizado->id]))->assertNotFound();
 });
+
+test('el correo del ingreso sale con el nombre de la empresa del laboratorio como remitente', function () {
+    config(['mail.from.address' => 'app.calibraciones@gmail.com', 'mail.from.name' => 'Laravel']);
+    $correo = fn () => new IngresoRecibido($this->tenant->id, 'ING-7K3QX9MZ', 'Acme', 'Bahía 1', '2026-11-10', null, []);
+
+    $correo()->assertFrom('app.calibraciones@gmail.com', 'Laravel');
+
+    Empresa::create(['nit' => '900', 'nombre' => 'Ferreyros', 'direccion' => 'Calle 1', 'telefono' => '1', 'tenant_id' => $this->tenant->id]);
+
+    $correo()->assertFrom('app.calibraciones@gmail.com', 'Ferreyros');
+});

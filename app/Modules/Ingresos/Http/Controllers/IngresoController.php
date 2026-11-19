@@ -23,7 +23,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -95,11 +94,12 @@ class IngresoController extends Controller
             ->with([
                 'bahia:id,nombre',
                 'tecnicoRecibe:id,name',
-                'clienteEntrega:id,nombre',
+                'clienteEntrega:id,nombre,email',
                 'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
                 'equipoProgramacion.equipo.cliente:id,nombre,email',
                 'equipoProgramacion.equipo.tipoEquipo:id,nombre',
                 'equipoProgramacion.fotosRecepcion',
+                'envios:id,ingreso_id,cliente_id,estado,error,enviado_at,created_at',
             ])
             ->orderByDesc('desde')
             ->orderByDesc('id')
@@ -123,17 +123,9 @@ class IngresoController extends Controller
                 'motivo_cancelacion' => $ingreso->motivo_cancelacion,
                 // Los clientes con equipos recibidos: a cada uno le llega el correo del
                 // ingreso, que se le puede reenviar desde el detalle.
-                'clientes_correo' => $ingreso->equipoProgramacion
-                    ->where('estado_programacion', 'RECIBIDO')
-                    ->groupBy('equipo.cliente_id')
-                    ->map(fn (Collection $programaciones) => [
-                        'id' => $programaciones->first()->equipo->cliente->id,
-                        'nombre' => $programaciones->first()->equipo->cliente->nombre,
-                        'email' => $programaciones->first()->equipo->cliente->email ?: null,
-                        'equipos' => $programaciones->count(),
-                    ])
-                    ->sortBy('nombre')
-                    ->values(),
+                // A quiénes les llega el correo del ingreso (ver EnviarCorreosIngreso): los
+                // dueños de los equipos recibidos y el cliente que los entregó.
+                'clientes_correo' => self::destinatariosCorreo($ingreso),
                 'equipo_programaciones' => $ingreso->equipoProgramacion->map(fn (EquipoProgramacion $programacion) => [
                     'id' => $programacion->id,
                     'tipo_servicio' => $programacion->tipo_servicio,
@@ -160,6 +152,42 @@ class IngresoController extends Controller
                     ],
                 ])->values(),
             ]);
+    }
+
+    /**
+     * Los clientes a los que les llega el correo del ingreso, con cuántos de los equipos
+     * recibidos son suyos y si fue quien los entregó, para reenviárselo desde el detalle.
+     *
+     * @return Collection<int, array{id: int, nombre: string, email: string|null, equipos: int, entrego: bool, ultimo_envio: array{estado: string, error: string|null, fecha: string}|null}>
+     */
+    private static function destinatariosCorreo(Ingreso $ingreso): Collection
+    {
+        $recibidos = $ingreso->equipoProgramacion->where('estado_programacion', 'RECIBIDO');
+
+        if ($recibidos->isEmpty()) {
+            return collect();
+        }
+
+        return $recibidos
+            ->map(fn (EquipoProgramacion $programacion) => $programacion->equipo->cliente)
+            ->push($ingreso->clienteEntrega)
+            ->filter()
+            ->unique('id')
+            ->map(fn (Cliente $cliente) => [
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'email' => $cliente->email ?: null,
+                'equipos' => $recibidos->where('equipo.cliente_id', $cliente->id)->count(),
+                'entrego' => $cliente->id === $ingreso->cliente_entrega_id,
+                // Cómo terminó el último correo que se le envió (en cola, enviado o fallido).
+                'ultimo_envio' => ($envio = $ingreso->envios->where('cliente_id', $cliente->id)->sortByDesc('id')->first()) ? [
+                    'estado' => $envio->estado,
+                    'error' => $envio->error,
+                    'fecha' => ($envio->enviado_at ?? $envio->created_at)->toIso8601String(),
+                ] : null,
+            ])
+            ->sortBy('nombre')
+            ->values();
     }
 
     /**
@@ -258,7 +286,7 @@ class IngresoController extends Controller
         // sus equipos. Si se edita o se vuelve a recibir, no se le escribe de nuevo.
         if ($primeraRecepcion) {
             try {
-                $enviarCorreos->handle($ingreso->refresh());
+                $enviarCorreos->handle($ingreso->refresh(), $request->user()->id);
             } catch (Throwable $exception) {
                 report($exception);
             }
@@ -291,17 +319,33 @@ class IngresoController extends Controller
             throw ValidationException::withMessages(['cliente_id' => __(':cliente no tiene un correo registrado.', ['cliente' => $envio['cliente']->nombre])]);
         }
 
-        try {
-            Mail::to($envio['cliente']->email)->sendNow($envio['correo']);
-        } catch (Throwable $exception) {
-            report($exception);
+        $registro = $enviarCorreos->enviarAhora($ingreso, $envio, $request->user()->id);
 
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('No se pudo enviar el correo. Revisa la configuración de correo.')]);
+        Inertia::flash('toast', $registro->estado === 'ENVIADO'
+            ? ['type' => 'success', 'message' => __('Se envió el correo del ingreso a :email.', ['email' => $registro->correo])]
+            : ['type' => 'error', 'message' => __('No se pudo enviar el correo a :email. Mira el motivo en las notificaciones.', ['email' => $registro->correo])]);
 
-            return back();
+        return back();
+    }
+
+    /**
+     * Pone en cola el correo del ingreso para todos sus destinatarios con correo (ver
+     * EnviarCorreosIngreso): cómo le va a cada uno se ve en las notificaciones de quien lo
+     * envía y en el detalle del ingreso.
+     */
+    public function enviarCorreoATodos(Request $request, Ingreso $ingreso, EnviarCorreosIngreso $enviarCorreos): RedirectResponse
+    {
+        Gate::authorize('update', $ingreso);
+
+        if ($ingreso->estado_ingreso !== 'RECIBIDO') {
+            throw ValidationException::withMessages(['ingreso' => __('El ingreso aún no se ha recibido.')]);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Se envió el correo del ingreso a :email.', ['email' => $envio['cliente']->email])]);
+        $enviados = $enviarCorreos->handle($ingreso, $request->user()->id);
+
+        Inertia::flash('toast', $enviados > 0
+            ? ['type' => 'success', 'message' => trans_choice('Se puso en cola :count correo.|Se pusieron en cola :count correos.', $enviados)]
+            : ['type' => 'error', 'message' => __('Ningún cliente de este ingreso tiene correo registrado.')]);
 
         return back();
     }

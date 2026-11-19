@@ -70,6 +70,7 @@ class RecordatorioEquipos extends Mailable implements ShouldQueue
         $asunto = $this->plantillaAsunto ?? Recordatorio::PLANTILLAS_POR_DEFECTO[$this->agruparPor]['asunto'];
 
         return new Envelope(
+            from: Empresa::remitenteCorreo($this->tenantId),
             subject: trim($this->reemplazarVariables($asunto)),
         );
     }
