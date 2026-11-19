@@ -840,6 +840,167 @@ function tonoDelEstado(estado: string | null): TonoPaso {
 }
 
 /**
+ * Hasta dónde llena la barra el tramo hacia la siguiente etapa cuando la actual termina: a
+ * mitad, para que no parezca que la siguiente ya empezó.
+ */
+const TRAMO_POR_ETAPA = 0.5;
+
+/** Los pasos de una etapa y en cuál va el equipo (índice en `pasos`). */
+type Subpasos = { pasos: string[]; alcanzado: number };
+
+/**
+ * Pasos de cada etapa, en orden, y en qué paso queda cada estado (por su clave, ej.
+ * FALTA_REPUESTOS). Un estado que no aparece se toma como el primer paso.
+ */
+const PASOS_ETAPA: Record<
+    string,
+    { pasos: string[]; estados: Record<string, number> }
+> = {
+    Ingreso: {
+        pasos: ['Agendado', 'Recibido'],
+        estados: { RECIBIDO: 1, CANCELADO: 1, RE_AGENDADO: 1 },
+    },
+    Mantenimiento: {
+        pasos: ['Agendado', 'En proceso', 'Finalizado'],
+        estados: {
+            EN_PROCESO: 1,
+            FALTA_REPUESTOS: 1,
+            FINALIZADO: 2,
+            FUERA_DE_SERVICIO: 2,
+            CANCELADO: 2,
+        },
+    },
+    Calibración: {
+        pasos: ['Agendada', 'En proceso', 'Finalizada'],
+        estados: {
+            EN_PROCESO: 1,
+            FINALIZADO: 2,
+            DEVOLVER_MANTENIMIENTO: 2,
+            FUERA_DE_SERVICIO: 2,
+        },
+    },
+    Despacho: {
+        pasos: ['Autorizado', 'Entregado'],
+        estados: { ENTREGADO: 1 },
+    },
+};
+
+/** En qué paso de su etapa va el equipo, según el estado de su último seguimiento. */
+function subpasosDe(etapa: string, estado: string | null): Subpasos {
+    const definicion = PASOS_ETAPA[etapa];
+
+    if (!definicion) {
+        return { pasos: [etapa], alcanzado: 0 };
+    }
+
+    const clave = (estado ?? '').toUpperCase().replaceAll(' ', '_');
+
+    return {
+        pasos: definicion.pasos,
+        alcanzado: definicion.estados[clave] ?? 0,
+    };
+}
+
+/** Avance de la etapa (0 a 1): el primer paso es 0 y el último, 1. */
+function avanceDeSubpasos({ pasos, alcanzado }: Subpasos): number {
+    return pasos.length > 1 ? alcanzado / (pasos.length - 1) : 1;
+}
+
+/** Anillo alrededor del círculo de la etapa actual, que se llena con su avance. */
+function AnilloAvance({ porcentaje }: { porcentaje: number }) {
+    return (
+        <svg
+            viewBox="0 0 44 44"
+            className="pointer-events-none absolute -inset-[5px] size-[calc(100%+10px)] -rotate-90"
+            aria-hidden="true"
+        >
+            <circle
+                cx="22"
+                cy="22"
+                r="20"
+                fill="none"
+                strokeWidth="3"
+                className="stroke-emerald-500/15"
+            />
+            <circle
+                cx="22"
+                cy="22"
+                r="20"
+                fill="none"
+                strokeWidth="3"
+                strokeLinecap="round"
+                pathLength={100}
+                strokeDasharray={`${Math.max(porcentaje, 4)} 100`}
+                className="stroke-emerald-500 transition-[stroke-dasharray] duration-1000 ease-out"
+            />
+        </svg>
+    );
+}
+
+/** Los pasos de la etapa actual, con los ya hechos marcados y el actual resaltado. */
+function PasosDeEtapa({
+    etapa,
+    subpasos,
+    fallo,
+}: {
+    etapa: string;
+    subpasos: Subpasos;
+    fallo: boolean;
+}) {
+    return (
+        <div
+            className="mt-3 rounded-md border bg-background px-3 py-2"
+            data-test="seguimiento-pasos-etapa"
+        >
+            <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+                Pasos de {etapa.toLowerCase()}
+            </p>
+            <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+                {subpasos.pasos.map((paso, indice) => {
+                    const hecho = indice < subpasos.alcanzado;
+                    const enCurso = indice === subpasos.alcanzado;
+
+                    return (
+                        <li key={paso} className="flex items-center gap-1.5">
+                            {indice > 0 ? (
+                                <span
+                                    className={cn(
+                                        'h-px w-4',
+                                        hecho || enCurso
+                                            ? 'bg-emerald-500'
+                                            : 'bg-border',
+                                    )}
+                                />
+                            ) : null}
+                            <span
+                                className={cn(
+                                    'flex items-center gap-1 rounded-full px-2 py-0.5',
+                                    hecho &&
+                                        'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+                                    enCurso &&
+                                        (fallo
+                                            ? 'bg-red-100 font-medium text-red-700 dark:bg-red-950 dark:text-red-300'
+                                            : 'bg-emerald-500 font-medium text-white'),
+                                    !hecho &&
+                                        !enCurso &&
+                                        'border border-dashed text-muted-foreground',
+                                )}
+                            >
+                                {hecho ? <Check className="size-3" /> : null}
+                                {enCurso && fallo ? (
+                                    <CircleX className="size-3" />
+                                ) : null}
+                                {paso}
+                            </span>
+                        </li>
+                    );
+                })}
+            </ol>
+        </div>
+    );
+}
+
+/**
  * Recorrido del equipo dibujado como en las apps de entregas: las etapas por las que pasó,
  * la actual resaltada y las que faltan bloqueadas, unidas por una barra que se va llenando.
  * Si la etapa actual terminó mal (fuera de servicio, cancelado…) se pinta de rojo.
@@ -862,13 +1023,30 @@ function ProgresoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
     const fallo =
         equipo.ingresado === false ||
         tonoDelEstado(ultimo?.estado ?? null) === 'malo';
-    const terminado = !fallo && equipo.siguientes.length === 0;
 
     if (actual < 0) {
         return null;
     }
 
-    const avance = etapas.length > 1 ? (actual / (etapas.length - 1)) * 100 : 0;
+    // Cuánto lleva la etapa actual de sus propios pasos (ej. mantenimiento en proceso: 1 de
+    // 2 tramos), para no darla por terminada antes de tiempo.
+    const subpasos = subpasosDe(etapas[actual], ultimo?.estado ?? null);
+    const etapaCompleta =
+        !fallo && subpasos.alcanzado === subpasos.pasos.length - 1;
+    const terminado = etapaCompleta && equipo.siguientes.length === 0;
+    const avanceEtapa = fallo ? 0 : avanceDeSubpasos(subpasos);
+    const avance =
+        etapas.length > 1
+            ? (Math.min(
+                  actual +
+                      (actual < etapas.length - 1
+                          ? avanceEtapa * TRAMO_POR_ETAPA
+                          : 0),
+                  etapas.length - 1,
+              ) /
+                  (etapas.length - 1)) *
+              100
+            : 0;
     const margen = `${50 / etapas.length}%`;
 
     return (
@@ -895,8 +1073,8 @@ function ProgresoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
                 />
                 {etapas.map((fase, indice) => {
                     const pasada =
-                        indice < actual || (indice === actual && terminado);
-                    const esActual = indice === actual && !terminado;
+                        indice < actual || (indice === actual && etapaCompleta);
+                    const esActual = indice === actual && !etapaCompleta;
                     const Icono =
                         indice > actual ? Lock : (ICONO_FASE[fase] ?? Route);
 
@@ -929,9 +1107,16 @@ function ProgresoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
                                         )}
                                     />
                                 ) : null}
+                                {esActual && !fallo ? (
+                                    <AnilloAvance
+                                        porcentaje={
+                                            lleno ? avanceEtapa * 100 : 0
+                                        }
+                                    />
+                                ) : null}
                                 {esActual && fallo ? (
                                     <CircleX className="relative size-5" />
-                                ) : pasada && indice < actual ? (
+                                ) : pasada ? (
                                     <Check className="relative size-5" />
                                 ) : (
                                     <Icono className="relative size-[1.125rem]" />
@@ -947,11 +1132,26 @@ function ProgresoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
                                 )}
                             >
                                 {fase}
+                                {esActual &&
+                                !fallo &&
+                                subpasos.pasos.length > 1 ? (
+                                    <span className="block font-normal text-muted-foreground">
+                                        {subpasos.alcanzado + 1} de{' '}
+                                        {subpasos.pasos.length}
+                                    </span>
+                                ) : null}
                             </span>
                         </li>
                     );
                 })}
             </ol>
+            {!terminado && subpasos.pasos.length > 1 ? (
+                <PasosDeEtapa
+                    etapa={etapas[actual]}
+                    subpasos={subpasos}
+                    fallo={fallo}
+                />
+            ) : null}
             <p
                 className={cn(
                     'mt-3 text-center text-xs',
@@ -966,7 +1166,9 @@ function ProgresoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
                         : `${ultimo?.fase} · ${ultimo?.estado}`
                     : terminado
                       ? 'El equipo completó su recorrido.'
-                      : `Va en ${etapas[actual].toLowerCase()}${ultimo?.estado ? ` · ${ultimo.estado.toLowerCase()}` : ''}. Siguiente: ${etapas[actual + 1].toLowerCase()}.`}
+                      : etapaCompleta
+                        ? `${etapas[actual]} completado. Siguiente: ${etapas[actual + 1]?.toLowerCase() ?? '—'}.`
+                        : `Va en ${etapas[actual].toLowerCase()}${ultimo?.estado ? ` · ${ultimo.estado.toLowerCase()}` : ''}.${etapas[actual + 1] ? ` Luego: ${etapas[actual + 1].toLowerCase()}.` : ''}`}
             </p>
         </div>
     );
