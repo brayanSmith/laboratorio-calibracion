@@ -44,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
         // La consulta pública de seguimiento no pide sesión: se limitan los intentos por IP
         // para que no se puedan probar códigos al azar.
         RateLimiter::for('seguimiento', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
+        // Pedir el enlace del seguimiento por bahía envía un correo: pocos intentos por IP y
+        // por correo, para que no se use para llenar buzones.
+        RateLimiter::for('seguimiento-enlace', fn (Request $request) => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(5)->by('correo:'.mb_strtolower((string) $request->input('correo'))),
+        ]);
     }
 
     /**

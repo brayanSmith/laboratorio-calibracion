@@ -4,14 +4,14 @@ import {
     CalendarDays,
     ClipboardCheck,
     Gauge,
-    PackageSearch,
     ShieldCheck,
     Wrench,
 } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import BrandingHead from '@/components/branding-head';
+import ElegirSeguimiento from '@/components/seguimiento/elegir-seguimiento';
 import { Button } from '@/components/ui/button';
-import { dashboard, login, seguimiento } from '@/routes';
+import { dashboard, login } from '@/routes';
 
 const features = [
     {
@@ -112,16 +112,9 @@ export default function Welcome() {
                                     <ArrowRight />
                                 </Link>
                             </Button>
-                            {/* Para los clientes: consultan sus equipos con el código del ingreso, sin cuenta. */}
-                            <Button asChild size="lg" variant="outline">
-                                <Link
-                                    href={seguimiento()}
-                                    data-test="welcome-seguimiento"
-                                >
-                                    <PackageSearch />
-                                    Ver seguimiento de equipos
-                                </Link>
-                            </Button>
+                            {/* Para los clientes: consultan sus equipos sin cuenta, por el
+                                código de un ingreso o por todas sus bahías. */}
+                            <ElegirSeguimiento />
                         </div>
                     </section>
 

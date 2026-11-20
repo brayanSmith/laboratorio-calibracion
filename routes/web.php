@@ -37,6 +37,7 @@ use App\Modules\Equipos\Http\Controllers\EquipoProgramacionController;
 use App\Modules\Importaciones\Http\Controllers\ImportacionController;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
 use App\Modules\Ingresos\Http\Controllers\NotificacionCorreoController;
+use App\Modules\Ingresos\Http\Controllers\SeguimientoBahiasController;
 use App\Modules\Ingresos\Http\Controllers\SeguimientoIngresoController;
 use App\Modules\Inventario\Http\Controllers\EntradaItemController;
 use App\Modules\Inventario\Http\Controllers\ItemController;
@@ -59,6 +60,14 @@ Route::inertia('/', 'welcome')->name('home');
 Route::get('seguimiento', SeguimientoIngresoController::class)
     ->middleware('throttle:seguimiento')
     ->name('seguimiento');
+// Seguimiento por bahía: el cliente pide con su correo un enlace firmado para ver todas sus bahías.
+Route::post('seguimiento/bahias/enlace', [SeguimientoBahiasController::class, 'enviarEnlace'])
+    ->middleware('throttle:seguimiento-enlace')
+    ->name('seguimiento.bahias.enlace');
+Route::get('seguimiento/bahias/{tenant}/{correo}', [SeguimientoBahiasController::class, 'show'])
+    ->whereNumber('tenant')
+    ->middleware('throttle:seguimiento')
+    ->name('seguimiento.bahias');
 // Los PDF de los servicios terminados de un equipo del ingreso, para el cliente (sin sesión).
 Route::middleware('throttle:seguimiento')->group(function () {
     Route::get('seguimiento/{codigo}/calibraciones/{calibracion}/certificado', [SeguimientoIngresoController::class, 'certificadoCalibracion'])

@@ -17,6 +17,7 @@ import {
     CircleX,
     Mail,
     MapPin,
+    ScanBarcode,
     Phone,
     PackageCheck,
     PackageSearch,
@@ -60,7 +61,12 @@ type PasoSeguimiento = {
     laboratorio: string | null;
 };
 
-type EquipoSeguimiento = {
+export type EquipoSeguimiento = {
+    /** Solo en el seguimiento por bahía, donde se juntan equipos de varios ingresos. */
+    id?: number;
+    ingreso?: string;
+    bahia_id?: number;
+    bahia?: string | null;
     codigo: string;
     tipo_equipo: string;
     modelo: string | null;
@@ -88,7 +94,7 @@ type DocumentoEquipo = {
     laboratorio: string | null;
 };
 
-type IngresoSeguimiento = {
+export type IngresoSeguimiento = {
     codigo: string;
     empresa: { nombre: string; logo_url: string | null } | null;
     cliente: string | null;
@@ -107,7 +113,7 @@ type Props = {
     contacto: ContactoEmpresa | null;
 };
 
-type ContactoEmpresa = {
+export type ContactoEmpresa = {
     nombre: string;
     nit: string;
     direccion: string;
@@ -118,7 +124,7 @@ type ContactoEmpresa = {
 const TODAS = 'todas';
 
 /** Un color por etapa, para distinguirlas de un vistazo en la tabla. */
-const COLOR_ETAPA: Record<string, string> = {
+export const COLOR_ETAPA: Record<string, string> = {
     'En bahía':
         'border-transparent bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
     Ingreso:
@@ -207,7 +213,7 @@ export default function SeguimientoShow({ codigo, ingreso, contacto }: Props) {
                 </div>
             </header>
 
-            <main className="grid flex-1 content-start gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-8 md:px-8">
+            <main className="grid flex-1 grid-cols-[minmax(0,1fr)] content-start gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-8 md:px-8">
                 <section className="rounded-xl border bg-background p-4 shadow-xs sm:p-6">
                     <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
                         Seguimiento de equipos
@@ -276,7 +282,7 @@ export default function SeguimientoShow({ codigo, ingreso, contacto }: Props) {
 }
 
 /** Pie de página con los datos de contacto del laboratorio. */
-function PiePagina({
+export function PiePagina({
     nombre,
     contacto,
 }: {
@@ -350,7 +356,7 @@ function DatoContacto({
 }
 
 /** La etapa en la que va el equipo: el último paso de su historial. */
-function etapaActual(equipo: EquipoSeguimiento): string {
+export function etapaActual(equipo: EquipoSeguimiento): string {
     if (equipo.ingresado === false) {
         return 'No ingresó';
     }
@@ -362,7 +368,7 @@ function etapaActual(equipo: EquipoSeguimiento): string {
  * El ingreso y sus equipos en una tabla, que puede tener decenas de filas: con un buscador
  * y filtros por etapa (con cuántos equipos van en cada una) para encontrar uno rápido.
  */
-function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
+export function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
     const [busqueda, setBusqueda] = useState('');
     const [etapa, setEtapa] = useState(TODAS);
     const [detalle, setDetalle] = useState<EquipoSeguimiento | null>(null);
@@ -393,7 +399,10 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
     );
 
     return (
-        <section className="grid gap-4" data-test="seguimiento-resultado">
+        <section
+            className="grid grid-cols-[minmax(0,1fr)] gap-4"
+            data-test="seguimiento-resultado"
+        >
             <div
                 className="grid gap-4 rounded-xl border bg-background p-4 shadow-xs sm:p-5"
                 data-test="seguimiento-ingreso"
@@ -437,7 +446,7 @@ function ResultadoIngreso({ ingreso }: { ingreso: IngresoSeguimiento }) {
                     Este ingreso no tiene equipos registrados.
                 </p>
             ) : (
-                <div className="grid gap-3 rounded-xl border bg-background p-4 shadow-xs sm:p-5">
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-xl border bg-background p-4 shadow-xs sm:p-5">
                     <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                         {[
                             [TODAS, ingreso.equipos.length] as const,
@@ -575,7 +584,7 @@ function EstadoEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
 }
 
 /** El equipo en el celular: una tarjeta que al tocarla abre su traza. */
-function TarjetaEquipo({
+export function TarjetaEquipo({
     equipo,
     onVerHistorial,
 }: {
@@ -605,6 +614,19 @@ function TarjetaEquipo({
                             Modelo: {equipo.modelo || '—'} · Serie:{' '}
                             {equipo.numero_serie || '—'}
                         </p>
+                        {equipo.ingreso ? (
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                <span className="font-mono font-medium text-foreground">
+                                    {equipo.ingreso}
+                                </span>
+                                {equipo.bahia ? (
+                                    <span className="flex items-center gap-0.5">
+                                        <MapPin className="size-3" />
+                                        {equipo.bahia}
+                                    </span>
+                                ) : null}
+                            </p>
+                        ) : null}
                     </div>
                     {conHistorial ? (
                         <span className="flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
@@ -692,8 +714,10 @@ const columnHelper = createDataTableColumnHelper<EquipoSeguimiento>();
  * Columnas de la tabla de equipos (la DataTable de la app): cada una se ordena tocando su
  * encabezado y se filtra con su campo. Las fechas se ordenan por su valor ISO.
  */
-function columnasSeguimiento(
+export function columnasSeguimiento(
     onVerHistorial: (equipo: EquipoSeguimiento) => void,
+    /** Con las columnas del código y la bahía del ingreso (seguimiento por bahía). */
+    conIngreso = false,
 ): DataTableColumn<EquipoSeguimiento>[] {
     return [
         columnHelper.accessor(
@@ -721,6 +745,26 @@ function columnasSeguimiento(
                 ),
             },
         ),
+        ...(conIngreso
+            ? [
+                  columnHelper.accessor((equipo) => equipo.ingreso ?? '', {
+                      id: 'codigo_ingreso',
+                      header: 'Código ingreso',
+                      meta: { icono: ScanBarcode },
+                      cell: (info) => (
+                          <span className="font-mono text-xs font-medium whitespace-nowrap">
+                              {info.getValue()}
+                          </span>
+                      ),
+                  }),
+                  columnHelper.accessor((equipo) => equipo.bahia ?? '', {
+                      id: 'bahia',
+                      header: 'Bahía',
+                      meta: { icono: MapPin },
+                      cell: (info) => info.getValue() || <Vacio />,
+                  }),
+              ]
+            : []),
         columnHelper.accessor((equipo) => equipo.fecha_ingreso ?? '', {
             id: 'ingreso',
             header: 'Ingreso',
@@ -1589,7 +1633,7 @@ function FotosEquipo({ equipo }: { equipo: EquipoSeguimiento }) {
 }
 
 /** Traza del equipo: cada etapa por la que ha pasado, del más antiguo al más reciente. */
-function HistorialEquipo({
+export function HistorialEquipo({
     equipo,
     onClose,
 }: {
@@ -1612,6 +1656,9 @@ function HistorialEquipo({
                             Modelo: {equipo.modelo || '—'} · Serie:{' '}
                             {equipo.numero_serie || '—'} ·{' '}
                             {equipo.tipo_servicio}
+                            {equipo.ingreso
+                                ? ` · Ingreso ${equipo.ingreso}${equipo.bahia ? ` (${equipo.bahia})` : ''}`
+                                : ''}
                         </DialogDescription>
                     </DialogHeader>
                     <ProgresoEquipo equipo={equipo} />
