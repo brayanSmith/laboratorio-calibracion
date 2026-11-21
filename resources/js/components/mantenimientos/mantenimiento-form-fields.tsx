@@ -14,6 +14,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import {
     estadosEquipoMantenimiento,
+    estadosInicialesEquipo,
     estadosMantenimiento,
 } from '@/lib/estados-mantenimiento';
 import type { Mantenimiento, MantenimientoOption } from '@/types';
@@ -141,7 +142,7 @@ export default function MantenimientoFormFields({
                         <SelectValue placeholder="Selecciona un estado" />
                     </SelectTrigger>
                     <SelectContent>
-                        {estadosEquipoMantenimiento.map((option) => (
+                        {estadosInicialesEquipo.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>
@@ -173,6 +174,21 @@ export default function MantenimientoFormFields({
                     </SelectContent>
                 </Select>
                 <InputError message={errors.estado_final_equipo} />
+            </div>
+
+            <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="observaciones_estado_inicial">
+                    Observaciones del estado inicial (opcional)
+                </Label>
+                <Textarea
+                    id="observaciones_estado_inicial"
+                    name="observaciones_estado_inicial"
+                    defaultValue={
+                        mantenimiento.observaciones_estado_inicial ?? ''
+                    }
+                    placeholder="Cómo se recibió el equipo"
+                />
+                <InputError message={errors.observaciones_estado_inicial} />
             </div>
 
             <div className="grid gap-2 sm:col-span-2">

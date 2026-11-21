@@ -140,7 +140,7 @@ const ICONOS: Record<string, LucideIcon> = {
     item: Package,
     observacion: FileText,
     defecto: TriangleAlert,
-    'nivel de riesgo': TriangleAlert,
+    'nivel de criticidad': TriangleAlert,
     'accion correctiva': Wrench,
     'con stock': Package,
     cantidad: Hash,

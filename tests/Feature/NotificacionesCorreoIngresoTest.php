@@ -75,7 +75,7 @@ test('al salir el correo queda como enviado y avisa a quien lo envio', function 
 
 test('si el correo en cola falla queda anotado el motivo', function () {
     $envio = IngresoEnvio::factory()->create(['user_id' => $this->admin->id]);
-    $correo = new IngresoRecibido($envio->tenant_id, 'ING-1', 'Acme', 'Bahía 1', '2026-11-10', null, []);
+    $correo = new IngresoRecibido($envio->tenant_id, 'IN-1', 'Acme', 'Bahía 1', '2026-11-10', null, []);
     $correo->envioId = $envio->id;
 
     $correo->failed(new RuntimeException('Connection could not be established with host smtp.gmail.com'));

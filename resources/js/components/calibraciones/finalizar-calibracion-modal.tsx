@@ -37,7 +37,7 @@ type Props = {
  * final (Finalizado, Devolver a mantenimiento o Fuera de servicio, que deja el equipo
  * inactivo) y si queda firmada. Al confirmar envía, en
  * una sola petición, el formulario de edición y la finalización: el servidor guarda
- * primero los datos, calcula el resultado (Aprobado o No aprobado) a partir de los
+ * primero los datos, calcula el resultado (Cumple o No cumple) a partir de los
  * resultados de la medición y cierra el tiempo_servicio en curso (ver
  * CalibracionController::finalizar()). */
 export default function FinalizarCalibracionModal({

@@ -6,6 +6,7 @@ import {
     Eye,
     FlaskConical,
     Handshake,
+    History,
     Loader,
     Pencil,
     Play,
@@ -30,6 +31,7 @@ import TarjetasEstado, {
 import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
+import VersionesDocumentoModal from '@/components/versiones-documento-modal';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -106,6 +108,10 @@ export default function CalibracionesIndex({
         calibraciones.find((calibracion) => calibracion.id === viendoId) ??
         null;
     const [verOpen, setVerOpen] = useState(false);
+    const [versionesId, setVersionesId] = useState<number | null>(null);
+    const conVersiones =
+        calibraciones.find((calibracion) => calibracion.id === versionesId) ??
+        null;
     const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
         useFiltroPorTarjeta();
 
@@ -308,6 +314,17 @@ export default function CalibracionesIndex({
                                     data-test="calibracion-imprimir-button"
                                 />
                             ) : null}
+                            {canPdf && row.original.versiones.length > 1 ? (
+                                <BotonAccion
+                                    icono={History}
+                                    etiqueta={`Versiones del certificado (${row.original.versiones.length})`}
+                                    variant="outline"
+                                    data-test="calibracion-versiones-button"
+                                    onClick={() =>
+                                        setVersionesId(row.original.id)
+                                    }
+                                />
+                            ) : null}
                             {canEdit &&
                             !terminada(row.original) &&
                             row.original.tiempo_servicio_inicio ? (
@@ -475,6 +492,16 @@ export default function CalibracionesIndex({
                 calibracion={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            <VersionesDocumentoModal
+                titulo="Versiones del certificado de calibración"
+                descripcion={
+                    conVersiones
+                        ? `${conVersiones.orden_trabajo_codigo} · ${conVersiones.equipo.codigo} · ${conVersiones.equipo.tipo_equipo.nombre}`
+                        : ''
+                }
+                versiones={conVersiones?.versiones ?? null}
+                onClose={() => setVersionesId(null)}
             />
             <VerCalibracionModal
                 calibracion={viendo}

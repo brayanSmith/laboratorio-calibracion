@@ -57,26 +57,34 @@ test('sin iniciar sesion, con el codigo se ven los equipos del ingreso y en que 
             ->missing('ingreso.equipos.0.cliente'));
 });
 
+test('el codigo con el prefijo anterior ING- de un correo viejo sigue encontrando el ingreso', function () {
+    $ingreso = Ingreso::factory()->create(['codigo' => 'IN-7K3QX9MZ', 'tenant_id' => $this->tenant->id]);
+
+    $this->get(route('seguimiento', ['codigo' => 'ING-7K3QX9MZ']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('ingreso.codigo', $ingreso->codigo));
+});
+
 test('sin codigo o con un codigo que no existe no muestra ningun ingreso', function (string $codigo) {
     Ingreso::factory()->create();
 
     $this->get(route('seguimiento', ['codigo' => $codigo]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('ingreso', null));
-})->with(['sin codigo' => '', 'inexistente' => 'ING-NOEXISTE']);
+})->with(['sin codigo' => '', 'inexistente' => 'IN-NOEXISTE']);
 
 test('limita los intentos de consulta para que no se puedan probar codigos al azar', function () {
     foreach (range(1, 20) as $intento) {
-        $this->get(route('seguimiento', ['codigo' => "ING-{$intento}"]))->assertOk();
+        $this->get(route('seguimiento', ['codigo' => "IN-{$intento}"]))->assertOk();
     }
 
-    $this->get(route('seguimiento', ['codigo' => 'ING-21']))->assertTooManyRequests();
+    $this->get(route('seguimiento', ['codigo' => 'IN-21']))->assertTooManyRequests();
 });
 
 test('el boton del correo del ingreso lleva a la consulta con su codigo', function () {
-    $correo = new IngresoRecibido($this->tenant->id, 'ING-7K3QX9MZ', 'Acme', 'Bahía 1', '2026-11-10', null, []);
+    $correo = new IngresoRecibido($this->tenant->id, 'IN-7K3QX9MZ', 'Acme', 'Bahía 1', '2026-11-10', null, []);
 
-    $correo->assertSeeInHtml(e(route('seguimiento', ['codigo' => 'ING-7K3QX9MZ'])), false);
+    $correo->assertSeeInHtml(e(route('seguimiento', ['codigo' => 'IN-7K3QX9MZ'])), false);
 });
 
 test('cada equipo muestra cuando ingreso y el laboratorio donde se le hace el servicio', function () {
@@ -279,7 +287,7 @@ test('el cliente ve el documento que entrego el laboratorio externo por un servi
 
 test('el correo del ingreso sale con el nombre de la empresa del laboratorio como remitente', function () {
     config(['mail.from.address' => 'app.calibraciones@gmail.com', 'mail.from.name' => 'Laravel']);
-    $correo = fn () => new IngresoRecibido($this->tenant->id, 'ING-7K3QX9MZ', 'Acme', 'Bahía 1', '2026-11-10', null, []);
+    $correo = fn () => new IngresoRecibido($this->tenant->id, 'IN-7K3QX9MZ', 'Acme', 'Bahía 1', '2026-11-10', null, []);
 
     $correo()->assertFrom('app.calibraciones@gmail.com', 'Laravel');
 

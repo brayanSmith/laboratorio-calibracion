@@ -9,8 +9,8 @@ type Props = {
 };
 
 const etiquetaResultado: Record<ResultadoMedicion, string> = {
-    APROBADO: 'Aprobado',
-    NO_APROBADO: 'No aprobado',
+    APROBADO: 'Cumple',
+    NO_APROBADO: 'No cumple',
 };
 
 const colorResultado: Record<ResultadoMedicion, string> = {
@@ -52,7 +52,7 @@ export default function ResultadoCalibracionDetalle({
             <p className="text-xs text-muted-foreground">
                 {resultado === null
                     ? 'Completa el valor del instrumento en todos los resultados para conocer el resultado.'
-                    : 'Se define solo: aprobado si todos los resultados de la medición lo están.'}
+                    : 'Se define solo: cumple si todos los resultados de la medición cumplen.'}
             </p>
         </div>
     );

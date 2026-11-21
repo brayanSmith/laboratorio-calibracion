@@ -25,8 +25,8 @@ const inputClassName =
     'h-7 w-full rounded-none border-0 bg-transparent p-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset';
 
 const etiquetaResultado: Record<'APROBADO' | 'NO_APROBADO', string> = {
-    APROBADO: 'Aprobado',
-    NO_APROBADO: 'No aprobado',
+    APROBADO: 'Cumple',
+    NO_APROBADO: 'No cumple',
 };
 
 const colorResultado: Record<'APROBADO' | 'NO_APROBADO', string> = {

@@ -1,6 +1,11 @@
 import { Form } from '@inertiajs/react';
 import MantenimientoController from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
+import MantenimientoChecklist from '@/components/mantenimientos/mantenimiento-checklist';
+import MantenimientoComentarios from '@/components/mantenimientos/mantenimiento-comentarios';
+import MantenimientoDefectos from '@/components/mantenimientos/mantenimiento-defectos';
 import MantenimientoFormFields from '@/components/mantenimientos/mantenimiento-form-fields';
+import MantenimientoGaleria from '@/components/mantenimientos/mantenimiento-galeria';
+import MantenimientoItemsUsados from '@/components/mantenimientos/mantenimiento-items-usados';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -11,20 +16,30 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { Mantenimiento, MantenimientoOption } from '@/types';
+import type {
+    Mantenimiento,
+    MantenimientoItemOption,
+    MantenimientoOption,
+} from '@/types';
 
 type Props = {
     mantenimiento: Mantenimiento | null;
     tecnicos: MantenimientoOption[];
     novedadesMantenimiento: MantenimientoOption[];
+    items: MantenimientoItemOption[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
+/**
+ * Edita todo el mantenimiento: sus datos, el checklist, los defectos identificados, los
+ * ítems utilizados, los comentarios y las fotos, con un solo botón de guardar.
+ */
 export default function EditMantenimientoModal({
     mantenimiento,
     tecnicos,
     novedadesMantenimiento,
+    items,
     open,
     onOpenChange,
 }: Props) {
@@ -34,11 +49,11 @@ export default function EditMantenimientoModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
                 <Form
                     key={`${mantenimiento.id}-${String(open)}`}
                     {...MantenimientoController.update.form(mantenimiento.id)}
-                    className="space-y-6"
+                    className="min-w-0 space-y-6"
                     onSuccess={() => onOpenChange(false)}
                 >
                     {({ errors, processing }) => (
@@ -46,7 +61,9 @@ export default function EditMantenimientoModal({
                             <DialogHeader>
                                 <DialogTitle>Editar mantenimiento</DialogTitle>
                                 <DialogDescription>
-                                    Actualiza los datos del mantenimiento
+                                    Actualiza los datos, el checklist, los
+                                    defectos, los ítems utilizados, los
+                                    comentarios y las fotos del mantenimiento
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -54,6 +71,33 @@ export default function EditMantenimientoModal({
                                 mantenimiento={mantenimiento}
                                 tecnicos={tecnicos}
                                 novedadesMantenimiento={novedadesMantenimiento}
+                                errors={errors}
+                            />
+
+                            <MantenimientoChecklist
+                                checklist={mantenimiento.checklist}
+                            />
+
+                            <MantenimientoDefectos
+                                defectos={mantenimiento.defectos}
+                                errors={errors}
+                            />
+
+                            <MantenimientoItemsUsados
+                                mantenimientoId={mantenimiento.id}
+                                itemsUsados={mantenimiento.items_usados}
+                                items={items}
+                                errors={errors}
+                                onSinStockChange={() => {}}
+                            />
+
+                            <MantenimientoComentarios
+                                comentarios={mantenimiento.comentarios}
+                                errors={errors}
+                            />
+
+                            <MantenimientoGaleria
+                                galeria={mantenimiento.galeria}
                                 errors={errors}
                             />
 

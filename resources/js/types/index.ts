@@ -24,3 +24,4 @@ export type * from './tipos-equipo';
 export type * from './tipos-magnitud';
 export type * from './ui';
 export type * from './unidades-medida';
+export type * from './versiones-documento';

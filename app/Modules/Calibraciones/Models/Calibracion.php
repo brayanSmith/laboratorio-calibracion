@@ -6,6 +6,7 @@ use App\Concerns\RestringidoAlTecnico;
 use App\Enums\TenantPermission;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VersionDocumento;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -202,6 +204,32 @@ class Calibracion extends Model
     public function detalleMedicionCalibracion(): HasMany
     {
         return $this->hasMany(DetalleMedicionCalibracion::class);
+    }
+
+    /**
+     * Resumen de lo que se edita y sale en el certificado (condiciones, método, novedad y
+     * los valores medidos), para saber si algo cambió al guardar.
+     */
+    public function huellaCertificado(): string
+    {
+        $actual = $this->fresh();
+
+        // El solicitante y el lugar no cuentan: los asigna el servidor al guardar, no el usuario.
+        return md5((string) json_encode([
+            $actual?->only(['temperatura', 'humedad', 'procedimiento_id', 'novedad_id']),
+            (bool) $actual?->ajustes_requeridos,
+            $this->detalleMedicionCalibracion()->orderBy('id')->pluck('valor_instrumento', 'id')->all(),
+        ]));
+    }
+
+    /**
+     * Los PDF emitidos, del original a la corrección más reciente.
+     *
+     * @return MorphMany<VersionDocumento, $this>
+     */
+    public function versiones(): MorphMany
+    {
+        return $this->morphMany(VersionDocumento::class, 'documentable')->orderBy('numero');
     }
 
     /**

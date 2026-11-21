@@ -5,7 +5,16 @@
     $sobreAcento = (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#171717' : '#ffffff';
     $numero = fn ($valor) => $valor === null ? '—' : number_format((float) $valor, 2, ',', '');
     $fecha = fn ($valor) => $valor ? \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y') : '—';
-    $conforme = $resultado === 'APROBADO';
+    $conforme = $resultado === 'CUMPLE';
+    // Íconos dibujados en SVG: DomPDF no siempre trae los glifos ✓ / ✗ en la fuente.
+    $iconoResultado = fn (bool $aprobado) => 'data:image/svg+xml;base64,'.base64_encode(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
+        .'<circle cx="8" cy="8" r="8" fill="'.($aprobado ? '#15803d' : '#b91c1c').'"/>'
+        .($aprobado
+            ? '<path d="M4.5 8.3l2.3 2.3 4.7-4.9" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'
+            : '<path d="M5.3 5.3l5.4 5.4M10.7 5.3l-5.4 5.4" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round"/>')
+        .'</svg>'
+    );
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -29,7 +38,6 @@
         .emision td { padding: 12px 2px 8px; }
         .derecha { text-align: right; }
         .muted { color: #737373; }
-        .icono { display: inline-block; width: 13px; height: 13px; line-height: 13px; border-radius: 7px; color: #ffffff; font-weight: bold; font-size: 8.5px; text-align: center; }
         .badge { padding: 3px 12px; font-weight: bold; font-size: 9px; color: #ffffff; border-radius: 6px; }
         .tarjeta { border: 1px solid #e5e5e5; border-radius: 6px; }
         .tarjeta .titulo { background: #f5f5f5; padding: 8px 12px; font-weight: bold; font-size: 10px; border-bottom: 1px solid #e5e5e5; border-radius: 6px 6px 0 0; }
@@ -45,6 +53,8 @@
         .tabla td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #f0f0f0; }
         .tabla tr.par td { background: #fafafa; }
         .tabla tr.ultima td { border-bottom: 0; }
+        .tabla tr.aprobado td { background: #f0fdf4; }
+        .tabla tr.no-aprobado td { background: #fef2f2; }
         h3 { font-size: 10.5px; margin: 12px 0 5px; }
         .grafico { text-align: center; margin-top: 12px; }
         .grafico img { width: 100%; }
@@ -149,7 +159,15 @@
         </thead>
         <tbody>
             @forelse ($detalles as $detalle)
-                <tr class="{{ $loop->even ? 'par' : '' }} {{ $loop->last ? 'ultima' : '' }}">
+                @php
+                    $aprobado = $detalle->resultado_calibracion === 'APROBADO';
+                    $tono = match ($detalle->resultado_calibracion) {
+                        'APROBADO' => 'aprobado',
+                        null, '' => $loop->even ? 'par' : '',
+                        default => 'no-aprobado',
+                    };
+                @endphp
+                <tr class="{{ $tono }} {{ $loop->last ? 'ultima' : '' }}">
                     <td>{{ $numero($detalle->valor_referencia) }}</td>
                     <td>{{ $detalle->unidadMedida->simbolo }}</td>
                     <td>{{ $numero($detalle->valor_instrumento) }}</td>
@@ -158,8 +176,7 @@
                     <td>{{ $numero($detalle->incertidumbre) }}</td>
                     <td>
                         @if ($detalle->resultado_calibracion)
-                            @php $aprobado = $detalle->resultado_calibracion === 'APROBADO'; @endphp
-                            <span class="icono" style="background: {{ $aprobado ? '#15803d' : '#b91c1c' }};">{{ $aprobado ? '✓' : '✗' }}</span>
+                            <img src="{{ $iconoResultado($aprobado) }}" alt="{{ $aprobado ? 'Cumple' : 'No cumple' }}" style="width: 12px; height: 12px; vertical-align: middle;">
                         @else
                             —
                         @endif

@@ -4,9 +4,11 @@ use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VersionDocumento;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Inventario\Models\Item;
+use App\Modules\Mantenimientos\Actions\GenerarInformeMantenimiento;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
@@ -134,7 +136,8 @@ test('actualiza un mantenimiento sin tocar su tipo_mantenimiento', function () {
         ->put(route('mantenimientos.update', $mantenimiento), [
             'fecha_mantenimiento' => '2026-11-01',
             'descripcion' => 'Se cambió el filtro',
-            'estado_inicial_equipo' => 'FUERA_DE_SERVICIO',
+            'estado_inicial_equipo' => 'INOPERATIVO',
+            'observaciones_estado_inicial' => 'Llegó sin encender',
             'estado_final_equipo' => 'OPERATIVO',
             'estado_mantenimiento' => 'FINALIZADO',
             'tecnico_id' => $nuevoTecnico->id,
@@ -148,12 +151,28 @@ test('actualiza un mantenimiento sin tocar su tipo_mantenimiento', function () {
         ->tipo_mantenimiento->toBe('PREVENTIVO')
         ->fecha_mantenimiento->toDateString()->toBe('2026-11-01')
         ->descripcion->toBe('Se cambió el filtro')
-        ->estado_inicial_equipo->toBe('FUERA_DE_SERVICIO')
+        ->estado_inicial_equipo->toBe('INOPERATIVO')
+        ->observaciones_estado_inicial->toBe('Llegó sin encender')
         ->estado_final_equipo->toBe('OPERATIVO')
         ->estado_mantenimiento->toBe('FINALIZADO')
         ->tecnico_id->toBe($nuevoTecnico->id)
         ->novedad_id->toBe($novedad->id)
         ->firmado->toBeTrue();
+});
+
+test('el estado inicial del equipo ya no acepta fuera de servicio', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            'fecha_mantenimiento' => '2026-11-01',
+            'estado_inicial_equipo' => 'FUERA_DE_SERVICIO',
+            'estado_mantenimiento' => 'EN_PROCESO',
+            'tecnico_id' => $mantenimiento->tecnico_id,
+        ])
+        ->assertSessionHasErrors('estado_inicial_equipo');
+
+    expect($mantenimiento->refresh()->estado_inicial_equipo)->toBeNull();
 });
 
 test('desmarca firmado cuando no se envia en la actualizacion', function () {
@@ -519,22 +538,123 @@ test('muestra el informe de un mantenimiento finalizado y lo regenera si falta e
     expect($mantenimiento->pdf_informe)->not->toBe('informes/inexistente.pdf');
 });
 
-test('actualizar el informe reemplaza el archivo guardado', function () {
-    Storage::fake('public');
-    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
-    Storage::disk('public')->put('informes/viejo.pdf', 'viejo');
-    $mantenimiento->update(['pdf_informe' => 'informes/viejo.pdf']);
+/** Mantenimiento finalizado con su informe original ya emitido. */
+function crearMantenimientoConInforme(Bahia $bahia, string $codigo = 'EQ-5001'): Mantenimiento
+{
+    $mantenimiento = crearMantenimiento($bahia, ['estado_mantenimiento' => 'FINALIZADO', 'descripcion' => 'Original'], $codigo);
+    app(GenerarInformeMantenimiento::class)->handle($mantenimiento);
+
+    return $mantenimiento->refresh();
+}
+
+/** Lo que envía la modal de editar, con los datos actuales del mantenimiento. */
+function datosEdicionMantenimiento(Mantenimiento $mantenimiento, array $cambios = []): array
+{
+    return [
+        'fecha_mantenimiento' => $mantenimiento->fecha_mantenimiento->toDateString(),
+        'descripcion' => $mantenimiento->descripcion,
+        'estado_mantenimiento' => $mantenimiento->estado_mantenimiento,
+        'tecnico_id' => $mantenimiento->tecnico_id,
+        ...$cambios,
+    ];
+}
+
+test('al corregir un mantenimiento finalizado se emite el informe -A y se conserva el original', function () {
+    $mantenimiento = crearMantenimientoConInforme($this->bahia);
+    $original = $mantenimiento->pdf_informe;
 
     $this->actingAs($this->admin)
-        ->post(route('mantenimientos.actualizar-informe', $mantenimiento))
-        ->assertRedirect();
+        ->put(route('mantenimientos.update', $mantenimiento), datosEdicionMantenimiento($mantenimiento, ['descripcion' => 'Corregido']))
+        ->assertSessionHasNoErrors();
 
     $mantenimiento->refresh();
+    $codigoBase = 'IM-'.str_pad((string) $mantenimiento->id, 6, '0', STR_PAD_LEFT);
 
-    expect($mantenimiento->pdf_informe)->not->toBe('informes/viejo.pdf');
+    expect($mantenimiento->versiones->pluck('codigo')->all())->toBe([$codigoBase, "{$codigoBase}-A"])
+        ->and($mantenimiento->versiones->last()->user_id)->toBe($this->admin->id)
+        ->and($mantenimiento->pdf_informe)->toBe("informes/mantenimientos/{$this->tenant->id}/mantenimiento-{$mantenimiento->id}-a.pdf");
+    Storage::disk('public')->assertExists($original);
     Storage::disk('public')->assertExists($mantenimiento->pdf_informe);
-    Storage::disk('public')->assertMissing('informes/viejo.pdf');
 });
+
+test('guardar un mantenimiento finalizado sin cambios no emite otra version', function () {
+    $mantenimiento = crearMantenimientoConInforme($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), datosEdicionMantenimiento($mantenimiento))
+        ->assertSessionHasNoErrors();
+
+    expect($mantenimiento->versiones()->count())->toBe(1);
+});
+
+test('una correccion de un mantenimiento sin finalizar no emite informe', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'EN_PROCESO']);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), datosEdicionMantenimiento($mantenimiento, ['descripcion' => 'Cambio']))
+        ->assertSessionHasNoErrors();
+
+    expect($mantenimiento->versiones()->count())->toBe(0);
+});
+
+test('quitar una foto de un mantenimiento finalizado hace que al guardar se emita una nueva version', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    $foto = $mantenimiento->galeriaMantenimientos()->create(['imagen' => 'mantenimientos/foto.png', 'tenant_id' => $this->tenant->id]);
+    app(GenerarInformeMantenimiento::class)->handle($mantenimiento);
+    $this->travel(1)->minutes();
+
+    $this->actingAs($this->admin)->delete(route('galeria.destroy', $foto));
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), datosEdicionMantenimiento($mantenimiento->refresh()))
+        ->assertSessionHasNoErrors();
+
+    expect($mantenimiento->versiones()->pluck('numero')->all())->toBe([0, 1]);
+});
+
+test('actualizar el informe emite una nueva version con la siguiente letra', function () {
+    $mantenimiento = crearMantenimientoConInforme($this->bahia);
+
+    foreach (range(1, 2) as $vez) {
+        $this->actingAs($this->admin)
+            ->post(route('mantenimientos.actualizar-informe', $mantenimiento))
+            ->assertRedirect();
+    }
+
+    expect($mantenimiento->versiones()->pluck('codigo')->map(fn (string $codigo) => substr($codigo, 9))->all())->toBe(['', '-A', '-B']);
+});
+
+test('la tabla lista las versiones del informe y cada una se puede ver', function () {
+    $mantenimiento = crearMantenimientoConInforme($this->bahia);
+    $this->actingAs($this->admin)->post(route('mantenimientos.actualizar-informe', $mantenimiento));
+    $original = $mantenimiento->versiones()->first();
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('mantenimientos.0.versiones', 2)
+            ->where('mantenimientos.0.versiones.0.codigo', $original->codigo)
+            ->where('mantenimientos.0.versiones.1.usuario', $this->admin->name)
+            ->where('mantenimientos.0.versiones.0.url', route('versiones-documento.show', $original)));
+
+    $this->actingAs($this->admin)
+        ->get(route('versiones-documento.show', $original))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', "inline; filename={$original->codigo}.pdf");
+});
+
+test('las versiones del informe no se pueden ver desde otro laboratorio ni sin permiso de PDF', function () {
+    $ajeno = crearMantenimientoConInforme(Bahia::factory()->create(), 'EQ-AJENO');
+    $propio = crearMantenimientoConInforme($this->bahia);
+    $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)->get(route('versiones-documento.show', $ajeno->versiones()->first()))->assertNotFound();
+    $this->actingAs($sinRol)->get(route('versiones-documento.show', $propio->versiones()->first()))->assertForbidden();
+});
+
+test('la letra de la version sigue A..Z y luego AA', function (int $numero, string $letra) {
+    expect(VersionDocumento::letra($numero))->toBe($letra);
+})->with([[0, ''], [1, 'A'], [2, 'B'], [26, 'Z'], [27, 'AA'], [28, 'AB']]);
 
 test('no permite actualizar el informe de un mantenimiento sin finalizar, de otro tenant ni sin permiso', function () {
     Storage::fake('public');

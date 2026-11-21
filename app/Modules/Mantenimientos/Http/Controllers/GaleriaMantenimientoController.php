@@ -21,6 +21,7 @@ class GaleriaMantenimientoController extends Controller
         Storage::disk('public')->delete($galeriaMantenimiento->imagen);
 
         $galeriaMantenimiento->delete();
+        $galeriaMantenimiento->mantenimiento->marcarInformeDesactualizado();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Foto eliminada.')]);
 

@@ -20,7 +20,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Informe de Inspección de Mantenimiento {{ $mantenimiento->ordenTrabajo->codigo }}</title>
+    <title>Informe de Inspección de Mantenimiento {{ $codigo }}</title>
     <style>
         @page { margin: 36px 38px 62px 38px; }
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 9.5px; color: #171717; }
@@ -77,7 +77,8 @@
                     <p class="tipo">{{ $tipoLabel }}</p>
                 </td>
                 <td class="derecha" style="width: 190px;">
-                    <strong>{{ $mantenimiento->tecnico->name }}</strong><br>
+                    <strong>N° {{ $codigo }}</strong><br>
+                    {{ $mantenimiento->tecnico->name }}<br>
                     Creado el {{ $fechaHora->locale('es')->format('d/m/Y H:i') }}
                 </td>
             </tr>
@@ -95,6 +96,20 @@
         <tr><td class="etiqueta">Duración del Mantenimiento:</td><td>{{ $duracion ?? '—' }}</td></tr>
         <tr><td class="etiqueta">Fecha del Último Mantenimiento:</td><td>{{ $fecha($programacion->fecha_ultimo_servicio) }}</td></tr>
         <tr><td class="etiqueta">Próximo Mantenimiento Programado:</td><td>{{ $fecha($programacion->fecha_proximo_servicio) }}</td></tr>
+        <tr>
+            <td class="etiqueta">Estado Inicial:</td>
+            <td>
+                @if ($mantenimiento->estado_inicial_equipo)
+                    @php $inicialOperativo = $mantenimiento->estado_inicial_equipo === 'OPERATIVO'; @endphp
+                    <span class="chip" style="background: {{ $inicialOperativo ? '#15803d' : '#737373' }};">{{ $inicialOperativo ? 'Operativo' : 'Inoperativo' }}</span>
+                @else
+                    <span class="vacio">Sin registrar</span>
+                @endif
+                @if ($mantenimiento->observaciones_estado_inicial)
+                    <div style="margin-top: 3px;">{{ $mantenimiento->observaciones_estado_inicial }}</div>
+                @endif
+            </td>
+        </tr>
         <tr>
             <td class="etiqueta">Condición Operativa:</td>
             <td>
@@ -130,7 +145,7 @@
     @if ($mantenimiento->defectoIdentificados->isNotEmpty())
         <h2>III. Defectos/Problemas Identificados</h2>
         <div class="caja"><table class="grid">
-            <thead><tr><th class="inicio" style="width: 36%;">Problema</th><th class="centro" style="width: 16%;">Nivel de Urgencia</th><th class="fin">Acción a Tomar</th></tr>
+            <thead><tr><th class="inicio" style="width: 36%;">Problema</th><th class="centro" style="width: 16%;">Nivel de Criticidad</th><th class="fin">Acción a Tomar</th></tr>
             </thead>
             <tbody>
                 @foreach ($mantenimiento->defectoIdentificados as $defecto)

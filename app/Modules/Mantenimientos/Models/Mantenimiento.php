@@ -6,6 +6,7 @@ use App\Concerns\RestringidoAlTecnico;
 use App\Enums\TenantPermission;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VersionDocumento;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -25,7 +27,8 @@ use Illuminate\Support\Carbon;
  * @property string $tipo_mantenimiento
  * @property Carbon $fecha_mantenimiento
  * @property string|null $descripcion Se completa al realizar el mantenimiento
- * @property string|null $estado_inicial_equipo Se completa al realizar el mantenimiento
+ * @property string|null $estado_inicial_equipo OPERATIVO o INOPERATIVO; se completa al realizar el mantenimiento
+ * @property string|null $observaciones_estado_inicial Cómo se recibió el equipo
  * @property string|null $estado_final_equipo Se completa al realizar el mantenimiento
  * @property string $estado_mantenimiento PENDIENTE por defecto
  * @property int $tecnico_id
@@ -48,7 +51,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'orden_trabajo_id', 'fecha_programada', 'fecha_realizacion', 'tipo_mantenimiento', 'fecha_mantenimiento', 'descripcion',
-    'estado_inicial_equipo', 'estado_final_equipo', 'estado_mantenimiento',
+    'estado_inicial_equipo', 'observaciones_estado_inicial', 'estado_final_equipo', 'estado_mantenimiento',
     'tecnico_id', 'firmado', 'novedad_id', 'pdf_informe', 'tenant_id',
 ])]
 class Mantenimiento extends Model
@@ -211,6 +214,44 @@ class Mantenimiento extends Model
     }
 
     /**
+     * Resumen de todo lo que sale en el informe (datos, checklist, defectos, ítems,
+     * comentarios y fotos), para saber si algo cambió al guardar.
+     */
+    public function huellaInforme(): string
+    {
+        return md5((string) json_encode([
+            $this->only(['fecha_mantenimiento', 'descripcion', 'estado_inicial_equipo', 'observaciones_estado_inicial', 'estado_final_equipo', 'tecnico_id', 'firmado', 'novedad_id']),
+            $this->mantenimientoCheckLists()->orderBy('id')->get(['id', 'cumple', 'observacion'])->toArray(),
+            $this->defectoIdentificados()->orderBy('id')->pluck('id')->all(),
+            $this->itemMantenimientos()->orderBy('id')->pluck('id')->all(),
+            $this->comentarioMantenimientos()->orderBy('id')->pluck('id')->all(),
+            $this->galeriaMantenimientos()->orderBy('id')->pluck('id')->all(),
+        ]));
+    }
+
+    /**
+     * Si cambió algo después de emitir la última versión del informe (ver
+     * marcarInformeDesactualizado()).
+     */
+    public function informeDesactualizado(): bool
+    {
+        $ultima = $this->versiones()->reorder('numero', 'desc')->first();
+
+        return $ultima !== null && $this->updated_at?->gt($ultima->created_at) === true;
+    }
+
+    /**
+     * Al quitar un defecto, ítem, comentario o foto de un mantenimiento finalizado, deja
+     * constancia de que su informe quedó desactualizado: al guardar se emite uno nuevo.
+     */
+    public function marcarInformeDesactualizado(): void
+    {
+        if ($this->estado_mantenimiento === 'FINALIZADO') {
+            $this->touch();
+        }
+    }
+
+    /**
      * Get the items (repuestos/insumos) used during this mantenimiento.
      *
      * @return HasMany<ItemMantenimiento, $this>
@@ -238,6 +279,16 @@ class Mantenimiento extends Model
     public function galeriaMantenimientos(): HasMany
     {
         return $this->hasMany(GaleriaMantenimiento::class);
+    }
+
+    /**
+     * Los PDF emitidos, del original a la corrección más reciente.
+     *
+     * @return MorphMany<VersionDocumento, $this>
+     */
+    public function versiones(): MorphMany
+    {
+        return $this->morphMany(VersionDocumento::class, 'documentable')->orderBy('numero');
     }
 
     /**

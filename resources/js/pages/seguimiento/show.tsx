@@ -236,7 +236,7 @@ export default function SeguimientoShow({ codigo, ingreso, contacto }: Props) {
                                 onChange={(evento) =>
                                     setValor(evento.target.value.toUpperCase())
                                 }
-                                placeholder="ING-XXXXXXXX"
+                                placeholder="IN-XXXXXXXX"
                                 autoComplete="off"
                                 autoFocus={!codigo}
                                 required
@@ -268,7 +268,7 @@ export default function SeguimientoShow({ codigo, ingreso, contacto }: Props) {
                         </p>
                         <p className="max-w-md text-sm text-muted-foreground">
                             Revisa que esté escrito igual que en el correo,
-                            incluyendo el "ING-".
+                            incluyendo el "IN-".
                         </p>
                     </section>
                 ) : null}

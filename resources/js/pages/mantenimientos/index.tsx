@@ -6,6 +6,7 @@ import {
     Eye,
     FlaskConical,
     Handshake,
+    History,
     Loader,
     Pencil,
     Play,
@@ -31,6 +32,7 @@ import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mante
 import VerMantenimientoModal from '@/components/mantenimientos/ver-mantenimiento-modal';
 import ServicioTercerosTab from '@/components/servicio-terceros/servicio-terceros-tab';
 import TabCountBadge from '@/components/tab-count-badge';
+import VersionesDocumentoModal from '@/components/versiones-documento-modal';
 import PlazoServicioCelda from '@/components/plazo-servicio-celda';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -110,6 +112,11 @@ export default function MantenimientosIndex({
         mantenimientos.find((mantenimiento) => mantenimiento.id === viendoId) ??
         null;
     const [verOpen, setVerOpen] = useState(false);
+    const [versionesId, setVersionesId] = useState<number | null>(null);
+    const conVersiones =
+        mantenimientos.find(
+            (mantenimiento) => mantenimiento.id === versionesId,
+        ) ?? null;
     const { claveTabla, filtrosIniciales, tarjetaActiva, ver } =
         useFiltroPorTarjeta();
 
@@ -317,6 +324,17 @@ export default function MantenimientosIndex({
                                     data-test="mantenimiento-imprimir-button"
                                 />
                             ) : null}
+                            {canPdf && row.original.versiones.length > 1 ? (
+                                <BotonAccion
+                                    icono={History}
+                                    etiqueta={`Versiones del informe (${row.original.versiones.length})`}
+                                    variant="outline"
+                                    data-test="mantenimiento-versiones-button"
+                                    onClick={() =>
+                                        setVersionesId(row.original.id)
+                                    }
+                                />
+                            ) : null}
                             {canEdit &&
                             row.original.estado_mantenimiento !==
                                 'FINALIZADO' &&
@@ -469,6 +487,7 @@ export default function MantenimientosIndex({
                 mantenimiento={editing}
                 tecnicos={tecnicos}
                 novedadesMantenimiento={novedadesMantenimiento}
+                items={items}
                 open={editOpen}
                 onOpenChange={setEditOpen}
             />
@@ -491,6 +510,16 @@ export default function MantenimientosIndex({
                 mantenimiento={viendo}
                 open={verOpen}
                 onOpenChange={setVerOpen}
+            />
+            <VersionesDocumentoModal
+                titulo="Versiones del informe de mantenimiento"
+                descripcion={
+                    conVersiones
+                        ? `${conVersiones.orden_trabajo_codigo} · ${conVersiones.equipo.codigo} · ${conVersiones.equipo.tipo_equipo.nombre}`
+                        : ''
+                }
+                versiones={conVersiones?.versiones ?? null}
+                onClose={() => setVersionesId(null)}
             />
             <GestionarMantenimientoModal
                 mantenimiento={gestionando}

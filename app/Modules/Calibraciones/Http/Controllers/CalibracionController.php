@@ -6,6 +6,7 @@ use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\User;
+use App\Models\VersionDocumento;
 use App\Modules\Calibraciones\Actions\GenerarCertificadoCalibracion;
 use App\Modules\Calibraciones\Http\Requests\FinalizarCalibracionRequest;
 use App\Modules\Calibraciones\Http\Requests\UpdateCalibracionRequest;
@@ -98,6 +99,7 @@ class CalibracionController extends Controller
                 'procedimiento:id,nombre',
                 'novedad:id,nombre',
                 'detalleMedicionCalibracion.unidadMedida:id,simbolo',
+                'versiones.user:id,name',
             ])
             ->orderByDesc('id')
             ->get()
@@ -142,6 +144,7 @@ class CalibracionController extends Controller
                         'descripcion' => $calibracion->ordenTrabajo->equipoProgramacion->equipo->area->descripcion,
                     ],
                 ],
+                'versiones' => $calibracion->versiones->map(fn (VersionDocumento $version) => $version->paraListado())->values(),
                 'detalles_medicion' => $calibracion->detalleMedicionCalibracion
                     ->sortBy('id')
                     ->map(fn (DetalleMedicionCalibracion $detalle) => [
@@ -190,10 +193,23 @@ class CalibracionController extends Controller
      * detalle_medicion_calibracion que ya existían (ver
      * OrdenTrabajoController::crearDetallesMedicionCalibracion()). No crea ni elimina
      * detalles, solo completa los valores de la medición real.
+     *
+     * Si la calibración ya estaba finalizada y algo cambió, se emite una nueva versión del
+     * certificado (-A, -B, ...) y la anterior se conserva.
      */
-    public function update(UpdateCalibracionRequest $request, Calibracion $calibracion): RedirectResponse
+    public function update(UpdateCalibracionRequest $request, Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): RedirectResponse
     {
+        $huellaAntes = $calibracion->huellaCertificado();
+
         DB::transaction(fn () => $this->guardarFormulario($request, $calibracion));
+
+        if ($calibracion->estado_calibracion === 'FINALIZADO' && $calibracion->huellaCertificado() !== $huellaAntes) {
+            try {
+                $generarCertificado->handle($calibracion);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Calibración actualizada.')]);
 
@@ -365,14 +381,14 @@ class CalibracionController extends Controller
 
         $ruta = $calibracion->pdf_certificado && $disco->exists($calibracion->pdf_certificado)
             ? $calibracion->pdf_certificado
-            : $generarCertificado->handle($calibracion);
+            : $generarCertificado->handle($calibracion, nuevaVersion: false);
 
         return $disco->response($ruta, 'certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     /**
      * Vuelve a generar el certificado PDF de una calibración finalizada con los datos y el
-     * diseño actuales, reemplazando el archivo guardado.
+     * diseño actuales, como una nueva versión (la anterior se conserva).
      */
     public function actualizarCertificado(Calibracion $calibracion, GenerarCertificadoCalibracion $generarCertificado): RedirectResponse
     {

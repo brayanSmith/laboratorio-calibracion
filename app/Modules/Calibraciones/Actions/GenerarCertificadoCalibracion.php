@@ -3,6 +3,7 @@
 namespace App\Modules\Calibraciones\Actions;
 
 use App\Models\Empresa;
+use App\Models\VersionDocumento;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -18,10 +19,12 @@ class GenerarCertificadoCalibracion
     public function __construct(private readonly GraficoErrorCalibracion $grafico) {}
 
     /**
-     * Genera el certificado de calibración en PDF, lo guarda en el disco público
-     * (reemplazando el anterior, si lo había) y registra su ruta en pdf_certificado.
+     * Genera el certificado de calibración en PDF y lo guarda como una nueva versión (el
+     * original o la siguiente corrección: -A, -B, ...), conservando las anteriores; su ruta
+     * queda en pdf_certificado. Con $nuevaVersion en false vuelve a escribir la última
+     * (para cuando se perdió su archivo).
      */
-    public function handle(Calibracion $calibracion): string
+    public function handle(Calibracion $calibracion, bool $nuevaVersion = true): string
     {
         $calibracion->load([
             'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo',
@@ -39,14 +42,14 @@ class GenerarCertificadoCalibracion
 
         $svg = $this->grafico->handle($calibracion);
 
-        $pdf = Pdf::loadView('pdf.calibracion', [
+        return VersionDocumento::guardar($calibracion, 'pdf_certificado', 'certificados/calibraciones', fn (string $codigo) => Pdf::loadView('pdf.calibracion', [
             'calibracion' => $calibracion,
             'equipo' => $programacion->equipo,
             'especificacion' => $programacion->equipo->equipoEspecificacionTecnica,
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),
             'firma' => $calibracion->firmado ? $this->comoDataUri($calibracion->tecnico->firma) : null,
-            'numeroCertificado' => 'CC-'.str_pad((string) $calibracion->id, 6, '0', STR_PAD_LEFT),
+            'numeroCertificado' => $codigo,
             'fechaEmision' => now()->timezone(self::ZONA_HORARIA),
             'fechaVencimiento' => EquipoProgramacion::calcularFechaProximoServicio(
                 $calibracion->fecha_calibracion->toDateString(),
@@ -56,30 +59,18 @@ class GenerarCertificadoCalibracion
             'resultado' => $this->resultado($calibracion),
             'detalles' => $detalles,
             'grafico' => $svg ? 'data:image/svg+xml;base64,'.base64_encode($svg) : null,
-        ])->setPaper('letter');
-
-        $ruta = "certificados/calibraciones/{$calibracion->tenant_id}/calibracion-{$calibracion->id}.pdf";
-
-        if ($calibracion->pdf_certificado && $calibracion->pdf_certificado !== $ruta) {
-            Storage::disk('public')->delete($calibracion->pdf_certificado);
-        }
-
-        Storage::disk('public')->put($ruta, $pdf->output());
-
-        $calibracion->update(['pdf_certificado' => $ruta]);
-
-        return $ruta;
+        ])->setPaper('letter')->output(), $nuevaVersion);
     }
 
     /**
      * Resultado de la calibración: el que definió el técnico al finalizarla. Si es una
-     * calibración anterior a ese campo, se deduce de los puntos medidos (APROBADO si ninguno
+     * calibración anterior a ese campo, se deduce de los puntos medidos (CUMPLE si ninguno
      * quedó no aprobado); null si no hay de dónde sacarlo.
      */
     private function resultado(Calibracion $calibracion): ?string
     {
         if ($calibracion->resultado_calibracion !== null) {
-            return $calibracion->resultado_calibracion ? 'APROBADO' : 'NO APROBADO';
+            return $calibracion->resultado_calibracion ? 'CUMPLE' : 'NO CUMPLE';
         }
 
         $resultados = $calibracion->detalleMedicionCalibracion->pluck('resultado_calibracion')->filter();
@@ -88,7 +79,7 @@ class GenerarCertificadoCalibracion
             return null;
         }
 
-        return $resultados->contains('NO_APROBADO') ? 'NO APROBADO' : 'APROBADO';
+        return $resultados->contains('NO_APROBADO') ? 'NO CUMPLE' : 'CUMPLE';
     }
 
     /**

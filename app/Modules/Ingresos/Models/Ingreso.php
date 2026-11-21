@@ -68,14 +68,24 @@ class Ingreso extends Model
     }
 
     /**
-     * Un código aleatorio y único como "ING-7K3QX9MZ" (32^8 combinaciones): el cliente lo
+     * El código como se guarda, a partir de lo que escribió el cliente: en mayúsculas, sin
+     * espacios y con el prefijo actual aunque venga con el anterior ("ING-"), para que los
+     * correos enviados antes del cambio sigan sirviendo.
+     */
+    public static function normalizarCodigo(string $codigo): string
+    {
+        return (string) preg_replace('/^ING-/', 'IN-', strtoupper(trim($codigo)));
+    }
+
+    /**
+     * Un código aleatorio y único como "IN-7K3QX9MZ" (32^8 combinaciones): el cliente lo
      * usará para consultar sus equipos sin iniciar sesión, así que no debe poder adivinarse
      * ni deducirse de otro ingreso.
      */
     public static function generarCodigo(): string
     {
         do {
-            $codigo = 'ING-'.collect(range(1, 8))
+            $codigo = 'IN-'.collect(range(1, 8))
                 ->map(fn () => self::ALFABETO_CODIGO[random_int(0, strlen(self::ALFABETO_CODIGO) - 1)])
                 ->implode('');
         } while (static::withTrashed()->where('codigo', $codigo)->exists());

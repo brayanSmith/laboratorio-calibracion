@@ -12,6 +12,7 @@ use App\Http\Controllers\Plataforma\TenantController;
 use App\Http\Controllers\Plataforma\TenantUserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\VersionDocumentoController;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserHasActiveTenant;
 use App\Modules\Agenda\Http\Controllers\AgendaController;
@@ -178,6 +179,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::post('calibraciones/{calibracion}/finalizar', [CalibracionController::class, 'finalizar'])->name('calibraciones.finalizar');
     Route::get('calibraciones/{calibracion}/certificado', [CalibracionController::class, 'certificado'])->name('calibraciones.certificado');
     Route::post('calibraciones/{calibracion}/certificado/actualizar', [CalibracionController::class, 'actualizarCertificado'])->name('calibraciones.actualizar-certificado');
+    Route::get('versiones-documento/{versionDocumento}', [VersionDocumentoController::class, 'show'])->name('versiones-documento.show');
 
     // Borrado individual de lo registrado en la gestión de un mantenimiento (ver
     // GestionarMantenimientoModal): el checklist, un nuevo defecto/ítem usado/comentario/

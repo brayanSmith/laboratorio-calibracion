@@ -936,7 +936,7 @@ test('cada ingreso nace con un codigo aleatorio y unico', function () {
 
     expect($codigos)->toHaveCount(2)
         ->and($codigos->unique())->toHaveCount(2)
-        ->each->toMatch('/^ING-[2-9A-HJ-NP-Z]{8}$/');
+        ->each->toMatch('/^IN-[2-9A-HJ-NP-Z]{8}$/');
 });
 
 test('al recibir el ingreso los clientes de los equipos y quien los entrego reciben el codigo con todos los equipos recibidos', function () {
@@ -986,7 +986,7 @@ test('al recibir el ingreso los clientes de los equipos y quien los entrego reci
 });
 
 test('el correo del ingreso muestra el codigo, el cliente y sus equipos', function () {
-    $correo = new IngresoRecibido($this->tenant->id, 'ING-7K3QX9MZ', 'Acme <b>S.A.</b>', 'Bahía 1', '2026-11-10', 'Ana', [[
+    $correo = new IngresoRecibido($this->tenant->id, 'IN-7K3QX9MZ', 'Acme <b>S.A.</b>', 'Bahía 1', '2026-11-10', 'Ana', [[
         'codigo' => 'EQ-1',
         'tipo_equipo' => 'Balanza',
         'modelo' => 'M1',
@@ -995,8 +995,8 @@ test('el correo del ingreso muestra el codigo, el cliente y sus equipos', functi
         'tipo_servicio' => 'Calibración',
     ]]);
 
-    $correo->assertHasSubject('[INGRESO] Control de equipos N° ING-7K3QX9MZ - ACME <B>S.A.</B>');
-    $correo->assertSeeInOrderInHtml(['RECEPCIÓN / INGRESO', 'Acme &lt;b&gt;S.A.&lt;/b&gt;', '10/11/2026', 'EQ-1', 'Balanza', 'Calibración', 'SEGUIMIENTO DE EQUIPOS', 'ING-7K3QX9MZ', 'Consultar estado de equipos'], false);
+    $correo->assertHasSubject('[INGRESO] Control de equipos N° IN-7K3QX9MZ - ACME <B>S.A.</B>');
+    $correo->assertSeeInOrderInHtml(['RECEPCIÓN / INGRESO', 'Acme &lt;b&gt;S.A.&lt;/b&gt;', '10/11/2026', 'EQ-1', 'Balanza', 'Calibración', 'SEGUIMIENTO DE EQUIPOS', 'IN-7K3QX9MZ', 'Consultar estado de equipos'], false);
 });
 
 test('reenvia de inmediato el correo del ingreso a un cliente con todos los equipos recibidos', function () {

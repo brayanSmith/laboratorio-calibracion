@@ -1,3 +1,5 @@
+import type { VersionDocumento } from './versiones-documento';
+
 import type {
     EquipoFichaTecnica,
     TipoMantenimientoProgramacion,
@@ -10,6 +12,8 @@ export type EstadoMantenimiento =
     | 'FINALIZADO';
 
 export type EstadoEquipoMantenimiento = 'OPERATIVO' | 'FUERA_DE_SERVICIO';
+/** Cómo llegó el equipo al mantenimiento (el "fuera de servicio" es solo para el final). */
+export type EstadoInicialEquipo = 'OPERATIVO' | 'INOPERATIVO';
 export type NivelRiesgo = 'ALTO' | 'MEDIO' | 'BAJO';
 
 export type MantenimientoOption = {
@@ -83,7 +87,9 @@ export type Mantenimiento = {
     /** Día en que realmente se terminó; nulo mientras no termina. */
     fecha_realizacion: string | null;
     descripcion: string | null;
-    estado_inicial_equipo: EstadoEquipoMantenimiento | null;
+    estado_inicial_equipo: EstadoInicialEquipo | null;
+    /** Cómo se recibió el equipo antes del mantenimiento. */
+    observaciones_estado_inicial: string | null;
     estado_final_equipo: EstadoEquipoMantenimiento | null;
     estado_mantenimiento: EstadoMantenimiento;
     tecnico_id: number;
@@ -110,6 +116,8 @@ export type Mantenimiento = {
     items_usados: MantenimientoItemUsado[];
     comentarios: MantenimientoComentario[];
     galeria: MantenimientoFoto[];
+    /** Los PDF emitidos, del original a la corrección más reciente. */
+    versiones: VersionDocumento[];
 };
 
 export type MantenimientoOptions = {

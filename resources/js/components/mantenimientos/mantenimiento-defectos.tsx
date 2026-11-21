@@ -26,7 +26,7 @@ const colorNivelRiesgo: Record<NivelRiesgo, string> = {
     BAJO: '!border-transparent !bg-emerald-500 !text-white',
 };
 
-/** La fila/tarjeta se tiñe según el nivel de riesgo, para que se note de un vistazo
+/** La fila/tarjeta se tiñe según el nivel de criticidad, para que se note de un vistazo
  * sin tener que leer la insignia. */
 const colorFilaNivelRiesgo: Record<NivelRiesgo, string> = {
     ALTO: 'bg-red-50 dark:bg-red-950/30',
@@ -60,7 +60,7 @@ type NivelRiesgoToggleProps = {
     className?: string;
 };
 
-/** Toggle agrupado (en vez de un select) para elegir el nivel de riesgo, con el
+/** Toggle agrupado (en vez de un select) para elegir el nivel de criticidad, con el
  * mismo código de color que la insignia/fila. */
 function NivelRiesgoToggle({
     name,
@@ -161,9 +161,9 @@ export default function MantenimientoDefectos({ defectos, errors }: Props) {
                                 />
                             </th>
                             <th className="relative px-3 py-2 font-medium">
-                                <TituloColumna titulo="Nivel de riesgo" />
+                                <TituloColumna titulo="Nivel de criticidad" />
                                 <ColumnResizeHandle
-                                    label="Nivel de riesgo"
+                                    label="Nivel de criticidad"
                                     onPointerDown={iniciarRedimension(
                                         'nivelRiesgo',
                                     )}

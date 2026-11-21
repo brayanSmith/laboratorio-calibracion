@@ -6,6 +6,7 @@ use App\Models\Empresa;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\Calibraciones\Actions\GenerarCertificadoCalibracion;
 use App\Modules\Calibraciones\Actions\GraficoErrorCalibracion;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
@@ -679,10 +680,9 @@ test('no permite ver el certificado de una calibracion sin finalizar ni de otro 
     $this->actingAs($this->admin)->get(route('calibraciones.certificado', $ajena))->assertNotFound();
 });
 
-test('actualizar el certificado reemplaza el archivo guardado', function () {
+test('actualizar el certificado emite una nueva version y conserva la anterior', function () {
     $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
-    Storage::disk('public')->put('certificados/viejo.pdf', 'viejo');
-    $calibracion->update(['pdf_certificado' => 'certificados/viejo.pdf']);
+    $original = app(GenerarCertificadoCalibracion::class)->handle($calibracion);
 
     $this->actingAs($this->admin)
         ->post(route('calibraciones.actualizar-certificado', $calibracion))
@@ -690,9 +690,28 @@ test('actualizar el certificado reemplaza el archivo guardado', function () {
 
     $calibracion->refresh();
 
-    expect($calibracion->pdf_certificado)->not->toBe('certificados/viejo.pdf');
+    expect($calibracion->pdf_certificado)->toBe("certificados/calibraciones/{$this->tenant->id}/calibracion-{$calibracion->id}-a.pdf");
+    Storage::disk('public')->assertExists($original);
     Storage::disk('public')->assertExists($calibracion->pdf_certificado);
-    Storage::disk('public')->assertMissing('certificados/viejo.pdf');
+});
+
+test('al corregir una calibracion finalizada se emite el certificado -A, y sin cambios no', function () {
+    $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO', 'temperatura' => '20.00', 'humedad' => '40.00']);
+    app(GenerarCertificadoCalibracion::class)->handle($calibracion);
+    $datos = ['temperatura' => '20.00', 'humedad' => '40.00'];
+
+    $this->actingAs($this->admin)->put(route('calibraciones.update', $calibracion), $datos)->assertSessionHasNoErrors();
+
+    expect($calibracion->versiones()->count())->toBe(1);
+
+    $this->actingAs($this->admin)->put(route('calibraciones.update', $calibracion), [...$datos, 'temperatura' => '21.00'])->assertSessionHasNoErrors();
+
+    $codigoBase = 'CC-'.str_pad((string) $calibracion->id, 6, '0', STR_PAD_LEFT);
+
+    expect($calibracion->versiones()->pluck('codigo')->all())->toBe([$codigoBase, "{$codigoBase}-A"]);
+    $this->actingAs($this->admin)
+        ->get(route('calibraciones.index'))
+        ->assertInertia(fn ($page) => $page->where('calibraciones.0.versiones.1.codigo', "{$codigoBase}-A"));
 });
 
 test('no permite actualizar el certificado de una calibracion sin finalizar, de otro tenant ni sin permiso', function () {

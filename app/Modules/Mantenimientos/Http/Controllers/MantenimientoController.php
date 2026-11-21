@@ -5,6 +5,7 @@ namespace App\Modules\Mantenimientos\Http\Controllers;
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\VersionDocumento;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Inventario\Models\Item;
 use App\Modules\Mantenimientos\Actions\GenerarInformeMantenimiento;
@@ -122,6 +123,7 @@ class MantenimientoController extends Controller
                 'itemMantenimientos.item:id,codigo,nombre',
                 'comentarioMantenimientos.user:id,name',
                 'galeriaMantenimientos',
+                'versiones.user:id,name',
             ])
             ->orderByDesc('fecha_mantenimiento')
             ->orderByDesc('id')
@@ -136,6 +138,7 @@ class MantenimientoController extends Controller
                 'fecha_realizacion' => $mantenimiento->fecha_realizacion?->toDateString(),
                 'descripcion' => $mantenimiento->descripcion,
                 'estado_inicial_equipo' => $mantenimiento->estado_inicial_equipo,
+                'observaciones_estado_inicial' => $mantenimiento->observaciones_estado_inicial,
                 'estado_final_equipo' => $mantenimiento->estado_final_equipo,
                 'estado_mantenimiento' => $mantenimiento->estado_mantenimiento,
                 'tecnico_id' => $mantenimiento->tecnico_id,
@@ -187,6 +190,7 @@ class MantenimientoController extends Controller
                         'autor' => $comentario->user->name,
                         'fecha' => $comentario->created_at->toIso8601String(),
                     ])->values(),
+                'versiones' => $mantenimiento->versiones->map(fn (VersionDocumento $version) => $version->paraListado())->values(),
                 'galeria' => $mantenimiento->galeriaMantenimientos->map(fn (GaleriaMantenimiento $foto) => [
                     'id' => $foto->id,
                     'imagen_url' => $foto->imagenUrl(),
@@ -321,14 +325,14 @@ class MantenimientoController extends Controller
 
         $ruta = $mantenimiento->pdf_informe && $disco->exists($mantenimiento->pdf_informe)
             ? $mantenimiento->pdf_informe
-            : $generarInforme->handle($mantenimiento);
+            : $generarInforme->handle($mantenimiento, nuevaVersion: false);
 
         return $disco->response($ruta, 'informe-mantenimiento-'.$mantenimiento->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     /**
      * Vuelve a generar el informe PDF de un mantenimiento finalizado con los datos y el
-     * diseño actuales, reemplazando el archivo guardado.
+     * diseño actuales, como una nueva versión (la anterior se conserva).
      */
     public function actualizarInforme(Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): RedirectResponse
     {
@@ -348,12 +352,19 @@ class MantenimientoController extends Controller
      * llenaron, nuevos defectos identificados, ítems usados, comentarios y/o fotos (se
      * puede agregar más de uno de cada uno). Todo se guarda con una sola solicitud para
      * que la modal de gestión tenga un único botón. Una fila nueva vacía no crea nada.
+     *
+     * Si el mantenimiento ya estaba finalizado y algo cambió (aquí o al eliminar antes un
+     * defecto, ítem, comentario o foto), se emite una nueva versión del informe (-A, -B,
+     * ...) y la anterior se conserva.
      */
-    public function update(UpdateMantenimientoRequest $request, Mantenimiento $mantenimiento): RedirectResponse
+    public function update(UpdateMantenimientoRequest $request, Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): RedirectResponse
     {
+        $huellaAntes = $mantenimiento->huellaInforme();
+        $informeDesactualizado = $mantenimiento->informeDesactualizado();
+
         DB::transaction(function () use ($request, $mantenimiento): void {
             $mantenimiento->update($request->safe()->only([
-                'fecha_mantenimiento', 'descripcion', 'estado_inicial_equipo', 'estado_final_equipo',
+                'fecha_mantenimiento', 'descripcion', 'estado_inicial_equipo', 'observaciones_estado_inicial', 'estado_final_equipo',
                 'estado_mantenimiento', 'tecnico_id', 'firmado', 'novedad_id',
             ]));
 
@@ -426,6 +437,17 @@ class MantenimientoController extends Controller
                 }
             }
         });
+
+        $mantenimiento->refresh();
+
+        if ($mantenimiento->estado_mantenimiento === 'FINALIZADO'
+            && ($informeDesactualizado || $mantenimiento->huellaInforme() !== $huellaAntes)) {
+            try {
+                $generarInforme->handle($mantenimiento);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Mantenimiento actualizado.')]);
 

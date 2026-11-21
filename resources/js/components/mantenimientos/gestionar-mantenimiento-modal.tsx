@@ -21,9 +21,14 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
-import type { Mantenimiento, MantenimientoItemOption } from '@/types';
+import type {
+    EstadoInicialEquipo,
+    Mantenimiento,
+    MantenimientoItemOption,
+} from '@/types';
 import { formatearFecha } from '@/lib/fechas';
 
 type Props = {
@@ -39,7 +44,7 @@ type Props = {
  * Gestiona un mantenimiento ya iniciado: muestra los datos de referencia (equipo,
  * fecha, técnico, descripción) y un cronómetro en vivo desde que se inició, permite
  * registrar el estado inicial del equipo, y reúne el checklist, los defectos
- * identificados, los ítems usados, los comentarios y la galería de fotos.
+ * identificados, los ítems utilizados, los comentarios y la galería de fotos.
  */
 export default function GestionarMantenimientoModal({
     mantenimiento,
@@ -80,13 +85,10 @@ function GestionarMantenimientoFormulario({
     iniciadoEn,
     onSuccess,
 }: FormularioProps) {
-    const [estadoInicialEquipo, setEstadoInicialEquipo] = useState<
-        'OPERATIVO' | 'FUERA_DE_SERVICIO'
-    >(
-        mantenimiento.estado_inicial_equipo === 'FUERA_DE_SERVICIO'
-            ? 'FUERA_DE_SERVICIO'
-            : 'OPERATIVO',
-    );
+    const [estadoInicialEquipo, setEstadoInicialEquipo] =
+        useState<EstadoInicialEquipo>(
+            mantenimiento.estado_inicial_equipo ?? 'OPERATIVO',
+        );
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
     const [finalizarOpen, setFinalizarOpen] = useState(false);
     const { can } = usePermissions();
@@ -280,9 +282,7 @@ function GestionarMantenimientoFormulario({
                                 onValueChange={(value) => {
                                     if (value) {
                                         setEstadoInicialEquipo(
-                                            value as
-                                                | 'OPERATIVO'
-                                                | 'FUERA_DE_SERVICIO',
+                                            value as EstadoInicialEquipo,
                                         );
                                     }
                                 }}
@@ -296,12 +296,34 @@ function GestionarMantenimientoFormulario({
                                     Operativo
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
-                                    value="FUERA_DE_SERVICIO"
-                                    className="grow basis-0 data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
+                                    value="INOPERATIVO"
+                                    className="grow basis-0 data-[state=on]:!border-neutral-500 data-[state=on]:!bg-neutral-500 data-[state=on]:!text-white"
                                 >
-                                    Fuera de servicio
+                                    Inoperativo
                                 </ToggleGroupItem>
                             </ToggleGroup>
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label
+                                htmlFor="observaciones_estado_inicial"
+                                className="text-xs text-muted-foreground"
+                            >
+                                Observaciones del estado inicial (opcional)
+                            </Label>
+                            <Textarea
+                                id="observaciones_estado_inicial"
+                                name="observaciones_estado_inicial"
+                                defaultValue={
+                                    mantenimiento.observaciones_estado_inicial ??
+                                    ''
+                                }
+                                placeholder="Cómo se recibió el equipo"
+                                data-test="observaciones-estado-inicial"
+                            />
+                            <InputError
+                                message={errors.observaciones_estado_inicial}
+                            />
                         </div>
 
                         <input

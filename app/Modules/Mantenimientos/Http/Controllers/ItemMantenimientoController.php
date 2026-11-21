@@ -21,6 +21,7 @@ class ItemMantenimientoController extends Controller
 
         $itemMantenimiento->delete();
         $mantenimiento->sincronizarEstadoRepuestos();
+        $mantenimiento->marcarInformeDesactualizado();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Ítem eliminado.')]);
 

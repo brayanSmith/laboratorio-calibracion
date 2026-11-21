@@ -105,8 +105,8 @@ export default function VerCalibracionModal({
                                 }
                             >
                                 {calibracion.resultado_calibracion
-                                    ? 'Aprobado'
-                                    : 'No aprobado'}
+                                    ? 'Cumple'
+                                    : 'No cumple'}
                             </Badge>
                         )}
                     </Dato>
@@ -198,22 +198,22 @@ export default function VerCalibracionModal({
                                                     'APROBADO' ? (
                                                         <CheckCircle2
                                                             className="h-4 w-4 text-emerald-500"
-                                                            aria-label="Aprobado"
+                                                            aria-label="Cumple"
                                                             data-test="detalle-resultado-aprobado"
                                                         >
                                                             <title>
-                                                                Aprobado
+                                                                Cumple
                                                             </title>
                                                         </CheckCircle2>
                                                     ) : detalle.resultado_calibracion ===
                                                       'NO_APROBADO' ? (
                                                         <XCircle
                                                             className="h-4 w-4 text-red-500"
-                                                            aria-label="No aprobado"
+                                                            aria-label="No cumple"
                                                             data-test="detalle-resultado-no-aprobado"
                                                         >
                                                             <title>
-                                                                No aprobado
+                                                                No cumple
                                                             </title>
                                                         </XCircle>
                                                     ) : (

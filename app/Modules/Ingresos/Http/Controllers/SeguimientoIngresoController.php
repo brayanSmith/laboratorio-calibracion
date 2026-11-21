@@ -14,7 +14,6 @@ use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -28,7 +27,7 @@ class SeguimientoIngresoController extends Controller
      */
     public function __invoke(Request $request, DatosSeguimientoIngreso $datosSeguimiento): Response
     {
-        $codigo = Str::upper(trim((string) $request->query('codigo', '')));
+        $codigo = Ingreso::normalizarCodigo((string) $request->query('codigo', ''));
 
         $ingreso = $codigo !== ''
             ? Ingreso::query()->where('codigo', $codigo)->with(['bahia:id,nombre', 'clienteEntrega:id,nombre'])->first()
@@ -50,14 +49,14 @@ class SeguimientoIngresoController extends Controller
         $calibracion = Calibracion::query()
             ->whereKey($calibracion)
             ->where('estado_calibracion', 'FINALIZADO')
-            ->whereHas('ordenTrabajo.equipoProgramacion.ingreso', fn ($query) => $query->where('codigo', Str::upper($codigo)))
+            ->whereHas('ordenTrabajo.equipoProgramacion.ingreso', fn ($query) => $query->where('codigo', Ingreso::normalizarCodigo($codigo)))
             ->with('ordenTrabajo:id,codigo')
             ->firstOrFail();
 
         $disco = Storage::disk('public');
         $ruta = $calibracion->pdf_certificado && $disco->exists($calibracion->pdf_certificado)
             ? $calibracion->pdf_certificado
-            : $generarCertificado->handle($calibracion);
+            : $generarCertificado->handle($calibracion, nuevaVersion: false);
 
         return $disco->response($ruta, 'certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
     }
@@ -71,14 +70,14 @@ class SeguimientoIngresoController extends Controller
         $mantenimiento = Mantenimiento::query()
             ->whereKey($mantenimiento)
             ->where('estado_mantenimiento', 'FINALIZADO')
-            ->whereHas('ordenTrabajo.equipoProgramacion.ingreso', fn ($query) => $query->where('codigo', Str::upper($codigo)))
+            ->whereHas('ordenTrabajo.equipoProgramacion.ingreso', fn ($query) => $query->where('codigo', Ingreso::normalizarCodigo($codigo)))
             ->with('ordenTrabajo:id,codigo')
             ->firstOrFail();
 
         $disco = Storage::disk('public');
         $ruta = $mantenimiento->pdf_informe && $disco->exists($mantenimiento->pdf_informe)
             ? $mantenimiento->pdf_informe
-            : $generarInforme->handle($mantenimiento);
+            : $generarInforme->handle($mantenimiento, nuevaVersion: false);
 
         return $disco->response($ruta, 'informe-mantenimiento-'.$mantenimiento->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
     }
@@ -93,7 +92,7 @@ class SeguimientoIngresoController extends Controller
             ->whereKey($servicio)
             ->where('estado_servicio', 'FINALIZADO')
             ->whereNotNull('pdf_servicio')
-            ->whereHas('ordenTrabajo.equipoProgramacion.ingreso', fn ($query) => $query->where('codigo', Str::upper($codigo)))
+            ->whereHas('ordenTrabajo.equipoProgramacion.ingreso', fn ($query) => $query->where('codigo', Ingreso::normalizarCodigo($codigo)))
             ->with('ordenTrabajo:id,codigo')
             ->firstOrFail();
 

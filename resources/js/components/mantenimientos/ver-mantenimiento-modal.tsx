@@ -15,8 +15,10 @@ import {
 import { Label } from '@/components/ui/label';
 import {
     colorEstadoEquipoMantenimiento,
+    colorEstadoInicialEquipo,
     colorEstadoMantenimiento,
     estadosEquipoMantenimiento,
+    estadosInicialesEquipo,
     estadosMantenimiento,
 } from '@/lib/estados-mantenimiento';
 import type { EstadoEquipoMantenimiento, Mantenimiento } from '@/types';
@@ -78,7 +80,7 @@ function EstadoEquipo({
 
 /**
  * Resumen de solo lectura de un mantenimiento ya realizado: estado del equipo antes y
- * después, checklist, defectos, ítems usados, comentarios y fotos.
+ * después, checklist, defectos, ítems utilizados, comentarios y fotos.
  */
 export default function VerMantenimientoModal({
     mantenimiento,
@@ -144,9 +146,25 @@ export default function VerMantenimientoModal({
                         {mantenimiento.firmado ? 'Sí' : 'No'}
                     </Dato>
                     <Dato etiqueta="Estado inicial del equipo">
-                        <EstadoEquipo
-                            estado={mantenimiento.estado_inicial_equipo}
-                        />
+                        {mantenimiento.estado_inicial_equipo ? (
+                            <Badge
+                                className={
+                                    colorEstadoInicialEquipo[
+                                        mantenimiento.estado_inicial_equipo
+                                    ]
+                                }
+                            >
+                                {estadosInicialesEquipo.find(
+                                    (option) =>
+                                        option.value ===
+                                        mantenimiento.estado_inicial_equipo,
+                                )?.label ?? mantenimiento.estado_inicial_equipo}
+                            </Badge>
+                        ) : (
+                            <span className="text-muted-foreground">
+                                Sin registrar
+                            </span>
+                        )}
                     </Dato>
                     <Dato etiqueta="Estado final del equipo">
                         <EstadoEquipo
@@ -156,6 +174,13 @@ export default function VerMantenimientoModal({
                     <Dato etiqueta="Novedad">
                         {mantenimiento.novedad_nombre ?? 'Sin novedad'}
                     </Dato>
+                    {mantenimiento.observaciones_estado_inicial ? (
+                        <div className="sm:col-span-3">
+                            <Dato etiqueta="Observaciones del estado inicial">
+                                {mantenimiento.observaciones_estado_inicial}
+                            </Dato>
+                        </div>
+                    ) : null}
                     <div className="sm:col-span-3">
                         <Dato etiqueta="Descripción">
                             {mantenimiento.descripcion || 'Sin descripción'}
@@ -201,7 +226,7 @@ export default function VerMantenimientoModal({
                                     <div className="flex items-center justify-between gap-2">
                                         <p>{defecto.defecto_identificado}</p>
                                         <Badge variant="secondary">
-                                            Riesgo{' '}
+                                            Criticidad{' '}
                                             {defecto.nivel_riesgo.toLowerCase()}
                                         </Badge>
                                     </div>
@@ -218,7 +243,7 @@ export default function VerMantenimientoModal({
                 ) : null}
 
                 {mantenimiento.items_usados.length > 0 ? (
-                    <Seccion titulo="Ítems usados">
+                    <Seccion titulo="Ítems utilizados">
                         <ul className="divide-y rounded-lg border">
                             {mantenimiento.items_usados.map((item) => (
                                 <li

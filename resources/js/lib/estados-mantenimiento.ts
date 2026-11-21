@@ -1,4 +1,8 @@
-import type { EstadoEquipoMantenimiento, EstadoMantenimiento } from '@/types';
+import type {
+    EstadoEquipoMantenimiento,
+    EstadoInicialEquipo,
+    EstadoMantenimiento,
+} from '@/types';
 
 export const estadosMantenimiento = [
     { value: 'PENDIENTE', label: 'Pendiente' },
@@ -27,4 +31,15 @@ export const colorEstadoEquipoMantenimiento: Record<
 > = {
     OPERATIVO: '!border-transparent !bg-emerald-500 !text-white',
     FUERA_DE_SERVICIO: '!border-transparent !bg-red-500 !text-white',
+};
+
+export const estadosInicialesEquipo = [
+    { value: 'OPERATIVO', label: 'Operativo' },
+    { value: 'INOPERATIVO', label: 'Inoperativo' },
+];
+
+/** Operativo en verde, inoperativo en gris. */
+export const colorEstadoInicialEquipo: Record<EstadoInicialEquipo, string> = {
+    OPERATIVO: '!border-transparent !bg-emerald-500 !text-white',
+    INOPERATIVO: '!border-transparent !bg-neutral-500 !text-white',
 };

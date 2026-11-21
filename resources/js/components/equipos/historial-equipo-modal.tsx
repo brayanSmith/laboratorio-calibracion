@@ -667,8 +667,8 @@ export default function HistorialEquipoModal({
                                                             null
                                                                 ? null
                                                                 : calibracion.resultado_calibracion
-                                                                  ? 'Aprobado'
-                                                                  : 'No aprobado'
+                                                                  ? 'Cumple'
+                                                                  : 'No cumple'
                                                         }
                                                     />
                                                     <Dato

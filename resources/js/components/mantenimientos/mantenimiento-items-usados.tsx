@@ -139,7 +139,7 @@ export default function MantenimientoItemsUsados({
     return (
         <div className="min-w-0 space-y-2">
             <div className="flex items-center justify-between gap-2">
-                <Label>Ítems usados</Label>
+                <Label>Ítems utilizados</Label>
                 <Button
                     type="button"
                     variant="outline"

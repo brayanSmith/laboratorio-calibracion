@@ -1,3 +1,5 @@
+import type { VersionDocumento } from './versiones-documento';
+
 import type { EquipoFichaTecnica } from './equipos';
 
 export type EstadoCalibracion =
@@ -87,6 +89,8 @@ export type Calibracion = {
         area: CalibracionAreaEquipo | null;
     };
     detalles_medicion: CalibracionDetalleMedicion[];
+    /** Los PDF emitidos, del original a la corrección más reciente. */
+    versiones: VersionDocumento[];
 };
 
 export type CalibracionOptions = {

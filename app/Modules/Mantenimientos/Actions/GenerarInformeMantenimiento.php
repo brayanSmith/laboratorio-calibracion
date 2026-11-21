@@ -3,6 +3,7 @@
 namespace App\Modules\Mantenimientos\Actions;
 
 use App\Models\Empresa;
+use App\Models\VersionDocumento;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,10 +17,12 @@ class GenerarInformeMantenimiento
     private const ZONA_HORARIA = 'America/Lima';
 
     /**
-     * Genera el informe PDF del mantenimiento, lo guarda en el disco público (reemplazando
-     * el anterior, si lo había) y registra su ruta en pdf_informe.
+     * Genera el informe PDF del mantenimiento y lo guarda como una nueva versión (el
+     * original o la siguiente corrección: -A, -B, ...), conservando las anteriores; su ruta
+     * queda en pdf_informe. Con $nuevaVersion en false vuelve a escribir la última (para
+     * cuando se perdió su archivo).
      */
-    public function handle(Mantenimiento $mantenimiento): string
+    public function handle(Mantenimiento $mantenimiento, bool $nuevaVersion = true): string
     {
         $mantenimiento->load([
             'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo',
@@ -36,11 +39,12 @@ class GenerarInformeMantenimiento
 
         $empresa = Empresa::query()->where('tenant_id', $mantenimiento->tenant_id)->first();
 
-        $pdf = Pdf::loadView('pdf.mantenimiento', [
+        return VersionDocumento::guardar($mantenimiento, 'pdf_informe', 'informes/mantenimientos', fn (string $codigo) => Pdf::loadView('pdf.mantenimiento', [
             'mantenimiento' => $mantenimiento,
             'equipo' => $mantenimiento->ordenTrabajo->equipoProgramacion->equipo,
             'programacion' => $mantenimiento->ordenTrabajo->equipoProgramacion,
             'duracion' => TiempoServicio::formatearDuracion(TiempoServicio::duracionMantenimiento($mantenimiento->orden_trabajo_id)),
+            'codigo' => $codigo,
             'fechaHora' => now()->timezone(self::ZONA_HORARIA),
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),
@@ -50,19 +54,7 @@ class GenerarInformeMantenimiento
                 ->filter(fn (array $foto) => $foto['data'] !== null)
                 ->values()
                 ->all(),
-        ])->setPaper('letter');
-
-        $ruta = "informes/mantenimientos/{$mantenimiento->tenant_id}/mantenimiento-{$mantenimiento->id}.pdf";
-
-        if ($mantenimiento->pdf_informe && $mantenimiento->pdf_informe !== $ruta) {
-            Storage::disk('public')->delete($mantenimiento->pdf_informe);
-        }
-
-        Storage::disk('public')->put($ruta, $pdf->output());
-
-        $mantenimiento->update(['pdf_informe' => $ruta]);
-
-        return $ruta;
+        ])->setPaper('letter')->output(), $nuevaVersion);
     }
 
     /**

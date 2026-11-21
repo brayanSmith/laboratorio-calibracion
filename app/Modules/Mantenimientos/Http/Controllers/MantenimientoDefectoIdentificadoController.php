@@ -18,6 +18,7 @@ class MantenimientoDefectoIdentificadoController extends Controller
         Gate::authorize('update', $defectoIdentificado->mantenimiento);
 
         $defectoIdentificado->delete();
+        $defectoIdentificado->mantenimiento->marcarInformeDesactualizado();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Defecto eliminado.')]);
 

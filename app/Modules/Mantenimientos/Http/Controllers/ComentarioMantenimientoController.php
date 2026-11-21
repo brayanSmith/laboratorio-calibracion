@@ -18,6 +18,7 @@ class ComentarioMantenimientoController extends Controller
         Gate::authorize('update', $comentarioMantenimiento->mantenimiento);
 
         $comentarioMantenimiento->delete();
+        $comentarioMantenimiento->mantenimiento->marcarInformeDesactualizado();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comentario eliminado.')]);
 
