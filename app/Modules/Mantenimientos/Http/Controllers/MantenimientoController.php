@@ -365,6 +365,11 @@ class MantenimientoController extends Controller
                 $programacion->intervalo_unidad,
             ),
             urlDocumento: URL::signedRoute('etiqueta.mantenimiento.informe', ['mantenimiento' => $mantenimiento->id]),
+            rotuloDocumento: 'Informe N°',
+            // El informe vigente (la corrección más reciente, si la hay).
+            numeroDocumento: $mantenimiento->versiones()->reorder('numero', 'desc')->value('codigo')
+                ?? VersionDocumento::codigoBase(Mantenimiento::class, $mantenimiento->id),
+            tecnico: $mantenimiento->tecnico?->name,
         );
 
         return response($pdf, 200, [

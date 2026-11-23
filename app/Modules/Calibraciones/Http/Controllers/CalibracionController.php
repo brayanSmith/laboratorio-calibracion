@@ -420,6 +420,11 @@ class CalibracionController extends Controller
                 $programacion->intervalo_unidad,
             ),
             urlDocumento: URL::signedRoute('etiqueta.calibracion.certificado', ['calibracion' => $calibracion->id]),
+            rotuloDocumento: 'Cert. N°',
+            // El certificado vigente (la corrección más reciente, si la hay).
+            numeroDocumento: $calibracion->versiones()->reorder('numero', 'desc')->value('codigo')
+                ?? VersionDocumento::codigoBase(Calibracion::class, $calibracion->id),
+            tecnico: $calibracion->tecnico?->name,
         );
 
         return response($pdf, 200, [

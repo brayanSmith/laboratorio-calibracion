@@ -22,10 +22,12 @@ class GenerarEtiquetaServicio
 
     /**
      * Genera la etiqueta (PDF) que se pega en el equipo tras un servicio: logo de la empresa,
-     * título, fecha del servicio y del próximo, código del equipo, bahía y un QR que lleva
-     * a $urlDocumento (el certificado o informe del servicio).
+     * título, fecha del servicio y del próximo, N° del certificado o informe, código y serie
+     * del equipo, técnico, un QR que lleva a $urlDocumento (el certificado o informe) y al pie
+     * el correo y teléfono del laboratorio.
      *
      * @param  string  $servicio  "calibración" o "mantenimiento", para los rótulos de las fechas
+     * @param  string  $rotuloDocumento  "Cert. N°" o "Informe N°"
      */
     public function handle(
         Equipo $equipo,
@@ -34,20 +36,30 @@ class GenerarEtiquetaServicio
         CarbonInterface $fechaServicio,
         ?string $fechaProximoServicio,
         string $urlDocumento,
+        string $rotuloDocumento,
+        string $numeroDocumento,
+        ?string $tecnico,
     ): string {
-        $equipo->loadMissing('bahia');
-
         $empresa = Empresa::query()->where('tenant_id', $equipo->tenant_id)->first();
 
         return Pdf::loadView('pdf.etiqueta', [
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),
             'titulo' => $titulo,
-            'servicio' => $servicio,
-            'fechaServicio' => $fechaServicio->format('d/m/Y'),
-            'fechaProximoServicio' => $fechaProximoServicio ? Carbon::parse($fechaProximoServicio)->format('d/m/Y') : '—',
+            'datos' => [
+                "Fecha {$servicio}" => $fechaServicio->format('d/m/Y'),
+                "Próx. {$servicio}" => $fechaProximoServicio ? Carbon::parse($fechaProximoServicio)->format('d/m/Y') : '—',
+                $rotuloDocumento => $numeroDocumento,
+                'ID' => $equipo->codigo,
+                'S/N' => $equipo->numero_serie ?: '—',
+                'Técnico' => $tecnico ?: '—',
+            ],
             'codigoEquipo' => $equipo->codigo,
-            'bahia' => $equipo->bahia?->nombre ?? '—',
+            // Contacto del laboratorio al pie; si no tiene teléfono propio, el de la empresa.
+            'contacto' => array_values(array_filter([
+                $empresa?->laboratorio_email,
+                $empresa?->laboratorio_telefono ?: $empresa?->telefono,
+            ])),
             'qr' => 'data:image/png;base64,'.base64_encode((new Writer(new GDLibRenderer(300, 1)))->writeString($urlDocumento)),
         ])->setPaper(self::TAMANO_PAPEL)->output();
     }

@@ -5,6 +5,7 @@ use App\Enums\TenantRole;
 use App\Models\Empresa;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VersionDocumento;
 use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
 use App\Modules\Calibraciones\Actions\GenerarCertificadoCalibracion;
 use App\Modules\Calibraciones\Actions\GraficoErrorCalibracion;
@@ -21,6 +22,7 @@ use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -1040,4 +1042,29 @@ test('iniciar, finalizar y ver el PDF de una calibracion dependen de su propio p
     $this->actingAs($usuario)->get(route('calibraciones.certificado', $calibracion))->assertOk();
     $this->actingAs($usuario)->post(route('calibraciones.iniciar', $calibracion))->assertRedirect();
     $this->actingAs($usuario)->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FINALIZADO'])->assertForbidden();
+});
+
+test('la etiqueta de calibracion muestra el certificado vigente, la serie, el tecnico y el contacto del laboratorio', function () {
+    $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
+    $equipo = $calibracion->ordenTrabajo->equipoProgramacion->equipo;
+    $equipo->tipoEquipo->update(['tipo_mantenimiento' => 'A']);
+    VersionDocumento::factory()->for($calibracion, 'documentable')->create(['numero' => 0, 'codigo' => 'CC-000001', 'tenant_id' => $this->tenant->id]);
+    VersionDocumento::factory()->for($calibracion, 'documentable')->create(['numero' => 1, 'codigo' => 'CC-000001-A', 'tenant_id' => $this->tenant->id]);
+    registrarLaboratorioPropio($this->tenant)->update(['laboratorio_email' => 'lab@acme.test', 'laboratorio_telefono' => '555-1234']);
+
+    $vista = null;
+    View::creator('pdf.etiqueta', function ($view) use (&$vista): void {
+        $vista = $view->getData();
+    });
+
+    $this->actingAs($this->admin)->get(route('calibraciones.etiqueta', $calibracion))->assertOk();
+
+    expect($vista['datos'])
+        ->toMatchArray([
+            'Cert. N°' => 'CC-000001-A',
+            'ID' => $equipo->codigo,
+            'S/N' => $equipo->numero_serie,
+            'Técnico' => $calibracion->tecnico->name,
+        ])
+        ->and($vista['contacto'])->toBe(['lab@acme.test', '555-1234']);
 });
