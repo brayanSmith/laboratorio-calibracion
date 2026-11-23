@@ -17,6 +17,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // En MySQL crear una tabla no se deshace si la migración falla después: si un intento
+        // anterior la dejó a medias (sin quedar registrada), se descarta y se rehace completa.
+        // Solo puede tener la copia inicial de los PDF, que se vuelve a hacer aquí mismo.
+        Schema::dropIfExists('version_documentos');
+
         Schema::create('version_documentos', function (Blueprint $table) {
             $table->id();
             $table->morphs('documentable');

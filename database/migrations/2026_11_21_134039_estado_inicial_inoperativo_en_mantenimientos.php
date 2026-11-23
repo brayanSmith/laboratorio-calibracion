@@ -15,8 +15,14 @@ return new class extends Migration
     {
         Schema::table('mantenimientos', function (Blueprint $table) {
             $table->string('estado_inicial_equipo', 20)->nullable()->change();
-            $table->text('observaciones_estado_inicial')->nullable()->after('estado_inicial_equipo');
         });
+
+        // Si un intento anterior alcanzó a agregarla (MySQL no deshace los cambios de esquema).
+        if (! Schema::hasColumn('mantenimientos', 'observaciones_estado_inicial')) {
+            Schema::table('mantenimientos', function (Blueprint $table) {
+                $table->text('observaciones_estado_inicial')->nullable()->after('estado_inicial_equipo');
+            });
+        }
 
         DB::table('mantenimientos')
             ->where('estado_inicial_equipo', 'FUERA_DE_SERVICIO')
