@@ -89,6 +89,9 @@ Route::middleware(['signed', 'throttle:seguimiento'])->group(function () {
     Route::get('etiquetas/mantenimientos/{mantenimiento}/informe', [SeguimientoIngresoController::class, 'informeEtiqueta'])
         ->whereNumber('mantenimiento')
         ->name('etiqueta.mantenimiento.informe');
+    Route::get('etiquetas/servicios-terceros/{servicio}/documento', [SeguimientoIngresoController::class, 'documentoTerceroEtiqueta'])
+        ->whereNumber('servicio')
+        ->name('etiqueta.servicio-tercero.documento');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -178,6 +181,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::post('servicio-terceros/{servicio_tercero}/iniciar', [ServicioTerceroController::class, 'iniciar'])->name('servicio-terceros.iniciar');
     Route::post('servicio-terceros/{servicio_tercero}/codigos', [ServicioTerceroController::class, 'guardarCodigos'])->name('servicio-terceros.guardar-codigos');
     Route::post('servicio-terceros/{servicio_tercero}/finalizar', [ServicioTerceroController::class, 'finalizar'])->name('servicio-terceros.finalizar');
+    Route::get('servicio-terceros/{servicio_tercero}/etiqueta', [ServicioTerceroController::class, 'etiqueta'])->name('servicio-terceros.etiqueta');
 
     Route::post('mantenimientos/{mantenimiento}/iniciar', [MantenimientoController::class, 'iniciar'])->name('mantenimientos.iniciar');
     Route::post('mantenimientos/{mantenimiento}/actualizar-stock', [MantenimientoController::class, 'actualizarStock'])->name('mantenimientos.actualizar-stock');

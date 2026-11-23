@@ -497,6 +497,7 @@ export default function MantenimientosIndex({
                                 canDelete={canDelete}
                                 canIniciar={canIniciar}
                                 canFinalizar={can('mantenimientos.finalizar')}
+                                canPdf={canPdf}
                                 searchPlaceholder="Buscar servicio de tercero..."
                                 emptyMessage="Aún no hay mantenimientos asignados a terceros."
                             />

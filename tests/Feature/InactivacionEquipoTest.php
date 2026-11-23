@@ -148,7 +148,7 @@ test('un servicio de tercero fuera de servicio con re-agendar o aprobado deja el
     expect($servicio->ordenTrabajo->equipoProgramacion->equipo->refresh()->activo)->toBeTrue();
 })->with([
     'fuera de servicio con re-agendar' => [['estado_final_equipo' => 'FUERA_DE_SERVICIO', 're_agendar' => true]],
-    'aprobado' => [['estado_final_equipo' => 'APROBADO']],
+    'aprobado' => [['estado_final_equipo' => 'APROBADO', 'numero_certificado' => 'CERT-1', 'fecha_servicio' => now()->toDateString()]],
 ]);
 
 test('al volver a activar el equipo se borra el motivo de inactividad', function () {

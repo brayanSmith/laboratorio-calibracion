@@ -6,10 +6,12 @@ import {
     Loader,
     Pencil,
     Play,
+    QrCode,
     ShieldAlert,
     Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
@@ -57,6 +59,8 @@ type Props = {
     canDelete: boolean;
     canIniciar: boolean;
     canFinalizar: boolean;
+    /** Permiso de PDF del módulo: para imprimir la etiqueta del servicio. */
+    canPdf: boolean;
     searchPlaceholder: string;
     emptyMessage: string;
 };
@@ -72,6 +76,7 @@ export default function ServicioTercerosTab({
     canDelete,
     canIniciar,
     canFinalizar,
+    canPdf,
     searchPlaceholder,
     emptyMessage,
 }: Props) {
@@ -273,6 +278,9 @@ export default function ServicioTercerosTab({
                             servicio.estado_final_equipo !== null;
                         const iniciado =
                             servicio.tiempo_servicio_inicio !== null;
+                        // Equipos tipo A o B: la etiqueta del servicio, si quedó aprobado.
+                        const llevaEtiqueta =
+                            servicio.estado_final_equipo === 'APROBADO';
 
                         return (
                             <div className="flex items-center justify-end gap-2">
@@ -286,6 +294,23 @@ export default function ServicioTercerosTab({
                                             setViendoId(servicio.id);
                                             setVerOpen(true);
                                         }}
+                                    />
+                                ) : null}
+                                {canPdf && llevaEtiqueta ? (
+                                    <BotonAccion
+                                        icono={QrCode}
+                                        etiqueta={
+                                            servicio.tipo_servicio ===
+                                            'MANTENIMIENTO'
+                                                ? 'Etiqueta de mantenimiento'
+                                                : 'Etiqueta de calibración'
+                                        }
+                                        variant="outline"
+                                        href={ServicioTerceroController.etiqueta.url(
+                                            servicio.id,
+                                        )}
+                                        target="_blank"
+                                        data-test="servicio-tercero-etiqueta-button"
                                     />
                                 ) : null}
                                 {canIniciar && !finalizado && !iniciado ? (
@@ -339,7 +364,7 @@ export default function ServicioTercerosTab({
                     },
                 }),
             ]),
-        [canEdit, canDelete, canIniciar, canFinalizar],
+        [canEdit, canDelete, canIniciar, canFinalizar, canPdf],
     );
 
     return (

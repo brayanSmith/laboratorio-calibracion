@@ -114,7 +114,7 @@ test('la calibracion y el servicio de tercero tambien guardan su fecha real al t
 
     $this->actingAs($this->admin)->post(route('calibraciones.iniciar', $calibracion));
     $this->actingAs($this->admin)->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'DEVOLVER_MANTENIMIENTO']);
-    $this->actingAs($this->admin)->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()]);
+    $this->actingAs($this->admin)->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio(), 'numero_certificado' => 'CERT-1', 'fecha_servicio' => now()->toDateString()]);
 
     expect($calibracion->refresh()->fecha_realizacion->toDateString())->toBe('2026-11-18')
         ->and($servicio->refresh()->fecha_realizacion->toDateString())->toBe('2026-11-18');

@@ -125,6 +125,28 @@ class SeguimientoIngresoController extends Controller
     }
 
     /**
+     * Documento que entregó el tercero, al que lleva el QR de la etiqueta de un servicio de
+     * tercero (ver ServicioTerceroController::etiqueta()). El enlace va firmado: no hace
+     * falta el código del ingreso.
+     */
+    public function documentoTerceroEtiqueta(int $servicio): StreamedResponse
+    {
+        $servicio = ServicioTercero::query()
+            ->whereKey($servicio)
+            ->where('estado_servicio', 'FINALIZADO')
+            ->whereNotNull('pdf_servicio')
+            ->with('ordenTrabajo:id,codigo')
+            ->firstOrFail();
+
+        $disco = Storage::disk('public');
+        abort_unless($disco->exists($servicio->pdf_servicio), 404);
+
+        $nombre = $servicio->tipo_servicio === 'CALIBRACION' ? 'certificado-calibracion' : 'informe-mantenimiento';
+
+        return $disco->response($servicio->pdf_servicio, "{$nombre}-{$servicio->ordenTrabajo->codigo}.pdf", ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
      * Documento (PDF) que entregó el laboratorio externo por un servicio de mantenimiento o
      * calibración de un equipo del ingreso con ese código. Solo de servicios finalizados.
      */

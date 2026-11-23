@@ -36,6 +36,10 @@ class FinalizarServicioTerceroRequest extends FormRequest
             'estado_final_equipo' => ['required', Rule::in(['APROBADO', 'FUERA_DE_SERVICIO'])],
             're_agendar' => ['boolean'],
             'pdf_servicio' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            // Los datos del documento del tercero: obligatorios si quedó aprobado, porque van
+            // en la etiqueta del equipo.
+            'numero_certificado' => ['required_if:estado_final_equipo,APROBADO', 'nullable', 'string', 'max:100'],
+            'fecha_servicio' => ['required_if:estado_final_equipo,APROBADO', 'nullable', 'date', 'before_or_equal:today'],
         ];
     }
 
@@ -50,6 +54,8 @@ class FinalizarServicioTerceroRequest extends FormRequest
             'estado_final_equipo' => 'estado final del equipo',
             're_agendar' => 're-agendar',
             'pdf_servicio' => 'documento del servicio',
+            'numero_certificado' => 'número de certificado',
+            'fecha_servicio' => 'fecha del servicio',
         ];
     }
 }

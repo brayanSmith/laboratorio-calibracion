@@ -33,6 +33,7 @@ class GenerarEtiquetaServicio
      *
      * @param  string  $servicio  "calibración" o "mantenimiento", para los rótulos de las fechas
      * @param  string  $rotuloDocumento  "Cert. N°" o "Informe N°"
+     * @param  string  $rotuloTecnico  Quién hizo el servicio: "Técnico" o, si fue un tercero, "Laboratorio"
      */
     public function handle(
         Equipo $equipo,
@@ -44,6 +45,7 @@ class GenerarEtiquetaServicio
         string $rotuloDocumento,
         string $numeroDocumento,
         ?string $tecnico,
+        string $rotuloTecnico = 'Técnico',
     ): string {
         $empresa = Empresa::query()->where('tenant_id', $equipo->tenant_id)->first();
 
@@ -60,7 +62,7 @@ class GenerarEtiquetaServicio
                 $rotuloDocumento => $numeroDocumento,
                 'ID' => $equipo->codigo,
                 'S/N' => $equipo->numero_serie ?: '—',
-                'Técnico' => $tecnico ?: '—',
+                $rotuloTecnico => $tecnico ?: '—',
             ],
             'codigoEquipo' => $equipo->codigo,
             // Contacto del laboratorio al pie; si no tiene teléfono propio, el de la empresa.

@@ -29,7 +29,8 @@ type Props = {
 };
 
 /** Modal que se abre al presionar "Finalizar" en un servicio de tercero: pide
- * el documento (PDF) del servicio, el estado final del equipo y, si quedó
+ * el documento (PDF) del servicio, su N° de certificado y fecha (obligatorios si
+ * queda aprobado), el estado final del equipo y, si quedó
  * fuera de servicio, si se re-agenda (ver ServicioTerceroController::finalizar()). */
 export default function FinalizarServicioTerceroModal({
     servicio,
@@ -128,6 +129,52 @@ export default function FinalizarServicioTerceroModal({
                                         data-test="servicio-tercero-pdf-input"
                                     />
                                     <InputError message={errors.pdf_servicio} />
+                                </div>
+
+                                {/* Datos del documento del tercero: van en la etiqueta del equipo. */}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="finalizar_numero_certificado">
+                                            Número de certificado
+                                        </Label>
+                                        <Input
+                                            id="finalizar_numero_certificado"
+                                            name="numero_certificado"
+                                            defaultValue={
+                                                servicio.numero_certificado ??
+                                                ''
+                                            }
+                                            maxLength={100}
+                                            required={
+                                                estadoFinalEquipo === 'APROBADO'
+                                            }
+                                            placeholder="Ej. CERT-2026-0154"
+                                            data-test="finalizar-numero-certificado"
+                                        />
+                                        <InputError
+                                            message={errors.numero_certificado}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="finalizar_fecha_servicio">
+                                            Fecha del servicio
+                                        </Label>
+                                        <Input
+                                            id="finalizar_fecha_servicio"
+                                            name="fecha_servicio"
+                                            type="date"
+                                            defaultValue={
+                                                servicio.fecha_servicio ?? ''
+                                            }
+                                            required={
+                                                estadoFinalEquipo === 'APROBADO'
+                                            }
+                                            data-test="finalizar-fecha-servicio"
+                                        />
+                                        <InputError
+                                            message={errors.fecha_servicio}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-1">

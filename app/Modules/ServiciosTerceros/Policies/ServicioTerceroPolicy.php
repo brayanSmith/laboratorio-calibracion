@@ -58,6 +58,19 @@ class ServicioTerceroPolicy
     }
 
     /**
+     * Determine whether the user can print the etiqueta of the servicio: el mismo permiso de
+     * PDF del módulo (mantenimientos o calibraciones), además del de terceros.
+     */
+    public function verPdf(User $user, ServicioTercero $servicioTercero): bool
+    {
+        $permiso = $servicioTercero->tipo_servicio === 'MANTENIMIENTO'
+            ? TenantPermission::MantenimientosPdf
+            : TenantPermission::CalibracionesPdf;
+
+        return $this->gestiona($user, $servicioTercero, $permiso);
+    }
+
+    /**
      * Además del permiso de la acción, exige el de terceros del módulo del servicio.
      */
     private function gestiona(User $user, ServicioTercero $servicioTercero, TenantPermission $permiso): bool

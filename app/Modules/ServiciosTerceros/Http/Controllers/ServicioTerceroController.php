@@ -2,8 +2,10 @@
 
 namespace App\Modules\ServiciosTerceros\Http\Controllers;
 
+use App\Actions\Etiquetas\GenerarEtiquetaServicio;
 use App\Http\Controllers\Controller;
 use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
@@ -13,9 +15,11 @@ use App\Modules\ServiciosTerceros\Http\Requests\UpdateServicioTerceroRequest;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 
 class ServicioTerceroController extends Controller
@@ -140,6 +144,56 @@ class ServicioTerceroController extends Controller
     }
 
     /**
+     * Etiqueta (PDF) para pegar en un equipo que atendió un tercero, de mantenimiento o de
+     * calibración según el servicio, sea el equipo tipo A o B, solo si el servicio terminó
+     * aprobado. Lleva la fecha y el N° de certificado que
+     * registró el tercero, y su QR abre el documento que este entregó (enlace firmado sin
+     * vencimiento, ver SeguimientoIngresoController::documentoTerceroEtiqueta()).
+     */
+    public function etiqueta(ServicioTercero $servicioTercero, GenerarEtiquetaServicio $generarEtiqueta): HttpResponse
+    {
+        $servicioTercero->load(['ordenTrabajo.equipoProgramacion.equipo.tipoEquipo', 'empresaTercero']);
+        $programacion = $servicioTercero->ordenTrabajo->equipoProgramacion;
+        $esMantenimiento = $servicioTercero->tipo_servicio === 'MANTENIMIENTO';
+
+        abort_unless(
+            $servicioTercero->tenant_id === auth()->user()->tenant_id
+                && $servicioTercero->estado_servicio === 'FINALIZADO'
+                && $servicioTercero->estado_final_equipo === 'APROBADO',
+            404,
+        );
+
+        Gate::authorize('verPdf', $servicioTercero);
+
+        // La fecha que registró el tercero; si no la registró, el día en que se finalizó.
+        $fechaServicio = $servicioTercero->fecha_servicio ?? $servicioTercero->fecha_realizacion ?? $servicioTercero->updated_at;
+
+        $pdf = $generarEtiqueta->handle(
+            equipo: $programacion->equipo,
+            titulo: $esMantenimiento ? 'MANTENIMIENTO' : 'CALIBRADO',
+            servicio: $esMantenimiento ? 'mantenimiento' : 'calibración',
+            fechaServicio: $fechaServicio,
+            fechaProximoServicio: EquipoProgramacion::calcularFechaProximoServicio(
+                $fechaServicio->toDateString(),
+                $programacion->intervalo_servicio,
+                $programacion->intervalo_unidad,
+            ),
+            urlDocumento: URL::signedRoute('etiqueta.servicio-tercero.documento', ['servicio' => $servicioTercero->id]),
+            rotuloDocumento: 'Cert. N°',
+            numeroDocumento: $servicioTercero->numero_certificado ?: '—',
+            tecnico: $servicioTercero->empresaTercero?->nombre,
+            rotuloTecnico: 'Laboratorio',
+        );
+
+        $nombre = $esMantenimiento ? 'etiqueta-mantenimiento-' : 'etiqueta-calibracion-';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$nombre.$programacion->equipo->codigo.'.pdf"',
+        ]);
+    }
+
+    /**
      * Guarda el código de compra y el de despacho (ambos opcionales) de un servicio de
      * tercero de mantenimiento que sigue en curso. No aplica a los de calibración.
      */
@@ -180,6 +234,8 @@ class ServicioTerceroController extends Controller
                 'estado_servicio' => 'FINALIZADO',
                 'estado_final_equipo' => $estadoFinal,
                 're_agendar' => $reAgendar,
+                'numero_certificado' => $request->validated('numero_certificado'),
+                'fecha_servicio' => $request->validated('fecha_servicio'),
                 // El Solped y la OB no se tocan: se digitan al agendar (y se corrigen al editar).
                 'pdf_servicio' => $request->file('pdf_servicio')
                     ->store("servicios-terceros/{$servicioTercero->tenant_id}/{$servicioTercero->id}", 'public'),

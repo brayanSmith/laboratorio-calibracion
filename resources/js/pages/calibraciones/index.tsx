@@ -492,6 +492,7 @@ export default function CalibracionesIndex({
                                 canDelete={canDelete}
                                 canIniciar={canIniciar}
                                 canFinalizar={can('calibraciones.finalizar')}
+                                canPdf={canPdf}
                                 searchPlaceholder="Buscar servicio de tercero..."
                                 emptyMessage="Aún no hay calibraciones asignadas a terceros."
                             />

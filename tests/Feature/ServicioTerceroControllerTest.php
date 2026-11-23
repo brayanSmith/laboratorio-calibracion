@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Etiquetas\GenerarEtiquetaServicio;
 use App\Enums\TenantPermission;
 use App\Models\Tenant;
 use App\Models\User;
@@ -12,6 +13,8 @@ use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -124,7 +127,7 @@ test('finalizar aprobado crea el despacho de la orden de trabajo y cierra el tie
     $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
 
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()])
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio(), 'numero_certificado' => 'CERT-1', 'fecha_servicio' => now()->toDateString()])
         ->assertRedirect();
 
     $despacho = Despacho::where('orden_trabajo_id', $servicio->orden_trabajo_id)->first();
@@ -175,7 +178,7 @@ test('finalizar aprobado una calibracion de tercero marca la calibracion como fi
     $servicio = crearServicioTercero($this->bahia, ['tipo_servicio' => 'CALIBRACION']);
 
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()])
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio(), 'numero_certificado' => 'CERT-1', 'fecha_servicio' => now()->toDateString()])
         ->assertRedirect();
 
     expect($servicio->ordenTrabajo->refresh()->calibracion_finalizado)->toBeTrue()
@@ -228,7 +231,7 @@ test('no permite operar un servicio de tercero de otro tenant', function () {
 
     $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $ajeno))->assertForbidden();
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $ajeno), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()])
+        ->post(route('servicio-terceros.finalizar', $ajeno), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio(), 'numero_certificado' => 'CERT-1', 'fecha_servicio' => now()->toDateString()])
         ->assertForbidden();
     $this->actingAs($this->admin)->delete(route('servicio-terceros.destroy', $ajeno))->assertForbidden();
 });
@@ -243,7 +246,7 @@ test('el servicio de tercero pasa de PENDIENTE a EN_PROCESO a FINALIZADO y regis
     expect($servicio->refresh()->estado_servicio)->toBe('EN_PROCESO');
 
     $this->actingAs($this->admin)
-        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()])
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio(), 'numero_certificado' => 'CERT-1', 'fecha_servicio' => now()->toDateString()])
         ->assertRedirect();
     expect($servicio->refresh()->estado_servicio)->toBe('FINALIZADO');
 
@@ -312,6 +315,8 @@ test('los codigos no aplican a un servicio de tercero de calibracion', function 
         ->post(route('servicio-terceros.finalizar', $servicio), [
             'estado_final_equipo' => 'APROBADO',
             'pdf_servicio' => pdfServicio(),
+            'numero_certificado' => 'CERT-1',
+            'fecha_servicio' => now()->toDateString(),
             'codigo_compra' => 'OC-100',
         ])
         ->assertRedirect();
@@ -331,6 +336,8 @@ test('finalizar un servicio de mantenimiento conserva los codigos del agendamien
         ->post(route('servicio-terceros.finalizar', $servicio), [
             'estado_final_equipo' => 'APROBADO',
             'pdf_servicio' => pdfServicio(),
+            'numero_certificado' => 'CERT-1',
+            'fecha_servicio' => now()->toDateString(),
             'codigo_compra' => 'OTRO',
         ])
         ->assertRedirect();
@@ -396,4 +403,104 @@ test('el listado de servicios de tercero trae el tipo de equipo con su clase de 
         ->assertInertia(fn ($page) => $page
             ->where('serviciosTerceros.0.equipo_tipo', $tipoEquipo->nombre)
             ->where('serviciosTerceros.0.equipo_clase', $tipoEquipo->tipo_mantenimiento));
+});
+
+/** Servicio de tercero finalizado y aprobado, con su documento, sobre un equipo del tipo dado. */
+function crearServicioTerceroAprobado(Bahia $bahia, string $tipoServicio, string $tipoMantenimiento): ServicioTercero
+{
+    $servicio = crearServicioTercero($bahia, [
+        'tipo_servicio' => $tipoServicio,
+        'estado_servicio' => 'FINALIZADO',
+        'estado_final_equipo' => 'APROBADO',
+        'numero_certificado' => 'CERT-TER-88',
+        'fecha_servicio' => '2026-11-20',
+        'pdf_servicio' => pdfServicio()->store('servicios-terceros', 'public'),
+    ]);
+    $servicio->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => $tipoMantenimiento]);
+
+    return $servicio;
+}
+
+test('genera la etiqueta de un servicio de tercero con su certificado, fecha y laboratorio, y su QR abre el documento del tercero', function (string $tipoServicio, string $tipoMantenimiento, string $rotuloFecha, ?string $colorFijo) {
+    $servicio = crearServicioTerceroAprobado($this->bahia, $tipoServicio, $tipoMantenimiento);
+
+    $vista = null;
+    View::creator('pdf.etiqueta', function ($view) use (&$vista): void {
+        $vista = $view->getData();
+    });
+
+    $respuesta = $this->actingAs($this->admin)
+        ->get(route('servicio-terceros.etiqueta', $servicio))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    expect($respuesta->getContent())->toStartWith('%PDF')
+        ->and($vista['datos'])->toMatchArray([
+            $rotuloFecha => '20/11/2026',
+            'Cert. N°' => 'CERT-TER-88',
+            'Laboratorio' => $servicio->empresaTercero->nombre,
+        ])
+        ->and($vista['colorFijo'])->toBe($colorFijo);
+
+    auth()->logout();
+
+    $this->get(URL::signedRoute('etiqueta.servicio-tercero.documento', ['servicio' => $servicio->id]))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+    $this->get(route('etiqueta.servicio-tercero.documento', ['servicio' => $servicio->id]))->assertForbidden();
+})->with([
+    'mantenimiento de equipo tipo B' => ['MANTENIMIENTO', 'B', 'Fecha mantenimiento', GenerarEtiquetaServicio::COLOR_MANTENIMIENTO],
+    'mantenimiento de equipo tipo A' => ['MANTENIMIENTO', 'A', 'Fecha mantenimiento', GenerarEtiquetaServicio::COLOR_MANTENIMIENTO],
+    'calibracion de equipo tipo A' => ['CALIBRACION', 'A', 'Fecha calibración', null],
+    'calibracion de equipo tipo B' => ['CALIBRACION', 'B', 'Fecha calibración', null],
+]);
+
+test('no genera etiqueta de tercero si el servicio no quedo aprobado', function (array $cambios) {
+    $servicio = crearServicioTerceroAprobado($this->bahia, 'MANTENIMIENTO', 'B');
+    $servicio->update($cambios);
+
+    $this->actingAs($this->admin)->get(route('servicio-terceros.etiqueta', $servicio))->assertNotFound();
+})->with([
+    'fuera de servicio' => [['estado_final_equipo' => 'FUERA_DE_SERVICIO']],
+    'sin finalizar' => [['estado_servicio' => 'EN_PROCESO', 'estado_final_equipo' => null]],
+]);
+
+test('al finalizar aprobado se registran el numero de certificado y la fecha del servicio, y son obligatorios', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'APROBADO', 'pdf_servicio' => pdfServicio()])
+        ->assertSessionHasErrors(['numero_certificado', 'fecha_servicio']);
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), [
+            'estado_final_equipo' => 'APROBADO',
+            'pdf_servicio' => pdfServicio(),
+            'numero_certificado' => 'CERT-2026-77',
+            'fecha_servicio' => '2026-11-21',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($servicio->refresh())
+        ->numero_certificado->toBe('CERT-2026-77')
+        ->fecha_servicio->toDateString()->toBe('2026-11-21');
+});
+
+test('al finalizar fuera de servicio el numero de certificado y la fecha son opcionales', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $this->actingAs($this->admin)->post(route('servicio-terceros.iniciar', $servicio));
+
+    $this->actingAs($this->admin)
+        ->post(route('servicio-terceros.finalizar', $servicio), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'pdf_servicio' => pdfServicio()])
+        ->assertSessionHasNoErrors();
+});
+
+test('la etiqueta de tercero exige el permiso de pdf del modulo', function () {
+    $servicio = crearServicioTerceroAprobado($this->bahia, 'MANTENIMIENTO', 'B');
+    $sinPermiso = usuarioConPermisos($this->tenant, [
+        TenantPermission::MantenimientosVer, TenantPermission::MantenimientosTerceros,
+    ]);
+
+    $this->actingAs($sinPermiso)->get(route('servicio-terceros.etiqueta', $servicio))->assertForbidden();
 });
