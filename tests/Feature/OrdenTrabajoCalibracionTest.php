@@ -12,6 +12,7 @@ use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoMagnitud;
 use App\Modules\Catalogos\Models\UnidadMedida;
+use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
@@ -30,6 +31,8 @@ beforeEach(function () {
 function crearOrdenListaParaCalibracion(Bahia $bahia, string $codigo = 'EQ-5001'): OrdenTrabajo
 {
     $programacion = crearEquipoRecibido($bahia, $codigo);
+    // Equipo tipo A: su programación incluye calibración (los tipo B pasan directo a despacho).
+    $programacion->update(['tipo_servicio' => 'MANTENIMIENTO,CALIBRACION']);
 
     return OrdenTrabajo::create([
         'codigo' => 'OT-'.random_int(1000, 9999),
@@ -468,4 +471,51 @@ test('un usuario sin permiso de agendar calibracion no puede listar ni agendar',
 test('un invitado no puede agendar calibracion', function () {
     $this->post(route('orden-trabajos.store-calibracion'), ['ordenes_listas' => []])
         ->assertRedirect(route('login'));
+});
+
+test('un equipo que solo requiere mantenimiento pasa a despacho al finalizar y no a agendar calibracion', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, [], 'EQ-TIPO-B');
+    $mantenimiento->ordenTrabajo->equipoProgramacion->update(['tipo_servicio' => 'MANTENIMIENTO']);
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'OPERATIVO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    expect(Despacho::query()->where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)->count())->toBe(1);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.equipos-listos-calibracion'))
+        ->assertOk()
+        ->assertJsonCount(0);
+});
+
+test('un equipo que requiere calibracion sigue a agendar calibracion al finalizar el mantenimiento, sin despacho', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, [], 'EQ-TIPO-A');
+    $mantenimiento->ordenTrabajo->equipoProgramacion->update(['tipo_servicio' => 'MANTENIMIENTO,CALIBRACION']);
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'OPERATIVO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    expect(Despacho::query()->where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)->exists())->toBeFalse();
+
+    $this->actingAs($this->admin)
+        ->getJson(route('orden-trabajos.equipos-listos-calibracion'))
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.id', $mantenimiento->orden_trabajo_id);
+});
+
+test('un equipo que solo requiere mantenimiento y queda fuera de servicio no pasa a despacho', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, [], 'EQ-TIPO-B-FUERA');
+    $mantenimiento->ordenTrabajo->equipoProgramacion->update(['tipo_servicio' => 'MANTENIMIENTO']);
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    expect(Despacho::query()->where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)->exists())->toBeFalse();
 });

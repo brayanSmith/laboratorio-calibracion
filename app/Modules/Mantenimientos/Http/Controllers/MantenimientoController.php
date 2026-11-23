@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\VersionDocumento;
 use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Inventario\Models\Item;
 use App\Modules\Mantenimientos\Actions\GenerarInformeMantenimiento;
@@ -263,7 +264,8 @@ class MantenimientoController extends Controller
     /**
      * Finish the mantenimiento: guarda el estado final del equipo y si quedó firmado,
      * marca el mantenimiento como FINALIZADO (y la orden de trabajo como
-     * mantenimiento_finalizado), y cierra el tiempo_servicio que estaba en curso (fin =
+     * mantenimiento_finalizado; si el equipo no requiere calibración y quedó operativo,
+     * crea su despacho), y cierra el tiempo_servicio que estaba en curso (fin =
      * ahora, duración calculada, estado_tiempo = FIN). Después genera y guarda el informe
      * PDF; si eso falla, el mantenimiento igual queda finalizado y el informe se genera
      * la primera vez que se pida (ver informe()).
@@ -278,6 +280,15 @@ class MantenimientoController extends Controller
             ]);
 
             $mantenimiento->ordenTrabajo->update(['mantenimiento_finalizado' => true]);
+
+            // Un equipo que solo requiere mantenimiento (tipo B) no pasa por calibración: si
+            // quedó operativo, sigue directo a despacho.
+            if ($mantenimiento->estado_final_equipo === 'OPERATIVO' && ! $mantenimiento->ordenTrabajo->requiere_calibracion) {
+                Despacho::firstOrCreate(
+                    ['orden_trabajo_id' => $mantenimiento->orden_trabajo_id],
+                    ['tenant_id' => $mantenimiento->tenant_id],
+                );
+            }
 
             $tiempoServicio = TiempoServicio::query()
                 ->where('orden_trabajo_id', $mantenimiento->orden_trabajo_id)

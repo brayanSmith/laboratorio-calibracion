@@ -122,7 +122,8 @@ class OrdenTrabajo extends Model
      * Scope a query to the ordenes listas para "Agendar Calibraciones" (ver
      * OrdenTrabajoController::equiposListosCalibracion()): su mantenimiento ya terminó,
      * su calibración todavía no, y no está ya agendada. Si el mantenimiento dejó el equipo
-     * fuera de servicio, no sigue a calibración.
+     * fuera de servicio, no sigue a calibración; y si su programación no incluye calibración
+     * (equipos tipo B, solo mantenimiento), tampoco: pasa directo a despacho.
      *
      * @param  Builder<OrdenTrabajo>  $query
      */
@@ -132,6 +133,7 @@ class OrdenTrabajo extends Model
             ->where('mantenimiento_finalizado', true)
             ->where('calibracion_finalizado', false)
             ->where('listo_para_calibracion', false)
+            ->whereHas('equipoProgramacion', fn (Builder $programacion) => $programacion->where('tipo_servicio', 'like', '%CALIBRACION%'))
             ->whereNotExists(self::mantenimientoFueraDeServicio(...));
     }
 
