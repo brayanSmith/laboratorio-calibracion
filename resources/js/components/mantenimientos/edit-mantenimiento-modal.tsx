@@ -36,9 +36,9 @@ type Props = {
 
 /**
  * Edita todo el mantenimiento: sus datos, el checklist, los defectos identificados, los
- * ítems utilizados, los comentarios y las fotos, con un solo botón de guardar. Si todavía
- * no está finalizado (ej. una devolución desde calibración), "Finalizar" guarda los
- * cambios y abre la confirmación de finalizar.
+ * ítems utilizados, los comentarios y las fotos, con un solo botón de guardar.
+ * "Finalizar" guarda los cambios y abre la confirmación de finalizar (ej. ante una
+ * devolución), esté o no finalizado ya.
  */
 export default function EditMantenimientoModal({
     mantenimiento,
@@ -58,9 +58,9 @@ export default function EditMantenimientoModal({
         return null;
     }
 
-    const puedeFinalizar =
-        can('mantenimientos.finalizar') &&
-        mantenimiento.estado_mantenimiento !== 'FINALIZADO';
+    // También en uno ya finalizado: ante una devolución se puede volver a finalizar
+    // (ej. para cambiar el estado final del equipo).
+    const puedeFinalizar = can('mantenimientos.finalizar');
 
     return (
         <>
@@ -166,22 +166,26 @@ export default function EditMantenimientoModal({
                             </>
                         )}
                     </Form>
+
+                    {/* Dentro del contenido del editor (pero fuera de su formulario): si
+                        quedara al lado, el editor le quita el foco y Radix la cierra. */}
+                    {finalizarOpen ? (
+                        <FinalizarMantenimientoModal
+                            mantenimientoId={mantenimiento.id}
+                            iniciadoEn={null}
+                            estadoFinalInicial={
+                                mantenimiento.estado_final_equipo
+                            }
+                            open={finalizarOpen}
+                            onOpenChange={setFinalizarOpen}
+                            onFinalizado={() => {
+                                setFinalizarOpen(false);
+                                onOpenChange(false);
+                            }}
+                        />
+                    ) : null}
                 </DialogContent>
             </Dialog>
-
-            {finalizarOpen ? (
-                <FinalizarMantenimientoModal
-                    mantenimientoId={mantenimiento.id}
-                    iniciadoEn={null}
-                    estadoFinalInicial={mantenimiento.estado_final_equipo}
-                    open={finalizarOpen}
-                    onOpenChange={setFinalizarOpen}
-                    onFinalizado={() => {
-                        setFinalizarOpen(false);
-                        onOpenChange(false);
-                    }}
-                />
-            ) : null}
         </>
     );
 }

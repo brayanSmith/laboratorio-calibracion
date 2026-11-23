@@ -5,9 +5,11 @@
     $sobreAcento = (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#171717' : '#ffffff';
     $tipoLabel = $mantenimiento->tipo_mantenimiento === 'CORRECTIVO' ? 'Correctivo (CM)' : 'Preventivo (PMI)';
     $operativo = $mantenimiento->estado_final_equipo === 'OPERATIVO';
+    $fueraDeServicio = $mantenimiento->estado_final_equipo === 'FUERA_DE_SERVICIO';
+    $numeroActivo = data_get($equipo->ficha_tecnica, 'numero_activo');
     $condicion = $mantenimiento->estado_final_equipo === null
         ? null
-        : ($operativo ? 'Operativo' : 'Inoperativo');
+        : ($operativo ? 'Operativo' : 'Fuera de servicio');
     $fecha = fn ($valor) => $valor ? $valor->locale('es')->format('d/m/Y') : '—';
     $moneda = fn ($valor) => '$ '.number_format((float) $valor, 2, ',', '.');
     $riesgo = [
@@ -56,6 +58,9 @@
         .pie td { padding: 0; }
         .pie .pagina:before { content: counter(page); }
         tr { page-break-inside: avoid; }
+        .alerta-fuera { margin-top: 8px; border: 2px solid #b91c1c; background: #fef2f2; border-radius: 6px; padding: 9px 14px; color: #b91c1c; }
+        .alerta-fuera strong { font-size: 14px; letter-spacing: 1px; }
+        .alerta-fuera span { display: block; margin-top: 2px; font-size: 9px; color: #7f1d1d; }
     </style>
 </head>
 <body>
@@ -84,11 +89,18 @@
             </tr>
         </table>
     </div>
+    @if ($fueraDeServicio)
+        {{-- Se distingue a primera vista que el equipo no quedó apto para usarse. --}}
+        <div class="alerta-fuera">
+            <strong>&#9888; EQUIPO FUERA DE SERVICIO</strong>
+            <span>El mantenimiento finalizó con el equipo inhabilitado: no debe usarse hasta ser reparado o reemplazado.</span>
+        </div>
+    @endif
     <h2>I. Información General</h2>
     <div class="caja"><table class="info">
         <tr><td class="etiqueta">Fecha y Hora:</td><td>{{ $fechaHora->locale('es')->format('d/m/Y H:i') }}</td></tr>
         <tr><td class="etiqueta">Ubicación:</td><td>{{ $equipo->bahia?->nombre ?? '—' }}</td></tr>
-        <tr><td class="etiqueta">ID de Equipo/Activo:</td><td>{{ data_get($equipo->ficha_tecnica, 'numero_activo') ?: $equipo->codigo }}</td></tr>
+        <tr><td class="etiqueta">ID de Equipo/Activo:</td><td>{{ $equipo->codigo }}@if ($numeroActivo && $numeroActivo !== $equipo->codigo) / N° Activo {{ $numeroActivo }}@endif</td></tr>
         <tr><td class="etiqueta">Fabricante:</td><td>{{ $equipo->fabricante->nombre }}</td></tr>
         <tr><td class="etiqueta">Número de Modelo:</td><td>{{ $equipo->modelo }}</td></tr>
         <tr><td class="etiqueta">Número de Serie:</td><td>{{ $equipo->numero_serie }}</td></tr>
@@ -111,7 +123,7 @@
             </td>
         </tr>
         <tr>
-            <td class="etiqueta">Condición Operativa:</td>
+            <td class="etiqueta">Estado Final:</td>
             <td>
                 @if ($condicion)
                     <span class="chip" style="background: {{ $operativo ? '#15803d' : '#b91c1c' }};">{{ $condicion }}</span>

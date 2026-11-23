@@ -272,6 +272,11 @@ class MantenimientoController extends Controller
      */
     public function finalizar(FinalizarMantenimientoRequest $request, Mantenimiento $mantenimiento, GenerarInformeMantenimiento $generarInforme): RedirectResponse
     {
+        // Se puede volver a finalizar uno ya finalizado (desde el editor): solo se emite otra
+        // versión del informe si cambió algo, o si todavía no tiene ninguna.
+        $yaFinalizado = $mantenimiento->estado_mantenimiento === 'FINALIZADO';
+        $huellaAntes = $mantenimiento->huellaInforme();
+
         DB::transaction(function () use ($request, $mantenimiento): void {
             $mantenimiento->update([
                 'estado_final_equipo' => $request->validated('estado_final_equipo'),
@@ -310,10 +315,12 @@ class MantenimientoController extends Controller
             }
         });
 
-        try {
-            $generarInforme->handle($mantenimiento);
-        } catch (Throwable $e) {
-            report($e);
+        if (! $yaFinalizado || $mantenimiento->huellaInforme() !== $huellaAntes || $mantenimiento->versiones()->doesntExist()) {
+            try {
+                $generarInforme->handle($mantenimiento);
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Mantenimiento finalizado.')]);

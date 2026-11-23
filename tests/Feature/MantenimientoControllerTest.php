@@ -615,6 +615,44 @@ function crearMantenimientoConInforme(Bahia $bahia, string $codigo = 'EQ-5001'):
     return $mantenimiento->refresh();
 }
 
+test('volver a finalizar un mantenimiento ya finalizado solo emite otra version del informe si cambio algo', function () {
+    $mantenimiento = crearMantenimientoConInforme($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'OPERATIVO', 'firmado' => $mantenimiento->firmado ? '1' : '0'])
+        ->assertSessionHasNoErrors();
+
+    expect($mantenimiento->versiones()->count())->toBe(1);
+
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'firmado' => $mantenimiento->firmado ? '1' : '0'])
+        ->assertSessionHasNoErrors();
+
+    expect($mantenimiento->versiones()->pluck('codigo')->all())->toHaveCount(2)
+        ->and($mantenimiento->refresh()->estado_final_equipo)->toBe('FUERA_DE_SERVICIO');
+});
+
+test('el informe muestra el codigo SAP con el numero de activo y destaca si el equipo quedo fuera de servicio', function (string $estadoFinal, bool $destacado) {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO', 'estado_final_equipo' => $estadoFinal], 'SAP-7788');
+    $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->update(['ficha_tecnica' => ['numero_activo' => 'ACT-42']]);
+
+    $datos = null;
+    View::creator('pdf.mantenimiento', function ($view) use (&$datos): void {
+        $datos = $view->getData();
+    });
+
+    app(GenerarInformeMantenimiento::class)->handle($mantenimiento);
+    $html = view('pdf.mantenimiento', $datos)->render();
+
+    expect($html)->toContain('SAP-7788 / N° Activo ACT-42');
+    $destacado
+        ? expect($html)->toContain('EQUIPO FUERA DE SERVICIO')
+        : expect($html)->not->toContain('EQUIPO FUERA DE SERVICIO');
+})->with([
+    'fuera de servicio' => ['FUERA_DE_SERVICIO', true],
+    'operativo' => ['OPERATIVO', false],
+]);
+
 /** Lo que envía la modal de editar, con los datos actuales del mantenimiento. */
 function datosEdicionMantenimiento(Mantenimiento $mantenimiento, array $cambios = []): array
 {
