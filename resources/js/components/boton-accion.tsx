@@ -48,6 +48,8 @@ export default function BotonAccion({
 }: Props) {
     const modo = useContext(ModoBotonAccionContext);
     const expandir = modo === 'expandir';
+    // Las acciones de eliminar van siempre en rojo, para distinguirlas de un vistazo.
+    const esEliminar = etiqueta.startsWith('Eliminar');
 
     const contenido = (
         <>
@@ -65,6 +67,8 @@ export default function BotonAccion({
     const clases = cn(
         expandir &&
             'group/accion gap-0 transition-all hover:gap-1.5 focus-visible:gap-1.5',
+        esEliminar &&
+            '!border-transparent !bg-red-600 !text-white hover:!bg-red-700',
         className,
     );
 

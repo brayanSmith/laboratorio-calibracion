@@ -1,6 +1,6 @@
 import { createColumnHelper, useTable } from '@tanstack/react-table';
 import { useCallback, useMemo, useState } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { ColumnDef, RowData } from '@tanstack/react-table';
 import {
@@ -122,9 +122,13 @@ export default function DataTable<TData extends RowData>({
         },
     });
 
-    const clavesColumnas = table
+    // La columna de acciones no se dibuja en la tabla: sus botones salen en el menú que se
+    // abre al hacer clic en la fila, para no recargar cada fila de botones.
+    const esVisible = (columnId: string) => columnId !== COLUMNA_ACCIONES;
+    const leafHeaders = table
         .getLeafHeaders()
-        .map((header) => header.column.id);
+        .filter((header) => esVisible(header.column.id));
+    const clavesColumnas = leafHeaders.map((header) => header.column.id);
     const { tablaRef, anchos, estiloTabla, iniciarRedimension, restablecer } =
         useResizableTable(clavesColumnas);
 
@@ -132,11 +136,14 @@ export default function DataTable<TData extends RowData>({
 
     // Menú de acciones al hacer clic en una fila: muestra su columna de acciones junto al
     // clic, para no tener que desplazarse hasta el final de la tabla.
-    const tieneAcciones = clavesColumnas.includes(COLUMNA_ACCIONES);
+    const tieneAcciones = table
+        .getAllLeafColumns()
+        .some((column) => column.id === COLUMNA_ACCIONES);
     const [menu, setMenu] = useState<{
         filaId: string;
         clic: { x: number; y: number };
         visible: boolean;
+        conTeclado?: boolean;
     } | null>(null);
     const celdaAccionesMenu = menu
         ? rows
@@ -164,6 +171,29 @@ export default function DataTable<TData extends RowData>({
             filaId,
             clic: { x: evento.clientX, y: evento.clientY },
             visible: true,
+        });
+    };
+
+    /** Con el teclado (Enter o espacio sobre la fila) el menú sale bajo el inicio de la fila. */
+    const abrirMenuConTeclado = (
+        evento: KeyboardEvent<HTMLTableRowElement>,
+        filaId: string,
+    ) => {
+        if (
+            evento.target !== evento.currentTarget ||
+            (evento.key !== 'Enter' && evento.key !== ' ')
+        ) {
+            return;
+        }
+
+        evento.preventDefault();
+        const caja = evento.currentTarget.getBoundingClientRect();
+
+        setMenu({
+            filaId,
+            clic: { x: caja.left + 120, y: caja.bottom },
+            visible: true,
+            conTeclado: true,
         });
     };
 
@@ -229,86 +259,99 @@ export default function DataTable<TData extends RowData>({
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                    const canSort = header.column.getCanSort();
-                                    const sorted = header.column.getIsSorted();
+                                {headerGroup.headers
+                                    .filter((header) =>
+                                        esVisible(header.column.id),
+                                    )
+                                    .map((header) => {
+                                        const canSort =
+                                            header.column.getCanSort();
+                                        const sorted =
+                                            header.column.getIsSorted();
 
-                                    return (
-                                        <th
-                                            key={header.id}
-                                            className="relative px-4 py-3 font-medium"
-                                            aria-sort={
-                                                sorted === 'asc'
-                                                    ? 'ascending'
-                                                    : sorted === 'desc'
-                                                      ? 'descending'
-                                                      : undefined
-                                            }
-                                        >
-                                            {header.isPlaceholder ? null : canSort ? (
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center gap-1 hover:text-foreground"
-                                                    onClick={header.column.getToggleSortingHandler()}
-                                                >
-                                                    <IconoColumna
-                                                        icono={
-                                                            header.column
-                                                                .columnDef.meta
-                                                                ?.icono ??
-                                                            iconoDeColumna(
+                                        return (
+                                            <th
+                                                key={header.id}
+                                                className="relative px-4 py-3 font-medium"
+                                                aria-sort={
+                                                    sorted === 'asc'
+                                                        ? 'ascending'
+                                                        : sorted === 'desc'
+                                                          ? 'descending'
+                                                          : undefined
+                                                }
+                                            >
+                                                {header.isPlaceholder ? null : canSort ? (
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center gap-1 hover:text-foreground"
+                                                        onClick={header.column.getToggleSortingHandler()}
+                                                    >
+                                                        <IconoColumna
+                                                            icono={
                                                                 header.column
                                                                     .columnDef
-                                                                    .header,
-                                                            )
-                                                        }
-                                                    />
-                                                    <table.FlexRender
-                                                        header={header}
-                                                    />
-                                                    {sorted === 'asc' ? (
-                                                        <ChevronUp className="h-4 w-4" />
-                                                    ) : sorted === 'desc' ? (
-                                                        <ChevronDown className="h-4 w-4" />
-                                                    ) : (
-                                                        <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                                                    )}
-                                                </button>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1">
-                                                    <IconoColumna
-                                                        icono={
-                                                            header.column
-                                                                .columnDef.meta
-                                                                ?.icono ??
-                                                            iconoDeColumna(
+                                                                    .meta
+                                                                    ?.icono ??
+                                                                iconoDeColumna(
+                                                                    header
+                                                                        .column
+                                                                        .columnDef
+                                                                        .header,
+                                                                )
+                                                            }
+                                                        />
+                                                        <table.FlexRender
+                                                            header={header}
+                                                        />
+                                                        {sorted === 'asc' ? (
+                                                            <ChevronUp className="h-4 w-4" />
+                                                        ) : sorted ===
+                                                          'desc' ? (
+                                                            <ChevronDown className="h-4 w-4" />
+                                                        ) : (
+                                                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                                        )}
+                                                    </button>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <IconoColumna
+                                                            icono={
                                                                 header.column
                                                                     .columnDef
-                                                                    .header,
-                                                            )
+                                                                    .meta
+                                                                    ?.icono ??
+                                                                iconoDeColumna(
+                                                                    header
+                                                                        .column
+                                                                        .columnDef
+                                                                        .header,
+                                                                )
+                                                            }
+                                                        />
+                                                        <table.FlexRender
+                                                            header={header}
+                                                        />
+                                                    </span>
+                                                )}
+                                                {header.isPlaceholder ? null : (
+                                                    <ColumnResizeHandle
+                                                        label={header.column.id}
+                                                        onPointerDown={iniciarRedimension(
+                                                            header.column.id,
+                                                        )}
+                                                        onDoubleClick={
+                                                            restablecer
                                                         }
                                                     />
-                                                    <table.FlexRender
-                                                        header={header}
-                                                    />
-                                                </span>
-                                            )}
-                                            {header.isPlaceholder ? null : (
-                                                <ColumnResizeHandle
-                                                    label={header.column.id}
-                                                    onPointerDown={iniciarRedimension(
-                                                        header.column.id,
-                                                    )}
-                                                    onDoubleClick={restablecer}
-                                                />
-                                            )}
-                                        </th>
-                                    );
-                                })}
+                                                )}
+                                            </th>
+                                        );
+                                    })}
                             </tr>
                         ))}
                         <tr className="border-t bg-background">
-                            {table.getLeafHeaders().map((header) => {
+                            {leafHeaders.map((header) => {
                                 const column = header.column;
                                 const opciones =
                                     column.columnDef.meta?.filterOptions;
@@ -378,6 +421,19 @@ export default function DataTable<TData extends RowData>({
                                           ? () => onFilaClick(row.original)
                                           : undefined
                                 }
+                                tabIndex={tieneAcciones ? 0 : undefined}
+                                aria-haspopup={
+                                    tieneAcciones ? 'menu' : undefined
+                                }
+                                onKeyDown={
+                                    tieneAcciones
+                                        ? (evento) =>
+                                              abrirMenuConTeclado(
+                                                  evento,
+                                                  row.id,
+                                              )
+                                        : undefined
+                                }
                                 className={cn(
                                     'transition-colors hover:bg-primary/10',
                                     claseFila?.(row.original),
@@ -388,18 +444,21 @@ export default function DataTable<TData extends RowData>({
                                         'bg-primary/10',
                                 )}
                             >
-                                {row.getAllCells().map((cell) => (
-                                    <td key={cell.id} className="px-4 py-3">
-                                        <table.FlexRender cell={cell} />
-                                    </td>
-                                ))}
+                                {row
+                                    .getAllCells()
+                                    .filter((cell) => esVisible(cell.column.id))
+                                    .map((cell) => (
+                                        <td key={cell.id} className="px-4 py-3">
+                                            <table.FlexRender cell={cell} />
+                                        </td>
+                                    ))}
                             </tr>
                         ))}
 
                         {rows.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={columns.length}
+                                    colSpan={clavesColumnas.length}
                                     className="px-4 py-8 text-center text-muted-foreground"
                                 >
                                     {hayFiltros
@@ -417,6 +476,7 @@ export default function DataTable<TData extends RowData>({
                     key={menu.filaId}
                     clic={menu.clic}
                     visible={menu.visible}
+                    enfocar={menu.conTeclado}
                     onCerrar={cerrarMenu}
                 >
                     <table.FlexRender cell={celdaAccionesMenu} />

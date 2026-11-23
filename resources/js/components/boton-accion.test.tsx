@@ -1,4 +1,4 @@
-import { Pencil, Printer } from 'lucide-react';
+import { Pencil, Printer, Trash2 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vite-plus/test';
 import BotonAccion from '@/components/boton-accion';
@@ -16,6 +16,22 @@ describe('BotonAccion', () => {
         expect(html).toContain('aria-label="Editar"');
         // El globo con el nombre solo se monta al pasar el cursor.
         expect(html).not.toContain('>Editar<');
+    });
+
+    it('las acciones de eliminar van en rojo y las demás no', () => {
+        const eliminar = renderToStaticMarkup(
+            <TooltipProvider>
+                <BotonAccion icono={Trash2} etiqueta="Eliminar" />
+            </TooltipProvider>,
+        );
+        const editar = renderToStaticMarkup(
+            <TooltipProvider>
+                <BotonAccion icono={Pencil} etiqueta="Editar" />
+            </TooltipProvider>,
+        );
+
+        expect(eliminar).toContain('!bg-red-600');
+        expect(editar).not.toContain('!bg-red-600');
     });
 
     it('con href es un enlace que abre en otra pestaña de forma segura', () => {

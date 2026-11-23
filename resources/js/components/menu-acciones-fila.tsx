@@ -9,6 +9,8 @@ type Props = {
     /** Punto de la pantalla donde se hizo clic en la fila. */
     clic: { x: number; y: number };
     visible: boolean;
+    /** Si se abrió con el teclado: el foco pasa al primer botón. */
+    enfocar?: boolean;
     onCerrar: () => void;
     /** Las acciones de la fila (lo mismo que su columna de acciones). */
     children: ReactNode;
@@ -25,6 +27,7 @@ type Props = {
 export default function MenuAccionesFila({
     clic,
     visible,
+    enfocar = false,
     onCerrar,
     children,
 }: Props) {
@@ -48,7 +51,11 @@ export default function MenuAccionesFila({
                 { ancho: window.innerWidth, alto: window.innerHeight },
             ),
         );
-    }, [clic, visible]);
+
+        if (enfocar) {
+            menu.querySelector<HTMLElement>('button, a')?.focus();
+        }
+    }, [clic, visible, enfocar]);
 
     useEffect(() => {
         if (!visible) {
