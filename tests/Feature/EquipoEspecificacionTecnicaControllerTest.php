@@ -20,7 +20,7 @@ function datosEspecificacionTecnica(Tenant $tenant, array $overrides = []): arra
     return array_merge([
         'tipo_magnitud_id' => TipoMagnitud::factory()->for($tenant)->create()->id,
         'unidad_medida_id' => $unidadMedida->id,
-        'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+        'alcance_indicacion' => '0 a 100'.$unidadMedida->simbolo,
         'precision' => '±0.1',
         'resolucion' => '0.01'.$unidadMedida->simbolo,
     ], $overrides);
@@ -61,7 +61,7 @@ test('rechaza un alcance de indicacion que no termina con el simbolo de la unida
         ->assertSessionHasErrors('alcance_indicacion');
 });
 
-test('acepta un alcance de indicacion en texto libre que termina con el simbolo de la unidad de medida', function () {
+test('acepta un alcance de indicacion con alcance inicial negativo, alcance final y el simbolo de la unidad', function () {
     $unidadMedida = UnidadMedida::factory()->for($this->tenant)->create();
 
     $this->actingAs($this->admin)
@@ -69,7 +69,7 @@ test('acepta un alcance de indicacion en texto libre que termina con el simbolo 
             route('equipos.especificacion-tecnica.store', $this->equipo),
             datosEspecificacionTecnica($this->tenant, [
                 'unidad_medida_id' => $unidadMedida->id,
-                'alcance_indicacion' => '0 a 100'.$unidadMedida->simbolo,
+                'alcance_indicacion' => '-10.5 a 100'.$unidadMedida->simbolo,
                 'resolucion' => '0.01'.$unidadMedida->simbolo,
             ]),
         )
@@ -77,8 +77,23 @@ test('acepta un alcance de indicacion en texto libre que termina con el simbolo 
 
     $especificacion = EquipoEspecificacionTecnica::where('equipo_id', $this->equipo->id)->firstOrFail();
 
-    expect($especificacion->alcance_indicacion)->toBe('0 a 100'.$unidadMedida->simbolo);
+    expect($especificacion->alcance_indicacion)->toBe('-10.5 a 100'.$unidadMedida->simbolo);
 });
+
+test('rechaza un alcance de indicacion que no sigue el formato alcance inicial a alcance final', function (string $alcance) {
+    $unidadMedida = UnidadMedida::factory()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->post(
+            route('equipos.especificacion-tecnica.store', $this->equipo),
+            datosEspecificacionTecnica($this->tenant, [
+                'unidad_medida_id' => $unidadMedida->id,
+                'alcance_indicacion' => $alcance.$unidadMedida->simbolo,
+                'resolucion' => '0.01'.$unidadMedida->simbolo,
+            ]),
+        )
+        ->assertSessionHasErrors('alcance_indicacion');
+})->with(['100', '0 - 100', 'cero a cien', '0 a -100']);
 
 test('acepta la precision como porcentaje, con el ± adelante y el % al final', function () {
     $this->actingAs($this->admin)
@@ -91,6 +106,19 @@ test('acepta la precision como porcentaje, con el ± adelante y el % al final', 
     $especificacion = EquipoEspecificacionTecnica::where('equipo_id', $this->equipo->id)->firstOrFail();
 
     expect($especificacion->precision)->toBe('±0.5%');
+});
+
+test('acepta la precision en la unidad de medida, con el simbolo al final', function () {
+    $this->actingAs($this->admin)
+        ->post(
+            route('equipos.especificacion-tecnica.store', $this->equipo),
+            datosEspecificacionTecnica($this->tenant, ['precision' => '±0.5mm']),
+        )
+        ->assertSessionHasNoErrors();
+
+    $especificacion = EquipoEspecificacionTecnica::where('equipo_id', $this->equipo->id)->firstOrFail();
+
+    expect($especificacion->precision)->toBe('±0.5mm');
 });
 
 test('rechaza una precision sin el ± adelante o con un formato invalido', function (string $precision) {
@@ -114,11 +142,11 @@ test('guardar de nuevo actualiza la especificacion existente en lugar de duplica
 
     $this->actingAs($this->admin)->post(
         route('equipos.especificacion-tecnica.store', $this->equipo),
-        array_merge($datos, ['alcance_indicacion' => '250'.$simbolo]),
+        array_merge($datos, ['alcance_indicacion' => '0 a 250'.$simbolo]),
     );
 
     expect(EquipoEspecificacionTecnica::where('equipo_id', $this->equipo->id)->count())->toBe(1)
-        ->and($this->equipo->equipoEspecificacionTecnica->fresh()->alcance_indicacion)->toBe('250'.$simbolo);
+        ->and($this->equipo->equipoEspecificacionTecnica->fresh()->alcance_indicacion)->toBe('0 a 250'.$simbolo);
 });
 
 test('rechaza la especificacion tecnica sin los campos requeridos', function () {

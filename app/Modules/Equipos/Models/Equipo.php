@@ -10,6 +10,8 @@ use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Fabricante;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoEquipo;
+use App\Modules\Equipos\Mail\EquipoInhabilitado;
+use App\Modules\Ingresos\Models\IngresoEnvio;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * @property int $id
@@ -80,26 +84,87 @@ class Equipo extends Model
      * Activa o inactiva el equipo y lo anota en su historial de estado, con el motivo y
      * quién lo hizo (el usuario autenticado, si lo hay). Al inactivarlo, el motivo también
      * queda en motivo_inactivo para mostrarlo en el listado de equipos.
+     *
+     * Si un equipo activo queda inactivo, se le avisa por correo a su cliente (ver
+     * avisarInhabilitacionAlCliente()); $detalle amplía el motivo solo en ese correo.
      */
-    public function cambiarEstado(bool $activo, string $motivo, ?User $usuario = null): void
+    public function cambiarEstado(bool $activo, string $motivo, ?User $usuario = null, ?string $detalle = null): void
     {
+        $estabaActivo = (bool) $this->activo;
+        $usuario ??= auth()->user();
+
         $this->update(['activo' => $activo, 'motivo_inactivo' => $activo ? null : $motivo]);
 
         $this->cambiosEstado()->create([
             'activo' => $activo,
             'motivo' => $motivo,
-            'user_id' => ($usuario ?? auth()->user())?->id,
+            'user_id' => $usuario?->id,
             'tenant_id' => $this->tenant_id,
         ]);
+
+        if ($estabaActivo && ! $activo) {
+            $this->avisarInhabilitacionAlCliente($motivo, $detalle, $usuario);
+        }
     }
 
     /**
      * Deja el equipo inactivo por un motivo del sistema (ej. "Calibración: Fuera de
-     * servicio").
+     * servicio"), con un detalle opcional para el correo al cliente.
      */
-    public function inactivar(string $motivo): void
+    public function inactivar(string $motivo, ?string $detalle = null): void
     {
-        $this->cambiarEstado(false, $motivo);
+        $this->cambiarEstado(false, $motivo, detalle: $detalle);
+    }
+
+    /**
+     * Pone en cola el correo al cliente del equipo avisándole que quedó inhabilitado, y lo
+     * anota en el historial de la campanita de quien lo inhabilitó (para que vea si salió o
+     * falló). Si el cliente no tiene correo no se envía, y si falla el envío no se frena la
+     * inactivación.
+     */
+    private function avisarInhabilitacionAlCliente(string $motivo, ?string $detalle, ?User $usuario): void
+    {
+        $this->loadMissing(['cliente', 'tipoEquipo', 'area', 'bahia']);
+
+        if (blank($this->cliente?->email)) {
+            return;
+        }
+
+        $envio = IngresoEnvio::create([
+            'tipo' => IngresoEnvio::TIPO_EQUIPO_INHABILITADO,
+            'equipo_id' => $this->id,
+            'cliente_id' => $this->cliente->id,
+            'user_id' => $usuario?->id,
+            'destinatario' => $this->cliente->nombre,
+            'correo' => $this->cliente->email,
+            'motivo' => mb_substr($motivo, 0, 255),
+            'tenant_id' => $this->tenant_id,
+        ]);
+
+        try {
+            $correo = new EquipoInhabilitado(
+                tenantId: $this->tenant_id,
+                cliente: $this->cliente->nombre,
+                equipo: [
+                    'codigo' => $this->codigo,
+                    'tipo_equipo' => $this->tipoEquipo->nombre,
+                    'modelo' => $this->modelo,
+                    'numero_serie' => $this->numero_serie,
+                    'area' => $this->area?->nombre,
+                    'bahia' => $this->bahia?->nombre,
+                ],
+                motivo: $motivo,
+                detalle: filled($detalle) && trim((string) $detalle) !== trim($motivo) ? trim((string) $detalle) : null,
+                fecha: now()->timezone('America/Lima')->format('d/m/Y h:i a'),
+                registradoPor: $usuario?->name,
+            );
+            $correo->envioId = $envio->id;
+
+            Mail::to($this->cliente->email)->queue($correo);
+        } catch (Throwable $exception) {
+            report($exception);
+            $envio->marcarFallido($exception->getMessage());
+        }
     }
 
     /**

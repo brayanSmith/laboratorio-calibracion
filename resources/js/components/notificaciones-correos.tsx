@@ -1,5 +1,12 @@
 import { Link, router, useHttp, usePage } from '@inertiajs/react';
-import { Bell, CircleAlert, CircleCheck, Clock, RefreshCw } from 'lucide-react';
+import {
+    Bell,
+    CircleAlert,
+    CircleCheck,
+    Clock,
+    RefreshCw,
+    ShieldAlert,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
     index as listarNotificaciones,
@@ -14,13 +21,19 @@ import {
 } from '@/components/ui/popover';
 import { formatearFechaHora } from '@/lib/fechas';
 import { cn } from '@/lib/utils';
+import { show as verEquipo } from '@/routes/equipos';
 import { index as ingresos } from '@/routes/ingresos';
 
-/** Cómo terminó un correo del ingreso que disparó el usuario. */
+/** Cómo terminó un correo que disparó el usuario: de un ingreso o el aviso de un equipo inhabilitado. */
 export type NotificacionCorreo = {
     id: number;
-    ingreso_id: number;
+    tipo: 'INGRESO' | 'EQUIPO_INHABILITADO';
+    ingreso_id: number | null;
     ingreso_codigo: string | null;
+    equipo_id: number | null;
+    equipo_codigo: string | null;
+    /** Por qué quedó inhabilitado el equipo. */
+    motivo: string | null;
     destinatario: string;
     correo: string;
     estado: 'EN_COLA' | 'ENVIADO' | 'FALLIDO';
@@ -176,7 +189,7 @@ export default function NotificacionesCorreos() {
                     <div>
                         <p className="text-sm font-semibold">Notificaciones</p>
                         <p className="text-xs text-muted-foreground">
-                            Correos de ingreso que enviaste
+                            Correos que enviaste a los clientes
                         </p>
                     </div>
                     <Button
@@ -209,8 +222,9 @@ export default function NotificacionesCorreos() {
                     ) : notificaciones.length === 0 ? (
                         <li className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted-foreground">
                             <Bell className="size-8 opacity-40" />
-                            Aquí verás si los correos de los ingresos se
-                            enviaron o por qué fallaron.
+                            Aquí verás si los correos de los ingresos y los
+                            avisos de equipos inhabilitados se enviaron o por
+                            qué fallaron.
                         </li>
                     ) : (
                         notificaciones.map((item) => (
@@ -236,6 +250,7 @@ function ItemNotificacion({
 }) {
     const estado = ESTADOS[item.estado];
     const Icono = estado.icono;
+    const esEquipo = item.tipo === 'EQUIPO_INHABILITADO';
 
     return (
         <li
@@ -248,15 +263,32 @@ function ItemNotificacion({
             <Icono className={cn('mt-0.5 size-5 shrink-0', estado.clase)} />
             <div className="min-w-0 flex-1 space-y-0.5">
                 <p className="leading-snug">
-                    Correo del ingreso{' '}
+                    {esEquipo ? (
+                        <>
+                            <ShieldAlert className="mr-1 inline size-3.5 -translate-y-px text-red-600 dark:text-red-400" />
+                            Aviso de equipo inhabilitado{' '}
+                        </>
+                    ) : (
+                        'Correo del ingreso '
+                    )}
                     <span className="font-mono font-medium">
-                        {item.ingreso_codigo ?? '—'}
+                        {(esEquipo
+                            ? item.equipo_codigo
+                            : item.ingreso_codigo) ?? '—'}
                     </span>{' '}
                     a <span className="font-medium">{item.destinatario}</span>
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                     {item.correo}
                 </p>
+                {esEquipo && item.motivo ? (
+                    <p
+                        className="text-xs text-muted-foreground"
+                        data-test="notificacion-motivo"
+                    >
+                        Motivo: {item.motivo}
+                    </p>
+                ) : null}
                 <p className={cn('text-xs font-medium', estado.clase)}>
                     {estado.texto} · {formatearFechaHora(item.fecha)}
                 </p>
@@ -268,13 +300,23 @@ function ItemNotificacion({
                         {item.error}
                     </p>
                 ) : null}
-                <Link
-                    href={ingresos()}
-                    onClick={onIr}
-                    className="inline-block text-xs text-primary hover:underline"
-                >
-                    Ir a ingresos
-                </Link>
+                {esEquipo && item.equipo_id ? (
+                    <Link
+                        href={verEquipo(item.equipo_id)}
+                        onClick={onIr}
+                        className="inline-block text-xs text-primary hover:underline"
+                    >
+                        Ver equipo
+                    </Link>
+                ) : esEquipo ? null : (
+                    <Link
+                        href={ingresos()}
+                        onClick={onIr}
+                        className="inline-block text-xs text-primary hover:underline"
+                    >
+                        Ir a ingresos
+                    </Link>
+                )}
             </div>
             {!item.leido ? (
                 <span

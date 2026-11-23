@@ -81,6 +81,15 @@ Route::middleware('throttle:seguimiento')->group(function () {
         ->whereNumber('servicio')
         ->name('seguimiento.servicio-tercero.documento');
 });
+// A donde lleva el QR de la etiqueta pegada en el equipo: enlace firmado y sin vencimiento.
+Route::middleware(['signed', 'throttle:seguimiento'])->group(function () {
+    Route::get('etiquetas/calibraciones/{calibracion}/certificado', [SeguimientoIngresoController::class, 'certificadoEtiqueta'])
+        ->whereNumber('calibracion')
+        ->name('etiqueta.calibracion.certificado');
+    Route::get('etiquetas/mantenimientos/{mantenimiento}/informe', [SeguimientoIngresoController::class, 'informeEtiqueta'])
+        ->whereNumber('mantenimiento')
+        ->name('etiqueta.mantenimiento.informe');
+});
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -174,10 +183,12 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::post('mantenimientos/{mantenimiento}/actualizar-stock', [MantenimientoController::class, 'actualizarStock'])->name('mantenimientos.actualizar-stock');
     Route::post('mantenimientos/{mantenimiento}/finalizar', [MantenimientoController::class, 'finalizar'])->name('mantenimientos.finalizar');
     Route::get('mantenimientos/{mantenimiento}/informe', [MantenimientoController::class, 'informe'])->name('mantenimientos.informe');
+    Route::get('mantenimientos/{mantenimiento}/etiqueta', [MantenimientoController::class, 'etiqueta'])->name('mantenimientos.etiqueta');
     Route::post('mantenimientos/{mantenimiento}/informe/actualizar', [MantenimientoController::class, 'actualizarInforme'])->name('mantenimientos.actualizar-informe');
     Route::post('calibraciones/{calibracion}/iniciar', [CalibracionController::class, 'iniciar'])->name('calibraciones.iniciar');
     Route::post('calibraciones/{calibracion}/finalizar', [CalibracionController::class, 'finalizar'])->name('calibraciones.finalizar');
     Route::get('calibraciones/{calibracion}/certificado', [CalibracionController::class, 'certificado'])->name('calibraciones.certificado');
+    Route::get('calibraciones/{calibracion}/etiqueta', [CalibracionController::class, 'etiqueta'])->name('calibraciones.etiqueta');
     Route::post('calibraciones/{calibracion}/certificado/actualizar', [CalibracionController::class, 'actualizarCertificado'])->name('calibraciones.actualizar-certificado');
     Route::get('versiones-documento/{versionDocumento}', [VersionDocumentoController::class, 'show'])->name('versiones-documento.show');
 

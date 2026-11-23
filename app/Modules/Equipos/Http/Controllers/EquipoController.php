@@ -109,7 +109,7 @@ class EquipoController extends Controller
         Gate::authorize('view', $equipo);
 
         $equipo->load([
-            'tipoEquipo:id,nombre',
+            'tipoEquipo:id,nombre,tipo_mantenimiento',
             'fabricante:id,nombre',
             'area:id,nombre',
             'bahia:id,nombre',

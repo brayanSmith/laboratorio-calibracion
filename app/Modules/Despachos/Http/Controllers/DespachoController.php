@@ -64,7 +64,7 @@ class DespachoController extends Controller
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
                 'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,cliente_id,tipo_equipo_id',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
-                'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre',
+                'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
                 'tecnicoEntrega:id,name',
                 'clienteRecibe:id,nombre',
                 'novedad:id,nombre',
@@ -100,7 +100,10 @@ class DespachoController extends Controller
                     'codigo' => $despacho->ordenTrabajo->equipoProgramacion->equipo->codigo,
                     'modelo' => $despacho->ordenTrabajo->equipoProgramacion->equipo->modelo,
                     'numero_serie' => $despacho->ordenTrabajo->equipoProgramacion->equipo->numero_serie,
-                    'tipo_equipo' => ['nombre' => $despacho->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->nombre],
+                    'tipo_equipo' => [
+                        'nombre' => $despacho->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->nombre,
+                        'tipo_mantenimiento' => $despacho->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->tipo_mantenimiento,
+                    ],
                     'cliente' => ['nombre' => $despacho->ordenTrabajo->equipoProgramacion->equipo->cliente->nombre],
                 ],
             ]);

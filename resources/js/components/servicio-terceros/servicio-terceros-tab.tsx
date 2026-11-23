@@ -14,6 +14,7 @@ import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
+import { CeldaEquipo, textoEquipo } from '@/components/equipos/celdas-equipo';
 import DeleteServicioTerceroModal from '@/components/servicio-terceros/delete-servicio-tercero-modal';
 import FinalizarServicioTerceroModal from '@/components/servicio-terceros/finalizar-servicio-tercero-modal';
 import IniciarServicioTerceroModal from '@/components/servicio-terceros/iniciar-servicio-tercero-modal';
@@ -163,15 +164,24 @@ export default function ServicioTercerosTab({
                     ),
                 }),
                 columnHelper.accessor(
-                    (row) => `${row.equipo_codigo} ${row.equipo_modelo}`,
+                    (row) =>
+                        textoEquipo(
+                            row.equipo_codigo,
+                            row.equipo_tipo,
+                            row.equipo_modelo,
+                            row.equipo_serie,
+                        ),
                     {
                         id: 'equipo',
                         header: 'Equipo',
                         cell: ({ row }) => (
-                            <span className="font-medium">
-                                {row.original.equipo_codigo} ·{' '}
-                                {row.original.equipo_modelo}
-                            </span>
+                            <CeldaEquipo
+                                codigo={row.original.equipo_codigo}
+                                tipo={row.original.equipo_tipo}
+                                clase={row.original.equipo_clase}
+                                modelo={row.original.equipo_modelo}
+                                serie={row.original.equipo_serie}
+                            />
                         ),
                     },
                 ),

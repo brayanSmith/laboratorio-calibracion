@@ -1,6 +1,9 @@
-import { CheckCircle2, Printer, XCircle } from 'lucide-react';
+import { CheckCircle2, Printer, QrCode, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { certificado } from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
+import {
+    certificado,
+    etiqueta,
+} from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -244,6 +247,20 @@ export default function VerCalibracionModal({
                             >
                                 <Printer className="h-4 w-4" /> Imprimir
                                 certificado
+                            </a>
+                        </Button>
+                    ) : null}
+                    {calibracion.estado_calibracion === 'FINALIZADO' &&
+                    calibracion.equipo.tipo_equipo.tipo_mantenimiento ===
+                        'A' ? (
+                        <Button variant="outline" asChild>
+                            <a
+                                href={etiqueta.url(calibracion.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                data-test="imprimir-etiqueta-button"
+                            >
+                                <QrCode className="h-4 w-4" /> Imprimir etiqueta
                             </a>
                         </Button>
                     ) : null}

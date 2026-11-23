@@ -2,6 +2,7 @@
 
 namespace App\Modules\Calibraciones\Http\Controllers;
 
+use App\Actions\Etiquetas\GenerarEtiquetaServicio;
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
@@ -15,6 +16,7 @@ use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
 use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
@@ -24,10 +26,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -384,6 +388,44 @@ class CalibracionController extends Controller
             : $generarCertificado->handle($calibracion, nuevaVersion: false);
 
         return $disco->response($ruta, 'certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
+     * Etiqueta de calibración (PDF) para pegar en el equipo, solo para equipos tipo A con la
+     * calibración finalizada. Su QR abre el certificado sin iniciar sesión (enlace firmado
+     * sin vencimiento, ver SeguimientoIngresoController::certificadoEtiqueta()).
+     */
+    public function etiqueta(Calibracion $calibracion, GenerarEtiquetaServicio $generarEtiqueta): HttpResponse
+    {
+        $calibracion->load('ordenTrabajo.equipoProgramacion.equipo.tipoEquipo');
+        $programacion = $calibracion->ordenTrabajo->equipoProgramacion;
+
+        abort_unless(
+            $calibracion->tenant_id === auth()->user()->tenant_id
+                && $calibracion->estado_calibracion === 'FINALIZADO'
+                && $programacion->equipo->tipoEquipo->tipo_mantenimiento === 'A',
+            404,
+        );
+
+        Gate::authorize('verPdf', $calibracion);
+
+        $pdf = $generarEtiqueta->handle(
+            equipo: $programacion->equipo,
+            titulo: 'CALIBRADO',
+            servicio: 'calibración',
+            fechaServicio: $calibracion->fecha_calibracion,
+            fechaProximoServicio: EquipoProgramacion::calcularFechaProximoServicio(
+                $calibracion->fecha_calibracion->toDateString(),
+                $programacion->intervalo_servicio,
+                $programacion->intervalo_unidad,
+            ),
+            urlDocumento: URL::signedRoute('etiqueta.calibracion.certificado', ['calibracion' => $calibracion->id]),
+        );
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="etiqueta-calibracion-'.$programacion->equipo->codigo.'.pdf"',
+        ]);
     }
 
     /**

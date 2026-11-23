@@ -104,7 +104,10 @@ class ImportarFilaEquipo extends ImportadorFila
             'tipo_magnitud_id' => $this->tipoMagnitud($datos['tipo_magnitud']),
             'unidad_medida_id' => $this->unidadMedida($datos['unidad_medida'], $datos['simbolo_unidad'] ?? null),
             'alcance_indicacion' => $datos['alcance_indicacion'],
-            'precision' => $datos['precision'],
+            // Si no es un porcentaje, la precisión se expresa en la unidad de medida ("±0.5mm").
+            'precision' => str_ends_with((string) $datos['precision'], '%')
+                ? $datos['precision']
+                : $datos['precision'].$datos['simbolo_unidad'],
             'resolucion' => $datos['resolucion'].$datos['simbolo_unidad'],
             'tenant_id' => $this->tenantId,
         ] : null;

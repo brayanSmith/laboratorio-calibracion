@@ -49,7 +49,8 @@ class ServicioTerceroController extends Controller
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
-                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id',
+                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,tipo_equipo_id,cliente_id',
+                'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'empresaTercero:id,nombre',
             ])
@@ -66,6 +67,9 @@ class ServicioTerceroController extends Controller
                 'orden_trabajo_codigo' => $servicio->ordenTrabajo->codigo,
                 'equipo_codigo' => $servicio->ordenTrabajo->equipoProgramacion->equipo->codigo,
                 'equipo_modelo' => $servicio->ordenTrabajo->equipoProgramacion->equipo->modelo,
+                'equipo_tipo' => $servicio->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo?->nombre,
+                'equipo_clase' => $servicio->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo?->tipo_mantenimiento,
+                'equipo_serie' => $servicio->ordenTrabajo->equipoProgramacion->equipo->numero_serie,
                 'cliente_nombre' => $servicio->ordenTrabajo->equipoProgramacion->equipo->cliente?->nombre,
                 'empresa_tercero_id' => $servicio->empresa_tercero_id,
                 'empresa_tercero_nombre' => $servicio->empresaTercero->nombre,

@@ -181,12 +181,13 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Cuántos correos de ingreso que disparó el usuario ya salieron o fallaron y aún no ve,
-     * para el globito de la campanita (null si no trabaja con ingresos).
+     * Cuántos correos que disparó el usuario (de ingreso o avisos de equipo inhabilitado) ya
+     * salieron o fallaron y aún no ve, para el globito de la campanita (null fuera de un
+     * laboratorio). Cualquiera puede inhabilitar un equipo, así que todos tienen campanita.
      */
     private function notificacionesSinLeer(?User $user): ?int
     {
-        if (! $user?->tenant_id || ! $user->can(TenantPermission::IngresosVer->value)) {
+        if (! $user?->tenant_id) {
             return null;
         }
 

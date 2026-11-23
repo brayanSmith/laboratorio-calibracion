@@ -148,6 +148,10 @@ export default function DespachosIndex({
                             <CeldaEquipo
                                 codigo={row.original.equipo.codigo}
                                 tipo={row.original.equipo.tipo_equipo.nombre}
+                                clase={
+                                    row.original.equipo.tipo_equipo
+                                        .tipo_mantenimiento
+                                }
                                 modelo={row.original.equipo.modelo}
                                 serie={row.original.equipo.numero_serie}
                             />

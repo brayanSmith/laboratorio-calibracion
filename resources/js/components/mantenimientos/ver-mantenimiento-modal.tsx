@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
-import { CheckCircle2, Printer, XCircle } from 'lucide-react';
-import { informe } from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
+import { CheckCircle2, Printer, QrCode, XCircle } from 'lucide-react';
+import {
+    etiqueta,
+    informe,
+} from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -315,6 +318,20 @@ export default function VerMantenimientoModal({
                                 data-test="descargar-informe-button"
                             >
                                 <Printer className="h-4 w-4" /> Imprimir PDF
+                            </a>
+                        </Button>
+                    ) : null}
+                    {mantenimiento.estado_mantenimiento === 'FINALIZADO' &&
+                    mantenimiento.equipo.tipo_equipo.tipo_mantenimiento ===
+                        'B' ? (
+                        <Button variant="outline" asChild>
+                            <a
+                                href={etiqueta.url(mantenimiento.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                data-test="imprimir-etiqueta-button"
+                            >
+                                <QrCode className="h-4 w-4" /> Imprimir etiqueta
                             </a>
                         </Button>
                     ) : null}

@@ -8,8 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Las notificaciones de la campanita: cómo terminaron los correos del ingreso que disparó
- * el usuario (al recibir un ingreso o al reenviarlo), con el motivo si fallaron.
+ * Las notificaciones de la campanita: cómo terminaron los correos que disparó el usuario (al
+ * recibir o reenviar un ingreso, o al inhabilitar un equipo), con el motivo si fallaron.
  */
 class NotificacionCorreoController extends Controller
 {
@@ -26,14 +26,18 @@ class NotificacionCorreoController extends Controller
         $envios = IngresoEnvio::query()
             ->where('user_id', $request->user()->id)
             ->where('tenant_id', $request->user()->tenant_id)
-            ->with('ingreso:id,codigo')
+            ->with(['ingreso:id,codigo', 'equipo:id,codigo'])
             ->latest('id')
             ->limit(self::LIMITE)
             ->get()
             ->map(fn (IngresoEnvio $envio) => [
                 'id' => $envio->id,
+                'tipo' => $envio->tipo,
                 'ingreso_id' => $envio->ingreso_id,
                 'ingreso_codigo' => $envio->ingreso?->codigo,
+                'equipo_id' => $envio->equipo_id,
+                'equipo_codigo' => $envio->equipo?->codigo,
+                'motivo' => $envio->motivo,
                 'destinatario' => $envio->destinatario,
                 'correo' => $envio->correo,
                 'estado' => $envio->estado,

@@ -135,6 +135,7 @@ class DatosSeguimientoIngreso
         return [
             'codigo' => $programacion->equipo->codigo,
             'tipo_equipo' => $programacion->equipo->tipoEquipo->nombre,
+            'clase_equipo' => $programacion->equipo->tipoEquipo->tipo_mantenimiento,
             'modelo' => $programacion->equipo->modelo,
             'numero_serie' => $programacion->equipo->numero_serie,
             'tipo_servicio' => $programacion->tipoServicioLegible(),

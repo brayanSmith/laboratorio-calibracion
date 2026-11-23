@@ -7,8 +7,11 @@ use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Despachos\Models\Despacho;
+use App\Modules\Equipos\Mail\EquipoInhabilitado;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Ingresos\Models\Ingreso;
+use App\Modules\Ingresos\Models\IngresoEnvio;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -320,3 +323,112 @@ test('al recibir, un motivo de cancelacion solo se acepta si el equipo no ingres
     'equipo cancelado' => ['0', true],
     'equipo ingresado' => ['1', false],
 ]);
+
+test('al quedar un mantenimiento fuera de servicio se le avisa al cliente con el motivo y la descripcion del tecnico', function () {
+    Mail::fake();
+    $mantenimiento = crearMantenimiento($this->bahia, ['descripcion' => 'El motor quedó quemado, no tiene reparación.']);
+    $equipo = $mantenimiento->ordenTrabajo->equipoProgramacion->equipo;
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    Mail::assertQueued(EquipoInhabilitado::class, fn (EquipoInhabilitado $correo) => $correo->hasTo($equipo->cliente->email)
+        && $correo->equipo['codigo'] === $equipo->codigo
+        && $correo->motivo === 'Mantenimiento: Fuera de servicio'
+        && $correo->detalle === 'El motor quedó quemado, no tiene reparación.'
+        && $correo->registradoPor === $this->admin->name);
+    Mail::assertQueuedCount(1);
+});
+
+test('al inactivar un equipo a mano se le avisa al cliente con el motivo escrito', function () {
+    Mail::fake();
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->patch(route('equipos.estado.update', $equipo), ['activo' => '0', 'motivo' => 'Dado de baja por daño irreparable'])
+        ->assertSessionHasNoErrors();
+
+    Mail::assertQueued(EquipoInhabilitado::class, fn (EquipoInhabilitado $correo) => $correo->hasTo($equipo->cliente->email)
+        && $correo->motivo === 'Dado de baja por daño irreparable'
+        && $correo->detalle === null);
+});
+
+test('no se le avisa al cliente si el equipo ya estaba inactivo ni al volver a activarlo', function () {
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+    $equipo->inactivar('Dado de baja');
+    Mail::fake();
+
+    $equipo->inactivar('Calibración: Fuera de servicio');
+    $equipo->cambiarEstado(true, 'Reparado en planta', $this->admin);
+
+    Mail::assertNothingQueued();
+});
+
+test('el correo de equipo inhabilitado muestra el equipo, el motivo y el detalle', function () {
+    $correo = new EquipoInhabilitado(
+        tenantId: $this->tenant->id,
+        cliente: 'Minera Andina',
+        equipo: ['codigo' => 'EQ-0007', 'tipo_equipo' => 'Manómetro', 'modelo' => 'M-200', 'numero_serie' => 'SN-55', 'area' => 'Planta', 'bahia' => 'Bahía 1'],
+        motivo: 'Mantenimiento: Fuera de servicio',
+        detalle: 'El motor quedó quemado.',
+        fecha: '22/11/2026 09:30 am',
+        registradoPor: 'Karen',
+    );
+
+    $correo->assertHasSubject('[EQUIPO INHABILITADO] EQ-0007 - Manómetro - MINERA ANDINA');
+    $correo->assertSeeInHtml('Mantenimiento: Fuera de servicio');
+    $correo->assertSeeInHtml('El motor quedó quemado.');
+    $correo->assertSeeInHtml('SN-55');
+    $correo->assertSeeInHtml('Karen');
+});
+
+test('el aviso de equipo inhabilitado queda en la campanita de quien lo inhabilito, con el equipo y el motivo', function () {
+    Mail::fake();
+    $equipo = crearEquipoParaBusqueda($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->patch(route('equipos.estado.update', $equipo), ['activo' => '0', 'motivo' => 'Dado de baja por daño irreparable'])
+        ->assertSessionHasNoErrors();
+
+    $envio = IngresoEnvio::sole();
+    expect($envio)
+        ->tipo->toBe(IngresoEnvio::TIPO_EQUIPO_INHABILITADO)
+        ->equipo_id->toBe($equipo->id)
+        ->ingreso_id->toBeNull()
+        ->user_id->toBe($this->admin->id)
+        ->correo->toBe($equipo->cliente->email)
+        ->estado->toBe('EN_COLA');
+    Mail::assertQueued(EquipoInhabilitado::class, fn (EquipoInhabilitado $correo) => $correo->envioId === $envio->id);
+
+    // Al salir el correo se marca como enviado y cuenta en el globito.
+    $envio->marcarEnviado();
+
+    $this->actingAs($this->admin)
+        ->getJson(route('notificaciones.correos'))
+        ->assertOk()
+        ->assertJsonPath('notificaciones.0.tipo', 'EQUIPO_INHABILITADO')
+        ->assertJsonPath('notificaciones.0.equipo_codigo', $equipo->codigo)
+        ->assertJsonPath('notificaciones.0.motivo', 'Dado de baja por daño irreparable')
+        ->assertJsonPath('notificaciones.0.estado', 'ENVIADO');
+
+    $this->actingAs($this->admin)->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('notificacionesSinLeer', 1));
+});
+
+test('el correo de equipo inhabilitado lleva el id de su registro para marcarlo como enviado o fallido', function () {
+    $envio = IngresoEnvio::factory()->create([
+        'tipo' => IngresoEnvio::TIPO_EQUIPO_INHABILITADO,
+        'ingreso_id' => null,
+        'equipo_id' => crearEquipoParaBusqueda($this->bahia)->id,
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $correo = new EquipoInhabilitado($this->tenant->id, 'Acme', ['codigo' => 'EQ-1', 'tipo_equipo' => 'Manómetro', 'modelo' => null, 'numero_serie' => null, 'area' => null, 'bahia' => null], 'Baja', null, '22/11/2026 09:30 am', null);
+    $correo->envioId = $envio->id;
+
+    expect($correo->headers()->text)->toBe([IngresoEnvio::ENCABEZADO => (string) $envio->id]);
+
+    $correo->failed(new RuntimeException('Mailbox unavailable'));
+
+    expect($envio->refresh())->estado->toBe('FALLIDO')->error->toBe('Mailbox unavailable');
+});

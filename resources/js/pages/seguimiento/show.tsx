@@ -69,6 +69,8 @@ export type EquipoSeguimiento = {
     bahia?: string | null;
     codigo: string;
     tipo_equipo: string;
+    /** Tipo de mantenimiento del tipo de equipo: A o B. */
+    clase_equipo?: string | null;
     modelo: string | null;
     numero_serie: string | null;
     tipo_servicio: string;
@@ -739,6 +741,7 @@ export function columnasSeguimiento(
                             </span>
                         }
                         tipo={row.original.tipo_equipo}
+                        clase={row.original.clase_equipo}
                         modelo={row.original.modelo}
                         serie={row.original.numero_serie}
                     />

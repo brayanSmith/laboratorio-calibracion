@@ -223,7 +223,7 @@ test('actualiza el equipo junto con su especificacion tecnica, programaciones y 
             'cliente_id' => $equipo->cliente_id,
             'tipo_magnitud_id' => $tipoMagnitud->id,
             'unidad_medida_id' => $unidadMedida->id,
-            'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+            'alcance_indicacion' => '0 a 100'.$unidadMedida->simbolo,
             'precision' => '±0.1',
             'resolucion' => '0.01'.$unidadMedida->simbolo,
             'programaciones' => [
@@ -252,7 +252,7 @@ test('elimina la especificacion tecnica del equipo cuando se guarda sin tipo de 
     $this->actingAs($this->admin)->post(route('equipos.store'), datosEquipoBase($this->tenant, [
         'tipo_magnitud_id' => $tipoMagnitud->id,
         'unidad_medida_id' => $unidadMedida->id,
-        'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+        'alcance_indicacion' => '0 a 100'.$unidadMedida->simbolo,
         'precision' => '±0.1',
         'resolucion' => '0.01'.$unidadMedida->simbolo,
     ]));
@@ -337,7 +337,7 @@ test('crea un equipo junto con su especificacion tecnica en la misma peticion', 
         ->post(route('equipos.store'), datosEquipoBase($this->tenant, [
             'tipo_magnitud_id' => $tipoMagnitud->id,
             'unidad_medida_id' => $unidadMedida->id,
-            'alcance_indicacion' => '100'.$unidadMedida->simbolo,
+            'alcance_indicacion' => '0 a 100'.$unidadMedida->simbolo,
             'precision' => '±0.1',
             'resolucion' => '0.01'.$unidadMedida->simbolo,
         ]))
@@ -348,7 +348,7 @@ test('crea un equipo junto con su especificacion tecnica en la misma peticion', 
 
     expect($especificacion->tipo_magnitud_id)->toBe($tipoMagnitud->id)
         ->and($especificacion->unidad_medida_id)->toBe($unidadMedida->id)
-        ->and($especificacion->alcance_indicacion)->toBe('100'.$unidadMedida->simbolo)
+        ->and($especificacion->alcance_indicacion)->toBe('0 a 100'.$unidadMedida->simbolo)
         ->and($especificacion->precision)->toBe('±0.1')
         ->and($especificacion->resolucion)->toBe('0.01'.$unidadMedida->simbolo)
         ->and($especificacion->tenant_id)->toBe($this->tenant->id);
@@ -458,7 +458,7 @@ test('rechaza un tipo de magnitud de otro tenant al crear el equipo', function (
         ->post(route('equipos.store'), datosEquipoBase($this->tenant, [
             'tipo_magnitud_id' => $ajeno->id,
             'unidad_medida_id' => $unidadMedida->id,
-            'alcance_indicacion' => '1'.$unidadMedida->simbolo,
+            'alcance_indicacion' => '0 a 1'.$unidadMedida->simbolo,
             'precision' => '±1',
             'resolucion' => '1'.$unidadMedida->simbolo,
         ]))

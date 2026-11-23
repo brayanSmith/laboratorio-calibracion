@@ -20,6 +20,7 @@ use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -678,6 +679,35 @@ test('no permite ver el certificado de una calibracion sin finalizar ni de otro 
 
     $this->actingAs($this->admin)->get(route('calibraciones.certificado', $sinFinalizar))->assertNotFound();
     $this->actingAs($this->admin)->get(route('calibraciones.certificado', $ajena))->assertNotFound();
+});
+
+test('genera la etiqueta de calibracion de un equipo tipo A y su QR abre el certificado sin sesion', function () {
+    $calibracion = crearCalibracionMedida($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
+    $calibracion->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'A']);
+
+    $respuesta = $this->actingAs($this->admin)
+        ->get(route('calibraciones.etiqueta', $calibracion))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    expect($respuesta->getContent())->toStartWith('%PDF');
+
+    auth()->logout();
+
+    $this->get(URL::signedRoute('etiqueta.calibracion.certificado', ['calibracion' => $calibracion->id]))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+    $this->get(route('etiqueta.calibracion.certificado', ['calibracion' => $calibracion->id]))->assertForbidden();
+});
+
+test('no genera etiqueta de calibracion para equipos tipo B ni calibraciones sin finalizar', function () {
+    $tipoB = crearCalibracion($this->bahia, ['estado_calibracion' => 'FINALIZADO']);
+    $tipoB->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'B']);
+    $sinFinalizar = crearCalibracion($this->bahia, [], 'EQ-6002');
+    $sinFinalizar->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'A']);
+
+    $this->actingAs($this->admin)->get(route('calibraciones.etiqueta', $tipoB))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('calibraciones.etiqueta', $sinFinalizar))->assertNotFound();
 });
 
 test('actualizar el certificado emite una nueva version y conserva la anterior', function () {

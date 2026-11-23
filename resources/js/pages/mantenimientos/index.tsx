@@ -11,6 +11,7 @@ import {
     Pencil,
     Play,
     Printer,
+    QrCode,
     ShieldAlert,
     Trash2,
 } from 'lucide-react';
@@ -26,7 +27,10 @@ import TarjetasEstado, {
 import type { TarjetaEstado } from '@/components/tarjetas-estado';
 import DeleteMantenimientoModal from '@/components/mantenimientos/delete-mantenimiento-modal';
 import EditMantenimientoModal from '@/components/mantenimientos/edit-mantenimiento-modal';
-import { informe } from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
+import {
+    etiqueta,
+    informe,
+} from '@/actions/App/Modules/Mantenimientos/Http/Controllers/MantenimientoController';
 import GestionarMantenimientoModal from '@/components/mantenimientos/gestionar-mantenimiento-modal';
 import IniciarMantenimientoModal from '@/components/mantenimientos/iniciar-mantenimiento-modal';
 import VerMantenimientoModal from '@/components/mantenimientos/ver-mantenimiento-modal';
@@ -212,6 +216,10 @@ export default function MantenimientosIndex({
                             <CeldaEquipo
                                 codigo={row.original.equipo.codigo}
                                 tipo={row.original.equipo.tipo_equipo.nombre}
+                                clase={
+                                    row.original.equipo.tipo_equipo
+                                        .tipo_mantenimiento
+                                }
                                 modelo={row.original.equipo.modelo}
                                 serie={row.original.equipo.numero_serie}
                             />
@@ -322,6 +330,20 @@ export default function MantenimientosIndex({
                                     href={informe.url(row.original.id)}
                                     target="_blank"
                                     data-test="mantenimiento-imprimir-button"
+                                />
+                            ) : null}
+                            {canPdf &&
+                            row.original.estado_mantenimiento ===
+                                'FINALIZADO' &&
+                            row.original.equipo.tipo_equipo
+                                .tipo_mantenimiento === 'B' ? (
+                                <BotonAccion
+                                    icono={QrCode}
+                                    etiqueta="Etiqueta de mantenimiento"
+                                    variant="outline"
+                                    href={etiqueta.url(row.original.id)}
+                                    target="_blank"
+                                    data-test="mantenimiento-etiqueta-button"
                                 />
                             ) : null}
                             {canPdf && row.original.versiones.length > 1 ? (

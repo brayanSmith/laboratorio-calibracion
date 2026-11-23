@@ -202,7 +202,7 @@ test('importa los equipos y crea los catalogos que no existen', function () {
         ->and($equipo->ficha_tecnica)->toMatchArray(['costo_usd' => 1250.5, 'fecha_adquisicion' => '2025-06-15'])
         ->and($equipo->equipoEspecificacionTecnica->tipoMagnitud->nombre)->toBe('Presión')
         ->and($equipo->equipoEspecificacionTecnica->unidadMedida->simbolo)->toBe('bar')
-        ->and($equipo->equipoEspecificacionTecnica->precision)->toBe('±0.5');
+        ->and($equipo->equipoEspecificacionTecnica->precision)->toBe('±0.5bar');
 
     // Los catálogos repetidos entre filas se crean una sola vez.
     expect(TipoEquipo::count())->toBe(1)
@@ -532,11 +532,11 @@ test('agrega los simbolos de precision, alcance y resolucion cuando el csv solo 
     $especificacion = fn (string $codigo) => Equipo::where('codigo', $codigo)->sole()->equipoEspecificacionTecnica;
 
     expect($especificacion('EQ-1')->only(['alcance_indicacion', 'precision', 'resolucion']))
-        ->toBe(['alcance_indicacion' => '0 a 100mm', 'precision' => '±0.5', 'resolucion' => '0.01mm'])
+        ->toBe(['alcance_indicacion' => '0 a 100mm', 'precision' => '±0.5mm', 'resolucion' => '0.01mm'])
         ->and($especificacion('EQ-2')->only(['alcance_indicacion', 'precision', 'resolucion']))
         ->toBe(['alcance_indicacion' => '0 a 10bar', 'precision' => '±2%', 'resolucion' => '0.1bar'])
         ->and($especificacion('EQ-3')->only(['alcance_indicacion', 'precision', 'resolucion']))
-        ->toBe(['alcance_indicacion' => '0 a 10bar', 'precision' => '±0.5', 'resolucion' => '0.1bar']);
+        ->toBe(['alcance_indicacion' => '0 a 10bar', 'precision' => '±0.5bar', 'resolucion' => '0.1bar']);
 });
 
 test('acepta la resolucion con coma o punto decimal y hasta 4 decimales', function (string $resolucion, string $esperada) {

@@ -204,7 +204,7 @@ export type Equipo = {
     requiere_programacion: boolean;
     cliente_id: number;
     ficha_tecnica: EquipoFichaTecnica | null;
-    tipo_equipo?: EquipoOption;
+    tipo_equipo?: EquipoOption & { tipo_mantenimiento?: 'A' | 'B' };
     fabricante?: EquipoOption;
     area?: EquipoOption;
     bahia?: EquipoOption;

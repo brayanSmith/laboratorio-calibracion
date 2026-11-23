@@ -64,7 +64,7 @@ class CalcularCumplimiento
                 'equipo:id,codigo,modelo,numero_serie,area_id,bahia_id,tipo_equipo_id,criticidad',
                 'equipo.area:id,nombre',
                 'equipo.bahia:id,nombre',
-                'equipo.tipoEquipo:id,nombre',
+                'equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
                 'equipo.equipoEspecificacionTecnica:id,equipo_id,tipo_magnitud_id',
                 'equipo.equipoEspecificacionTecnica.tipoMagnitud:id,nombre',
             ])
@@ -170,6 +170,7 @@ class CalcularCumplimiento
                     'modelo' => $fila['equipo']->modelo,
                     'numero_serie' => $fila['equipo']->numero_serie,
                     'tipo_equipo' => $fila['equipo']->tipoEquipo?->nombre,
+                    'clase_equipo' => $fila['equipo']->tipoEquipo?->tipo_mantenimiento,
                     'area' => $fila['equipo']->area?->nombre,
                     'bahia' => $fila['equipo']->bahia?->nombre,
                     'criticidad' => $fila['equipo']->criticidad,
@@ -314,7 +315,7 @@ class CalcularCumplimiento
                 'equipo:id,codigo,modelo,numero_serie,area_id,bahia_id,tipo_equipo_id,criticidad',
                 'equipo.area:id,nombre',
                 'equipo.bahia:id,nombre',
-                'equipo.tipoEquipo:id,nombre',
+                'equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
                 'novedadIngreso:id,nombre',
             ])
             ->get()
@@ -346,6 +347,7 @@ class CalcularCumplimiento
                 'modelo' => $programacion->equipo->modelo,
                 'numero_serie' => $programacion->equipo->numero_serie,
                 'tipo_equipo' => $programacion->equipo->tipoEquipo?->nombre,
+                'clase_equipo' => $programacion->equipo->tipoEquipo?->tipo_mantenimiento,
                 'area' => $programacion->equipo->area?->nombre,
                 'bahia' => $programacion->equipo->bahia?->nombre,
                 'criticidad' => $programacion->equipo->criticidad,

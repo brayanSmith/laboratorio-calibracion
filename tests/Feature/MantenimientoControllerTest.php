@@ -16,6 +16,7 @@ use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -522,6 +523,35 @@ test('el informe PDF se genera con los items utilizados, su precio unitario y su
         ->assertHeader('content-type', 'application/pdf');
 
     Storage::disk('public')->assertExists($mantenimiento->refresh()->pdf_informe);
+});
+
+test('genera la etiqueta de mantenimiento de un equipo tipo B y su QR abre el informe sin sesion', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'B']);
+
+    $respuesta = $this->actingAs($this->admin)
+        ->get(route('mantenimientos.etiqueta', $mantenimiento))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    expect($respuesta->getContent())->toStartWith('%PDF');
+
+    auth()->logout();
+
+    $this->get(URL::signedRoute('etiqueta.mantenimiento.informe', ['mantenimiento' => $mantenimiento->id]))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+    $this->get(route('etiqueta.mantenimiento.informe', ['mantenimiento' => $mantenimiento->id]))->assertForbidden();
+});
+
+test('no genera etiqueta de mantenimiento para equipos tipo A ni mantenimientos sin finalizar', function () {
+    $tipoA = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    $tipoA->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'A']);
+    $sinFinalizar = crearMantenimiento($this->bahia, [], 'EQ-5002');
+    $sinFinalizar->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'B']);
+
+    $this->actingAs($this->admin)->get(route('mantenimientos.etiqueta', $tipoA))->assertNotFound();
+    $this->actingAs($this->admin)->get(route('mantenimientos.etiqueta', $sinFinalizar))->assertNotFound();
 });
 
 test('muestra el informe de un mantenimiento finalizado y lo regenera si falta el archivo', function () {

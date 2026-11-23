@@ -83,6 +83,48 @@ class SeguimientoIngresoController extends Controller
     }
 
     /**
+     * Certificado de calibración al que lleva el QR de la etiqueta pegada en el equipo (ver
+     * CalibracionController::etiqueta()). El enlace va firmado: no hace falta el código del
+     * ingreso, y siempre muestra la versión más reciente del certificado.
+     */
+    public function certificadoEtiqueta(int $calibracion, GenerarCertificadoCalibracion $generarCertificado): StreamedResponse
+    {
+        $calibracion = Calibracion::query()
+            ->whereKey($calibracion)
+            ->where('estado_calibracion', 'FINALIZADO')
+            ->with('ordenTrabajo:id,codigo')
+            ->firstOrFail();
+
+        $disco = Storage::disk('public');
+        $ruta = $calibracion->pdf_certificado && $disco->exists($calibracion->pdf_certificado)
+            ? $calibracion->pdf_certificado
+            : $generarCertificado->handle($calibracion, nuevaVersion: false);
+
+        return $disco->response($ruta, 'certificado-calibracion-'.$calibracion->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
+     * Informe de mantenimiento al que lleva el QR de la etiqueta pegada en el equipo (ver
+     * MantenimientoController::etiqueta()). El enlace va firmado: no hace falta el código del
+     * ingreso, y siempre muestra la versión más reciente del informe.
+     */
+    public function informeEtiqueta(int $mantenimiento, GenerarInformeMantenimiento $generarInforme): StreamedResponse
+    {
+        $mantenimiento = Mantenimiento::query()
+            ->whereKey($mantenimiento)
+            ->where('estado_mantenimiento', 'FINALIZADO')
+            ->with('ordenTrabajo:id,codigo')
+            ->firstOrFail();
+
+        $disco = Storage::disk('public');
+        $ruta = $mantenimiento->pdf_informe && $disco->exists($mantenimiento->pdf_informe)
+            ? $mantenimiento->pdf_informe
+            : $generarInforme->handle($mantenimiento, nuevaVersion: false);
+
+        return $disco->response($ruta, 'informe-mantenimiento-'.$mantenimiento->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
      * Documento (PDF) que entregó el laboratorio externo por un servicio de mantenimiento o
      * calibración de un equipo del ingreso con ese código. Solo de servicios finalizados.
      */

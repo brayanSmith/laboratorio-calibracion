@@ -302,6 +302,7 @@ export function TablaNoRecibidos({
                                     </Link>
                                 }
                                 tipo={row.original.tipo_equipo}
+                                clase={row.original.clase_equipo}
                                 modelo={row.original.modelo}
                                 serie={row.original.numero_serie}
                             />

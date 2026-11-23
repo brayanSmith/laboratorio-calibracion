@@ -11,6 +11,7 @@ import {
     Pencil,
     Play,
     Printer,
+    QrCode,
     ShieldAlert,
     Trash2,
 } from 'lucide-react';
@@ -19,7 +20,10 @@ import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
-import { certificado } from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
+import {
+    certificado,
+    etiqueta,
+} from '@/actions/App/Modules/Calibraciones/Http/Controllers/CalibracionController';
 import DeleteCalibracionModal from '@/components/calibraciones/delete-calibracion-modal';
 import EditCalibracionModal from '@/components/calibraciones/edit-calibracion-modal';
 import IniciarCalibracionModal from '@/components/calibraciones/iniciar-calibracion-modal';
@@ -206,6 +210,10 @@ export default function CalibracionesIndex({
                             <CeldaEquipo
                                 codigo={row.original.equipo.codigo}
                                 tipo={row.original.equipo.tipo_equipo.nombre}
+                                clase={
+                                    row.original.equipo.tipo_equipo
+                                        .tipo_mantenimiento
+                                }
                                 modelo={row.original.equipo.modelo}
                                 serie={row.original.equipo.numero_serie}
                             />
@@ -312,6 +320,19 @@ export default function CalibracionesIndex({
                                     href={certificado.url(row.original.id)}
                                     target="_blank"
                                     data-test="calibracion-imprimir-button"
+                                />
+                            ) : null}
+                            {canPdf &&
+                            row.original.estado_calibracion === 'FINALIZADO' &&
+                            row.original.equipo.tipo_equipo
+                                .tipo_mantenimiento === 'A' ? (
+                                <BotonAccion
+                                    icono={QrCode}
+                                    etiqueta="Etiqueta de calibración"
+                                    variant="outline"
+                                    href={etiqueta.url(row.original.id)}
+                                    target="_blank"
+                                    data-test="calibracion-etiqueta-button"
                                 />
                             ) : null}
                             {canPdf && row.original.versiones.length > 1 ? (

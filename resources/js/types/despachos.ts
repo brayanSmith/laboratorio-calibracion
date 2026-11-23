@@ -27,7 +27,7 @@ export type Despacho = {
         codigo: string;
         modelo: string;
         numero_serie: string;
-        tipo_equipo: { nombre: string };
+        tipo_equipo: { nombre: string; tipo_mantenimiento: string };
         cliente: { nombre: string };
     };
 };

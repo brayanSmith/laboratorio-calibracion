@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import Combobox from '@/components/combobox';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
@@ -16,8 +17,9 @@ type Props = {
 };
 
 /**
- * Split a stored precision value ("±0.5" or "±0.5%") into its number and whether it's a
- * porcentaje. The ± always goes in front; the % only when it's a porcentaje.
+ * Split a stored precision value ("±0.5mm" or "±0.5%") into its number and whether it's a
+ * porcentaje. The ± always goes in front; at the end goes the % when it's a porcentaje, or
+ * the unidad de medida's símbolo otherwise.
  */
 export function parsePrecision(value?: string | null): {
     numero: string;
@@ -26,17 +28,43 @@ export function parsePrecision(value?: string | null): {
     const esPorcentaje = value?.endsWith('%') ?? false;
 
     return {
-        numero: (value ?? '').replace(/^±/, '').replace(/%$/, ''),
+        numero: (value ?? '').replace(/^±/, '').match(/^\d*\.?\d*/)?.[0] ?? '',
         esPorcentaje,
     };
 }
 
-/** "0.5" -> "±0.5", or "±0.5%" if it's a porcentaje; empty while there's no number. */
+/**
+ * "0.5" -> "±0.5%" if it's a porcentaje, or "±0.5mm" with the unidad's símbolo otherwise;
+ * empty while there's no number.
+ */
 export function formatearPrecision(
     numero: string,
     esPorcentaje: boolean,
+    simboloUnidad = '',
 ): string {
-    return numero ? `±${numero}${esPorcentaje ? '%' : ''}` : '';
+    return numero ? `±${numero}${esPorcentaje ? '%' : simboloUnidad}` : '';
+}
+
+/**
+ * Split a stored alcance de indicación ("-10 a 100mm") into its alcance inicial and final.
+ * Values that don't follow that format come back empty so they're entered again.
+ */
+export function parseAlcanceIndicacion(value?: string | null): {
+    inicial: string;
+    final: string;
+} {
+    const partes = (value ?? '').match(/^(-?\d+(?:\.\d+)?) a (\d+(?:\.\d+)?)/);
+
+    return { inicial: partes?.[1] ?? '', final: partes?.[2] ?? '' };
+}
+
+/** "-10" and "100" -> "-10 a 100mm"; empty until both numbers are filled. */
+export function formatearAlcanceIndicacion(
+    inicial: string,
+    final: string,
+    simboloUnidad = '',
+): string {
+    return inicial && final ? `${inicial} a ${final}${simboloUnidad}` : '';
 }
 
 /**
@@ -58,6 +86,15 @@ function parseValorConSimbolo(
     return value;
 }
 
+/** Number inputs accept "e" and "+" (1e5); the alcance only takes plain numbers. */
+function bloquearNotacionCientifica(
+    event: KeyboardEvent<HTMLInputElement>,
+): void {
+    if (['e', 'E', '+'].includes(event.key)) {
+        event.preventDefault();
+    }
+}
+
 export default function EquipoEspecificacionTecnicaFields({
     especificacion,
     options,
@@ -71,12 +108,6 @@ export default function EquipoEspecificacionTecnicaFields({
         inicial.esPorcentaje,
     );
 
-    // El ± va siempre al principio ("±0.5"); el % al final, si se marca ("±0.5%").
-    const precisionValor = formatearPrecision(
-        precisionNumero,
-        precisionPorcentaje,
-    );
-
     const [tipoMagnitudId, setTipoMagnitudId] = useState(
         especificacion?.tipo_magnitud_id?.toString(),
     );
@@ -88,17 +119,28 @@ export default function EquipoEspecificacionTecnicaFields({
         (option) => option.id.toString() === unidadMedidaId,
     );
 
-    const [alcanceIndicacionTexto, setAlcanceIndicacionTexto] = useState(() =>
-        parseValorConSimbolo(
-            especificacion?.alcance_indicacion,
-            unidadSeleccionada?.simbolo,
-        ),
+    // El ± va siempre al principio; al final el % si se marca ("±0.5%") o, si no, el
+    // símbolo de la unidad de medida elegida ("±0.5mm").
+    const precisionValor = formatearPrecision(
+        precisionNumero,
+        precisionPorcentaje,
+        unidadSeleccionada?.simbolo,
     );
 
-    // El símbolo de la unidad de medida elegida se concatena al final ("0 a 100mm").
-    const alcanceIndicacionValor = alcanceIndicacionTexto
-        ? `${alcanceIndicacionTexto}${unidadSeleccionada?.simbolo ?? ''}`
-        : '';
+    const [alcanceInicial, setAlcanceInicial] = useState(
+        () =>
+            parseAlcanceIndicacion(especificacion?.alcance_indicacion).inicial,
+    );
+    const [alcanceFinal, setAlcanceFinal] = useState(
+        () => parseAlcanceIndicacion(especificacion?.alcance_indicacion).final,
+    );
+
+    // "[inicial] a [final]" con el símbolo de la unidad de medida elegida al final ("0 a 100mm").
+    const alcanceIndicacionValor = formatearAlcanceIndicacion(
+        alcanceInicial,
+        alcanceFinal,
+        unidadSeleccionada?.simbolo,
+    );
 
     // Depende del texto y de la unidad elegida, así que se avisa cuando cambia el resultado.
     useEffect(() => {
@@ -154,18 +196,41 @@ export default function EquipoEspecificacionTecnicaFields({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="alcance_indicacion_texto">
-                    Alcance de indicación
-                </Label>
+                <Label htmlFor="alcance_inicial">Alcance de indicación</Label>
                 <div className="flex items-center gap-2">
                     <Input
-                        id="alcance_indicacion_texto"
-                        type="text"
-                        value={alcanceIndicacionTexto}
+                        id="alcance_inicial"
+                        type="number"
+                        step="any"
+                        value={alcanceInicial}
                         onChange={(event) =>
-                            setAlcanceIndicacionTexto(event.target.value)
+                            setAlcanceInicial(event.target.value)
                         }
-                        required={required}
+                        onKeyDown={bloquearNotacionCientifica}
+                        placeholder="Inicial"
+                        aria-label="Alcance inicial"
+                        required={required || alcanceFinal !== ''}
+                        className="flex-1"
+                    />
+                    <span
+                        className="text-sm text-muted-foreground"
+                        aria-hidden="true"
+                    >
+                        a
+                    </span>
+                    <Input
+                        id="alcance_final"
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={alcanceFinal}
+                        onChange={(event) =>
+                            setAlcanceFinal(event.target.value)
+                        }
+                        onKeyDown={bloquearNotacionCientifica}
+                        placeholder="Final"
+                        aria-label="Alcance final"
+                        required={required || alcanceInicial !== ''}
                         className="flex-1"
                     />
                     {unidadSeleccionada ? (
@@ -206,6 +271,14 @@ export default function EquipoEspecificacionTecnicaFields({
                         required={required}
                         className="flex-1"
                     />
+                    {!precisionPorcentaje && unidadSeleccionada ? (
+                        <span
+                            className="text-sm text-muted-foreground"
+                            aria-hidden="true"
+                        >
+                            {unidadSeleccionada.simbolo}
+                        </span>
+                    ) : null}
                     <Toggle
                         variant="outline"
                         pressed={precisionPorcentaje}

@@ -2,11 +2,13 @@
 
 namespace App\Modules\Mantenimientos\Http\Controllers;
 
+use App\Actions\Etiquetas\GenerarEtiquetaServicio;
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\VersionDocumento;
 use App\Modules\Catalogos\Models\Novedad;
+use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Inventario\Models\Item;
 use App\Modules\Mantenimientos\Actions\GenerarInformeMantenimiento;
 use App\Modules\Mantenimientos\Http\Requests\FinalizarMantenimientoRequest;
@@ -24,11 +26,13 @@ use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -328,6 +332,45 @@ class MantenimientoController extends Controller
             : $generarInforme->handle($mantenimiento, nuevaVersion: false);
 
         return $disco->response($ruta, 'informe-mantenimiento-'.$mantenimiento->ordenTrabajo->codigo.'.pdf', ['Content-Type' => 'application/pdf']);
+    }
+
+    /**
+     * Etiqueta de mantenimiento (PDF) para pegar en el equipo, solo para equipos tipo B (los
+     * tipo A llevan la de calibración) con el mantenimiento finalizado. Su QR abre el
+     * informe sin iniciar sesión (enlace firmado sin vencimiento, ver
+     * SeguimientoIngresoController::informeEtiqueta()).
+     */
+    public function etiqueta(Mantenimiento $mantenimiento, GenerarEtiquetaServicio $generarEtiqueta): HttpResponse
+    {
+        $mantenimiento->load('ordenTrabajo.equipoProgramacion.equipo.tipoEquipo');
+        $programacion = $mantenimiento->ordenTrabajo->equipoProgramacion;
+
+        abort_unless(
+            $mantenimiento->tenant_id === auth()->user()->tenant_id
+                && $mantenimiento->estado_mantenimiento === 'FINALIZADO'
+                && $programacion->equipo->tipoEquipo->tipo_mantenimiento === 'B',
+            404,
+        );
+
+        Gate::authorize('verPdf', $mantenimiento);
+
+        $pdf = $generarEtiqueta->handle(
+            equipo: $programacion->equipo,
+            titulo: 'MANTENIMIENTO',
+            servicio: 'mantenimiento',
+            fechaServicio: $mantenimiento->fecha_mantenimiento,
+            fechaProximoServicio: EquipoProgramacion::calcularFechaProximoServicio(
+                $mantenimiento->fecha_mantenimiento->toDateString(),
+                $programacion->intervalo_servicio,
+                $programacion->intervalo_unidad,
+            ),
+            urlDocumento: URL::signedRoute('etiqueta.mantenimiento.informe', ['mantenimiento' => $mantenimiento->id]),
+        );
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="etiqueta-mantenimiento-'.$programacion->equipo->codigo.'.pdf"',
+        ]);
     }
 
     /**

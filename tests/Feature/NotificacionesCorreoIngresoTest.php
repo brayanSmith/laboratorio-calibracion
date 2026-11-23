@@ -122,8 +122,8 @@ test('las notificaciones muestran solo los correos del usuario y al verlas dejan
     $this->actingAs($this->admin)->get(route('ingresos.index'))->assertInertia(fn ($page) => $page->where('notificacionesSinLeer', 0));
 });
 
-test('sin permiso de ver ingresos no hay campanita', function () {
+test('todo usuario del laboratorio tiene campanita aunque no vea ingresos, porque puede inhabilitar equipos', function () {
     $sinRol = User::factory()->create(['tenant_id' => $this->tenant->id]);
 
-    $this->actingAs($sinRol)->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('notificacionesSinLeer', null));
+    $this->actingAs($sinRol)->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('notificacionesSinLeer', 0));
 });

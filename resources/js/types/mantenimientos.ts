@@ -141,6 +141,10 @@ export type ServicioTerceroListado = {
     orden_trabajo_codigo: string;
     equipo_codigo: string;
     equipo_modelo: string;
+    equipo_tipo: string | null;
+    /** Tipo de mantenimiento del tipo de equipo: A o B. */
+    equipo_clase: string | null;
+    equipo_serie: string | null;
     cliente_nombre: string | null;
     empresa_tercero_id: number;
     empresa_tercero_nombre: string;

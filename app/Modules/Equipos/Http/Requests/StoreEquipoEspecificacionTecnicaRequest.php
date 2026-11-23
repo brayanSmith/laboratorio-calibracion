@@ -40,14 +40,14 @@ class StoreEquipoEspecificacionTecnicaRequest extends FormRequest
                 Rule::exists('unidad_medidas', 'id')->where('tenant_id', $equipo->tenant_id),
             ],
             'alcance_indicacion' => ['required', 'string', 'max:50', $this->alcanceIndicacionConSimbolo()],
-            'precision' => ['required', 'string', 'max:20', 'regex:/^±\d+(\.\d{1,2})?%?$/u'],
+            'precision' => ['required', 'string', 'max:20', 'regex:/^±\d+(\.\d{1,2})?(%|[^\d\s%]+)?$/u'],
             'resolucion' => ['required', 'string', 'max:50', $this->resolucionConSimbolo()],
         ];
     }
 
     /**
-     * Validate that alcance_indicacion ends with the símbolo of the selected unidad de medida
-     * (e.g. "0 a 100mm"). Unlike precisión/resolución, admite texto libre antes del símbolo.
+     * Validate that alcance_indicacion is "[alcance inicial] a [alcance final]" followed by the
+     * símbolo of the selected unidad de medida (e.g. "-10 a 100mm"); only the inicial may be negative.
      */
     private function alcanceIndicacionConSimbolo(): Closure
     {
@@ -61,8 +61,8 @@ class StoreEquipoEspecificacionTecnicaRequest extends FormRequest
 
             $simbolo = preg_quote($unidad->simbolo, '/');
 
-            if (! preg_match("/^.+{$simbolo}$/u", (string) $value)) {
-                $fail("El alcance de indicación debe terminar con el símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
+            if (! preg_match("/^-?\d+(\.\d+)? a \d+(\.\d+)?{$simbolo}$/u", (string) $value)) {
+                $fail("El alcance de indicación debe tener el formato [alcance inicial] a [alcance final] seguido del símbolo de la unidad de medida seleccionada ({$unidad->simbolo}).");
             }
         };
     }

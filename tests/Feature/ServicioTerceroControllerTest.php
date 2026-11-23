@@ -355,3 +355,14 @@ test('sin el permiso de terceros del modulo no se ven ni se gestionan sus servic
         ->assertInertia(fn ($page) => $page->has('serviciosTerceros', 1));
     $this->actingAs($usuario)->post(route('servicio-terceros.iniciar', $servicio))->assertRedirect();
 });
+
+test('el listado de servicios de tercero trae el tipo de equipo con su clase de mantenimiento', function () {
+    $servicio = crearServicioTercero($this->bahia);
+    $tipoEquipo = $servicio->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo;
+
+    $this->actingAs($this->admin)
+        ->get(route('mantenimientos.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('serviciosTerceros.0.equipo_tipo', $tipoEquipo->nombre)
+            ->where('serviciosTerceros.0.equipo_clase', $tipoEquipo->tipo_mantenimiento));
+});

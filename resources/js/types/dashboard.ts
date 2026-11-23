@@ -29,6 +29,8 @@ export type TiemposAtencion = {
         modelo: string;
         numero_serie: string | null;
         tipo_equipo: string;
+        /** Tipo de mantenimiento del tipo de equipo: A o B. */
+        clase_equipo?: string | null;
         cliente: string | null;
         laboratorio: string;
         fecha_recepcion: string | null;
@@ -117,6 +119,8 @@ export type DesempenoTecnicos = {
         modelo: string | null;
         numero_serie: string | null;
         tipo_equipo: string | null;
+        /** Tipo de mantenimiento del tipo de equipo: A o B. */
+        clase_equipo?: string | null;
         magnitud: string | null;
         horas: number | null;
     }[];
@@ -161,6 +165,8 @@ export type Cumplimiento = {
         modelo: string;
         numero_serie: string | null;
         tipo_equipo: string | null;
+        /** Tipo de mantenimiento del tipo de equipo: A o B. */
+        clase_equipo?: string | null;
         area: string | null;
         bahia: string | null;
         criticidad: CriticidadEquipo | null;
@@ -176,6 +182,8 @@ export type Cumplimiento = {
         modelo: string;
         numero_serie: string | null;
         tipo_equipo: string | null;
+        /** Tipo de mantenimiento del tipo de equipo: A o B. */
+        clase_equipo?: string | null;
         area: string | null;
         bahia: string | null;
         criticidad: CriticidadEquipo | null;

@@ -147,6 +147,9 @@ export default function EquiposTabla({
                             <CeldaEquipo
                                 codigo={row.original.codigo}
                                 tipo={row.original.tipo_equipo?.nombre}
+                                clase={
+                                    row.original.tipo_equipo?.tipo_mantenimiento
+                                }
                                 modelo={row.original.modelo}
                                 serie={row.original.numero_serie}
                             />

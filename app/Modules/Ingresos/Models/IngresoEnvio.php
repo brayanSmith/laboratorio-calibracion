@@ -5,6 +5,7 @@ namespace App\Modules\Ingresos\Models;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Catalogos\Models\Cliente;
+use App\Modules\Equipos\Models\Equipo;
 use Database\Factories\IngresoEnvioFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -15,15 +16,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Un correo del ingreso: a quién se le envió, si salió o falló (y por qué) y quién lo
- * disparó, a quien se le avisa en sus notificaciones.
+ * Un correo de la campanita (de un ingreso o el aviso de un equipo inhabilitado): a quién
+ * se le envió, si salió o falló (y por qué) y quién lo disparó, a quien se le avisa en sus
+ * notificaciones.
  *
  * @property int $id
- * @property int $ingreso_id
+ * @property string $tipo INGRESO o EQUIPO_INHABILITADO
+ * @property int|null $ingreso_id Solo en los correos de ingreso
+ * @property int|null $equipo_id Solo en los avisos de equipo inhabilitado
  * @property int|null $cliente_id
  * @property int|null $user_id Quién lo disparó (al recibir el ingreso o al reenviarlo)
  * @property string $destinatario Nombre del cliente
  * @property string $correo
+ * @property string|null $motivo Por qué quedó inhabilitado el equipo (solo en esos avisos)
  * @property string $estado EN_COLA, ENVIADO o FALLIDO
  * @property string|null $error Por qué no se pudo enviar
  * @property Carbon|null $enviado_at
@@ -31,12 +36,13 @@ use Illuminate\Support\Carbon;
  * @property int $tenant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Ingreso $ingreso
+ * @property-read Ingreso|null $ingreso
+ * @property-read Equipo|null $equipo
  * @property-read Cliente|null $cliente
  * @property-read User|null $user
  * @property-read Tenant $tenant
  */
-#[Fillable(['ingreso_id', 'cliente_id', 'user_id', 'destinatario', 'correo', 'estado', 'error', 'enviado_at', 'leido_at', 'tenant_id'])]
+#[Fillable(['tipo', 'ingreso_id', 'equipo_id', 'cliente_id', 'user_id', 'destinatario', 'correo', 'motivo', 'estado', 'error', 'enviado_at', 'leido_at', 'tenant_id'])]
 #[UseFactory(IngresoEnvioFactory::class)]
 class IngresoEnvio extends Model
 {
@@ -52,8 +58,15 @@ class IngresoEnvio extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'tipo' => self::TIPO_INGRESO,
         'estado' => 'EN_COLA',
     ];
+
+    /** Correo con los equipos recibidos en un ingreso. */
+    public const TIPO_INGRESO = 'INGRESO';
+
+    /** Aviso al cliente de que su equipo quedó inhabilitado. */
+    public const TIPO_EQUIPO_INHABILITADO = 'EQUIPO_INHABILITADO';
 
     /**
      * Marca el correo como enviado.
@@ -88,6 +101,14 @@ class IngresoEnvio extends Model
     public function ingreso(): BelongsTo
     {
         return $this->belongsTo(Ingreso::class);
+    }
+
+    /**
+     * @return BelongsTo<Equipo, $this>
+     */
+    public function equipo(): BelongsTo
+    {
+        return $this->belongsTo(Equipo::class);
     }
 
     /**
