@@ -113,19 +113,17 @@ test('finalizar un mantenimiento con el equipo operativo lo deja activo', functi
     expect($mantenimiento->ordenTrabajo->equipoProgramacion->equipo->refresh()->activo)->toBeTrue();
 });
 
-test('finalizar una calibracion como fuera de servicio deja el equipo inactivo y no crea despacho', function () {
+test('una calibracion ya no se puede finalizar como fuera de servicio: eso se decide en el mantenimiento', function () {
     $calibracion = crearCalibracion($this->bahia);
 
     $this->actingAs($this->admin)->post(route('calibraciones.iniciar', $calibracion));
     $this->actingAs($this->admin)
         ->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FUERA_DE_SERVICIO'])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasErrors('estado_calibracion');
 
-    expect($calibracion->refresh()->estado_calibracion)->toBe('FUERA_DE_SERVICIO')
+    expect($calibracion->refresh()->estado_calibracion)->not->toBe('FUERA_DE_SERVICIO')
         ->and(Despacho::count())->toBe(0)
-        ->and($calibracion->ordenTrabajo->equipoProgramacion->equipo->refresh())
-        ->activo->toBeFalse()
-        ->motivo_inactivo->toBe('Calibración: Fuera de servicio');
+        ->and($calibracion->ordenTrabajo->equipoProgramacion->equipo->refresh()->activo)->toBeTrue();
 });
 
 test('un servicio de tercero fuera de servicio sin re-agendar deja el equipo inactivo', function () {
@@ -220,14 +218,14 @@ test('cambiar el estado del equipo exige el motivo y el permiso de editar equipo
 });
 
 test('la inactivacion automatica tambien queda en el historial de estado', function () {
-    $calibracion = crearCalibracion($this->bahia);
+    $mantenimiento = crearMantenimiento($this->bahia);
 
-    $this->actingAs($this->admin)->post(route('calibraciones.iniciar', $calibracion));
-    $this->actingAs($this->admin)->post(route('calibraciones.finalizar', $calibracion), ['estado_calibracion' => 'FUERA_DE_SERVICIO']);
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'firmado' => '1']);
 
-    expect($calibracion->ordenTrabajo->equipoProgramacion->equipo->cambiosEstado()->sole())
+    expect($mantenimiento->ordenTrabajo->equipoProgramacion->equipo->cambiosEstado()->sole())
         ->activo->toBeFalse()
-        ->motivo->toBe('Calibración: Fuera de servicio')
+        ->motivo->toBe('Mantenimiento: Fuera de servicio')
         ->user_id->toBe($this->admin->id);
 });
 
@@ -342,6 +340,26 @@ test('al quedar un mantenimiento fuera de servicio se le avisa al cliente con el
     Mail::assertQueuedCount(1);
 });
 
+test('el aviso de un mantenimiento fuera de servicio lleva adjunto su informe en PDF', function () {
+    Mail::fake();
+    $mantenimiento = crearMantenimiento($this->bahia);
+    $equipo = $mantenimiento->ordenTrabajo->equipoProgramacion->equipo;
+
+    $this->actingAs($this->admin)->post(route('mantenimientos.iniciar', $mantenimiento));
+    $this->actingAs($this->admin)
+        ->post(route('mantenimientos.finalizar', $mantenimiento), ['estado_final_equipo' => 'FUERA_DE_SERVICIO', 'firmado' => '1'])
+        ->assertSessionHasNoErrors();
+
+    $informe = Storage::disk('public')->get($mantenimiento->refresh()->pdf_informe);
+
+    Mail::assertQueued(EquipoInhabilitado::class, function (EquipoInhabilitado $correo) use ($mantenimiento, $equipo, $informe): bool {
+        $correo->assertHasAttachedData($informe, "informe-mantenimiento-{$equipo->codigo}.pdf", ['mime' => 'application/pdf']);
+        $correo->assertSeeInHtml('Adjuntamos el informe de mantenimiento');
+
+        return $correo->documento->is($mantenimiento);
+    });
+});
+
 test('al inactivar un equipo a mano se le avisa al cliente con el motivo escrito', function () {
     Mail::fake();
     $equipo = crearEquipoParaBusqueda($this->bahia);
@@ -352,7 +370,8 @@ test('al inactivar un equipo a mano se le avisa al cliente con el motivo escrito
 
     Mail::assertQueued(EquipoInhabilitado::class, fn (EquipoInhabilitado $correo) => $correo->hasTo($equipo->cliente->email)
         && $correo->motivo === 'Dado de baja por daño irreparable'
-        && $correo->detalle === null);
+        && $correo->detalle === null
+        && $correo->attachments() === []);
 });
 
 test('no se le avisa al cliente si el equipo ya estaba inactivo ni al volver a activarlo', function () {

@@ -19,7 +19,10 @@ type EstadoEquipo = 'OPERATIVO' | 'FUERA_DE_SERVICIO';
 
 type Props = {
     mantenimientoId: number;
+    /** Si no se conoce (ej. desde el editor), no se muestra el tiempo total. */
     iniciadoEn: Date | null;
+    /** Estado final ya elegido (ej. en el editor), para proponerlo. */
+    estadoFinalInicial?: EstadoEquipo | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onFinalizado: () => void;
@@ -31,12 +34,14 @@ type Props = {
 export default function FinalizarMantenimientoModal({
     mantenimientoId,
     iniciadoEn,
+    estadoFinalInicial,
     open,
     onOpenChange,
     onFinalizado,
 }: Props) {
-    const [estadoFinalEquipo, setEstadoFinalEquipo] =
-        useState<EstadoEquipo>('OPERATIVO');
+    const [estadoFinalEquipo, setEstadoFinalEquipo] = useState<EstadoEquipo>(
+        estadoFinalInicial ?? 'OPERATIVO',
+    );
     const [firmado, setFirmado] = useState(true);
     const tiempoTranscurrido = useElapsedTime(iniciadoEn ?? new Date());
 
@@ -54,13 +59,19 @@ export default function FinalizarMantenimientoModal({
                                     Finalizar mantenimiento
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Tiempo total:{' '}
-                                    <span
-                                        className="font-mono"
-                                        data-test="finalizar-tiempo-total"
-                                    >
-                                        {tiempoTranscurrido}
-                                    </span>
+                                    {iniciadoEn ? (
+                                        <>
+                                            Tiempo total:{' '}
+                                            <span
+                                                className="font-mono"
+                                                data-test="finalizar-tiempo-total"
+                                            >
+                                                {tiempoTranscurrido}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        'Confirma el estado final del equipo'
+                                    )}
                                 </DialogDescription>
                             </DialogHeader>
 

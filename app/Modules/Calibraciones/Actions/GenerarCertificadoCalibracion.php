@@ -26,6 +26,21 @@ class GenerarCertificadoCalibracion
      */
     public function handle(Calibracion $calibracion, bool $nuevaVersion = true): string
     {
+        return VersionDocumento::guardar(
+            $calibracion,
+            'pdf_certificado',
+            'certificados/calibraciones',
+            fn (string $codigo) => $this->renderizar($calibracion, $codigo),
+            $nuevaVersion,
+        );
+    }
+
+    /**
+     * Arma el PDF del certificado con el número dado, sin guardarlo (ej. para adjuntarlo a
+     * un correo).
+     */
+    public function renderizar(Calibracion $calibracion, string $codigo): string
+    {
         $calibracion->load([
             'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo',
             'ordenTrabajo.equipoProgramacion.equipo.fabricante',
@@ -42,7 +57,7 @@ class GenerarCertificadoCalibracion
 
         $svg = $this->grafico->handle($calibracion);
 
-        return VersionDocumento::guardar($calibracion, 'pdf_certificado', 'certificados/calibraciones', fn (string $codigo) => Pdf::loadView('pdf.calibracion', [
+        return Pdf::loadView('pdf.calibracion', [
             'calibracion' => $calibracion,
             'equipo' => $programacion->equipo,
             'especificacion' => $programacion->equipo->equipoEspecificacionTecnica,
@@ -59,7 +74,7 @@ class GenerarCertificadoCalibracion
             'resultado' => $this->resultado($calibracion),
             'detalles' => $detalles,
             'grafico' => $svg ? 'data:image/svg+xml;base64,'.base64_encode($svg) : null,
-        ])->setPaper('letter')->output(), $nuevaVersion);
+        ])->setPaper('letter')->output();
     }
 
     /**

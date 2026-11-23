@@ -100,7 +100,7 @@ class Calibracion extends Model
         }
 
         if ($this->estado_calibracion === 'FUERA_DE_SERVICIO' && ($this->wasRecentlyCreated || $this->wasChanged('estado_calibracion'))) {
-            $equipo->inactivar('Calibración: Fuera de servicio');
+            $equipo->inactivar('Calibración: Fuera de servicio', documento: $this);
         }
     }
 

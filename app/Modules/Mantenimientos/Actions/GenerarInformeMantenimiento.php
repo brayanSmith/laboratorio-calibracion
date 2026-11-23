@@ -24,6 +24,21 @@ class GenerarInformeMantenimiento
      */
     public function handle(Mantenimiento $mantenimiento, bool $nuevaVersion = true): string
     {
+        return VersionDocumento::guardar(
+            $mantenimiento,
+            'pdf_informe',
+            'informes/mantenimientos',
+            fn (string $codigo) => $this->renderizar($mantenimiento, $codigo),
+            $nuevaVersion,
+        );
+    }
+
+    /**
+     * Arma el PDF del informe con el código de versión dado, sin guardarlo (ej. para
+     * adjuntarlo a un correo).
+     */
+    public function renderizar(Mantenimiento $mantenimiento, string $codigo): string
+    {
         $mantenimiento->load([
             'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo',
             'ordenTrabajo.equipoProgramacion.equipo.fabricante',
@@ -39,7 +54,7 @@ class GenerarInformeMantenimiento
 
         $empresa = Empresa::query()->where('tenant_id', $mantenimiento->tenant_id)->first();
 
-        return VersionDocumento::guardar($mantenimiento, 'pdf_informe', 'informes/mantenimientos', fn (string $codigo) => Pdf::loadView('pdf.mantenimiento', [
+        return Pdf::loadView('pdf.mantenimiento', [
             'mantenimiento' => $mantenimiento,
             'equipo' => $mantenimiento->ordenTrabajo->equipoProgramacion->equipo,
             'programacion' => $mantenimiento->ordenTrabajo->equipoProgramacion,
@@ -54,7 +69,7 @@ class GenerarInformeMantenimiento
                 ->filter(fn (array $foto) => $foto['data'] !== null)
                 ->values()
                 ->all(),
-        ])->setPaper('letter')->output(), $nuevaVersion);
+        ])->setPaper('letter')->output();
     }
 
     /**

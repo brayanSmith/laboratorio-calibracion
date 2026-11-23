@@ -104,8 +104,8 @@ class Mantenimiento extends Model
             && ($this->wasRecentlyCreated || $this->wasChanged(['estado_mantenimiento', 'estado_final_equipo']));
 
         if ($finalizoFueraDeServicio) {
-            // La descripción del técnico explica al cliente por qué quedó fuera de servicio.
-            $equipo->inactivar('Mantenimiento: Fuera de servicio', $this->descripcion);
+            // El informe adjunto le detalla al cliente por qué quedó fuera de servicio.
+            $equipo->inactivar('Mantenimiento: Fuera de servicio', $this->descripcion, $this);
         }
     }
 

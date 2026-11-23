@@ -184,11 +184,13 @@ export default function VerMantenimientoModal({
                             </Dato>
                         </div>
                     ) : null}
-                    <div className="sm:col-span-3">
-                        <Dato etiqueta="Descripción">
-                            {mantenimiento.descripcion || 'Sin descripción'}
-                        </Dato>
-                    </div>
+                    {mantenimiento.descripcion ? (
+                        <div className="sm:col-span-3">
+                            <Dato etiqueta="Descripción">
+                                {mantenimiento.descripcion}
+                            </Dato>
+                        </div>
+                    ) : null}
                 </div>
 
                 {mantenimiento.checklist.length > 0 ? (

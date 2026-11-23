@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Etiquetas\GenerarEtiquetaServicio;
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Tenant;
@@ -17,6 +18,7 @@ use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -176,12 +178,28 @@ test('el estado inicial del equipo ya no acepta fuera de servicio', function () 
     expect($mantenimiento->refresh()->estado_inicial_equipo)->toBeNull();
 });
 
+test('el estado inicial y el estado final del equipo son obligatorios al editar', function () {
+    $mantenimiento = crearMantenimiento($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->put(route('mantenimientos.update', $mantenimiento), [
+            'fecha_mantenimiento' => now()->toDateString(),
+            'estado_inicial_equipo' => '',
+            'estado_final_equipo' => '',
+            'estado_mantenimiento' => 'EN_PROCESO',
+            'tecnico_id' => $mantenimiento->tecnico_id,
+        ])
+        ->assertSessionHasErrors(['estado_inicial_equipo', 'estado_final_equipo']);
+});
+
 test('desmarca firmado cuando no se envia en la actualizacion', function () {
     $mantenimiento = crearMantenimiento($this->bahia, ['firmado' => true, 'estado_mantenimiento' => 'FINALIZADO']);
 
     $this->actingAs($this->admin)
         ->put(route('mantenimientos.update', $mantenimiento), [
             'fecha_mantenimiento' => $mantenimiento->fecha_mantenimiento->toDateString(),
+            'estado_inicial_equipo' => 'OPERATIVO',
+            'estado_final_equipo' => 'OPERATIVO',
             'estado_mantenimiento' => 'FINALIZADO',
             'tecnico_id' => $mantenimiento->tecnico_id,
         ])
@@ -358,6 +376,7 @@ test('un tecnico con permiso de editar mantenimientos puede verlos y actualizarl
     $this->actingAs($tecnico)
         ->put(route('mantenimientos.update', $mantenimiento), [
             'fecha_mantenimiento' => now()->toDateString(),
+            'estado_inicial_equipo' => 'OPERATIVO',
             'estado_mantenimiento' => 'EN_PROCESO',
             'tecnico_id' => $mantenimiento->tecnico_id,
         ])
@@ -544,6 +563,20 @@ test('genera la etiqueta de mantenimiento de un equipo tipo B y su QR abre el in
     $this->get(route('etiqueta.mantenimiento.informe', ['mantenimiento' => $mantenimiento->id]))->assertForbidden();
 });
 
+test('la etiqueta de mantenimiento lleva un color distinto al de la de calibracion', function () {
+    $mantenimiento = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
+    $mantenimiento->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'B']);
+
+    $vista = null;
+    View::creator('pdf.etiqueta', function ($view) use (&$vista): void {
+        $vista = $view->getData();
+    });
+
+    $this->actingAs($this->admin)->get(route('mantenimientos.etiqueta', $mantenimiento))->assertOk();
+
+    expect($vista['colorFijo'])->toBe(GenerarEtiquetaServicio::COLOR_MANTENIMIENTO);
+});
+
 test('no genera etiqueta de mantenimiento para equipos tipo A ni mantenimientos sin finalizar', function () {
     $tipoA = crearMantenimiento($this->bahia, ['estado_mantenimiento' => 'FINALIZADO']);
     $tipoA->ordenTrabajo->equipoProgramacion->equipo->tipoEquipo->update(['tipo_mantenimiento' => 'A']);
@@ -571,7 +604,12 @@ test('muestra el informe de un mantenimiento finalizado y lo regenera si falta e
 /** Mantenimiento finalizado con su informe original ya emitido. */
 function crearMantenimientoConInforme(Bahia $bahia, string $codigo = 'EQ-5001'): Mantenimiento
 {
-    $mantenimiento = crearMantenimiento($bahia, ['estado_mantenimiento' => 'FINALIZADO', 'descripcion' => 'Original'], $codigo);
+    $mantenimiento = crearMantenimiento($bahia, [
+        'estado_mantenimiento' => 'FINALIZADO',
+        'estado_inicial_equipo' => 'OPERATIVO',
+        'estado_final_equipo' => 'OPERATIVO',
+        'descripcion' => 'Original',
+    ], $codigo);
     app(GenerarInformeMantenimiento::class)->handle($mantenimiento);
 
     return $mantenimiento->refresh();
@@ -583,6 +621,8 @@ function datosEdicionMantenimiento(Mantenimiento $mantenimiento, array $cambios 
     return [
         'fecha_mantenimiento' => $mantenimiento->fecha_mantenimiento->toDateString(),
         'descripcion' => $mantenimiento->descripcion,
+        'estado_inicial_equipo' => $mantenimiento->estado_inicial_equipo ?? 'OPERATIVO',
+        'estado_final_equipo' => $mantenimiento->estado_final_equipo ?? 'OPERATIVO',
         'estado_mantenimiento' => $mantenimiento->estado_mantenimiento,
         'tecnico_id' => $mantenimiento->tecnico_id,
         ...$cambios,

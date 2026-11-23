@@ -127,10 +127,11 @@ export default function MantenimientoFormFields({
 
             <div className="grid gap-2">
                 <Label htmlFor="estado_inicial_equipo">
-                    Estado inicial del equipo (opcional)
+                    Estado inicial del equipo
                 </Label>
                 <Select
                     name="estado_inicial_equipo"
+                    required
                     defaultValue={
                         mantenimiento.estado_inicial_equipo ?? undefined
                     }
@@ -154,10 +155,11 @@ export default function MantenimientoFormFields({
 
             <div className="grid gap-2">
                 <Label htmlFor="estado_final_equipo">
-                    Estado final del equipo (opcional)
+                    Estado final del equipo
                 </Label>
                 <Select
                     name="estado_final_equipo"
+                    required
                     defaultValue={
                         mantenimiento.estado_final_equipo ?? undefined
                     }
@@ -189,17 +191,6 @@ export default function MantenimientoFormFields({
                     placeholder="Cómo se recibió el equipo"
                 />
                 <InputError message={errors.observaciones_estado_inicial} />
-            </div>
-
-            <div className="grid gap-2 sm:col-span-2">
-                <Label htmlFor="descripcion">Descripción (opcional)</Label>
-                <Textarea
-                    id="descripcion"
-                    name="descripcion"
-                    defaultValue={mantenimiento.descripcion ?? ''}
-                    placeholder="Describe el trabajo realizado"
-                />
-                <InputError message={errors.descripcion} />
             </div>
 
             <div className="flex items-center gap-2 sm:col-span-2">

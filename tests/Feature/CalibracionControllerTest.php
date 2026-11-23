@@ -1066,5 +1066,7 @@ test('la etiqueta de calibracion muestra el certificado vigente, la serie, el te
             'S/N' => $equipo->numero_serie,
             'Técnico' => $calibracion->tecnico->name,
         ])
-        ->and($vista['contacto'])->toBe(['lab@acme.test', '555-1234']);
+        ->and($vista['contacto'])->toBe(['lab@acme.test', '555-1234'])
+        // Lleva el color de tema de la empresa, no el fijo de mantenimiento.
+        ->and($vista['colorFijo'])->toBeNull();
 });

@@ -260,15 +260,16 @@ function GestionarMantenimientoFormulario({
                                     {mantenimiento.tecnico_nombre}
                                 </p>
                             </div>
-                            <div className="grid gap-1 sm:col-span-2">
-                                <Label className="text-xs text-muted-foreground">
-                                    Descripción
-                                </Label>
-                                <p className="text-sm">
-                                    {mantenimiento.descripcion ||
-                                        'Sin descripción'}
-                                </p>
-                            </div>
+                            {mantenimiento.descripcion ? (
+                                <div className="grid gap-1 sm:col-span-2">
+                                    <Label className="text-xs text-muted-foreground">
+                                        Descripción
+                                    </Label>
+                                    <p className="text-sm">
+                                        {mantenimiento.descripcion}
+                                    </p>
+                                </div>
+                            ) : null}
                         </div>
 
                         <div className="space-y-1">

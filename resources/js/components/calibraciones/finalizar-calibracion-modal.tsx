@@ -16,10 +16,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-type EstadoFinalCalibracion =
-    | 'FINALIZADO'
-    | 'DEVOLVER_MANTENIMIENTO'
-    | 'FUERA_DE_SERVICIO';
+type EstadoFinalCalibracion = 'FINALIZADO' | 'DEVOLVER_MANTENIMIENTO';
 
 type Props = {
     calibracionId: number;
@@ -34,8 +31,8 @@ type Props = {
 };
 
 /** Modal que se abre al presionar "Finalizar" al editar la calibración: pide el estado
- * final (Finalizado, Devolver a mantenimiento o Fuera de servicio, que deja el equipo
- * inactivo) y si queda firmada. Al confirmar envía, en
+ * final (Finalizado o Devolver a mantenimiento; el fuera de servicio solo se decide en
+ * el mantenimiento) y si queda firmada. Al confirmar envía, en
  * una sola petición, el formulario de edición y la finalización: el servidor guarda
  * primero los datos, calcula el resultado (Cumple o No cumple) a partir de los
  * resultados de la medición y cierra el tiempo_servicio en curso (ver
@@ -105,12 +102,6 @@ export default function FinalizarCalibracionModal({
                                 className="w-full"
                                 data-test="estado-calibracion-final-toggle"
                             >
-                                <ToggleGroupItem
-                                    value="FUERA_DE_SERVICIO"
-                                    className="h-auto grow basis-0 py-2 whitespace-normal data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
-                                >
-                                    Fuera de servicio
-                                </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="DEVOLVER_MANTENIMIENTO"
                                     className="h-auto grow basis-0 py-2 whitespace-normal data-[state=on]:!border-yellow-400 data-[state=on]:!bg-yellow-400 data-[state=on]:!text-yellow-950"

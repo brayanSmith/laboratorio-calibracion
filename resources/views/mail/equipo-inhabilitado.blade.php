@@ -52,6 +52,10 @@
 @endif
 </table>
 
+@if ($adjunto ?? null)
+<p>Adjuntamos el {{ $adjunto }} con el detalle del servicio realizado.</p>
+
+@endif
 <p>Mientras esté inhabilitado, el equipo no debe usarse. Si tienen alguna duda, por favor comuníquense con nosotros.</p>
 
 <p>Atentamente,<br>{{ $empresa }}</p>

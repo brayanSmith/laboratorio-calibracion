@@ -64,9 +64,15 @@ class UpdateMantenimientoRequest extends FormRequest
         return [
             'fecha_mantenimiento' => ['required', 'date'],
             'descripcion' => ['nullable', 'string', 'max:5000'],
-            'estado_inicial_equipo' => ['nullable', Rule::in(['OPERATIVO', 'INOPERATIVO'])],
+            'estado_inicial_equipo' => ['required', Rule::in(['OPERATIVO', 'INOPERATIVO'])],
             'observaciones_estado_inicial' => ['nullable', 'string', 'max:2000'],
-            'estado_final_equipo' => ['nullable', Rule::in(['OPERATIVO', 'FUERA_DE_SERVICIO'])],
+            // Obligatorio en el editor (que siempre lo envía) y si queda finalizado; la modal
+            // de gestión no lo envía: ahí se elige al finalizar.
+            'estado_final_equipo' => [
+                Rule::requiredIf(fn (): bool => $this->has('estado_final_equipo') || $this->input('estado_mantenimiento') === 'FINALIZADO'),
+                'nullable',
+                Rule::in(['OPERATIVO', 'FUERA_DE_SERVICIO']),
+            ],
             'estado_mantenimiento' => ['required', Rule::in(['PENDIENTE', 'EN_PROCESO', 'FALTA_REPUESTOS', 'FINALIZADO'])],
             'tecnico_id' => ['required', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
             'firmado' => ['boolean'],

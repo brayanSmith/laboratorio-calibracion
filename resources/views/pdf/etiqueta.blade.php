@@ -1,6 +1,7 @@
 @php
-    // Mismo acento que la plataforma: el color de tema de la empresa (o el negro por defecto).
-    $acento = preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($empresa?->color_tema)) ? $empresa->color_tema : '#171717';
+    // Un color fijo por servicio si lo trae (mantenimiento); si no, el mismo acento que la
+    // plataforma: el color de tema de la empresa (o el negro por defecto).
+    $acento = $colorFijo ?? (preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($empresa?->color_tema)) ? $empresa->color_tema : '#171717');
     [$r, $g, $b] = sscanf($acento, '#%02x%02x%02x');
     $sobreAcento = (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#171717' : '#ffffff';
 @endphp

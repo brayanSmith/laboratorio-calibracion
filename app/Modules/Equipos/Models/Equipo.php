@@ -4,6 +4,7 @@ namespace App\Modules\Equipos\Models;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
@@ -12,6 +13,7 @@ use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use App\Modules\Equipos\Mail\EquipoInhabilitado;
 use App\Modules\Ingresos\Models\IngresoEnvio;
+use App\Modules\Mantenimientos\Models\Mantenimiento;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -86,9 +88,11 @@ class Equipo extends Model
      * queda en motivo_inactivo para mostrarlo en el listado de equipos.
      *
      * Si un equipo activo queda inactivo, se le avisa por correo a su cliente (ver
-     * avisarInhabilitacionAlCliente()); $detalle amplía el motivo solo en ese correo.
+     * avisarInhabilitacionAlCliente()); $detalle amplía el motivo solo en ese correo, y
+     * $documento (el mantenimiento o la calibración que lo dejó fuera de servicio) va
+     * adjunto en PDF.
      */
-    public function cambiarEstado(bool $activo, string $motivo, ?User $usuario = null, ?string $detalle = null): void
+    public function cambiarEstado(bool $activo, string $motivo, ?User $usuario = null, ?string $detalle = null, Mantenimiento|Calibracion|null $documento = null): void
     {
         $estabaActivo = (bool) $this->activo;
         $usuario ??= auth()->user();
@@ -103,17 +107,17 @@ class Equipo extends Model
         ]);
 
         if ($estabaActivo && ! $activo) {
-            $this->avisarInhabilitacionAlCliente($motivo, $detalle, $usuario);
+            $this->avisarInhabilitacionAlCliente($motivo, $detalle, $usuario, $documento);
         }
     }
 
     /**
      * Deja el equipo inactivo por un motivo del sistema (ej. "Calibración: Fuera de
-     * servicio"), con un detalle opcional para el correo al cliente.
+     * servicio"), con un detalle opcional y el documento a adjuntar en el correo al cliente.
      */
-    public function inactivar(string $motivo, ?string $detalle = null): void
+    public function inactivar(string $motivo, ?string $detalle = null, Mantenimiento|Calibracion|null $documento = null): void
     {
-        $this->cambiarEstado(false, $motivo, detalle: $detalle);
+        $this->cambiarEstado(false, $motivo, detalle: $detalle, documento: $documento);
     }
 
     /**
@@ -122,7 +126,7 @@ class Equipo extends Model
      * falló). Si el cliente no tiene correo no se envía, y si falla el envío no se frena la
      * inactivación.
      */
-    private function avisarInhabilitacionAlCliente(string $motivo, ?string $detalle, ?User $usuario): void
+    private function avisarInhabilitacionAlCliente(string $motivo, ?string $detalle, ?User $usuario, Mantenimiento|Calibracion|null $documento): void
     {
         $this->loadMissing(['cliente', 'tipoEquipo', 'area', 'bahia']);
 
@@ -159,6 +163,7 @@ class Equipo extends Model
                 registradoPor: $usuario?->name,
             );
             $correo->envioId = $envio->id;
+            $correo->documento = $documento;
 
             Mail::to($this->cliente->email)->queue($correo);
         } catch (Throwable $exception) {

@@ -34,6 +34,8 @@ function datosBaseGestion(Mantenimiento $mantenimiento): array
 
     return [
         'fecha_mantenimiento' => $mantenimiento->fecha_mantenimiento->toDateString(),
+        // La modal de gestión siempre lo envía (Operativo por defecto); el estado final no.
+        'estado_inicial_equipo' => 'OPERATIVO',
         'estado_mantenimiento' => $mantenimiento->estado_mantenimiento,
         'tecnico_id' => $mantenimiento->tecnico_id,
     ];
