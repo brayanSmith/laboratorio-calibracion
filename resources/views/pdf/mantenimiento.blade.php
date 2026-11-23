@@ -13,9 +13,9 @@
     $fecha = fn ($valor) => $valor ? $valor->locale('es')->format('d/m/Y') : '—';
     $moneda = fn ($valor) => '$ '.number_format((float) $valor, 2, ',', '.');
     $riesgo = [
-        'ALTO' => ['Alto', '#ffffff', '#b91c1c'],
+        'ALTO' => ['Alto', '#ffffff', '#ef4444'],
         'MEDIO' => ['Medio', '#171717', '#eab308'],
-        'BAJO' => ['Bajo', '#ffffff', '#15803d'],
+        'BAJO' => ['Bajo', '#ffffff', '#10b981'],
     ];
 @endphp
 <!DOCTYPE html>
@@ -58,7 +58,7 @@
         .pie td { padding: 0; }
         .pie .pagina:before { content: counter(page); }
         tr { page-break-inside: avoid; }
-        .alerta-fuera { margin-top: 8px; border: 2px solid #b91c1c; background: #fef2f2; border-radius: 6px; padding: 9px 14px; color: #b91c1c; }
+        .alerta-fuera { margin-top: 8px; border: 2px solid #ef4444; background: #fef2f2; border-radius: 6px; padding: 9px 14px; color: #ef4444; }
         .alerta-fuera strong { font-size: 14px; letter-spacing: 1px; }
         .alerta-fuera span { display: block; margin-top: 2px; font-size: 9px; color: #7f1d1d; }
     </style>
@@ -113,7 +113,7 @@
             <td>
                 @if ($mantenimiento->estado_inicial_equipo)
                     @php $inicialOperativo = $mantenimiento->estado_inicial_equipo === 'OPERATIVO'; @endphp
-                    <span class="chip" style="background: {{ $inicialOperativo ? '#15803d' : '#737373' }};">{{ $inicialOperativo ? 'Operativo' : 'Inoperativo' }}</span>
+                    <span class="chip" style="background: {{ $inicialOperativo ? '#10b981' : '#737373' }};">{{ $inicialOperativo ? 'Operativo' : 'Inoperativo' }}</span>
                 @else
                     <span class="vacio">Sin registrar</span>
                 @endif
@@ -126,7 +126,7 @@
             <td class="etiqueta">Estado Final:</td>
             <td>
                 @if ($condicion)
-                    <span class="chip" style="background: {{ $operativo ? '#15803d' : '#b91c1c' }};">{{ $condicion }}</span>
+                    <span class="chip" style="background: {{ $operativo ? '#10b981' : '#ef4444' }};">{{ $condicion }}</span>
                 @else
                     <span class="vacio">Sin registrar</span>
                 @endif
@@ -145,7 +145,7 @@
                     <tr class="{{ $loop->even ? 'par' : '' }} {{ $loop->last ? 'ultima' : '' }}">
                         <td>{{ $item->tipoEquipoCheckList->nombre }}</td>
                         <td class="centro">
-                            <span class="chip" style="background: {{ $item->cumple ? '#15803d' : '#b91c1c' }};">{{ $item->cumple ? '✓ Cumple' : '✗ No cumple' }}</span>
+                            <span class="chip" style="background: {{ $item->cumple ? '#10b981' : '#ef4444' }};">{{ $item->cumple ? '✓ Cumple' : '✗ No cumple' }}</span>
                         </td>
                         <td>{{ $item->observacion }}</td>
                     </tr>

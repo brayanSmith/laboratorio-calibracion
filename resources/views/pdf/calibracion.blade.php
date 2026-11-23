@@ -9,7 +9,7 @@
     // Íconos dibujados en SVG: DomPDF no siempre trae los glifos ✓ / ✗ en la fuente.
     $iconoResultado = fn (bool $aprobado) => 'data:image/svg+xml;base64,'.base64_encode(
         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
-        .'<circle cx="8" cy="8" r="8" fill="'.($aprobado ? '#15803d' : '#b91c1c').'"/>'
+        .'<circle cx="8" cy="8" r="8" fill="'.($aprobado ? '#10b981' : '#ef4444').'"/>'
         .($aprobado
             ? '<path d="M4.5 8.3l2.3 2.3 4.7-4.9" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'
             : '<path d="M5.3 5.3l5.4 5.4M10.7 5.3l-5.4 5.4" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round"/>')
@@ -94,7 +94,7 @@
             <td class="derecha">
                 <strong>Resultado de Calibración:</strong>
                 @if ($resultado)
-                    <span class="badge" style="background: {{ $conforme ? '#15803d' : '#b91c1c' }};">{{ $resultado }}</span>
+                    <span class="badge" style="background: {{ $conforme ? '#10b981' : '#ef4444' }};">{{ $resultado }}</span>
                 @else
                     <span class="muted">Sin resultados</span>
                 @endif

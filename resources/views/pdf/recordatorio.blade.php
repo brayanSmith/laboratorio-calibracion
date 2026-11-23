@@ -4,7 +4,7 @@
     [$r, $g, $b] = sscanf($acento, '#%02x%02x%02x');
     $sobreAcento = (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#171717' : '#ffffff';
     $secciones = [
-        'VENCIDO' => ['Vencidos', '#b91c1c'],
+        'VENCIDO' => ['Vencidos', '#ef4444'],
         'PROGRAMADO' => ['Programados', '#2563eb'],
     ];
     $fecha = fn (string $valor) => \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y');
@@ -134,7 +134,7 @@
                             @endif
                             <td>{{ $fila['tipo_servicio'] }}</td>
                             <td>{{ $fecha($fila['fecha_proximo_servicio']) }}</td>
-                            <td class="derecha" style="color: {{ $fila['dias'] < 0 ? '#b91c1c' : '#171717' }};">
+                            <td class="derecha" style="color: {{ $fila['dias'] < 0 ? '#ef4444' : '#171717' }};">
                                 @if ($fila['dias'] < 0)
                                     {{ abs($fila['dias']) }} de atraso
                                 @elseif ($fila['dias'] === 0)
