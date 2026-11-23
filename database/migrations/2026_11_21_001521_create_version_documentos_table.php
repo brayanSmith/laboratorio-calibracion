@@ -32,7 +32,8 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['documentable_type', 'documentable_id', 'numero']);
+            // Nombre corto: el automático pasa de los 64 caracteres que permite MySQL.
+            $table->unique(['documentable_type', 'documentable_id', 'numero'], 'version_documentos_documento_numero_unique');
         });
 
         foreach ([
