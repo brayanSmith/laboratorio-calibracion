@@ -48,7 +48,7 @@ trait ListaEquipos
     protected function relacionesListadoEquipos(): array
     {
         return [
-            'tipoEquipo:id,nombre',
+            'tipoEquipo:id,nombre,tipo_mantenimiento',
             'fabricante:id,nombre',
             'area:id,nombre',
             'bahia:id,nombre',

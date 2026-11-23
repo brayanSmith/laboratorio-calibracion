@@ -554,3 +554,13 @@ test('el listado envia todos los equipos del tenant sin paginar para que la tabl
             ->has('equipos.0.equipo_documentos')
             ->missing('filtros'));
 });
+
+test('el listado de equipos trae el tipo de mantenimiento (A o B) de su tipo de equipo', function () {
+    $equipo = crearEquipoParaBusqueda(Bahia::factory()->for(crearArea($this->tenant))->create());
+    $equipo->tipoEquipo->update(['tipo_mantenimiento' => 'B']);
+
+    $this->actingAs($this->admin)
+        ->get(route('equipos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('equipos.0.tipo_equipo.tipo_mantenimiento', 'B'));
+});
