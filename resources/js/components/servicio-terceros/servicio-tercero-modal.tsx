@@ -93,6 +93,46 @@ export default function ServicioTerceroModal({
                                     />
                                 </div>
 
+                                {/* Para saber cuándo y con qué documento hizo el tercero el servicio. */}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="numero_certificado">
+                                            Número de certificado
+                                        </Label>
+                                        <Input
+                                            id="numero_certificado"
+                                            name="numero_certificado"
+                                            defaultValue={
+                                                servicio.numero_certificado ??
+                                                ''
+                                            }
+                                            maxLength={100}
+                                            placeholder="Ej. CERT-2026-0154"
+                                            data-test="servicio-tercero-numero-certificado"
+                                        />
+                                        <InputError
+                                            message={errors.numero_certificado}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="fecha_servicio">
+                                            Fecha del servicio
+                                        </Label>
+                                        <Input
+                                            id="fecha_servicio"
+                                            name="fecha_servicio"
+                                            type="date"
+                                            defaultValue={
+                                                servicio.fecha_servicio ?? ''
+                                            }
+                                            data-test="servicio-tercero-fecha-servicio"
+                                        />
+                                        <InputError
+                                            message={errors.fecha_servicio}
+                                        />
+                                    </div>
+                                </div>
+
                                 {servicio.tipo_servicio === 'MANTENIMIENTO' ? (
                                     <CodigosServicioFields
                                         codigoCompra={

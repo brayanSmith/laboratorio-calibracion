@@ -61,6 +61,8 @@ class ServicioTerceroController extends Controller
                 'tipo_servicio' => $servicio->tipo_servicio,
                 'codigo_compra' => $servicio->codigo_compra,
                 'codigo_despacho' => $servicio->codigo_despacho,
+                'numero_certificado' => $servicio->numero_certificado,
+                'fecha_servicio' => $servicio->fecha_servicio?->toDateString(),
                 'fecha' => $servicio->created_at->toDateString(),
                 'fecha_programada' => $servicio->fecha_programada?->toDateString(),
                 'fecha_realizacion' => $servicio->fecha_realizacion?->toDateString(),
@@ -106,13 +108,16 @@ class ServicioTerceroController extends Controller
     }
 
     /**
-     * Update the servicio de tercero: la empresa que lo realiza y, si se sube, el
+     * Update the servicio de tercero: la empresa que lo realiza, el N° del certificado y la
+     * fecha en que lo hizo (ambos opcionales) y, si se sube, el
      * documento (PDF) del servicio, que reemplaza al anterior.
      */
     public function update(UpdateServicioTerceroRequest $request, ServicioTercero $servicioTercero): RedirectResponse
     {
         $datos = [
             'empresa_tercero_id' => $request->validated('empresa_tercero_id'),
+            'numero_certificado' => $request->validated('numero_certificado'),
+            'fecha_servicio' => $request->validated('fecha_servicio'),
             // Solped y OB solo aplican a los servicios de mantenimiento.
             ...($servicioTercero->tipo_servicio === 'MANTENIMIENTO' ? [
                 'codigo_compra' => $request->validated('codigo_compra'),

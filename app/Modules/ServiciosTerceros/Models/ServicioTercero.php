@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $pdf_servicio
  * @property string|null $codigo_compra Solo en servicios de mantenimiento; opcional
  * @property string|null $codigo_despacho Solo en servicios de mantenimiento; opcional
+ * @property string|null $numero_certificado N° del certificado o informe que entregó el tercero
+ * @property Carbon|null $fecha_servicio Día en que el tercero hizo el servicio, según su documento
  * @property string $estado_servicio PENDIENTE al agendarse, EN_PROCESO al iniciarse y FINALIZADO al finalizarse
  * @property string|null $estado_final_equipo
  * @property bool $re_agendar
@@ -32,7 +34,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read EmpresaTercero $empresaTercero
  * @property-read Tenant $tenant
  */
-#[Fillable(['orden_trabajo_id', 'fecha_programada', 'fecha_realizacion', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'codigo_compra', 'codigo_despacho', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
+#[Fillable(['orden_trabajo_id', 'fecha_programada', 'fecha_realizacion', 'tipo_servicio', 'empresa_tercero_id', 'pdf_servicio', 'codigo_compra', 'codigo_despacho', 'numero_certificado', 'fecha_servicio', 'estado_servicio', 'estado_final_equipo', 're_agendar', 'tenant_id'])]
 class ServicioTercero extends Model
 {
     use SoftDeletes;
@@ -107,6 +109,7 @@ class ServicioTercero extends Model
         return [
             'fecha_programada' => 'date',
             'fecha_realizacion' => 'date',
+            'fecha_servicio' => 'date',
             're_agendar' => 'boolean',
         ];
     }

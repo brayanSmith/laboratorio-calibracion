@@ -89,6 +89,12 @@ export default function VerServicioTerceroModal({
                             </span>
                         )}
                     </Dato>
+                    <Dato etiqueta="Número de certificado">
+                        {servicio.numero_certificado ?? '—'}
+                    </Dato>
+                    <Dato etiqueta="Fecha del servicio">
+                        {servicio.fecha_servicio ?? '—'}
+                    </Dato>
                     <Dato etiqueta="Re-agendar">
                         {servicio.re_agendar ? 'Sí' : 'No'}
                     </Dato>

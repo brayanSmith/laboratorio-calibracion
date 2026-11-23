@@ -133,6 +133,10 @@ export type ServicioTerceroListado = {
     /** Solo en servicios de mantenimiento; opcional. */
     codigo_compra: string | null;
     codigo_despacho: string | null;
+    /** N° del certificado o informe que entregó el tercero. */
+    numero_certificado: string | null;
+    /** Día en que el tercero hizo el servicio (Y-m-d). */
+    fecha_servicio: string | null;
     fecha: string;
     /** Día para el que se agendó. */
     fecha_programada: string | null;

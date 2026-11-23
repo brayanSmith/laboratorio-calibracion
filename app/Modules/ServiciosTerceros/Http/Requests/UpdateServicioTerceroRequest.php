@@ -35,6 +35,8 @@ class UpdateServicioTerceroRequest extends FormRequest
             // Solped y OB: se digitan al agendar; aquí solo se corrigen (solo en mantenimientos).
             'codigo_compra' => ['nullable', 'string', 'max:50'],
             'codigo_despacho' => ['nullable', 'string', 'max:50'],
+            'numero_certificado' => ['nullable', 'string', 'max:100'],
+            'fecha_servicio' => ['nullable', 'date', 'before_or_equal:today'],
         ];
     }
 
@@ -50,6 +52,8 @@ class UpdateServicioTerceroRequest extends FormRequest
             'pdf_servicio' => 'documento del servicio',
             'codigo_compra' => 'Solped',
             'codigo_despacho' => 'OB',
+            'numero_certificado' => 'número de certificado',
+            'fecha_servicio' => 'fecha del servicio',
         ];
     }
 }

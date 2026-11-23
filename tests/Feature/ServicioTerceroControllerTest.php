@@ -7,6 +7,7 @@ use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
+use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
 use Illuminate\Http\UploadedFile;
@@ -77,6 +78,36 @@ test('actualiza la empresa y sube el pdf del servicio de tercero', function () {
     expect($servicio->empresa_tercero_id)->toBe($otraEmpresa->id)
         ->and($servicio->pdf_servicio)->not->toBeNull();
     Storage::disk('public')->assertExists($servicio->pdf_servicio);
+});
+
+test('registra el numero de certificado y la fecha en que el tercero hizo el servicio', function (string $tipoServicio) {
+    $servicio = crearServicioTercero($this->bahia, ['tipo_servicio' => $tipoServicio]);
+
+    $this->actingAs($this->admin)
+        ->put(route('servicio-terceros.update', $servicio), [
+            'empresa_tercero_id' => $servicio->empresa_tercero_id,
+            'numero_certificado' => 'CERT-2026-0154',
+            'fecha_servicio' => '2026-11-20',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($servicio->refresh())
+        ->numero_certificado->toBe('CERT-2026-0154')
+        ->fecha_servicio->toDateString()->toBe('2026-11-20');
+
+    expect(ServicioTerceroController::listar($this->tenant->id, $tipoServicio)->sole())
+        ->toMatchArray(['numero_certificado' => 'CERT-2026-0154', 'fecha_servicio' => '2026-11-20']);
+})->with(['MANTENIMIENTO', 'CALIBRACION']);
+
+test('la fecha del servicio de tercero no puede ser futura', function () {
+    $servicio = crearServicioTercero($this->bahia);
+
+    $this->actingAs($this->admin)
+        ->put(route('servicio-terceros.update', $servicio), [
+            'empresa_tercero_id' => $servicio->empresa_tercero_id,
+            'fecha_servicio' => now()->addDay()->toDateString(),
+        ])
+        ->assertSessionHasErrors('fecha_servicio');
 });
 
 test('rechaza una empresa tercera de otro tenant al actualizar', function () {
