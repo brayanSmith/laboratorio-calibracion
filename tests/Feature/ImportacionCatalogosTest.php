@@ -12,6 +12,7 @@ use App\Modules\Catalogos\Models\Novedad;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use App\Modules\Catalogos\Models\TipoEquipoCheckList;
 use App\Modules\Importaciones\Models\Importacion;
+use App\Modules\Inventario\Models\EntradaItem;
 use App\Modules\Inventario\Models\Item;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Http\UploadedFile;
@@ -29,8 +30,9 @@ beforeEach(function () {
  * CSV son las etiquetas de los campos). En las pruebas la cola es síncrona.
  *
  * @param  list<string>  $filas  la primera es la de encabezados
+ * @param  array<string, mixed>  $opciones  datos extra para iniciar la importación (ej. reemplazar_existentes)
  */
-function importarCsv(User $usuario, string $tipo, array $filas): Importacion
+function importarCsv(User $usuario, string $tipo, array $filas, array $opciones = []): Importacion
 {
     $subido = test()->actingAs($usuario)
         ->post(route('importaciones.encabezados'), [
@@ -46,6 +48,7 @@ function importarCsv(User $usuario, string $tipo, array $filas): Importacion
             'archivo' => $subido->json('archivo'),
             'nombre_original' => "{$tipo}.csv",
             'mapeo' => $subido->json('sugerencias'),
+            ...$opciones,
         ])
         ->assertCreated();
 
@@ -239,6 +242,120 @@ test('importa ítems con el precio en formato de excel y omite los códigos repe
             'Ya existe un ítem con el código REP-2.',
         ])
         ->and((float) Item::where('codigo', 'REP-2')->sole()->precio_unitario)->toBe(1250.5);
+});
+
+test('importa ítems con fabricante, numero de parte y su cantidad como stock inicial', function () {
+    $importacion = importarCsv($this->admin, 'items', [
+        'Código;Nombre;Fabricante;N/P (número de parte);Precio unitario;Cantidad;Código de compra',
+        'REP-1;Empaque;Parker;NP-12;1.000,50;12,5;OC-77',
+        'REP-2;Sin stock;;;;;',
+        'REP-3;Cantidad inválida;;;;0;',
+    ]);
+
+    $conStock = Item::where('codigo', 'REP-1')->conMovimientos()->sole();
+    $entrada = $conStock->entradas()->sole();
+
+    expect($importacion->filas_creadas)->toBe(2)
+        ->and(array_column($importacion->errores, 'fila'))->toBe([4])
+        ->and($conStock->fabricante)->toBe('Parker')
+        ->and($conStock->numero_parte)->toBe('NP-12')
+        ->and($conStock->stock)->toBe(12.5)
+        ->and($entrada->recibido)->toBeTrue()
+        ->and($entrada->codigo_compra)->toBe('OC-77')
+        ->and((float) $entrada->precio_total)->toBe(12506.25)
+        ->and(Item::where('codigo', 'REP-2')->sole()->entradas()->exists())->toBeFalse()
+        ->and(Item::where('codigo', 'REP-3')->exists())->toBeFalse();
+});
+
+test('antes de importar ítems avisa cuáles códigos ya existen en el tenant', function () {
+    Item::factory()->create(['codigo' => 'REP-1', 'tenant_id' => $this->tenant->id]);
+    Item::factory()->create(['codigo' => 'REP-2']);
+
+    $subido = $this->actingAs($this->admin)
+        ->post(route('importaciones.encabezados'), [
+            'tipo' => 'items',
+            'archivo' => UploadedFile::fake()->createWithContent('items.csv', "Código;Nombre\nREP-1;Uno\nREP-2;Otro tenant\nREP-3;Nuevo"),
+        ])
+        ->assertJsonPath('campo_existente', 'codigo');
+
+    $this->actingAs($this->admin)
+        ->postJson(route('importaciones.existentes'), [
+            'tipo' => 'items',
+            'archivo' => $subido->json('archivo'),
+            'nombre_original' => 'items.csv',
+            'mapeo' => $subido->json('sugerencias'),
+        ])
+        ->assertOk()
+        ->assertExactJson(['existentes' => ['REP-1'], 'total' => 1]);
+});
+
+test('al reemplazar ítems existentes actualiza sus datos sin borrar los vacíos ni duplicar el stock inicial', function () {
+    $item = Item::factory()->create([
+        'codigo' => 'REP-1',
+        'nombre' => 'Viejo',
+        'ubicacion' => 'Estante A',
+        'precio_unitario' => 100,
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $filas = [
+        'Código;Nombre;Fabricante;Ubicación;Precio unitario;Cantidad;Código de compra',
+        'REP-1;Nuevo nombre;Parker;;200;5;OC-1',
+        'REP-2;Nuevo ítem;;;;3;',
+    ];
+
+    importarCsv($this->admin, 'items', $filas, ['reemplazar_existentes' => true]);
+    // Solo se actualiza la cantidad: lo que no viene en el archivo conserva lo guardado; un ítem nuevo sí exige nombre.
+    $importacion = importarCsv($this->admin, 'items', ['Código;Cantidad', 'REP-1;8', 'REP-9;3'], ['reemplazar_existentes' => true]);
+
+    $item = Item::conMovimientos()->findOrFail($item->id);
+    $entrada = $item->entradas()->sole();
+
+    expect($importacion->filas_creadas)->toBe(0)
+        ->and($importacion->filas_actualizadas)->toBe(1)
+        ->and(array_column($importacion->errores, 'fila'))->toBe([3])
+        ->and(Item::where('codigo', 'REP-9')->exists())->toBeFalse()
+        ->and($item->nombre)->toBe('Nuevo nombre')
+        ->and($item->fabricante)->toBe('Parker')
+        ->and($item->ubicacion)->toBe('Estante A')
+        ->and($item->precio_unitario)->toBe('200.00')
+        ->and($item->stock)->toBe(8.0)
+        ->and($entrada->codigo_compra)->toBe('OC-1')
+        ->and((float) $entrada->precio_total)->toBe(1600.0)
+        ->and(Item::where('codigo', 'REP-2')->exists())->toBeTrue();
+});
+
+test('al omitir ítems existentes no los modifica y reporta las filas repetidas', function () {
+    Item::factory()->create(['codigo' => 'REP-1', 'nombre' => 'Viejo', 'tenant_id' => $this->tenant->id]);
+
+    $importacion = importarCsv($this->admin, 'items', [
+        'Código;Nombre;Cantidad',
+        'REP-1;Nuevo nombre;5',
+    ], ['reemplazar_existentes' => false]);
+
+    expect($importacion->filas_actualizadas)->toBe(0)
+        ->and(array_column($importacion->errores, 'mensaje'))->toBe(['Ya existe un ítem con el código REP-1.'])
+        ->and(Item::where('codigo', 'REP-1')->sole()->nombre)->toBe('Viejo')
+        ->and(EntradaItem::count())->toBe(0);
+});
+
+test('solo los tipos que identifican registros existentes aceptan reemplazarlos', function () {
+    $subido = $this->actingAs($this->admin)
+        ->post(route('importaciones.encabezados'), [
+            'tipo' => 'areas',
+            'archivo' => UploadedFile::fake()->createWithContent('areas.csv', "Nombre\nNorte"),
+        ])
+        ->assertJsonPath('campo_existente', null);
+
+    $this->actingAs($this->admin)
+        ->postJson(route('importaciones.store'), [
+            'tipo' => 'areas',
+            'archivo' => $subido->json('archivo'),
+            'nombre_original' => 'areas.csv',
+            'mapeo' => $subido->json('sugerencias'),
+            'reemplazar_existentes' => true,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('reemplazar_existentes');
 });
 
 test('importa clientes aceptando el nombre del tipo de documento y codigo SAP por defecto', function () {

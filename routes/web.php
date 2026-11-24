@@ -145,6 +145,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::post('importaciones/encabezados', [ImportacionController::class, 'encabezados'])->name('importaciones.encabezados');
     Route::get('importaciones/historial', [ImportacionController::class, 'historial'])->name('importaciones.historial');
     Route::get('importaciones/en-curso', [ImportacionController::class, 'enCurso'])->name('importaciones.en-curso');
+    Route::post('importaciones/existentes', [ImportacionController::class, 'existentes'])->name('importaciones.existentes');
     Route::post('importaciones/adjuntos', [ImportacionController::class, 'adjuntos'])->name('importaciones.adjuntos');
     Route::post('importaciones', [ImportacionController::class, 'store'])->name('importaciones.store');
     Route::get('importaciones/{importacion}', [ImportacionController::class, 'show'])->name('importaciones.show');

@@ -38,6 +38,8 @@ class UpdateItemRequest extends FormRequest
                     ->ignore($item->id),
             ],
             'nombre' => ['required', 'string', 'max:255'],
+            'fabricante' => ['nullable', 'string', 'max:255'],
+            'numero_parte' => ['nullable', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string', 'max:255'],
             'ubicacion' => ['nullable', 'string', 'max:255'],
             'precio_unitario' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
@@ -54,6 +56,8 @@ class UpdateItemRequest extends FormRequest
         return [
             'codigo' => 'código',
             'nombre' => 'nombre',
+            'fabricante' => 'fabricante',
+            'numero_parte' => 'N/P (número de parte)',
             'descripcion' => 'descripción',
             'ubicacion' => 'ubicación',
             'precio_unitario' => 'precio unitario',

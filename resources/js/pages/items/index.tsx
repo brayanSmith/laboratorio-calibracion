@@ -92,6 +92,14 @@ export default function ItemsIndex({ items }: Props) {
                         <span className="font-medium">{info.getValue()}</span>
                     ),
                 }),
+                columnHelper.accessor('fabricante', {
+                    header: 'Fabricante',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
+                columnHelper.accessor('numero_parte', {
+                    header: 'N/P',
+                    cell: (info) => info.getValue() ?? '—',
+                }),
                 columnHelper.accessor('ubicacion', {
                     header: 'Ubicación',
                     cell: (info) => info.getValue() ?? '—',

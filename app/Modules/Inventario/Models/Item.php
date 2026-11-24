@@ -21,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $codigo
  * @property string $nombre
+ * @property string|null $fabricante
+ * @property string|null $numero_parte
  * @property string|null $descripcion
  * @property string|null $ubicacion
  * @property string|null $precio_unitario
@@ -30,7 +32,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read Tenant $tenant
  */
-#[Fillable(['codigo', 'nombre', 'descripcion', 'ubicacion', 'precio_unitario', 'tenant_id'])]
+#[Fillable(['codigo', 'nombre', 'fabricante', 'numero_parte', 'descripcion', 'ubicacion', 'precio_unitario', 'tenant_id'])]
 #[UseFactory(ItemFactory::class)]
 class Item extends Model
 {

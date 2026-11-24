@@ -28,7 +28,41 @@ abstract class ImportadorFila
     /** @var array<string, string>|null nombre de archivo normalizado => ruta, en la carpeta de adjuntos */
     private ?array $adjuntos = null;
 
+    /** Si una fila cuyo registro ya existe lo actualiza en vez de reportarse como repetida. */
+    protected bool $reemplazarExistentes = false;
+
     public function __construct(protected readonly int $tenantId) {}
+
+    /**
+     * Campo que identifica un registro ya existente, si el tipo permite elegir entre
+     * reemplazarlo u omitirlo (ver existentes()); null si los repetidos solo se omiten.
+     */
+    public static function campoExistente(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Valores del campo existente (ver campoExistente()) que ya están registrados en el
+     * tenant, de entre los dados, para avisar antes de importar.
+     *
+     * @param  list<string>  $valores
+     * @return list<string>
+     */
+    public function existentes(array $valores): array
+    {
+        return [];
+    }
+
+    /**
+     * Hace que las filas de un registro que ya existe lo actualicen en vez de omitirse.
+     */
+    public function reemplazandoExistentes(bool $reemplazar = true): static
+    {
+        $this->reemplazarExistentes = $reemplazar && static::campoExistente() !== null;
+
+        return $this;
+    }
 
     /**
      * Si al importar este tipo se puede subir una carpeta de archivos que las filas
@@ -65,6 +99,9 @@ abstract class ImportadorFila
     abstract public static function ejemplo(): array;
 
     /**
+     * Crea el registro de la fila o, si se eligió reemplazar los existentes, actualiza el que
+     * ya existe (el modelo devuelto no tiene wasRecentlyCreated).
+     *
      * @param  array<string, string|null>  $valores  campo del sistema => valor de la fila
      *
      * @throws ValidationException cuando la fila no es válida o el registro ya existe

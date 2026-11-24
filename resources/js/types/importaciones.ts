@@ -38,6 +38,8 @@ export type ArchivoImportacion = {
     encabezados: string[];
     vista_previa: string[][];
     campos: CampoImportacion[];
+    /** Campo que identifica un registro que ya existe (ej. el código del ítem): antes de importar se elige si reemplazarlo u omitirlo. Null si los repetidos solo se omiten. */
+    campo_existente: string | null;
     sugerencias: Record<string, number | null>;
     /** Si el tipo acepta una carpeta de adjuntos (las filas los nombran), sus límites; si no, null. */
     adjuntos: ConfiguracionAdjuntos | null;
@@ -62,6 +64,8 @@ export type ResumenImportacion = {
     total_filas: number;
     filas_procesadas: number;
     filas_creadas: number;
+    /** Registros que ya existían y se reemplazaron con los datos del archivo. */
+    filas_actualizadas: number;
     filas_con_error: number;
     errores: { fila: number; mensaje: string }[];
 };

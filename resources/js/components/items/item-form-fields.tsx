@@ -34,6 +34,30 @@ export default function ItemFormFields({ item, errors }: Props) {
                 <InputError message={errors.nombre} />
             </div>
 
+            <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor="fabricante">Fabricante</Label>
+                    <Input
+                        id="fabricante"
+                        name="fabricante"
+                        defaultValue={item?.fabricante ?? ''}
+                        maxLength={255}
+                    />
+                    <InputError message={errors.fabricante} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="numero_parte">N/P (número de parte)</Label>
+                    <Input
+                        id="numero_parte"
+                        name="numero_parte"
+                        defaultValue={item?.numero_parte ?? ''}
+                        maxLength={255}
+                    />
+                    <InputError message={errors.numero_parte} />
+                </div>
+            </div>
+
             <div className="grid gap-2">
                 <Label htmlFor="descripcion">Descripción</Label>
                 <Input

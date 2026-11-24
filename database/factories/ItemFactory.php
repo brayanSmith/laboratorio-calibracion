@@ -21,6 +21,8 @@ class ItemFactory extends Factory
         return [
             'codigo' => fake()->unique()->bothify('ITM-####'),
             'nombre' => fake()->words(2, true),
+            'fabricante' => fake()->optional()->company(),
+            'numero_parte' => fake()->optional()->bothify('NP-####-??'),
             'descripcion' => fake()->optional()->sentence(),
             'ubicacion' => fake()->optional()->bothify('Estante ?-##'),
             'precio_unitario' => fake()->optional()->randomFloat(2, 1, 500),

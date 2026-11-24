@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck } from 'lucide-react';
+import { CircleAlert, CircleCheck, RefreshCw } from 'lucide-react';
 import type { ResumenImportacion } from '@/types';
 
 type Props = {
@@ -26,6 +26,16 @@ export default function ResultadoImportacion({ importacion }: Props) {
                 <CircleCheck className="size-4 shrink-0" />
                 {importacion.filas_creadas} registros importados
             </p>
+            {importacion.filas_actualizadas > 0 ? (
+                <p
+                    className="flex items-center gap-2 text-sm font-medium text-sky-700 dark:text-sky-400"
+                    data-test="importacion-actualizadas"
+                >
+                    <RefreshCw className="size-4 shrink-0" />
+                    {importacion.filas_actualizadas} registros existentes
+                    reemplazados
+                </p>
+            ) : null}
             {importacion.filas_con_error > 0 ? (
                 <p className="flex items-center gap-2 text-sm font-medium text-destructive">
                     <CircleAlert className="size-4 shrink-0" />

@@ -20,10 +20,12 @@ use Illuminate\Support\Carbon;
  * @property string $codificacion
  * @property array<string, int> $mapeo campo del sistema => índice de la columna del CSV
  * @property string|null $lote_adjuntos Lote de archivos subidos junto al CSV (ver carpetaAdjuntos())
+ * @property bool $reemplazar_existentes Si las filas de un registro que ya existe lo actualizan en vez de omitirse
  * @property string $estado
  * @property int $total_filas
  * @property int $filas_procesadas
  * @property int $filas_creadas
+ * @property int $filas_actualizadas
  * @property int $filas_con_error
  * @property list<array{fila: int, mensaje: string}>|null $errores
  * @property Carbon|null $leida_en Cuándo el usuario revisó el resultado
@@ -35,8 +37,8 @@ use Illuminate\Support\Carbon;
  * @property-read Tenant $tenant
  */
 #[Fillable([
-    'tipo', 'archivo', 'nombre_original', 'delimitador', 'codificacion', 'mapeo', 'lote_adjuntos', 'estado',
-    'total_filas', 'filas_procesadas', 'filas_creadas', 'filas_con_error', 'errores',
+    'tipo', 'archivo', 'nombre_original', 'delimitador', 'codificacion', 'mapeo', 'lote_adjuntos', 'reemplazar_existentes', 'estado',
+    'total_filas', 'filas_procesadas', 'filas_creadas', 'filas_actualizadas', 'filas_con_error', 'errores',
     'leida_en', 'user_id', 'tenant_id',
 ])]
 class Importacion extends Model
@@ -107,7 +109,7 @@ class Importacion extends Model
     /**
      * Summary sent to the frontend to show the progress and the result.
      *
-     * @return array{id: int, tipo: string, tipo_etiqueta: string, estado: string, nombre_original: string, creada_en: string|null, leida: bool, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
+     * @return array{id: int, tipo: string, tipo_etiqueta: string, estado: string, nombre_original: string, creada_en: string|null, leida: bool, total_filas: int, filas_procesadas: int, filas_creadas: int, filas_actualizadas: int, filas_con_error: int, errores: list<array{fila: int, mensaje: string}>}
      */
     public function resumen(): array
     {
@@ -122,6 +124,7 @@ class Importacion extends Model
             'total_filas' => $this->total_filas,
             'filas_procesadas' => $this->filas_procesadas,
             'filas_creadas' => $this->filas_creadas,
+            'filas_actualizadas' => $this->filas_actualizadas ?? 0,
             'filas_con_error' => $this->filas_con_error,
             'errores' => $this->errores ?? [],
         ];
@@ -137,6 +140,7 @@ class Importacion extends Model
         return [
             'tipo' => TipoImportacion::class,
             'mapeo' => 'array',
+            'reemplazar_existentes' => 'boolean',
             'errores' => 'array',
             'leida_en' => 'datetime',
         ];

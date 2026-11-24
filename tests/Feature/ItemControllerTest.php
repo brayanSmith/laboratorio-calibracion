@@ -208,6 +208,24 @@ test('guarda la ubicacion del item', function () {
     expect(Item::firstOrFail()->ubicacion)->toBe('Bodega 1');
 });
 
+test('guarda el fabricante y el numero de parte del item y los lista', function () {
+    $this->actingAs($this->admin)
+        ->post(route('items.store'), ['codigo' => 'ITM-001', 'nombre' => 'Filtro', 'fabricante' => 'Parker', 'numero_parte' => 'NP-123'])
+        ->assertSessionHasNoErrors();
+
+    $item = Item::firstOrFail();
+
+    $this->actingAs($this->admin)
+        ->put(route('items.update', $item), ['codigo' => 'ITM-001', 'nombre' => 'Filtro', 'fabricante' => 'Festo', 'numero_parte' => 'NP-456'])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->admin)
+        ->get(route('items.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('items.0.fabricante', 'Festo')
+            ->where('items.0.numero_parte', 'NP-456'));
+});
+
 test('guarda el precio unitario del item y valida que no sea negativo', function () {
     $this->actingAs($this->admin)
         ->post(route('items.store'), ['codigo' => 'ITM-001', 'nombre' => 'Filtro', 'precio_unitario' => '15.50'])

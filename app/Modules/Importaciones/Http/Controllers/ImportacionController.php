@@ -31,6 +31,9 @@ class ImportacionController extends Controller
 
     private const IMPORTACIONES_EN_HISTORIAL = 10;
 
+    /** Cuántos de los registros que ya existen se listan en el aviso antes de importar. */
+    private const EXISTENTES_A_MOSTRAR = 50;
+
     /**
      * Descarga un CSV con los encabezados de todos los campos del tipo y una fila de ejemplo.
      * Va separado por ";" y con BOM para que Excel en español lo abra en columnas y con tildes.
@@ -88,6 +91,7 @@ class ImportacionController extends Controller
             'encabezados' => $encabezados,
             'vista_previa' => $lector->filas()->take(3)->values()->all(),
             'campos' => $importador::campos(),
+            'campo_existente' => $importador::campoExistente(),
             'sugerencias' => $importador::sugerirMapeo($encabezados),
             'adjuntos' => $importador::aceptaAdjuntos() ? [
                 'extensiones' => SubirAdjuntosImportacionRequest::EXTENSIONES,
@@ -118,14 +122,7 @@ class ImportacionController extends Controller
      */
     public function store(StoreImportacionRequest $request): JsonResponse
     {
-        $ruta = $this->carpeta($request).'/'.$request->validated('archivo');
-
-        if (! Storage::disk()->exists($ruta)) {
-            throw ValidationException::withMessages([
-                'archivo' => 'El archivo ya no está disponible, vuelve a subirlo.',
-            ]);
-        }
-
+        $ruta = $this->rutaDelArchivo($request);
         $copia = LectorCsv::copiaTemporal($ruta);
 
         try {
@@ -142,6 +139,7 @@ class ImportacionController extends Controller
             'codificacion' => $lector->codificacion(),
             'mapeo' => array_map(intval(...), array_filter($request->validated('mapeo'), fn (mixed $indice): bool => $indice !== null)),
             'lote_adjuntos' => $request->validated('lote_adjuntos'),
+            'reemplazar_existentes' => $request->boolean('reemplazar_existentes'),
             'estado' => Importacion::ESTADO_PENDIENTE,
             'user_id' => $request->user()->id,
             'tenant_id' => $request->user()->tenant_id,
@@ -207,6 +205,58 @@ class ImportacionController extends Controller
         $importacion->update(['leida_en' => $request->boolean('leida') ? now() : null]);
 
         return response()->json($importacion->resumen());
+    }
+
+    /**
+     * Registros del CSV que ya existen en el tenant (ej. ítems con el mismo código), para que
+     * el usuario elija antes de importar si se reemplazan o se omiten. Recibe lo mismo que
+     * store(); los tipos sin campoExistente() nunca tienen existentes.
+     */
+    public function existentes(StoreImportacionRequest $request): JsonResponse
+    {
+        $importador = $request->tipo()->importador();
+        $campo = $importador::campoExistente();
+        $indice = $campo === null ? null : $request->validated("mapeo.{$campo}");
+
+        if ($indice === null) {
+            return response()->json(['existentes' => [], 'total' => 0]);
+        }
+
+        $copia = LectorCsv::copiaTemporal($this->rutaDelArchivo($request));
+
+        try {
+            $valores = LectorCsv::detectar($copia)
+                ->filas()
+                ->map(fn (array $fila): string => (string) ($fila[(int) $indice] ?? ''))
+                ->all();
+        } finally {
+            @unlink($copia);
+        }
+
+        $existentes = (new $importador($request->user()->tenant_id))->existentes(array_values($valores));
+
+        return response()->json([
+            'existentes' => array_slice($existentes, 0, self::EXISTENTES_A_MOSTRAR),
+            'total' => count($existentes),
+        ]);
+    }
+
+    /**
+     * Ruta del CSV que se subió al leer los encabezados.
+     *
+     * @throws ValidationException si ya no está (ej. se borró por llevar mucho sin importarse)
+     */
+    private function rutaDelArchivo(StoreImportacionRequest $request): string
+    {
+        $ruta = $this->carpeta($request).'/'.$request->validated('archivo');
+
+        if (! Storage::disk()->exists($ruta)) {
+            throw ValidationException::withMessages([
+                'archivo' => 'El archivo ya no está disponible, vuelve a subirlo.',
+            ]);
+        }
+
+        return $ruta;
     }
 
     private function carpeta(Request $request): string

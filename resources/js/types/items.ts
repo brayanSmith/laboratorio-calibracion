@@ -10,6 +10,8 @@ export type Item = {
     id: number;
     codigo: string;
     nombre: string;
+    fabricante: string | null;
+    numero_parte: string | null;
     descripcion: string | null;
     ubicacion: string | null;
     precio_unitario: number | null;

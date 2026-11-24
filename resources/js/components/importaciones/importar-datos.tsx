@@ -145,6 +145,10 @@ export default function ImportarDatos() {
             router.reload({ only: ['importacionesSinLeer'], async: true });
         }
 
+        const reemplazados =
+            resultado.filas_actualizadas > 0
+                ? `, ${resultado.filas_actualizadas} reemplazados`
+                : '';
         const verDetalle = {
             label: 'Ver detalle',
             onClick: () => verResultado(resultado),
@@ -156,12 +160,12 @@ export default function ImportarDatos() {
             });
         } else if (resultado.filas_con_error > 0) {
             toast.warning(
-                `Importación de ${tipo} terminada: ${resultado.filas_creadas} registros importados y ${resultado.filas_con_error} filas con errores.`,
+                `Importación de ${tipo} terminada: ${resultado.filas_creadas} registros importados${reemplazados} y ${resultado.filas_con_error} filas con errores.`,
                 { action: verDetalle, duration: 10000 },
             );
         } else {
             toast.success(
-                `Importación de ${tipo} terminada: ${resultado.filas_creadas} registros importados.`,
+                `Importación de ${tipo} terminada: ${resultado.filas_creadas} registros importados${reemplazados}.`,
                 { action: verDetalle },
             );
         }

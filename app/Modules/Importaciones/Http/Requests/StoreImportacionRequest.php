@@ -51,6 +51,11 @@ class StoreImportacionRequest extends FormRequest
             ? ['nullable', 'string', 'regex:/^[A-Za-z0-9]{40}$/']
             : ['prohibited'];
 
+        // Qué hacer con las filas de un registro que ya existe (ver ImportacionController::existentes()).
+        $reglas['reemplazar_existentes'] = $importador::campoExistente() !== null
+            ? ['nullable', 'boolean']
+            : ['prohibited'];
+
         return $reglas;
     }
 

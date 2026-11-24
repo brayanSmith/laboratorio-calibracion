@@ -107,6 +107,8 @@ const ICONOS: Record<string, LucideIcon> = {
     entradas: PackagePlus,
     salidas: PackageMinus,
     'precio unitario': Coins,
+    fabricante: Building2,
+    'n/p': Hash,
     servicio: Wrench,
     servicios: Wrench,
     calibraciones: Gauge,

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
     adjuntos,
+    existentes as consultarExistentes,
     store,
 } from '@/actions/App/Modules/Importaciones/Http/Controllers/ImportacionController';
 import InputError from '@/components/input-error';
@@ -53,6 +54,12 @@ type DatosAdjuntos = {
     adjuntos: File[];
 };
 
+/** Registros del archivo que ya existen (ver ImportacionController::existentes()). */
+type Existentes = {
+    existentes: string[];
+    total: number;
+};
+
 /** Archivos de la carpeta elegida que se van a subir, y cuántos se dejaron fuera. */
 type CarpetaAdjuntos = {
     nombre: string;
@@ -96,6 +103,13 @@ export default function RelacionarColumnasModal({
         lote: '',
         adjuntos: [],
     });
+    const consulta = useHttp<DatosImportacion, Existentes>({
+        tipo: archivo.tipo,
+        archivo: archivo.archivo,
+        nombre_original: archivo.nombre_original,
+        mapeo: archivo.sugerencias,
+    });
+    const [existentes, setExistentes] = useState<Existentes | null>(null);
     const [carpeta, setCarpeta] = useState<CarpetaAdjuntos | null>(null);
     const [subidos, setSubidos] = useState<number | null>(null);
     const selectorCarpeta = useRef<HTMLInputElement>(null);
@@ -187,7 +201,46 @@ export default function RelacionarColumnasModal({
         return { lote };
     };
 
-    const importar = async () => {
+    /**
+     * Si el tipo distingue registros existentes (ej. ítems por código), primero pregunta
+     * cuáles del archivo ya están registrados; si hay, el usuario elige si reemplazarlos u
+     * omitirlos. Si la consulta falla, se importa igual: store() valida lo mismo y muestra
+     * los errores.
+     */
+    const importar = () => {
+        if (archivo.campo_existente === null) {
+            void iniciarImportacion(false);
+
+            return;
+        }
+
+        consulta.transform(() => ({ ...data }));
+        consulta
+            .post(consultarExistentes().url, {
+                onSuccess: (respuesta) => {
+                    if (respuesta.total > 0) {
+                        setExistentes(respuesta);
+                    } else {
+                        void iniciarImportacion(false);
+                    }
+                },
+                onError: () => void iniciarImportacion(false),
+                onHttpException: () => void iniciarImportacion(false),
+                onNetworkError: () => {
+                    toast.error(
+                        `No se pudo iniciar la importación: ${MOTIVO_SIN_CONEXION}`,
+                    );
+                },
+            })
+            .catch(() => undefined);
+    };
+
+    const elegirExistentes = (reemplazar: boolean) => {
+        setExistentes(null);
+        void iniciarImportacion(reemplazar);
+    };
+
+    const iniciarImportacion = async (reemplazar: boolean) => {
         const resultado = await subirAdjuntos();
 
         if ('motivo' in resultado) {
@@ -199,7 +252,13 @@ export default function RelacionarColumnasModal({
             return;
         }
 
-        transform((datos) => ({ ...datos, lote_adjuntos: resultado.lote }));
+        transform((datos) => ({
+            ...datos,
+            lote_adjuntos: resultado.lote,
+            ...(archivo.campo_existente !== null
+                ? { reemplazar_existentes: reemplazar }
+                : {}),
+        }));
         post(store().url, {
             onSuccess: onIniciada,
             // Los errores del mapeo y del archivo se ven en la modal; el resto, en el aviso.
@@ -231,6 +290,9 @@ export default function RelacionarColumnasModal({
     };
 
     const subiendo = subidos !== null && carpeta !== null;
+    const etiquetaExistente =
+        archivo.campos.find((campo) => campo.clave === archivo.campo_existente)
+            ?.etiqueta ?? 'Identificador';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -405,12 +467,107 @@ export default function RelacionarColumnasModal({
                     <Button
                         type="button"
                         onClick={importar}
-                        loading={processing || subiendo}
+                        loading={processing || subiendo || consulta.processing}
                         data-test="importar-iniciar"
                     >
                         Importar
                     </Button>
                 </DialogFooter>
+
+                {/* Dentro del contenido: como hermana, Radix cerraría esta modal al abrir la otra. */}
+                <Dialog
+                    open={existentes !== null}
+                    onOpenChange={(abierta) => {
+                        if (!abierta) {
+                            setExistentes(null);
+                        }
+                    }}
+                >
+                    <DialogContent
+                        className="sm:max-w-lg"
+                        data-test="importar-existentes"
+                    >
+                        <DialogHeader>
+                            <DialogTitle>
+                                {existentes?.total === 1
+                                    ? 'Hay 1 registro que ya existe'
+                                    : `Hay ${existentes?.total} registros que ya existen`}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Estos valores de {etiquetaExistente} del archivo
+                                ya están registrados. ¿Qué deseas hacer con
+                                ellos?
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="max-h-48 overflow-y-auto rounded-lg border bg-muted/40 p-3">
+                            <div
+                                className="flex flex-wrap gap-1.5"
+                                data-test="importar-existentes-lista"
+                            >
+                                {existentes?.existentes.map((valor) => (
+                                    <span
+                                        key={valor}
+                                        className="rounded-md border bg-background px-2 py-0.5 font-mono text-xs"
+                                    >
+                                        {valor}
+                                    </span>
+                                ))}
+                            </div>
+                            {existentes &&
+                            existentes.total > existentes.existentes.length ? (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    y{' '}
+                                    {existentes.total -
+                                        existentes.existentes.length}{' '}
+                                    más.
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                            <li>
+                                <strong className="text-foreground">
+                                    Reemplazar existentes:
+                                </strong>{' '}
+                                se actualizan con los datos del archivo. Las
+                                celdas vacías no borran lo que ya está guardado.
+                            </li>
+                            <li>
+                                <strong className="text-foreground">
+                                    Omitir existentes:
+                                </strong>{' '}
+                                se dejan como están y esas filas se reportan
+                                como repetidas. Los nuevos se importan igual.
+                            </li>
+                        </ul>
+
+                        <DialogFooter className="gap-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setExistentes(null)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => elegirExistentes(false)}
+                                data-test="importar-omitir-existentes"
+                            >
+                                Omitir existentes
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => elegirExistentes(true)}
+                                data-test="importar-reemplazar-existentes"
+                            >
+                                Reemplazar existentes
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </DialogContent>
         </Dialog>
     );

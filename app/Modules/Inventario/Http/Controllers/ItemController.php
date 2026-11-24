@@ -29,12 +29,14 @@ class ItemController extends Controller
             ->conMovimientos()
             ->with(['entradas' => fn ($query) => $query->where('recibido', false)->orderBy('id')])
             ->orderBy('nombre')
-            ->get(['id', 'codigo', 'nombre', 'descripcion', 'ubicacion', 'precio_unitario'])
+            ->get(['id', 'codigo', 'nombre', 'fabricante', 'numero_parte', 'descripcion', 'ubicacion', 'precio_unitario'])
             ->map(function (Item $item) {
                 return [
                     'id' => $item->id,
                     'codigo' => $item->codigo,
                     'nombre' => $item->nombre,
+                    'fabricante' => $item->fabricante,
+                    'numero_parte' => $item->numero_parte,
                     'descripcion' => $item->descripcion,
                     'ubicacion' => $item->ubicacion,
                     'precio_unitario' => $item->precio_unitario === null ? null : (float) $item->precio_unitario,

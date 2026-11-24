@@ -61,14 +61,16 @@ class ProcesarImportacion implements ShouldQueue
         }
 
         $importador = (new ($importacion->tipo->importador())($importacion->tenant_id))
-            ->conAdjuntos($importacion->carpetaAdjuntos());
+            ->conAdjuntos($importacion->carpetaAdjuntos())
+            ->reemplazandoExistentes($importacion->reemplazar_existentes);
         $errores = $importacion->errores ?? [];
-        $procesadas = $creadas = $conError = 0;
+        $procesadas = $creadas = $actualizadas = $conError = 0;
 
         foreach ($lector->filas()->skip($this->desde)->take(self::FILAS_POR_TANDA) as $numeroFila => $valores) {
             try {
-                $importador->importar($this->valoresSegunMapeo($valores));
-                $creadas++;
+                $registro = $importador->importar($this->valoresSegunMapeo($valores));
+                // Algunos tipos devuelven un registro existente al que solo le asocian algo (ej. usuarios de bahías).
+                $importacion->reemplazar_existentes && ! $registro->wasRecentlyCreated ? $actualizadas++ : $creadas++;
             } catch (ValidationException $excepcion) {
                 $conError++;
                 $this->agregarError($errores, $numeroFila, implode(' ', $excepcion->validator->errors()->all()));
@@ -92,6 +94,7 @@ class ProcesarImportacion implements ShouldQueue
             'estado' => $quedanFilas ? Importacion::ESTADO_PROCESANDO : Importacion::ESTADO_COMPLETADA,
             'filas_procesadas' => $this->desde + $procesadas,
             'filas_creadas' => $importacion->filas_creadas + $creadas,
+            'filas_actualizadas' => $importacion->filas_actualizadas + $actualizadas,
             'filas_con_error' => $importacion->filas_con_error + $conError,
             'errores' => $errores,
         ]);
