@@ -253,7 +253,7 @@ class ServicioTerceroController extends Controller
             }
 
             if ($reAgendar) {
-                $siguienteNumero = OrdenTrabajo::withTrashed()->where('tenant_id', $servicioTercero->tenant_id)->count() + 1;
+                $siguienteNumero = OrdenTrabajo::siguienteNumero($servicioTercero->tenant_id);
 
                 OrdenTrabajo::create([
                     'codigo' => 'OT-'.str_pad((string) $siguienteNumero, 4, '0', STR_PAD_LEFT),

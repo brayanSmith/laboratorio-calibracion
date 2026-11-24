@@ -321,7 +321,7 @@ class CalibracionController extends Controller
             }
 
             if ($estadoCalibracion === 'DEVOLVER_MANTENIMIENTO') {
-                $siguienteNumero = OrdenTrabajo::withTrashed()->where('tenant_id', $calibracion->tenant_id)->count() + 1;
+                $siguienteNumero = OrdenTrabajo::siguienteNumero($calibracion->tenant_id);
 
                 OrdenTrabajo::create([
                     'codigo' => 'OT-'.str_pad((string) $siguienteNumero, 4, '0', STR_PAD_LEFT),

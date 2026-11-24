@@ -106,7 +106,7 @@ class OrdenTrabajoController extends Controller
             ->keyBy('id');
 
         DB::transaction(function () use ($equiposListos, $programaciones, $tenantId) {
-            $siguienteNumero = OrdenTrabajo::withTrashed()->where('tenant_id', $tenantId)->count() + 1;
+            $siguienteNumero = OrdenTrabajo::siguienteNumero($tenantId);
 
             // Un equipo puede llegar aquí con una orden de trabajo ya creada pero sin
             // agendar todavía (ver CalibracionController::finalizar(), que crea una al

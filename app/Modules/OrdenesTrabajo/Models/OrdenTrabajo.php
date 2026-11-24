@@ -138,6 +138,20 @@ class OrdenTrabajo extends Model
     }
 
     /**
+     * Número de la próxima orden de trabajo del tenant (OT-0001, OT-0002...): el más alto
+     * usado más uno, contando las eliminadas. No se cuenta cuántas hay porque, si alguna se
+     * borró definitivamente (ver EliminarEquipos), se repetiría un código ya usado.
+     */
+    public static function siguienteNumero(int $tenantId): int
+    {
+        return (int) static::withTrashed()
+            ->where('tenant_id', $tenantId)
+            ->pluck('codigo')
+            ->map(fn (string $codigo): int => (int) preg_replace('/\D/', '', $codigo))
+            ->max() + 1;
+    }
+
+    /**
      * Subconsulta: el mantenimiento de la orden terminó con el equipo fuera de servicio.
      */
     public static function mantenimientoFueraDeServicio(QueryBuilder $query): void
