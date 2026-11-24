@@ -15,6 +15,7 @@ use App\Modules\Equipos\Mail\EquipoInhabilitado;
 use App\Modules\Ingresos\Models\IngresoEnvio;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -296,6 +297,23 @@ class Equipo extends Model
     public function equipoHistoricos(): HasMany
     {
         return $this->hasMany(EquipoHistorico::class);
+    }
+
+    /**
+     * Whether the equipo already has service history: a programación that was ingresada,
+     * moved past PENDIENTE or got an orden de trabajo, or an imported servicio histórico.
+     * The programación created with the equipo (still PENDIENTE) is not history.
+     */
+    public function tieneTraza(): bool
+    {
+        return $this->equipoHistoricos()->exists()
+            || $this->equipoProgramaciones()
+                ->withTrashed()
+                ->where(fn (Builder $programacion) => $programacion
+                    ->whereNotNull('ingreso_id')
+                    ->orWhere('estado_programacion', '!=', 'PENDIENTE')
+                    ->orWhereHas('ordenesTrabajo'))
+                ->exists();
     }
 
     /**

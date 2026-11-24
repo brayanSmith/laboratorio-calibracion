@@ -43,7 +43,10 @@ export default function DeleteEquipoModal({
                                     Esta acción eliminará el equipo{' '}
                                     <strong>"{equipo.codigo}"</strong> de la
                                     lista. No se puede deshacer desde esta
-                                    pantalla.
+                                    pantalla. Solo se pueden eliminar equipos
+                                    sin historial de servicios; si ya tiene
+                                    mantenimientos, calibraciones u otros
+                                    servicios, inactívalo en su lugar.
                                 </DialogDescription>
                             </DialogHeader>
 

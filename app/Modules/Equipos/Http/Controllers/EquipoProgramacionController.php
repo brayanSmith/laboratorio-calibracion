@@ -34,7 +34,7 @@ class EquipoProgramacionController extends Controller
             // whereBetween dejaría fuera los equipos programados justo el día "hasta".
             ->whereDate('fecha_proximo_servicio', '>=', $request->validated('desde'))
             ->whereDate('fecha_proximo_servicio', '<=', $request->validated('hasta'))
-            ->whereHas('equipo', fn ($query) => $query->whereIn('bahia_id', $request->validated('bahia_ids')))
+            ->whereHas('equipo', fn ($query) => $query->withoutTrashed()->whereIn('bahia_id', $request->validated('bahia_ids')))
             ->with(
                 'equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,bahia_id',
                 'equipo.cliente:id,nombre',

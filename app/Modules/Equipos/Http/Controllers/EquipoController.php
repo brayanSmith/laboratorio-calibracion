@@ -248,7 +248,21 @@ class EquipoController extends Controller
     {
         Gate::authorize('delete', $equipo);
 
-        $equipo->delete();
+        // Con historial no se elimina: sus mantenimientos, calibraciones y servicios deben seguir visibles.
+        if ($equipo->tieneTraza()) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('No se puede eliminar un equipo que ya tiene historial de servicios. Inactívalo para sacarlo de la operación.'),
+            ]);
+
+            return back();
+        }
+
+        // Su programación pendiente se va con él, para que no siga apareciendo en la agenda.
+        DB::transaction(function () use ($equipo): void {
+            $equipo->equipoProgramaciones()->delete();
+            $equipo->delete();
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipo eliminado.')]);
 

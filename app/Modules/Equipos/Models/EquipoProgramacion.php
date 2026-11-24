@@ -130,13 +130,15 @@ class EquipoProgramacion extends Model
     protected $appends = ['estado_vencimiento', 'eliminable'];
 
     /**
-     * Get the equipo this programacion belongs to.
+     * Get the equipo this programacion belongs to, even if it was deleted, so the history of
+     * its servicios (mantenimientos, calibraciones, órdenes...) keeps showing it. The lists
+     * of what is still to be done filter the deleted equipos out with withoutTrashed().
      *
      * @return BelongsTo<Equipo, $this>
      */
     public function equipo(): BelongsTo
     {
-        return $this->belongsTo(Equipo::class);
+        return $this->belongsTo(Equipo::class)->withTrashed();
     }
 
     /**
@@ -230,7 +232,7 @@ class EquipoProgramacion extends Model
                 ->orWhereHas('ordenesTrabajo', fn ($q2) => $q2->where('listo_para_mantenimiento', false)))
             ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'))
             // Un equipo inactivo (ej. por una novedad del ingreso) no sigue a mantenimiento.
-            ->whereHas('equipo', fn ($q) => $q->where('activo', true));
+            ->whereHas('equipo', fn ($q) => $q->withoutTrashed()->where('activo', true));
     }
 
     /**
