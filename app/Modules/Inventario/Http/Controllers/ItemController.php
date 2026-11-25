@@ -2,12 +2,15 @@
 
 namespace App\Modules\Inventario\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Inventario\Http\Requests\StoreItemRequest;
 use App\Modules\Inventario\Http\Requests\UpdateItemRequest;
 use App\Modules\Inventario\Models\EntradaItem;
 use App\Modules\Inventario\Models\Item;
 use App\Modules\Mantenimientos\Models\ItemMantenimiento;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +20,8 @@ use Inertia\Response;
 
 class ItemController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the items of the tenant.
      */
@@ -135,19 +140,42 @@ class ItemController extends Controller
     {
         Gate::authorize('delete', $item);
 
-        if ($item->itemsMantenimiento()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un ítem que ya se usó en mantenimientos.'),
-            ]);
+        $motivo = $this->eliminarRegistro($item);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $item->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Ítem eliminado.')]);
 
         return to_route('items.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Item::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::ItemsEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Item  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->itemsMantenimiento()->exists()) {
+            return __('No se puede eliminar un ítem que ya se usó en mantenimientos.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

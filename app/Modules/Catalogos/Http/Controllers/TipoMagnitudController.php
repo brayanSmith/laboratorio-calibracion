@@ -2,10 +2,13 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalogos\Http\Requests\StoreTipoMagnitudRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateTipoMagnitudRequest;
 use App\Modules\Catalogos\Models\TipoMagnitud;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,6 +17,8 @@ use Inertia\Response;
 
 class TipoMagnitudController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the tipos de magnitud of the tenant.
      */
@@ -65,25 +70,48 @@ class TipoMagnitudController extends Controller
     }
 
     /**
-     * Remove the specified tipo de magnitud.
+     * Remove the specified tipoMagnitud.
      */
     public function destroy(TipoMagnitud $tipoMagnitud): RedirectResponse
     {
         Gate::authorize('delete', $tipoMagnitud);
 
-        if ($tipoMagnitud->equipoEspecificacionTecnica()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un tipo de magnitud que tiene especificaciones técnicas asociadas.'),
-            ]);
+        $motivo = $this->eliminarRegistro($tipoMagnitud);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $tipoMagnitud->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Tipo de magnitud eliminado.')]);
 
         return to_route('tipos-magnitud.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return TipoMagnitud::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::TiposMagnitudEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  TipoMagnitud  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->equipoEspecificacionTecnica()->exists()) {
+            return __('No se puede eliminar un tipo de magnitud que tiene especificaciones técnicas asociadas.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

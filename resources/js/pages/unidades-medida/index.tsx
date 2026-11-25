@@ -12,7 +12,7 @@ import CreateUnidadMedidaModal from '@/components/unidades-medida/create-unidad-
 import DeleteUnidadMedidaModal from '@/components/unidades-medida/delete-unidad-medida-modal';
 import EditUnidadMedidaModal from '@/components/unidades-medida/edit-unidad-medida-modal';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/unidades-medida';
+import { destroyLote, index } from '@/routes/unidades-medida';
 import type { UnidadMedida } from '@/types';
 
 type Props = {
@@ -25,6 +25,7 @@ export default function UnidadesMedidaIndex({ unidadesMedida }: Props) {
     const { can } = usePermissions();
     const canEdit = can('unidades-medida.editar');
     const canDelete = can('unidades-medida.eliminar');
+    const canDeleteLote = can('unidades-medida.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         unidadesMedida.find((unidadMedida) => unidadMedida.id === editingId) ??
@@ -108,6 +109,14 @@ export default function UnidadesMedidaIndex({ unidadesMedida }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? {
+                                  url: destroyLote().url,
+                                  nombre: 'unidades de medida',
+                              }
+                            : undefined
+                    }
                     data={unidadesMedida}
                     columns={columns}
                     searchPlaceholder="Buscar unidad de medida..."

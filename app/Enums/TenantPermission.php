@@ -30,11 +30,13 @@ enum TenantPermission: string
     case ClientesCrear = 'clientes.crear';
     case ClientesEditar = 'clientes.editar';
     case ClientesEliminar = 'clientes.eliminar';
+    case ClientesEliminarLote = 'clientes.eliminar-lote';
 
     case EquiposVer = 'equipos.ver';
     case EquiposCrear = 'equipos.crear';
     case EquiposEditar = 'equipos.editar';
     case EquiposEliminar = 'equipos.eliminar';
+    case EquiposEliminarLote = 'equipos.eliminar-lote';
     case EquiposHistorial = 'equipos.historial';
     case EquiposHistoricoAgregar = 'equipos.historico-agregar';
     case EquiposProgramaciones = 'equipos.programaciones';
@@ -43,12 +45,14 @@ enum TenantPermission: string
     case IngresosCrear = 'ingresos.crear';
     case IngresosEditar = 'ingresos.editar';
     case IngresosEliminar = 'ingresos.eliminar';
+    case IngresosEliminarLote = 'ingresos.eliminar-lote';
 
     // Sin "crear": un mantenimiento solo se origina desde "Agendar Mantenimiento" (ver
     // OrdenTrabajoController), no tiene un formulario de creación propio.
     case MantenimientosVer = 'mantenimientos.ver';
     case MantenimientosEditar = 'mantenimientos.editar';
     case MantenimientosEliminar = 'mantenimientos.eliminar';
+    case MantenimientosEliminarLote = 'mantenimientos.eliminar-lote';
     case MantenimientosVerTodos = 'mantenimientos.ver-todos';
     case MantenimientosIniciar = 'mantenimientos.iniciar';
     case MantenimientosFinalizar = 'mantenimientos.finalizar';
@@ -60,6 +64,7 @@ enum TenantPermission: string
     case CalibracionesVer = 'calibraciones.ver';
     case CalibracionesEditar = 'calibraciones.editar';
     case CalibracionesEliminar = 'calibraciones.eliminar';
+    case CalibracionesEliminarLote = 'calibraciones.eliminar-lote';
     case CalibracionesVerTodos = 'calibraciones.ver-todos';
     case CalibracionesIniciar = 'calibraciones.iniciar';
     case CalibracionesFinalizar = 'calibraciones.finalizar';
@@ -71,23 +76,27 @@ enum TenantPermission: string
     case DespachosVer = 'despachos.ver';
     case DespachosEditar = 'despachos.editar';
     case DespachosEliminar = 'despachos.eliminar';
+    case DespachosEliminarLote = 'despachos.eliminar-lote';
     case DespachosVerTodos = 'despachos.ver-todos';
 
     case TiposEquipoVer = 'tipos-equipo.ver';
     case TiposEquipoCrear = 'tipos-equipo.crear';
     case TiposEquipoEditar = 'tipos-equipo.editar';
     case TiposEquipoEliminar = 'tipos-equipo.eliminar';
+    case TiposEquipoEliminarLote = 'tipos-equipo.eliminar-lote';
     case TiposEquipoChecklist = 'tipos-equipo.checklist';
 
     case AreasVer = 'areas.ver';
     case AreasCrear = 'areas.crear';
     case AreasEditar = 'areas.editar';
     case AreasEliminar = 'areas.eliminar';
+    case AreasEliminarLote = 'areas.eliminar-lote';
 
     case BahiasVer = 'bahias.ver';
     case BahiasCrear = 'bahias.crear';
     case BahiasEditar = 'bahias.editar';
     case BahiasEliminar = 'bahias.eliminar';
+    case BahiasEliminarLote = 'bahias.eliminar-lote';
     case BahiasAsignarUsuarios = 'bahias.asignar-usuarios';
     case BahiasAsignarClientes = 'bahias.asignar-clientes';
 
@@ -95,11 +104,13 @@ enum TenantPermission: string
     case FabricantesCrear = 'fabricantes.crear';
     case FabricantesEditar = 'fabricantes.editar';
     case FabricantesEliminar = 'fabricantes.eliminar';
+    case FabricantesEliminarLote = 'fabricantes.eliminar-lote';
 
     case ItemsVer = 'items.ver';
     case ItemsCrear = 'items.crear';
     case ItemsEditar = 'items.editar';
     case ItemsEliminar = 'items.eliminar';
+    case ItemsEliminarLote = 'items.eliminar-lote';
     case ItemsRegistrarEntrada = 'items.registrar-entrada';
     case ItemsVerEntradas = 'items.ver-entradas';
     case ItemsRecibirEntradas = 'items.recibir-entradas';
@@ -108,31 +119,37 @@ enum TenantPermission: string
     case EmpresasTercerasCrear = 'empresas-terceras.crear';
     case EmpresasTercerasEditar = 'empresas-terceras.editar';
     case EmpresasTercerasEliminar = 'empresas-terceras.eliminar';
+    case EmpresasTercerasEliminarLote = 'empresas-terceras.eliminar-lote';
 
     case ProcedimientosCalibracionVer = 'procedimientos-calibracion.ver';
     case ProcedimientosCalibracionCrear = 'procedimientos-calibracion.crear';
     case ProcedimientosCalibracionEditar = 'procedimientos-calibracion.editar';
     case ProcedimientosCalibracionEliminar = 'procedimientos-calibracion.eliminar';
+    case ProcedimientosCalibracionEliminarLote = 'procedimientos-calibracion.eliminar-lote';
 
     case AlcancesMedicionVer = 'alcances-medicion.ver';
     case AlcancesMedicionCrear = 'alcances-medicion.crear';
     case AlcancesMedicionEditar = 'alcances-medicion.editar';
     case AlcancesMedicionEliminar = 'alcances-medicion.eliminar';
+    case AlcancesMedicionEliminarLote = 'alcances-medicion.eliminar-lote';
 
     case NovedadesVer = 'novedades.ver';
     case NovedadesCrear = 'novedades.crear';
     case NovedadesEditar = 'novedades.editar';
     case NovedadesEliminar = 'novedades.eliminar';
+    case NovedadesEliminarLote = 'novedades.eliminar-lote';
 
     case TiposMagnitudVer = 'tipos-magnitud.ver';
     case TiposMagnitudCrear = 'tipos-magnitud.crear';
     case TiposMagnitudEditar = 'tipos-magnitud.editar';
     case TiposMagnitudEliminar = 'tipos-magnitud.eliminar';
+    case TiposMagnitudEliminarLote = 'tipos-magnitud.eliminar-lote';
 
     case UnidadesMedidaVer = 'unidades-medida.ver';
     case UnidadesMedidaCrear = 'unidades-medida.crear';
     case UnidadesMedidaEditar = 'unidades-medida.editar';
     case UnidadesMedidaEliminar = 'unidades-medida.eliminar';
+    case UnidadesMedidaEliminarLote = 'unidades-medida.eliminar-lote';
 
     case EmpresaVer = 'empresa.ver';
     case EmpresaCrear = 'empresa.crear';
@@ -187,10 +204,12 @@ enum TenantPermission: string
             self::ClientesVer,
             self::ClientesCrear,
             self::ClientesEditar,
+            self::ClientesEliminarLote,
             self::ClientesEliminar => 'Clientes',
             self::EquiposVer,
             self::EquiposCrear,
             self::EquiposEditar,
+            self::EquiposEliminarLote,
             self::EquiposEliminar,
             self::EquiposHistorial,
             self::EquiposHistoricoAgregar,
@@ -198,9 +217,11 @@ enum TenantPermission: string
             self::IngresosVer,
             self::IngresosCrear,
             self::IngresosEditar,
+            self::IngresosEliminarLote,
             self::IngresosEliminar => 'Ingresos',
             self::MantenimientosVer,
             self::MantenimientosEditar,
+            self::MantenimientosEliminarLote,
             self::MantenimientosEliminar,
             self::MantenimientosVerTodos,
             self::MantenimientosIniciar,
@@ -209,6 +230,7 @@ enum TenantPermission: string
             self::MantenimientosTerceros => 'Mantenimientos',
             self::CalibracionesVer,
             self::CalibracionesEditar,
+            self::CalibracionesEliminarLote,
             self::CalibracionesEliminar,
             self::CalibracionesVerTodos,
             self::CalibracionesIniciar,
@@ -217,30 +239,36 @@ enum TenantPermission: string
             self::CalibracionesTerceros => 'Calibraciones',
             self::DespachosVer,
             self::DespachosEditar,
+            self::DespachosEliminarLote,
             self::DespachosEliminar,
             self::DespachosVerTodos => 'Despachos',
             self::TiposEquipoVer,
             self::TiposEquipoCrear,
             self::TiposEquipoEditar,
+            self::TiposEquipoEliminarLote,
             self::TiposEquipoEliminar,
             self::TiposEquipoChecklist => 'Tipos de equipo',
             self::AreasVer,
             self::AreasCrear,
             self::AreasEditar,
+            self::AreasEliminarLote,
             self::AreasEliminar => 'Áreas',
             self::BahiasVer,
             self::BahiasCrear,
             self::BahiasEditar,
+            self::BahiasEliminarLote,
             self::BahiasEliminar,
             self::BahiasAsignarUsuarios,
             self::BahiasAsignarClientes => 'Bahías',
             self::FabricantesVer,
             self::FabricantesCrear,
             self::FabricantesEditar,
+            self::FabricantesEliminarLote,
             self::FabricantesEliminar => 'Fabricantes',
             self::ItemsVer,
             self::ItemsCrear,
             self::ItemsEditar,
+            self::ItemsEliminarLote,
             self::ItemsEliminar,
             self::ItemsRegistrarEntrada,
             self::ItemsVerEntradas,
@@ -248,26 +276,32 @@ enum TenantPermission: string
             self::EmpresasTercerasVer,
             self::EmpresasTercerasCrear,
             self::EmpresasTercerasEditar,
+            self::EmpresasTercerasEliminarLote,
             self::EmpresasTercerasEliminar => 'Laboratorios terceros',
             self::ProcedimientosCalibracionVer,
             self::ProcedimientosCalibracionCrear,
             self::ProcedimientosCalibracionEditar,
+            self::ProcedimientosCalibracionEliminarLote,
             self::ProcedimientosCalibracionEliminar => 'Procedimientos de calibración',
             self::AlcancesMedicionVer,
             self::AlcancesMedicionCrear,
             self::AlcancesMedicionEditar,
+            self::AlcancesMedicionEliminarLote,
             self::AlcancesMedicionEliminar => 'Alcances de medición',
             self::NovedadesVer,
             self::NovedadesCrear,
             self::NovedadesEditar,
+            self::NovedadesEliminarLote,
             self::NovedadesEliminar => 'Novedades',
             self::TiposMagnitudVer,
             self::TiposMagnitudCrear,
             self::TiposMagnitudEditar,
+            self::TiposMagnitudEliminarLote,
             self::TiposMagnitudEliminar => 'Tipos de magnitud',
             self::UnidadesMedidaVer,
             self::UnidadesMedidaCrear,
             self::UnidadesMedidaEditar,
+            self::UnidadesMedidaEliminarLote,
             self::UnidadesMedidaEliminar => 'Unidades de medida',
             self::EmpresaVer,
             self::EmpresaCrear,
@@ -359,10 +393,12 @@ enum TenantPermission: string
             self::ClientesCrear => 'Crear clientes',
             self::ClientesEditar => 'Editar clientes',
             self::ClientesEliminar => 'Eliminar clientes',
+            self::ClientesEliminarLote => 'Eliminar clientes por lote (varios a la vez)',
             self::EquiposVer => 'Ver equipos',
             self::EquiposCrear => 'Crear equipos',
             self::EquiposEditar => 'Editar equipos',
             self::EquiposEliminar => 'Eliminar equipos',
+            self::EquiposEliminarLote => 'Eliminar equipos por lote (varios a la vez)',
             self::EquiposHistorial => 'Ver el historial de equipos',
             self::EquiposHistoricoAgregar => 'Agregar histórico a equipos',
             self::EquiposProgramaciones => 'Ver las programaciones de equipos',
@@ -370,9 +406,11 @@ enum TenantPermission: string
             self::IngresosCrear => 'Registrar ingresos',
             self::IngresosEditar => 'Editar ingresos',
             self::IngresosEliminar => 'Eliminar ingresos',
+            self::IngresosEliminarLote => 'Eliminar ingresos por lote (varios a la vez)',
             self::MantenimientosVer => 'Ver mantenimientos',
             self::MantenimientosEditar => 'Editar mantenimientos',
             self::MantenimientosEliminar => 'Eliminar mantenimientos',
+            self::MantenimientosEliminarLote => 'Eliminar mantenimientos por lote (varios a la vez)',
             self::MantenimientosVerTodos => 'Ver mantenimientos de todos los técnicos (sin marcar, solo los propios)',
             self::MantenimientosIniciar => 'Iniciar mantenimientos',
             self::MantenimientosFinalizar => 'Finalizar mantenimientos',
@@ -381,6 +419,7 @@ enum TenantPermission: string
             self::CalibracionesVer => 'Ver calibraciones',
             self::CalibracionesEditar => 'Editar calibraciones',
             self::CalibracionesEliminar => 'Eliminar calibraciones',
+            self::CalibracionesEliminarLote => 'Eliminar calibraciones por lote (varios a la vez)',
             self::CalibracionesVerTodos => 'Ver calibraciones de todos los técnicos (sin marcar, solo los propios)',
             self::CalibracionesIniciar => 'Iniciar calibraciones',
             self::CalibracionesFinalizar => 'Finalizar calibraciones',
@@ -389,30 +428,36 @@ enum TenantPermission: string
             self::DespachosVer => 'Ver despachos',
             self::DespachosEditar => 'Editar despachos',
             self::DespachosEliminar => 'Eliminar despachos',
+            self::DespachosEliminarLote => 'Eliminar despachos por lote (varios a la vez)',
             self::DespachosVerTodos => 'Ver despachos de todos los técnicos (sin marcar, solo los propios)',
             self::TiposEquipoVer => 'Ver tipos de equipo',
             self::TiposEquipoCrear => 'Crear tipos de equipo',
             self::TiposEquipoEditar => 'Editar tipos de equipo',
             self::TiposEquipoEliminar => 'Eliminar tipos de equipo',
+            self::TiposEquipoEliminarLote => 'Eliminar tipos de equipo por lote (varios a la vez)',
             self::TiposEquipoChecklist => 'Agregar checklist a tipos de equipo',
             self::AreasVer => 'Ver áreas',
             self::AreasCrear => 'Crear áreas',
             self::AreasEditar => 'Editar áreas',
             self::AreasEliminar => 'Eliminar áreas',
+            self::AreasEliminarLote => 'Eliminar áreas por lote (varios a la vez)',
             self::BahiasVer => 'Ver bahías',
             self::BahiasCrear => 'Crear bahías',
             self::BahiasEditar => 'Editar bahías',
             self::BahiasEliminar => 'Eliminar bahías',
+            self::BahiasEliminarLote => 'Eliminar bahías por lote (varios a la vez)',
             self::BahiasAsignarUsuarios => 'Asignar usuarios a bahías',
             self::BahiasAsignarClientes => 'Asignar clientes a bahías',
             self::FabricantesVer => 'Ver fabricantes',
             self::FabricantesCrear => 'Crear fabricantes',
             self::FabricantesEditar => 'Editar fabricantes',
             self::FabricantesEliminar => 'Eliminar fabricantes',
+            self::FabricantesEliminarLote => 'Eliminar fabricantes por lote (varios a la vez)',
             self::ItemsVer => 'Ver ítems',
             self::ItemsCrear => 'Crear ítems',
             self::ItemsEditar => 'Editar ítems',
             self::ItemsEliminar => 'Eliminar ítems',
+            self::ItemsEliminarLote => 'Eliminar ítems por lote (varios a la vez)',
             self::ItemsRegistrarEntrada => 'Registrar entradas de ítems',
             self::ItemsVerEntradas => 'Ver entradas y salidas de ítems',
             self::ItemsRecibirEntradas => 'Recibir entradas pendientes de ítems',
@@ -420,26 +465,32 @@ enum TenantPermission: string
             self::EmpresasTercerasCrear => 'Crear laboratorios terceros',
             self::EmpresasTercerasEditar => 'Editar laboratorios terceros',
             self::EmpresasTercerasEliminar => 'Eliminar laboratorios terceros',
+            self::EmpresasTercerasEliminarLote => 'Eliminar laboratorios terceros por lote (varios a la vez)',
             self::ProcedimientosCalibracionVer => 'Ver procedimientos de calibración',
             self::ProcedimientosCalibracionCrear => 'Crear procedimientos de calibración',
             self::ProcedimientosCalibracionEditar => 'Editar procedimientos de calibración',
             self::ProcedimientosCalibracionEliminar => 'Eliminar procedimientos de calibración',
+            self::ProcedimientosCalibracionEliminarLote => 'Eliminar procedimientos de calibración por lote (varios a la vez)',
             self::AlcancesMedicionVer => 'Ver alcances de medición',
             self::AlcancesMedicionCrear => 'Crear alcances de medición',
             self::AlcancesMedicionEditar => 'Editar alcances de medición',
             self::AlcancesMedicionEliminar => 'Eliminar alcances de medición',
+            self::AlcancesMedicionEliminarLote => 'Eliminar alcances de medición por lote (varios a la vez)',
             self::NovedadesVer => 'Ver novedades',
             self::NovedadesCrear => 'Crear novedades',
             self::NovedadesEditar => 'Editar novedades',
             self::NovedadesEliminar => 'Eliminar novedades',
+            self::NovedadesEliminarLote => 'Eliminar novedades por lote (varios a la vez)',
             self::TiposMagnitudVer => 'Ver tipos de magnitud',
             self::TiposMagnitudCrear => 'Crear tipos de magnitud',
             self::TiposMagnitudEditar => 'Editar tipos de magnitud',
             self::TiposMagnitudEliminar => 'Eliminar tipos de magnitud',
+            self::TiposMagnitudEliminarLote => 'Eliminar tipos de magnitud por lote (varios a la vez)',
             self::UnidadesMedidaVer => 'Ver unidades de medida',
             self::UnidadesMedidaCrear => 'Crear unidades de medida',
             self::UnidadesMedidaEditar => 'Editar unidades de medida',
             self::UnidadesMedidaEliminar => 'Eliminar unidades de medida',
+            self::UnidadesMedidaEliminarLote => 'Eliminar unidades de medida por lote (varios a la vez)',
             self::EmpresaVer => 'Ver empresa',
             self::EmpresaCrear => 'Registrar empresa',
             self::EmpresaEditar => 'Editar empresa',

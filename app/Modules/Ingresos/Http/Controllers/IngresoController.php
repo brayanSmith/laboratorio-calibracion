@@ -2,6 +2,8 @@
 
 namespace App\Modules\Ingresos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Catalogos\Models\Bahia;
@@ -17,6 +19,7 @@ use App\Modules\Ingresos\Models\FotoRecepcion;
 use App\Modules\Ingresos\Models\Ingreso;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -31,6 +34,8 @@ use Throwable;
 
 class IngresoController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the ingresos of the tenant.
      */
@@ -357,26 +362,49 @@ class IngresoController extends Controller
     {
         Gate::authorize('delete', $ingreso);
 
-        if ($ingreso->ordenesTrabajo()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un ingreso que tiene órdenes de trabajo asociadas.'),
-            ]);
+        $motivo = $this->eliminarRegistro($ingreso);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        DB::transaction(function () use ($ingreso) {
-            $this->liberarEquiposDelIngreso($ingreso);
-
-            $this->deleteFirma($ingreso);
-            $ingreso->update(['firma_cliente_entrega' => null]);
-            $ingreso->delete();
-        });
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Ingreso eliminado.')]);
 
         return to_route('ingresos.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Ingreso::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::IngresosEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Ingreso  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->ordenesTrabajo()->exists()) {
+            return __('No se puede eliminar un ingreso que tiene órdenes de trabajo asociadas.');
+        }
+
+        DB::transaction(function () use ($registro): void {
+            $this->liberarEquiposDelIngreso($registro);
+
+            $this->deleteFirma($registro);
+            $registro->update(['firma_cliente_entrega' => null]);
+            $registro->delete();
+        });
+
+        return null;
     }
 
     /**

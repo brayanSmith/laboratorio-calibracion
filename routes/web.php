@@ -274,6 +274,29 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
         ->parameters(['usuarios' => 'usuario'])
         ->only(['index', 'store', 'update']);
     Route::put('usuarios/{usuario}/password', [UsuarioController::class, 'resetPassword'])->name('usuarios.password');
+
+    // Eliminar por lote los registros elegidos en la tabla de cada módulo (ver EliminaPorLote).
+    foreach ([
+        'equipos' => EquipoController::class,
+        'ingresos' => IngresoController::class,
+        'mantenimientos' => MantenimientoController::class,
+        'calibraciones' => CalibracionController::class,
+        'despachos' => DespachoController::class,
+        'clientes' => ClienteController::class,
+        'areas' => AreaController::class,
+        'bahias' => BahiaController::class,
+        'fabricantes' => FabricanteController::class,
+        'items' => ItemController::class,
+        'empresas-terceras' => EmpresaTerceroController::class,
+        'tipos-equipo' => TipoEquipoController::class,
+        'procedimientos-calibracion' => ProcedimientoCalibracionController::class,
+        'alcances-medicion' => MedicionAlcanceController::class,
+        'novedades' => NovedadController::class,
+        'tipos-magnitud' => TipoMagnitudController::class,
+        'unidades-medida' => UnidadMedidaController::class,
+    ] as $recurso => $controlador) {
+        Route::post("{$recurso}/eliminar-lote", [$controlador, 'destroyLote'])->name("{$recurso}.destroy-lote");
+    }
 });
 
 Route::prefix('plataforma')

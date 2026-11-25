@@ -2,11 +2,14 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Enums\TipoDocumentoCliente;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalogos\Http\Requests\StoreClienteRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateClienteRequest;
 use App\Modules\Catalogos\Models\Cliente;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -15,6 +18,8 @@ use Inertia\Response;
 
 class ClienteController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the clientes of the tenant.
      */
@@ -81,23 +86,42 @@ class ClienteController extends Controller
     {
         Gate::authorize('delete', $cliente);
 
-        $enUso = $cliente->equipo()->exists()
-            || $cliente->despachoRecibido()->exists()
-            || $cliente->ingresoEntregado()->exists();
+        $motivo = $this->eliminarRegistro($cliente);
 
-        if ($enUso) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un cliente que tiene equipos, ingresos o despachos asociados.'),
-            ]);
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $cliente->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Cliente eliminado.')]);
 
         return to_route('clientes.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Cliente::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::ClientesEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Cliente  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->equipo()->exists() || $registro->despachoRecibido()->exists() || $registro->ingresoEntregado()->exists()) {
+            return __('No se puede eliminar un cliente que tiene equipos, ingresos o despachos asociados.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

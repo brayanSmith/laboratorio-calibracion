@@ -3,6 +3,7 @@
 namespace App\Modules\Mantenimientos\Http\Controllers;
 
 use App\Actions\Etiquetas\GenerarEtiquetaServicio;
+use App\Concerns\EliminaPorLote;
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -25,6 +26,7 @@ use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -41,6 +43,8 @@ use Throwable;
 
 class MantenimientoController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the mantenimientos of the tenant. No "crear": un mantenimiento solo se
      * origina desde "Agendar Mantenimiento" (ver OrdenTrabajoController::store()).
@@ -527,10 +531,38 @@ class MantenimientoController extends Controller
     {
         Gate::authorize('delete', $mantenimiento);
 
-        $mantenimiento->delete();
+        $motivo = $this->eliminarRegistro($mantenimiento);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+
+            return back();
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Mantenimiento eliminado.')]);
 
         return to_route('mantenimientos.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Mantenimiento::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::MantenimientosEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Mantenimiento  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        $registro->delete();
+
+        return null;
     }
 }

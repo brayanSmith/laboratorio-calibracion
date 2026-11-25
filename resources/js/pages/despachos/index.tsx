@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/hooks/use-permissions';
 import { OPCIONES_SI_NO } from '@/lib/data-table';
 import { hoyLocal } from '@/lib/plazo-servicio';
-import { index } from '@/routes/despachos';
+import { destroyLote, index } from '@/routes/despachos';
 import type { Despacho, DespachoOptions } from '@/types';
 import { CeldaEquipo, textoEquipo } from '@/components/equipos/celdas-equipo';
 
@@ -58,6 +58,7 @@ export default function DespachosIndex({
     const { can } = usePermissions();
     const canEdit = can('despachos.editar');
     const canDelete = can('despachos.eliminar');
+    const canDeleteLote = can('despachos.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         despachos.find((despacho) => despacho.id === editingId) ?? null;
@@ -318,6 +319,11 @@ export default function DespachosIndex({
                 />
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'despachos' }
+                            : undefined
+                    }
                     key={claveTabla}
                     initialColumnFilters={filtrosIniciales}
                     data={despachos}

@@ -2,10 +2,13 @@
 
 namespace App\Modules\ServiciosTerceros\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\ServiciosTerceros\Http\Requests\StoreEmpresaTerceroRequest;
 use App\Modules\ServiciosTerceros\Http\Requests\UpdateEmpresaTerceroRequest;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,6 +17,8 @@ use Inertia\Response;
 
 class EmpresaTerceroController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the empresas terceras of the tenant.
      */
@@ -69,25 +74,48 @@ class EmpresaTerceroController extends Controller
     }
 
     /**
-     * Remove the specified empresa tercero.
+     * Remove the specified empresaTercero.
      */
     public function destroy(EmpresaTercero $empresaTercero): RedirectResponse
     {
         Gate::authorize('delete', $empresaTercero);
 
-        if ($empresaTercero->servicioTercero()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un laboratorio tercero que tiene servicios asociados.'),
-            ]);
+        $motivo = $this->eliminarRegistro($empresaTercero);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $empresaTercero->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Laboratorio tercero eliminado.')]);
 
         return to_route('empresas-terceras.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return EmpresaTercero::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::EmpresasTercerasEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  EmpresaTercero  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->servicioTercero()->exists()) {
+            return __('No se puede eliminar un laboratorio tercero que tiene servicios asociados.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

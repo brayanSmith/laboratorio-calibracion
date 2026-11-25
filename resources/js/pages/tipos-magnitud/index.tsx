@@ -11,7 +11,7 @@ import DeleteTipoMagnitudModal from '@/components/tipos-magnitud/delete-tipo-mag
 import EditTipoMagnitudModal from '@/components/tipos-magnitud/edit-tipo-magnitud-modal';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/tipos-magnitud';
+import { destroyLote, index } from '@/routes/tipos-magnitud';
 import type { TipoMagnitud } from '@/types';
 
 type Props = {
@@ -24,6 +24,7 @@ export default function TiposMagnitudIndex({ tiposMagnitud }: Props) {
     const { can } = usePermissions();
     const canEdit = can('tipos-magnitud.editar');
     const canDelete = can('tipos-magnitud.eliminar');
+    const canDeleteLote = can('tipos-magnitud.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         tiposMagnitud.find((tipoMagnitud) => tipoMagnitud.id === editingId) ??
@@ -103,6 +104,14 @@ export default function TiposMagnitudIndex({ tiposMagnitud }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? {
+                                  url: destroyLote().url,
+                                  nombre: 'tipos de magnitud',
+                              }
+                            : undefined
+                    }
                     data={tiposMagnitud}
                     columns={columns}
                     searchPlaceholder="Buscar tipo de magnitud..."

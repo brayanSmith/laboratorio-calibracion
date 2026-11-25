@@ -11,7 +11,7 @@ import DataTable, {
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/clientes';
+import { destroyLote, index } from '@/routes/clientes';
 import type { Cliente } from '@/types';
 
 type Props = {
@@ -24,6 +24,7 @@ export default function ClientesIndex({ clientes }: Props) {
     const { can } = usePermissions();
     const canEdit = can('clientes.editar');
     const canDelete = can('clientes.eliminar');
+    const canDeleteLote = can('clientes.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         clientes.find((cliente) => cliente.id === editingId) ?? null;
@@ -112,6 +113,11 @@ export default function ClientesIndex({ clientes }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'clientes' }
+                            : undefined
+                    }
                     data={clientes}
                     columns={columns}
                     searchPlaceholder="Buscar cliente..."

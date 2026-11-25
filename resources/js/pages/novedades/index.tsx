@@ -13,7 +13,7 @@ import EditNovedadModal from '@/components/novedades/edit-novedad-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/novedades';
+import { destroyLote, index } from '@/routes/novedades';
 import type { Novedad } from '@/types';
 
 type Props = {
@@ -26,6 +26,7 @@ export default function NovedadesIndex({ novedades }: Props) {
     const { can } = usePermissions();
     const canEdit = can('novedades.editar');
     const canDelete = can('novedades.eliminar');
+    const canDeleteLote = can('novedades.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         novedades.find((novedad) => novedad.id === editingId) ?? null;
@@ -145,6 +146,11 @@ export default function NovedadesIndex({ novedades }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'novedades' }
+                            : undefined
+                    }
                     data={novedades}
                     columns={columns}
                     searchPlaceholder="Buscar novedad..."

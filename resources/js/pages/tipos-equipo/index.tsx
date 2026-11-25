@@ -15,7 +15,7 @@ import { tipoMantenimientoShortLabel } from '@/components/tipos-equipo/tipo-mant
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/tipos-equipo';
+import { destroyLote, index } from '@/routes/tipos-equipo';
 import type { TipoEquipo } from '@/types';
 
 type Props = {
@@ -28,6 +28,7 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
     const { can } = usePermissions();
     const canEdit = can('tipos-equipo.editar');
     const canDelete = can('tipos-equipo.eliminar');
+    const canDeleteLote = can('tipos-equipo.eliminar-lote');
     const canChecklist = can('tipos-equipo.checklist');
     const canObjetivos = can('dashboard.objetivos');
     const [editingTipoEquipoId, setEditingTipoEquipoId] = useState<
@@ -167,6 +168,14 @@ export default function TiposEquipoIndex({ tiposEquipo }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? {
+                                  url: destroyLote().url,
+                                  nombre: 'tipos de equipo',
+                              }
+                            : undefined
+                    }
                     data={tiposEquipo}
                     columns={columns}
                     searchPlaceholder="Buscar tipo de equipo..."

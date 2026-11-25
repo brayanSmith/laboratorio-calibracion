@@ -49,7 +49,7 @@ import {
     estadosServicio,
     opcionesEstadoServicio,
 } from '@/lib/estado-servicio';
-import { index } from '@/routes/calibraciones';
+import { destroyLote, index } from '@/routes/calibraciones';
 import type {
     Calibracion,
     CalibracionOption,
@@ -91,6 +91,7 @@ export default function CalibracionesIndex({
     const { can } = usePermissions();
     const canEdit = can('calibraciones.editar');
     const canDelete = can('calibraciones.eliminar');
+    const canDeleteLote = can('calibraciones.eliminar-lote');
     const canIniciar = can('calibraciones.iniciar');
     const canPdf = can('calibraciones.pdf');
     const canTerceros = can('calibraciones.terceros');
@@ -473,6 +474,14 @@ export default function CalibracionesIndex({
                             onVer={ver}
                         />
                         <DataTable
+                            eliminarPorLote={
+                                canDeleteLote
+                                    ? {
+                                          url: destroyLote().url,
+                                          nombre: 'calibraciones',
+                                      }
+                                    : undefined
+                            }
                             key={claveTabla}
                             initialColumnFilters={filtrosIniciales}
                             data={calibraciones}

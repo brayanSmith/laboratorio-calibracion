@@ -2,6 +2,8 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Catalogos\Http\Requests\AsignarClientesBahiasRequest;
@@ -11,6 +13,7 @@ use App\Modules\Catalogos\Http\Requests\UpdateBahiaRequest;
 use App\Modules\Catalogos\Models\Area;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +23,8 @@ use Inertia\Response;
 
 class BahiaController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the bahias of the tenant.
      */
@@ -114,19 +119,42 @@ class BahiaController extends Controller
     {
         Gate::authorize('delete', $bahia);
 
-        if ($bahia->equipo()->exists() || $bahia->ingreso()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar una bahía que tiene equipos o ingresos asociados.'),
-            ]);
+        $motivo = $this->eliminarRegistro($bahia);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $bahia->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Bahía eliminada.')]);
 
         return to_route('bahias.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Bahia::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::BahiasEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Bahia  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->equipo()->exists() || $registro->ingreso()->exists()) {
+            return __('No se puede eliminar una bahía que tiene equipos o ingresos asociados.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

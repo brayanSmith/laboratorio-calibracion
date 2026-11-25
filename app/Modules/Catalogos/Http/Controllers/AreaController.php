@@ -2,10 +2,13 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalogos\Http\Requests\StoreAreaRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateAreaRequest;
 use App\Modules\Catalogos\Models\Area;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,6 +17,8 @@ use Inertia\Response;
 
 class AreaController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the areas of the tenant.
      */
@@ -74,19 +79,42 @@ class AreaController extends Controller
     {
         Gate::authorize('delete', $area);
 
-        if ($area->equipo()->exists() || $area->bahia()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un área que tiene equipos o bahías asociados. Reasígnalos primero.'),
-            ]);
+        $motivo = $this->eliminarRegistro($area);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $area->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Área eliminada.')]);
 
         return to_route('areas.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Area::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::AreasEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Area  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->equipo()->exists() || $registro->bahia()->exists()) {
+            return __('No se puede eliminar un área que tiene equipos o bahías asociados. Reasígnalos primero.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

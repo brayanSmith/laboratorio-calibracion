@@ -2,10 +2,13 @@
 
 namespace App\Modules\Calibraciones\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Calibraciones\Http\Requests\StoreProcedimientoCalibracionRequest;
 use App\Modules\Calibraciones\Http\Requests\UpdateProcedimientoCalibracionRequest;
 use App\Modules\Calibraciones\Models\ProcedimientoCalibracion;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,6 +17,8 @@ use Inertia\Response;
 
 class ProcedimientoCalibracionController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the procedimientos de calibración of the tenant.
      */
@@ -65,25 +70,48 @@ class ProcedimientoCalibracionController extends Controller
     }
 
     /**
-     * Remove the specified procedimiento de calibración.
+     * Remove the specified procedimientoCalibracion.
      */
     public function destroy(ProcedimientoCalibracion $procedimientoCalibracion): RedirectResponse
     {
         Gate::authorize('delete', $procedimientoCalibracion);
 
-        if ($procedimientoCalibracion->calibracion()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un procedimiento de calibración que tiene calibraciones asociadas.'),
-            ]);
+        $motivo = $this->eliminarRegistro($procedimientoCalibracion);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $procedimientoCalibracion->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Procedimiento de calibración eliminado.')]);
 
         return to_route('procedimientos-calibracion.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return ProcedimientoCalibracion::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::ProcedimientosCalibracionEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  ProcedimientoCalibracion  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->calibracion()->exists()) {
+            return __('No se puede eliminar un procedimiento de calibración que tiene calibraciones asociadas.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

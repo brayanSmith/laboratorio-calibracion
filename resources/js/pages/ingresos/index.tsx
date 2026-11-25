@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { colorEstadoIngreso, estadosIngreso } from '@/lib/estados-ingreso';
-import { index } from '@/routes/ingresos';
+import { destroyLote, index } from '@/routes/ingresos';
 import type { Ingreso, IngresoOption, IngresoOptions } from '@/types';
 
 type Props = IngresoOptions & {
@@ -49,6 +49,7 @@ export default function IngresosIndex({
     const { can } = usePermissions();
     const canEdit = can('ingresos.editar');
     const canDelete = can('ingresos.eliminar');
+    const canDeleteLote = can('ingresos.eliminar-lote');
     const options: IngresoOptions = {
         bahias,
         tecnicos,
@@ -291,6 +292,11 @@ export default function IngresosIndex({
                 />
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'ingresos' }
+                            : undefined
+                    }
                     key={claveTabla}
                     initialColumnFilters={filtrosIniciales}
                     data={ingresos}

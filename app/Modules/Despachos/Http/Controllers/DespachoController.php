@@ -2,6 +2,8 @@
 
 namespace App\Modules\Despachos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Calibraciones\Http\Controllers\CalibracionController;
@@ -12,6 +14,7 @@ use App\Modules\Despachos\Http\Requests\UpdateDespachoRequest;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Despachos\Models\DespachoReagendamiento;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -22,6 +25,8 @@ use Inertia\Response;
 
 class DespachoController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the despachos of the tenant. No "crear": un despacho solo se origina al
      * finalizar una calibración (ver CalibracionController::finalizar()).
@@ -151,13 +156,41 @@ class DespachoController extends Controller
     {
         Gate::authorize('delete', $despacho);
 
-        $this->deleteFirma($despacho);
-        $despacho->update(['firma_cliente_recibe' => null]);
-        $despacho->delete();
+        $motivo = $this->eliminarRegistro($despacho);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+
+            return back();
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Despacho eliminado.')]);
 
         return to_route('despachos.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Despacho::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::DespachosEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Despacho  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        $this->deleteFirma($registro);
+        $registro->update(['firma_cliente_recibe' => null]);
+        $registro->delete();
+
+        return null;
     }
 
     /**

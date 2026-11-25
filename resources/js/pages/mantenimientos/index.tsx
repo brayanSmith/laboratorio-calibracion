@@ -50,7 +50,7 @@ import {
     colorEstadoEquipoMantenimiento,
     estadosEquipoMantenimiento,
 } from '@/lib/estados-mantenimiento';
-import { index } from '@/routes/mantenimientos';
+import { destroyLote, index } from '@/routes/mantenimientos';
 import type {
     Mantenimiento,
     MantenimientoOption,
@@ -87,6 +87,7 @@ export default function MantenimientosIndex({
     const { can } = usePermissions();
     const canEdit = can('mantenimientos.editar');
     const canDelete = can('mantenimientos.eliminar');
+    const canDeleteLote = can('mantenimientos.eliminar-lote');
     const canIniciar = can('mantenimientos.iniciar');
     const canPdf = can('mantenimientos.pdf');
     const canTerceros = can('mantenimientos.terceros');
@@ -478,6 +479,14 @@ export default function MantenimientosIndex({
                             onVer={ver}
                         />
                         <DataTable
+                            eliminarPorLote={
+                                canDeleteLote
+                                    ? {
+                                          url: destroyLote().url,
+                                          nombre: 'mantenimientos',
+                                      }
+                                    : undefined
+                            }
                             key={claveTabla}
                             initialColumnFilters={filtrosIniciales}
                             data={mantenimientos}

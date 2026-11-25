@@ -11,7 +11,7 @@ import EditEmpresaTerceroModal from '@/components/empresas-terceras/edit-empresa
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/empresas-terceras';
+import { destroyLote, index } from '@/routes/empresas-terceras';
 import type { EmpresaTercero } from '@/types';
 
 type Props = {
@@ -24,6 +24,7 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
     const { can } = usePermissions();
     const canEdit = can('empresas-terceras.editar');
     const canDelete = can('empresas-terceras.eliminar');
+    const canDeleteLote = can('empresas-terceras.eliminar-lote');
     const [editingEmpresaTerceroId, setEditingEmpresaTerceroId] = useState<
         number | null
     >(null);
@@ -118,6 +119,14 @@ export default function EmpresasTercerasIndex({ empresasTerceras }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? {
+                                  url: destroyLote().url,
+                                  nombre: 'laboratorios terceros',
+                              }
+                            : undefined
+                    }
                     data={empresasTerceras}
                     columns={columns}
                     searchPlaceholder="Buscar laboratorio..."

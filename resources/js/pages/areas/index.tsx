@@ -11,7 +11,7 @@ import DataTable, {
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/areas';
+import { destroyLote, index } from '@/routes/areas';
 import type { Area } from '@/types';
 
 type Props = {
@@ -24,6 +24,7 @@ export default function AreasIndex({ areas }: Props) {
     const { can } = usePermissions();
     const canEdit = can('areas.editar');
     const canDelete = can('areas.eliminar');
+    const canDeleteLote = can('areas.eliminar-lote');
     const [editingAreaId, setEditingAreaId] = useState<number | null>(null);
     const editingArea = areas.find((area) => area.id === editingAreaId) ?? null;
     const [editOpen, setEditOpen] = useState(false);
@@ -108,6 +109,11 @@ export default function AreasIndex({ areas }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'áreas' }
+                            : undefined
+                    }
                     data={areas}
                     columns={columns}
                     searchPlaceholder="Buscar área..."

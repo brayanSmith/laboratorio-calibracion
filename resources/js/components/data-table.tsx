@@ -11,12 +11,15 @@ import {
     ChevronUp,
     FilterX,
     Search,
+    Trash2,
 } from 'lucide-react';
+import EliminarPorLoteDialog from '@/components/eliminar-por-lote-dialog';
 import ColumnResizeHandle, {
     ColgroupAnchos,
 } from '@/components/column-resize-handle';
 import MenuAccionesFila from '@/components/menu-acciones-fila';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useResizableTable } from '@/hooks/use-resizable-table';
 import { cn } from '@/lib/utils';
@@ -50,7 +53,24 @@ type Props<TData extends RowData> = {
     onFilaClick?: (fila: TData) => void;
     /** Clases extra de una fila, ej. para resaltar las prioritarias. */
     claseFila?: (fila: TData) => string | undefined;
+    /**
+     * Muestra casillas para elegir filas (o todas las filtradas) y eliminarlas de una vez.
+     * Pasarla solo si el usuario tiene el permiso de eliminar por lote del módulo; las filas
+     * deben tener `id`.
+     */
+    eliminarPorLote?: {
+        url: string;
+        /** Nombre en plural de los registros, ej. "ítems". */
+        nombre: string;
+    };
 };
+
+/** Clave de la columna de casillas de selección (no es una columna de TanStack). */
+const COLUMNA_SELECCION = '__seleccion';
+
+function idDeFila(fila: unknown): number {
+    return (fila as { id: number }).id;
+}
 
 /** Columna con los botones de acción de cada fila (la misma que muestra el menú de la fila). */
 const COLUMNA_ACCIONES = 'acciones';
@@ -98,6 +118,7 @@ export default function DataTable<TData extends RowData>({
     initialColumnFilters,
     onFilaClick,
     claseFila,
+    eliminarPorLote,
 }: Props<TData>) {
     // Cada columna filtra por texto (sin tildes ni mayúsculas) o, si declara opciones, por
     // coincidencia exacta con la opción elegida.
@@ -128,11 +149,55 @@ export default function DataTable<TData extends RowData>({
     const leafHeaders = table
         .getLeafHeaders()
         .filter((header) => esVisible(header.column.id));
-    const clavesColumnas = leafHeaders.map((header) => header.column.id);
+    const conSeleccion = eliminarPorLote !== undefined;
+    const clavesColumnas = [
+        ...(conSeleccion ? [COLUMNA_SELECCION] : []),
+        ...leafHeaders.map((header) => header.column.id),
+    ];
     const { tablaRef, anchos, estiloTabla, iniciarRedimension, restablecer } =
         useResizableTable(clavesColumnas);
 
     const rows = table.getRowModel().rows;
+
+    // Selección para eliminar por lote: por id, para que sobreviva a cambiar de página,
+    // filtrar u ordenar. Las filas que ya no están en los datos (ej. recién eliminadas)
+    // dejan de contar solas.
+    const [seleccion, setSeleccion] = useState<Set<number>>(() => new Set());
+    const [confirmarLote, setConfirmarLote] = useState(false);
+    const idsVigentes = useMemo(() => new Set(data.map(idDeFila)), [data]);
+    const seleccionados = [...seleccion].filter((id) => idsVigentes.has(id));
+    const idsFiltrados = table
+        .getPrePaginatedRowModel()
+        .rows.map((row) => idDeFila(row.original));
+    const filtradosElegidos = idsFiltrados.filter((id) => seleccion.has(id));
+    const todosFiltradosElegidos =
+        idsFiltrados.length > 0 &&
+        filtradosElegidos.length === idsFiltrados.length;
+
+    const alternarFila = (id: number, elegir: boolean) =>
+        setSeleccion((actual) => {
+            const nueva = new Set(actual);
+
+            if (elegir) {
+                nueva.add(id);
+            } else {
+                nueva.delete(id);
+            }
+
+            return nueva;
+        });
+
+    /** La casilla del encabezado elige (o suelta) todas las filas filtradas, de todas las páginas. */
+    const alternarFiltrados = (elegir: boolean) =>
+        setSeleccion((actual) => {
+            const nueva = new Set(actual);
+
+            idsFiltrados.forEach((id) =>
+                elegir ? nueva.add(id) : nueva.delete(id),
+            );
+
+            return nueva;
+        });
 
     // Menú de acciones al hacer clic en una fila: muestra su columna de acciones junto al
     // clic, para no tener que desplazarse hasta el final de la tabla.
@@ -244,7 +309,58 @@ export default function DataTable<TData extends RowData>({
                         <FilterX className="h-4 w-4" /> Limpiar filtros
                     </Button>
                 ) : null}
+
+                {eliminarPorLote && seleccionados.length > 0 ? (
+                    <div
+                        className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-1.5 text-sm sm:ml-auto"
+                        data-test="data-table-seleccion"
+                    >
+                        <span className="font-medium">
+                            {seleccionados.length} seleccionado(s)
+                        </span>
+                        {!todosFiltradosElegidos ? (
+                            <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                className="h-auto px-1"
+                                onClick={() => alternarFiltrados(true)}
+                                data-test="data-table-seleccionar-todos"
+                            >
+                                Seleccionar los {idsFiltrados.length}
+                            </Button>
+                        ) : null}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSeleccion(new Set())}
+                        >
+                            Quitar selección
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setConfirmarLote(true)}
+                            data-test="data-table-eliminar-lote"
+                        >
+                            <Trash2 className="h-4 w-4" /> Eliminar
+                        </Button>
+                    </div>
+                ) : null}
             </div>
+
+            {eliminarPorLote ? (
+                <EliminarPorLoteDialog
+                    open={confirmarLote}
+                    onOpenChange={setConfirmarLote}
+                    url={eliminarPorLote.url}
+                    ids={seleccionados}
+                    nombre={eliminarPorLote.nombre}
+                    onEliminados={() => setSeleccion(new Set())}
+                />
+            ) : null}
 
             <div className="overflow-x-auto rounded-lg border">
                 <table
@@ -259,6 +375,28 @@ export default function DataTable<TData extends RowData>({
                     <thead className="bg-muted/50 text-left text-muted-foreground">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
+                                {conSeleccion ? (
+                                    <th className="w-10 px-4 py-3">
+                                        <Checkbox
+                                            checked={
+                                                todosFiltradosElegidos
+                                                    ? true
+                                                    : filtradosElegidos.length >
+                                                        0
+                                                      ? 'indeterminate'
+                                                      : false
+                                            }
+                                            onCheckedChange={(marcada) =>
+                                                alternarFiltrados(
+                                                    marcada === true,
+                                                )
+                                            }
+                                            disabled={idsFiltrados.length === 0}
+                                            aria-label="Seleccionar todas las filas filtradas"
+                                            data-test="data-table-seleccionar-filtrados"
+                                        />
+                                    </th>
+                                ) : null}
                                 {headerGroup.headers
                                     .filter((header) =>
                                         esVisible(header.column.id),
@@ -351,6 +489,7 @@ export default function DataTable<TData extends RowData>({
                             </tr>
                         ))}
                         <tr className="border-t bg-background">
+                            {conSeleccion ? <th className="px-4 py-2" /> : null}
                             {leafHeaders.map((header) => {
                                 const column = header.column;
                                 const opciones =
@@ -444,6 +583,29 @@ export default function DataTable<TData extends RowData>({
                                         'bg-primary/10',
                                 )}
                             >
+                                {conSeleccion ? (
+                                    <td
+                                        className="w-10 px-4 py-3"
+                                        data-sin-menu-fila
+                                        onClick={(evento) =>
+                                            evento.stopPropagation()
+                                        }
+                                    >
+                                        <Checkbox
+                                            checked={seleccion.has(
+                                                idDeFila(row.original),
+                                            )}
+                                            onCheckedChange={(marcada) =>
+                                                alternarFila(
+                                                    idDeFila(row.original),
+                                                    marcada === true,
+                                                )
+                                            }
+                                            aria-label="Seleccionar fila"
+                                            data-test="data-table-seleccionar-fila"
+                                        />
+                                    </td>
+                                ) : null}
                                 {row
                                     .getAllCells()
                                     .filter((cell) => esVisible(cell.column.id))

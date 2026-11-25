@@ -11,7 +11,7 @@ import EditFabricanteModal from '@/components/fabricantes/edit-fabricante-modal'
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/fabricantes';
+import { destroyLote, index } from '@/routes/fabricantes';
 import type { Fabricante } from '@/types';
 
 type Props = {
@@ -24,6 +24,7 @@ export default function FabricantesIndex({ fabricantes }: Props) {
     const { can } = usePermissions();
     const canEdit = can('fabricantes.editar');
     const canDelete = can('fabricantes.eliminar');
+    const canDeleteLote = can('fabricantes.eliminar-lote');
     const [editingFabricanteId, setEditingFabricanteId] = useState<
         number | null
     >(null);
@@ -107,6 +108,11 @@ export default function FabricantesIndex({ fabricantes }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'fabricantes' }
+                            : undefined
+                    }
                     data={fabricantes}
                     columns={columns}
                     searchPlaceholder="Buscar fabricante..."

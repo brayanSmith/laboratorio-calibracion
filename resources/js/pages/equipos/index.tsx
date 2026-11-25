@@ -52,7 +52,11 @@ export default function EquiposIndex({ equipos, options }: Props) {
                     </div>
                 </div>
 
-                <EquiposTabla equipos={equipos} options={options} />
+                <EquiposTabla
+                    equipos={equipos}
+                    options={options}
+                    conEliminarPorLote
+                />
             </div>
         </>
     );

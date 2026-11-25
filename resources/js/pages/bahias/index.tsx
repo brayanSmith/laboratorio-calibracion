@@ -13,7 +13,7 @@ import DataTable, {
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/bahias';
+import { destroyLote, index } from '@/routes/bahias';
 import type {
     Bahia,
     BahiaAreaOption,
@@ -39,6 +39,7 @@ export default function BahiasIndex({
     const { can } = usePermissions();
     const canEdit = can('bahias.editar');
     const canDelete = can('bahias.eliminar');
+    const canDeleteLote = can('bahias.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing = bahias.find((bahia) => bahia.id === editingId) ?? null;
     const [editOpen, setEditOpen] = useState(false);
@@ -151,6 +152,11 @@ export default function BahiasIndex({
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'bahías' }
+                            : undefined
+                    }
                     data={bahias}
                     columns={columns}
                     searchPlaceholder="Buscar bahía..."

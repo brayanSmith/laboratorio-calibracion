@@ -11,7 +11,7 @@ import DeleteProcedimientoCalibracionModal from '@/components/procedimientos-cal
 import EditProcedimientoCalibracionModal from '@/components/procedimientos-calibracion/edit-procedimiento-calibracion-modal';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/procedimientos-calibracion';
+import { destroyLote, index } from '@/routes/procedimientos-calibracion';
 import type { ProcedimientoCalibracion } from '@/types';
 
 type Props = {
@@ -26,6 +26,7 @@ export default function ProcedimientosCalibracionIndex({
     const { can } = usePermissions();
     const canEdit = can('procedimientos-calibracion.editar');
     const canDelete = can('procedimientos-calibracion.eliminar');
+    const canDeleteLote = can('procedimientos-calibracion.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         procedimientosCalibracion.find(
@@ -108,6 +109,14 @@ export default function ProcedimientosCalibracionIndex({
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? {
+                                  url: destroyLote().url,
+                                  nombre: 'procedimientos de calibración',
+                              }
+                            : undefined
+                    }
                     data={procedimientosCalibracion}
                     columns={columns}
                     searchPlaceholder="Buscar procedimiento..."

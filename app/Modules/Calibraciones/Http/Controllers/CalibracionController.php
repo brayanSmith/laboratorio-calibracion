@@ -3,6 +3,7 @@
 namespace App\Modules\Calibraciones\Http\Controllers;
 
 use App\Actions\Etiquetas\GenerarEtiquetaServicio;
+use App\Concerns\EliminaPorLote;
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
@@ -23,6 +24,7 @@ use App\Modules\OrdenesTrabajo\Models\TiempoServicio;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +41,8 @@ use Throwable;
 
 class CalibracionController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the calibraciones of the tenant. No "crear": una calibración solo se
      * origina desde "Agendar Calibraciones" (ver OrdenTrabajoController::storeCalibracion()).
@@ -457,10 +461,38 @@ class CalibracionController extends Controller
     {
         Gate::authorize('delete', $calibracion);
 
-        $calibracion->delete();
+        $motivo = $this->eliminarRegistro($calibracion);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+
+            return back();
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Calibración eliminada.')]);
 
         return to_route('calibraciones.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Calibracion::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::CalibracionesEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Calibracion  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        $registro->delete();
+
+        return null;
     }
 }

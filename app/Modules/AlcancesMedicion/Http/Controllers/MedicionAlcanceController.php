@@ -2,6 +2,8 @@
 
 namespace App\Modules\AlcancesMedicion\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\AlcancesMedicion\Http\Requests\StoreMedicionAlcanceRequest;
 use App\Modules\AlcancesMedicion\Http\Requests\UpdateMedicionAlcanceRequest;
@@ -10,6 +12,7 @@ use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,8 @@ use Inertia\Response;
 
 class MedicionAlcanceController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the alcances de medición of the tenant with their detalles.
      */
@@ -170,33 +175,54 @@ class MedicionAlcanceController extends Controller
     }
 
     /**
-     * Remove the specified alcance de medición along with its detalles.
+     * Remove the specified medicionAlcance.
      */
     public function destroy(MedicionAlcance $medicionAlcance): RedirectResponse
     {
         Gate::authorize('delete', $medicionAlcance);
 
-        $enUso = DetalleMedicionAlcance::query()
-            ->where('medicion_alcance_id', $medicionAlcance->id)
-            ->whereHas('detalleMedicionCalibracion')
-            ->exists();
+        $motivo = $this->eliminarRegistro($medicionAlcance);
 
-        if ($enUso) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un alcance de medición que ya se usó en calibraciones.'),
-            ]);
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        DB::transaction(function () use ($medicionAlcance): void {
-            $medicionAlcance->detalleMedicionAlcance()->delete();
-            $medicionAlcance->delete();
-        });
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Alcance de medición eliminado.')]);
 
         return to_route('alcances-medicion.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return MedicionAlcance::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::AlcancesMedicionEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  MedicionAlcance  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        $enUso = DetalleMedicionAlcance::query()
+            ->where('medicion_alcance_id', $registro->id)
+            ->whereHas('detalleMedicionCalibracion')
+            ->exists();
+
+        if ($enUso) {
+            return __('No se puede eliminar un alcance de medición que ya se usó en calibraciones.');
+        }
+
+        $registro->detalleMedicionAlcance()->delete();
+        $registro->delete();
+
+        return null;
     }
 }

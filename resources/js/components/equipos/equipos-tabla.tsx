@@ -23,6 +23,7 @@ import HistorialEquipoModal from '@/components/equipos/historial-equipo-modal';
 import ViewEquipoModal from '@/components/equipos/view-equipo-modal';
 import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/hooks/use-permissions';
+import { destroyLote } from '@/routes/equipos';
 import {
     BADGE_ALCANCE_MEDICION,
     ETIQUETA_ALCANCE_MEDICION,
@@ -56,6 +57,8 @@ type Props = {
      * cambiarlo desde fuera, vuelve a montar la tabla con otra `key`.
      */
     vencimientoInicial?: string | null;
+    /** Muestra las casillas para eliminar varios equipos a la vez (si el usuario tiene el permiso). */
+    conEliminarPorLote?: boolean;
 };
 
 const columnHelper = createDataTableColumnHelper<Equipo>();
@@ -117,8 +120,11 @@ export default function EquiposTabla({
     equipos,
     options,
     vencimientoInicial = null,
+    conEliminarPorLote = false,
 }: Props) {
     const { can } = usePermissions();
+    const puedeEliminarPorLote =
+        conEliminarPorLote && can('equipos.eliminar-lote');
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [equipoDeleting, setEquipoDeleting] = useState<Equipo | null>(null);
     const [historialOpen, setHistorialOpen] = useState(false);
@@ -366,6 +372,11 @@ export default function EquiposTabla({
     return (
         <>
             <DataTable
+                eliminarPorLote={
+                    puedeEliminarPorLote
+                        ? { url: destroyLote().url, nombre: 'equipos' }
+                        : undefined
+                }
                 data={equipos}
                 columns={columns}
                 pageSize={15}

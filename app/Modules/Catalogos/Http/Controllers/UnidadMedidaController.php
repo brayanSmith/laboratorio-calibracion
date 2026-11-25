@@ -2,10 +2,13 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalogos\Http\Requests\StoreUnidadMedidaRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateUnidadMedidaRequest;
 use App\Modules\Catalogos\Models\UnidadMedida;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,6 +17,8 @@ use Inertia\Response;
 
 class UnidadMedidaController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the unidades de medida of the tenant.
      */
@@ -72,29 +77,48 @@ class UnidadMedidaController extends Controller
     }
 
     /**
-     * Remove the specified unidad de medida.
+     * Remove the specified unidadMedida.
      */
     public function destroy(UnidadMedida $unidadMedida): RedirectResponse
     {
         Gate::authorize('delete', $unidadMedida);
 
-        $enUso = $unidadMedida->equipoEspecificacionTecnica()->exists()
-            || $unidadMedida->detalleMedicionAlcance()->exists()
-            || $unidadMedida->detalleMedicionCalibracion()->exists();
+        $motivo = $this->eliminarRegistro($unidadMedida);
 
-        if ($enUso) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar una unidad de medida que ya está en uso.'),
-            ]);
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $unidadMedida->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Unidad de medida eliminada.')]);
 
         return to_route('unidades-medida.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return UnidadMedida::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::UnidadesMedidaEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  UnidadMedida  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->equipoEspecificacionTecnica()->exists() || $registro->detalleMedicionAlcance()->exists() || $registro->detalleMedicionCalibracion()->exists()) {
+            return __('No se puede eliminar una unidad de medida que ya está en uso.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

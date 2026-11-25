@@ -11,7 +11,7 @@ import DataTable, {
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/alcances-medicion';
+import { destroyLote, index } from '@/routes/alcances-medicion';
 import type {
     AlcanceMedicion,
     AlcanceMedicionOpcion,
@@ -40,6 +40,7 @@ export default function AlcancesMedicionIndex({
     const { can } = usePermissions();
     const canEdit = can('alcances-medicion.editar');
     const canDelete = can('alcances-medicion.eliminar');
+    const canDeleteLote = can('alcances-medicion.eliminar-lote');
     const [editingId, setEditingId] = useState<number | null>(null);
     const editing =
         alcancesMedicion.find((alcance) => alcance.id === editingId) ?? null;
@@ -130,6 +131,14 @@ export default function AlcancesMedicionIndex({
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? {
+                                  url: destroyLote().url,
+                                  nombre: 'alcances de medición',
+                              }
+                            : undefined
+                    }
                     data={alcancesMedicion}
                     columns={columns}
                     searchPlaceholder="Buscar alcance..."

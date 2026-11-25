@@ -2,6 +2,7 @@
 
 namespace App\Modules\Equipos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
 use App\Concerns\ListaEquipos;
 use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,7 @@ use App\Modules\Ingresos\Http\Controllers\IngresoController;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +33,7 @@ use Inertia\Response;
 
 class EquipoController extends Controller
 {
+    use EliminaPorLote;
     use ListaEquipos;
 
     /**
@@ -248,25 +251,48 @@ class EquipoController extends Controller
     {
         Gate::authorize('delete', $equipo);
 
-        // Con historial no se elimina: sus mantenimientos, calibraciones y servicios deben seguir visibles.
-        if ($equipo->tieneTraza()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un equipo que ya tiene historial de servicios. Inactívalo para sacarlo de la operación.'),
-            ]);
+        $motivo = $this->eliminarRegistro($equipo);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        // Su programación pendiente se va con él, para que no siga apareciendo en la agenda.
-        DB::transaction(function () use ($equipo): void {
-            $equipo->equipoProgramaciones()->delete();
-            $equipo->delete();
-        });
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipo eliminado.')]);
 
         return to_route('equipos.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return Equipo::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::EquiposEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  Equipo  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        // Con historial no se elimina: sus mantenimientos, calibraciones y servicios deben seguir visibles.
+        if ($registro->tieneTraza()) {
+            return __('No se puede eliminar un equipo que ya tiene historial de servicios. Inactívalo para sacarlo de la operación.');
+        }
+
+        // Su programación pendiente se va con él, para que no siga apareciendo en la agenda.
+        DB::transaction(function () use ($registro): void {
+            $registro->equipoProgramaciones()->delete();
+            $registro->delete();
+        });
+
+        return null;
     }
 
     /**

@@ -2,11 +2,14 @@
 
 namespace App\Modules\Catalogos\Http\Controllers;
 
+use App\Concerns\EliminaPorLote;
+use App\Enums\TenantPermission;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalogos\Http\Requests\StoreTipoEquipoRequest;
 use App\Modules\Catalogos\Http\Requests\UpdateTipoEquipoRequest;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use App\Modules\Catalogos\Models\TipoEquipoCheckList;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -15,6 +18,8 @@ use Inertia\Response;
 
 class TipoEquipoController extends Controller
 {
+    use EliminaPorLote;
+
     /**
      * Display the tipos de equipo of the tenant.
      */
@@ -72,25 +77,48 @@ class TipoEquipoController extends Controller
     }
 
     /**
-     * Remove the specified tipo de equipo.
+     * Remove the specified tipoEquipo.
      */
     public function destroy(TipoEquipo $tipoEquipo): RedirectResponse
     {
         Gate::authorize('delete', $tipoEquipo);
 
-        if ($tipoEquipo->equipo()->exists()) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => __('No se puede eliminar un tipo de equipo que tiene equipos asociados. Reasígnalos primero.'),
-            ]);
+        $motivo = $this->eliminarRegistro($tipoEquipo);
+
+        if ($motivo !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
 
             return back();
         }
 
-        $tipoEquipo->delete();
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Tipo de equipo eliminado.')]);
 
         return to_route('tipos-equipo.index');
+    }
+
+    protected function modeloPorLote(): string
+    {
+        return TipoEquipo::class;
+    }
+
+    protected function permisoEliminarPorLote(): TenantPermission
+    {
+        return TenantPermission::TiposEquipoEliminarLote;
+    }
+
+    /**
+     * Elimina el registro con las reglas de destroy(); también lo usa la eliminación por lote.
+     *
+     * @param  TipoEquipo  $registro
+     */
+    protected function eliminarRegistro(Model $registro): ?string
+    {
+        if ($registro->equipo()->exists()) {
+            return __('No se puede eliminar un tipo de equipo que tiene equipos asociados. Reasígnalos primero.');
+        }
+
+        $registro->delete();
+
+        return null;
     }
 }

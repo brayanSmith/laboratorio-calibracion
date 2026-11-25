@@ -22,7 +22,7 @@ import MovimientosItemModal from '@/components/items/movimientos-item-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { index } from '@/routes/items';
+import { destroyLote, index } from '@/routes/items';
 import type { Item } from '@/types';
 
 type Props = {
@@ -58,6 +58,7 @@ export default function ItemsIndex({ items }: Props) {
     const { can } = usePermissions();
     const canEdit = can('items.editar');
     const canDelete = can('items.eliminar');
+    const canDeleteLote = can('items.eliminar-lote');
     const canRegistrarEntrada = can('items.registrar-entrada');
     const canVerEntradas = can('items.ver-entradas');
     const canRecibirEntradas = can('items.recibir-entradas');
@@ -237,6 +238,11 @@ export default function ItemsIndex({ items }: Props) {
                 </div>
 
                 <DataTable
+                    eliminarPorLote={
+                        canDeleteLote
+                            ? { url: destroyLote().url, nombre: 'ítems' }
+                            : undefined
+                    }
                     data={items}
                     columns={columns}
                     searchPlaceholder="Buscar ítem..."
