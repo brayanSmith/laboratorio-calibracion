@@ -64,6 +64,17 @@ test('elimina definitivamente el equipo con su traza y sus archivos, sin tocar l
     Storage::disk('public')->assertExists('documentos/compartido.pdf');
 });
 
+test('conserva el ingreso que tambien trajo otros equipos', function () {
+    $programacion = crearEquipoRecibido($this->bahia, 'EQ-BORRAR');
+    $companero = crearProgramacion(crearEquipoParaBusqueda($this->bahia, 'EQ-COMPANERO'), ['ingreso_id' => $programacion->ingreso_id]);
+
+    $this->artisan('equipos:eliminar', ['codigos' => ['EQ-BORRAR'], '--tenant' => $this->tenant->id, '--force' => true])
+        ->assertSuccessful();
+
+    expect(Ingreso::find($programacion->ingreso_id))->not->toBeNull()
+        ->and($companero->refresh()->ingreso_id)->toBe($programacion->ingreso_id);
+});
+
 test('elimina los equipos que ya estaban eliminados y reajusta el autoincremental', function () {
     $activo = crearEquipoParaBusqueda($this->bahia, 'EQ-ACTIVO');
     $eliminado = crearEquipoParaBusqueda($this->bahia, 'EQ-ELIMINADO');
