@@ -122,7 +122,7 @@ class BahiaController extends Controller
         $motivo = $this->eliminarRegistro($bahia);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($bahia, $motivo));
 
             return back();
         }
@@ -140,6 +140,17 @@ class BahiaController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::BahiasEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Equipos'), $registro->equipo(), fn (Model $equipo): string => $equipo->codigo),
+            self::dependencia(__('Ingresos'), $registro->ingreso(), fn (Model $ingreso): string => $ingreso->codigo),
+        ];
     }
 
     /**

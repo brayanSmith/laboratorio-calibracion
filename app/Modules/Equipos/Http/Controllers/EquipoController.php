@@ -18,9 +18,12 @@ use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoHistorico;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Ingresos\Http\Controllers\IngresoController;
+use App\Modules\Ingresos\Models\Ingreso;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use App\Modules\ServiciosTerceros\Models\EmpresaTercero;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
@@ -175,7 +178,7 @@ class EquipoController extends Controller
 
         $equipo->cambiarEstado($activo, $request->validated('motivo'), $request->user());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $activo ? __('Equipo activado.') : __('Equipo inactivado.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $activo ? __('Equipo habilitado.') : __('Equipo inhabilitado.')]);
 
         return back();
     }
@@ -254,7 +257,7 @@ class EquipoController extends Controller
         $motivo = $this->eliminarRegistro($equipo);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($equipo, $motivo));
 
             return back();
         }
@@ -272,6 +275,18 @@ class EquipoController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::EquiposEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Órdenes de trabajo'), OrdenTrabajo::query()->whereHas('equipoProgramacion', fn (Builder $programacion) => $programacion->where('equipo_id', $registro->id)), fn (Model $orden): string => $orden->codigo),
+            self::dependencia(__('Ingresos'), Ingreso::query()->whereHas('equipoProgramacion', fn (Builder $programacion) => $programacion->where('equipo_id', $registro->id)), fn (Model $ingreso): string => $ingreso->codigo),
+            self::dependencia(__('Servicios históricos'), $registro->equipoHistoricos(), fn (Model $historico): string => $historico->tipo_servicio.' · '.$historico->fecha_servicio?->format('d/m/Y')),
+        ];
     }
 
     /**

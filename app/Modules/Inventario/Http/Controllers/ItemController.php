@@ -143,7 +143,7 @@ class ItemController extends Controller
         $motivo = $this->eliminarRegistro($item);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($item, $motivo));
 
             return back();
         }
@@ -161,6 +161,16 @@ class ItemController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::ItemsEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Mantenimientos'), $registro->itemsMantenimiento()->with('mantenimiento.ordenTrabajo:id,codigo'), fn (Model $uso): ?string => $uso->mantenimiento?->ordenTrabajo?->codigo),
+        ];
     }
 
     /**

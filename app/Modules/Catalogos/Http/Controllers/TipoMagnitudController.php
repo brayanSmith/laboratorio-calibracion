@@ -79,7 +79,7 @@ class TipoMagnitudController extends Controller
         $motivo = $this->eliminarRegistro($tipoMagnitud);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($tipoMagnitud, $motivo));
 
             return back();
         }
@@ -97,6 +97,16 @@ class TipoMagnitudController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::TiposMagnitudEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Especificaciones técnicas de equipos'), $registro->equipoEspecificacionTecnica()->with('equipo:id,codigo'), fn (Model $especificacion): ?string => $especificacion->equipo?->codigo),
+        ];
     }
 
     /**

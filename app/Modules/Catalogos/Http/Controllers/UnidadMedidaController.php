@@ -86,7 +86,7 @@ class UnidadMedidaController extends Controller
         $motivo = $this->eliminarRegistro($unidadMedida);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($unidadMedida, $motivo));
 
             return back();
         }
@@ -104,6 +104,18 @@ class UnidadMedidaController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::UnidadesMedidaEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Especificaciones técnicas de equipos'), $registro->equipoEspecificacionTecnica()->with('equipo:id,codigo'), fn (Model $especificacion): ?string => $especificacion->equipo?->codigo),
+            self::dependencia(__('Alcances de medición'), $registro->detalleMedicionAlcance()->with('medicionAlcance'), fn (Model $detalle): ?string => $detalle->medicionAlcance ? trim($detalle->medicionAlcance->modelo.' '.$detalle->medicionAlcance->alcance_indicacion) : null),
+            self::dependencia(__('Calibraciones'), $registro->detalleMedicionCalibracion()->with('calibracion.ordenTrabajo:id,codigo'), fn (Model $detalle): ?string => $detalle->calibracion?->ordenTrabajo?->codigo),
+        ];
     }
 
     /**

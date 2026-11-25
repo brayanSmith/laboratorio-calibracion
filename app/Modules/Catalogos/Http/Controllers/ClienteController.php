@@ -89,7 +89,7 @@ class ClienteController extends Controller
         $motivo = $this->eliminarRegistro($cliente);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($cliente, $motivo));
 
             return back();
         }
@@ -107,6 +107,18 @@ class ClienteController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::ClientesEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Equipos'), $registro->equipo(), fn (Model $equipo): string => $equipo->codigo),
+            self::dependencia(__('Despachos que recibió'), $registro->despachoRecibido()->with('ordenTrabajo:id,codigo'), fn (Model $dependiente): ?string => $dependiente->ordenTrabajo?->codigo),
+            self::dependencia(__('Ingresos que entregó'), $registro->ingresoEntregado(), fn (Model $ingreso): string => $ingreso->codigo),
+        ];
     }
 
     /**

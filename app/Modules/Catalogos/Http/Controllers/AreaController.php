@@ -82,7 +82,7 @@ class AreaController extends Controller
         $motivo = $this->eliminarRegistro($area);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($area, $motivo));
 
             return back();
         }
@@ -100,6 +100,17 @@ class AreaController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::AreasEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Equipos'), $registro->equipo(), fn (Model $equipo): string => $equipo->codigo),
+            self::dependencia(__('Bahías'), $registro->bahia(), fn (Model $bahia): string => $bahia->nombre),
+        ];
     }
 
     /**

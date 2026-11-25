@@ -83,7 +83,7 @@ class EmpresaTerceroController extends Controller
         $motivo = $this->eliminarRegistro($empresaTercero);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($empresaTercero, $motivo));
 
             return back();
         }
@@ -101,6 +101,16 @@ class EmpresaTerceroController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::EmpresasTercerasEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Servicios de terceros'), $registro->servicioTercero()->with('ordenTrabajo:id,codigo'), fn (Model $dependiente): ?string => $dependiente->ordenTrabajo?->codigo),
+        ];
     }
 
     /**

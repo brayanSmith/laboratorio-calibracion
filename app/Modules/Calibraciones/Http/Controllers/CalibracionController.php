@@ -464,7 +464,7 @@ class CalibracionController extends Controller
         $motivo = $this->eliminarRegistro($calibracion);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($calibracion, $motivo));
 
             return back();
         }

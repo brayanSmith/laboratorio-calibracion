@@ -51,14 +51,14 @@ export default function CambiarEstadoEquipoModal({
                             <DialogHeader>
                                 <DialogTitle>
                                     {activar
-                                        ? '¿Activar equipo?'
-                                        : '¿Inactivar equipo?'}
+                                        ? '¿Habilitar equipo?'
+                                        : '¿Inhabilitar equipo?'}
                                 </DialogTitle>
                                 <DialogDescription>
                                     El equipo <strong>"{equipo.codigo}"</strong>{' '}
                                     {activar
-                                        ? 'volverá a estar activo.'
-                                        : 'quedará inactivo.'}{' '}
+                                        ? 'volverá a estar activo y entrará de nuevo en la operación.'
+                                        : 'quedará inactivo: sale de la operación, pero conserva todo su historial.'}{' '}
                                     Indica el motivo: queda en su historial de
                                     estado.
                                 </DialogDescription>
@@ -117,8 +117,8 @@ export default function CambiarEstadoEquipoModal({
                                     data-test="cambiar-estado-equipo-confirm"
                                 >
                                     {activar
-                                        ? 'Activar equipo'
-                                        : 'Inactivar equipo'}
+                                        ? 'Habilitar equipo'
+                                        : 'Inhabilitar equipo'}
                                 </Button>
                             </DialogFooter>
                         </>

@@ -9,9 +9,11 @@ use App\Modules\AlcancesMedicion\Http\Requests\StoreMedicionAlcanceRequest;
 use App\Modules\AlcancesMedicion\Http\Requests\UpdateMedicionAlcanceRequest;
 use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
 use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
+use App\Modules\Calibraciones\Models\DetalleMedicionCalibracion;
 use App\Modules\Catalogos\Models\TipoEquipo;
 use App\Modules\Catalogos\Models\UnidadMedida;
 use App\Modules\Equipos\Models\EquipoEspecificacionTecnica;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -184,7 +186,7 @@ class MedicionAlcanceController extends Controller
         $motivo = $this->eliminarRegistro($medicionAlcance);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($medicionAlcance, $motivo));
 
             return back();
         }
@@ -202,6 +204,26 @@ class MedicionAlcanceController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::AlcancesMedicionEliminarLote;
+    }
+
+    /**
+     * El alcance se nombra por su modelo y su alcance de indicación (no tiene código ni nombre).
+     *
+     * @param  MedicionAlcance  $registro
+     */
+    protected function etiquetaDe(Model $registro): string
+    {
+        return trim(($registro->modelo ?: __('Todos los modelos')).' · '.$registro->alcance_indicacion);
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Calibraciones'), DetalleMedicionCalibracion::query()->whereHas('detalleMedicionAlcance', fn (Builder $detalle) => $detalle->where('medicion_alcance_id', $registro->id))->with('calibracion.ordenTrabajo:id,codigo'), fn (Model $detalle): ?string => $detalle->calibracion?->ordenTrabajo?->codigo),
+        ];
     }
 
     /**

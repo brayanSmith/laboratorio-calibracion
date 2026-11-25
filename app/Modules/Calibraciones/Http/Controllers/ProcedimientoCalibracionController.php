@@ -79,7 +79,7 @@ class ProcedimientoCalibracionController extends Controller
         $motivo = $this->eliminarRegistro($procedimientoCalibracion);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($procedimientoCalibracion, $motivo));
 
             return back();
         }
@@ -97,6 +97,16 @@ class ProcedimientoCalibracionController extends Controller
     protected function permisoEliminarPorLote(): TenantPermission
     {
         return TenantPermission::ProcedimientosCalibracionEliminarLote;
+    }
+
+    /**
+     * Lo que impide eliminar el registro (ver eliminarRegistro()), para el detalle del aviso.
+     */
+    protected function dependenciasDe(Model $registro): array
+    {
+        return [
+            self::dependencia(__('Calibraciones'), $registro->calibracion()->with('ordenTrabajo:id,codigo'), fn (Model $dependiente): ?string => $dependiente->ordenTrabajo?->codigo),
+        ];
     }
 
     /**

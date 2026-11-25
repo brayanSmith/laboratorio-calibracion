@@ -159,7 +159,7 @@ class DespachoController extends Controller
         $motivo = $this->eliminarRegistro($despacho);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($despacho, $motivo));
 
             return back();
         }

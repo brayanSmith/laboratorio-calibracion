@@ -534,7 +534,7 @@ class MantenimientoController extends Controller
         $motivo = $this->eliminarRegistro($mantenimiento);
 
         if ($motivo !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $motivo]);
+            Inertia::flash('toast', $this->toastNoEliminable($mantenimiento, $motivo));
 
             return back();
         }

@@ -16,6 +16,7 @@ import BotonAccion from '@/components/boton-accion';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
+import CambiarEstadoEquipoModal from '@/components/equipos/cambiar-estado-equipo-modal';
 import DeleteEquipoModal from '@/components/equipos/delete-equipo-modal';
 import EditEquipoModal from '@/components/equipos/edit-equipo-modal';
 import { estadosVencimiento } from '@/components/equipos/equipo-programacion-fields';
@@ -129,6 +130,8 @@ export default function EquiposTabla({
     const [equipoDeleting, setEquipoDeleting] = useState<Equipo | null>(null);
     const [historialOpen, setHistorialOpen] = useState(false);
     const [equipoHistorial, setEquipoHistorial] = useState<Equipo | null>(null);
+    const [estadoOpen, setEstadoOpen] = useState(false);
+    const [equipoEstado, setEquipoEstado] = useState<Equipo | null>(null);
 
     const columns = useMemo(
         () =>
@@ -351,6 +354,27 @@ export default function EquiposTabla({
                                     />
                                 </EditEquipoModal>
                             ) : null}
+                            {/* A la vista, para que no se elimine un equipo solo para sacarlo de la operación. */}
+                            {can('equipos.editar') ? (
+                                <BotonAccion
+                                    icono={Power}
+                                    etiqueta={
+                                        row.original.activo
+                                            ? 'Inhabilitar'
+                                            : 'Habilitar'
+                                    }
+                                    className={
+                                        row.original.activo
+                                            ? '!border-transparent !bg-amber-500 !text-white hover:!bg-amber-600'
+                                            : '!border-transparent !bg-slate-500 !text-white hover:!bg-slate-600'
+                                    }
+                                    data-test="equipo-estado-button"
+                                    onClick={() => {
+                                        setEquipoEstado(row.original);
+                                        setEstadoOpen(true);
+                                    }}
+                                />
+                            ) : null}
                             {can('equipos.eliminar') ? (
                                 <BotonAccion
                                     icono={Trash2}
@@ -400,6 +424,12 @@ export default function EquiposTabla({
                 equipo={equipoHistorial}
                 open={historialOpen}
                 onOpenChange={setHistorialOpen}
+            />
+
+            <CambiarEstadoEquipoModal
+                equipo={equipoEstado}
+                open={estadoOpen}
+                onOpenChange={setEstadoOpen}
             />
         </>
     );

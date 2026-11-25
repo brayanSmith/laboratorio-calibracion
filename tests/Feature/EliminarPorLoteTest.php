@@ -23,10 +23,11 @@ test('elimina por lote los items elegidos y salta los que no se pueden eliminar,
         ->from(route('items.index'))
         ->post(route('items.destroy-lote'), ['ids' => [$libre->id, $otroLibre->id, $usado->id]])
         ->assertRedirect(route('items.index'))
-        ->assertInertiaFlash('toast', [
-            'type' => 'warning',
-            'message' => 'Se eliminaron 2 registros. 1 no se pudo eliminar: No se puede eliminar un ítem que ya se usó en mantenimientos. (1)',
-        ]);
+        ->assertInertiaFlash('toast.type', 'warning')
+        ->assertInertiaFlash('toast.message', 'Se eliminaron 2 registros. 1 no se pudo eliminar: No se puede eliminar un ítem que ya se usó en mantenimientos. (1)')
+        ->assertInertiaFlash('toast.detalle.registros.0.nombre', "{$usado->codigo} · {$usado->nombre}")
+        ->assertInertiaFlash('toast.detalle.registros.0.dependencias.0.titulo', 'Mantenimientos')
+        ->assertInertiaFlash('toast.detalle.registros.0.dependencias.0.total', 1);
 
     expect(Item::pluck('id')->all())->toBe([$usado->id]);
 });
@@ -54,10 +55,8 @@ test('eliminar por lote requiere el permiso de lote del modulo ademas del de eli
 
     $this->actingAs($soloLote)
         ->post(route('items.destroy-lote'), ['ids' => [$item->id]])
-        ->assertInertiaFlash('toast', [
-            'type' => 'error',
-            'message' => 'No se eliminó ningún registro. 1 no se pudo eliminar: No tienes permiso para eliminarlo. (1)',
-        ]);
+        ->assertInertiaFlash('toast.type', 'error')
+        ->assertInertiaFlash('toast.message', 'No se eliminó ningún registro. 1 no se pudo eliminar: No tienes permiso para eliminarlo. (1)');
 
     expect(Item::find($item->id))->not->toBeNull();
 });
@@ -78,4 +77,17 @@ test('eliminar por lote exige elegir al menos un registro', function () {
     $this->actingAs($this->admin)
         ->post(route('clientes.destroy-lote'), ['ids' => []])
         ->assertSessionHasErrors('ids');
+});
+
+test('al no poder eliminar un registro el aviso detalla que registros lo tienen en uso', function () {
+    $equipo = crearEquipo($this->tenant, 'EQ-TRAZA');
+    EquipoHistorico::factory()->count(2)->create(['equipo_id' => $equipo->id, 'tenant_id' => $this->tenant->id]);
+
+    $this->actingAs($this->admin)
+        ->delete(route('equipos.destroy', $equipo))
+        ->assertInertiaFlash('toast.type', 'error')
+        ->assertInertiaFlash('toast.detalle.registros.0.nombre', 'EQ-TRAZA')
+        ->assertInertiaFlash('toast.detalle.registros.0.dependencias.0.titulo', 'Servicios históricos')
+        ->assertInertiaFlash('toast.detalle.registros.0.dependencias.0.total', 2)
+        ->assertInertiaFlashMissing('toast.detalle.registros.0.dependencias.1');
 });
