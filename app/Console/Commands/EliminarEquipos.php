@@ -34,7 +34,7 @@ class EliminarEquipos extends Command
         'servicio_terceros', 'tiempo_servicios', 'orden_trabajos', 'foto_recepcions',
         'seguimiento_programacion_equipos', 'equipo_programacions', 'ingreso_envios', 'ingresos',
         'documento_equipos', 'equipo_especificacion_tecnicas', 'equipo_historicos', 'equipo_cambio_estados',
-        'equipos',
+        'equipos', 'detalle_medicion_alcances', 'medicion_alcances',
     ];
 
     /** @var list<string> archivos del disco public que dejan de usarse */
@@ -130,6 +130,12 @@ class EliminarEquipos extends Command
      */
     private function eliminar(array $equipoIds): void
     {
+        // Tipo de equipo y modelo de cada equipo, para luego retirar los alcances que se queden sin equipos.
+        $modelos = DB::table('equipos')
+            ->whereIn('id', $equipoIds)
+            ->distinct()
+            ->get(['tenant_id', 'tipo_equipo_id', 'modelo']);
+
         $programacionIds = $this->ids('equipo_programacions', 'equipo_id', $equipoIds);
         $ingresoIds = DB::table('equipo_programacions')->whereIn('id', $programacionIds)->whereNotNull('ingreso_id')->distinct()->pluck('ingreso_id')->all();
         $ordenIds = $this->ids('orden_trabajos', 'equipo_programacion_id', $programacionIds);
@@ -182,6 +188,49 @@ class EliminarEquipos extends Command
         DB::table('equipo_especificacion_tecnicas')->whereIn('equipo_id', $equipoIds)->delete();
         DB::table('equipo_cambio_estados')->whereIn('equipo_id', $equipoIds)->delete();
         DB::table('equipos')->whereIn('id', $equipoIds)->delete();
+
+        $this->eliminarAlcancesSinEquipos($modelos);
+    }
+
+    /**
+     * Los alcances de medición son de un tipo de equipo y modelo, no de un equipo: se borran
+     * (con sus detalles) los de los modelos que ya no tienen ningún equipo, ni siquiera uno
+     * eliminado lógicamente. Si una calibración que se conserva usa alguno de sus detalles,
+     * el alcance se deja.
+     *
+     * @param  Collection<int, object{tenant_id: int, tipo_equipo_id: int, modelo: string|null}>  $modelos
+     */
+    private function eliminarAlcancesSinEquipos(Collection $modelos): void
+    {
+        foreach ($modelos as $modelo) {
+            $quedanEquipos = DB::table('equipos')
+                ->where('tenant_id', $modelo->tenant_id)
+                ->where('tipo_equipo_id', $modelo->tipo_equipo_id)
+                ->when(
+                    $modelo->modelo === null,
+                    fn (Builder $query) => $query->whereNull('modelo'),
+                    fn (Builder $query) => $query->where('modelo', $modelo->modelo),
+                )
+                ->exists();
+
+            if ($quedanEquipos) {
+                continue;
+            }
+
+            $alcanceIds = DB::table('medicion_alcances')
+                ->where('tenant_id', $modelo->tenant_id)
+                ->where('tipo_equipo_id', $modelo->tipo_equipo_id)
+                ->where('modelo', $modelo->modelo ?? '')
+                ->whereNotExists(fn (Builder $query) => $query->select(DB::raw(1))
+                    ->from('detalle_medicion_alcances')
+                    ->join('detalle_medicion_calibracions', 'detalle_medicion_calibracions.detalle_medicion_alcance_id', '=', 'detalle_medicion_alcances.id')
+                    ->whereColumn('detalle_medicion_alcances.medicion_alcance_id', 'medicion_alcances.id'))
+                ->pluck('id')
+                ->all();
+
+            DB::table('detalle_medicion_alcances')->whereIn('medicion_alcance_id', $alcanceIds)->delete();
+            DB::table('medicion_alcances')->whereIn('id', $alcanceIds)->delete();
+        }
     }
 
     /**

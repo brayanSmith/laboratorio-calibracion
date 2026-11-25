@@ -2,6 +2,8 @@
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\AlcancesMedicion\Models\DetalleMedicionAlcance;
+use App\Modules\AlcancesMedicion\Models\MedicionAlcance;
 use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Despachos\Models\Despacho;
@@ -62,6 +64,25 @@ test('elimina definitivamente el equipo con su traza y sus archivos, sin tocar l
 
     Storage::disk('public')->assertMissing(['mantenimientos/informe.pdf', 'documentos/propio.pdf']);
     Storage::disk('public')->assertExists('documentos/compartido.pdf');
+});
+
+test('elimina los alcances de medicion de los modelos que se quedan sin equipos', function () {
+    $equipo = crearEquipoParaBusqueda($this->bahia, 'EQ-BORRAR');
+    $alcanceHuerfano = MedicionAlcance::factory()->create(['tipo_equipo_id' => $equipo->tipo_equipo_id, 'modelo' => $equipo->modelo, 'tenant_id' => $this->tenant->id]);
+    DetalleMedicionAlcance::factory()->create(['medicion_alcance_id' => $alcanceHuerfano->id, 'tenant_id' => $this->tenant->id]);
+
+    $companero = crearEquipoParaBusqueda($this->bahia, 'EQ-QUEDA');
+    $companero->update(['modelo' => 'Modelo compartido']);
+    $otro = crearEquipoParaBusqueda($this->bahia, 'EQ-BORRAR-2');
+    $otro->update(['modelo' => 'Modelo compartido', 'tipo_equipo_id' => $companero->tipo_equipo_id]);
+    $alcanceEnUso = MedicionAlcance::factory()->create(['tipo_equipo_id' => $companero->tipo_equipo_id, 'modelo' => 'Modelo compartido', 'tenant_id' => $this->tenant->id]);
+
+    $this->artisan('equipos:eliminar', ['codigos' => ['EQ-BORRAR', 'EQ-BORRAR-2'], '--tenant' => $this->tenant->id, '--force' => true])
+        ->assertSuccessful();
+
+    expect(MedicionAlcance::withTrashed()->find($alcanceHuerfano->id))->toBeNull()
+        ->and(DetalleMedicionAlcance::withTrashed()->where('medicion_alcance_id', $alcanceHuerfano->id)->exists())->toBeFalse()
+        ->and(MedicionAlcance::find($alcanceEnUso->id))->not->toBeNull();
 });
 
 test('conserva el ingreso que tambien trajo otros equipos', function () {
