@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import EquipoServicioCard from '@/components/servicio-terceros/equipo-servicio-card';
+import VistaPreviaPdf from '@/components/vista-previa-pdf';
 import { useElapsedTime } from '@/hooks/use-elapsed-time';
 import type { ServicioTerceroListado } from '@/types';
 
@@ -40,6 +41,14 @@ export default function FinalizarServicioTerceroModal({
     const [estadoFinalEquipo, setEstadoFinalEquipo] =
         useState<EstadoFinal>('APROBADO');
     const [reAgendar, setReAgendar] = useState(false);
+    const [archivoPdf, setArchivoPdf] = useState<File | null>(null);
+    const cambiarAbierta = (abierta: boolean) => {
+        if (!abierta) {
+            setArchivoPdf(null);
+        }
+
+        onOpenChange(abierta);
+    };
     const tiempoTranscurrido = useElapsedTime(
         servicio?.tiempo_servicio_inicio
             ? new Date(servicio.tiempo_servicio_inicio)
@@ -51,12 +60,12 @@ export default function FinalizarServicioTerceroModal({
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+        <Dialog open={open} onOpenChange={cambiarAbierta}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
                 <Form
                     key={`${servicio.id}-${String(open)}`}
                     {...ServicioTerceroController.finalizar.form(servicio.id)}
-                    onSuccess={() => onOpenChange(false)}
+                    onSuccess={() => cambiarAbierta(false)}
                 >
                     {({ errors, processing }) => (
                         <>
@@ -70,162 +79,191 @@ export default function FinalizarServicioTerceroModal({
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-4 py-2">
-                                <div
-                                    className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-4"
-                                    data-test="finalizar-servicio-tarjeta"
-                                >
-                                    <div className="min-w-0">
-                                        <p className="text-xs text-muted-foreground">
-                                            Recibiendo de
-                                        </p>
-                                        <p className="truncate font-medium">
-                                            {servicio.empresa_tercero_nombre}
-                                        </p>
+                            {/* Los campos a un lado y el PDF al otro, para copiar sus datos mirándolo. */}
+                            <div className="grid gap-6 py-2 lg:grid-cols-2">
+                                <div className="space-y-4">
+                                    <div
+                                        className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-4"
+                                        data-test="finalizar-servicio-tarjeta"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-xs text-muted-foreground">
+                                                Recibiendo de
+                                            </p>
+                                            <p className="truncate font-medium">
+                                                {
+                                                    servicio.empresa_tercero_nombre
+                                                }
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-muted-foreground">
+                                                Tiempo total
+                                            </p>
+                                            <p
+                                                className="font-mono text-lg"
+                                                data-test="finalizar-tiempo-total"
+                                            >
+                                                {tiempoTranscurrido}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-muted-foreground">
-                                            Tiempo total
-                                        </p>
+
+                                    <EquipoServicioCard servicio={servicio} />
+
+                                    {/* El Solped y la OB se digitan al agendar; aquí solo se muestran. */}
+                                    {servicio.tipo_servicio ===
+                                        'MANTENIMIENTO' &&
+                                    (servicio.codigo_compra ||
+                                        servicio.codigo_despacho) ? (
                                         <p
-                                            className="font-mono text-lg"
-                                            data-test="finalizar-tiempo-total"
+                                            className="text-sm text-muted-foreground"
+                                            data-test="finalizar-codigos"
                                         >
-                                            {tiempoTranscurrido}
+                                            Solped:{' '}
+                                            <span className="font-medium text-foreground">
+                                                {servicio.codigo_compra ?? '—'}
+                                            </span>{' '}
+                                            · OB:{' '}
+                                            <span className="font-medium text-foreground">
+                                                {servicio.codigo_despacho ??
+                                                    '—'}
+                                            </span>
                                         </p>
-                                    </div>
-                                </div>
+                                    ) : null}
 
-                                <EquipoServicioCard servicio={servicio} />
-
-                                {/* El Solped y la OB se digitan al agendar; aquí solo se muestran. */}
-                                {servicio.tipo_servicio === 'MANTENIMIENTO' &&
-                                (servicio.codigo_compra ||
-                                    servicio.codigo_despacho) ? (
-                                    <p
-                                        className="text-sm text-muted-foreground"
-                                        data-test="finalizar-codigos"
-                                    >
-                                        Solped:{' '}
-                                        <span className="font-medium text-foreground">
-                                            {servicio.codigo_compra ?? '—'}
-                                        </span>{' '}
-                                        · OB:{' '}
-                                        <span className="font-medium text-foreground">
-                                            {servicio.codigo_despacho ?? '—'}
-                                        </span>
-                                    </p>
-                                ) : null}
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="pdf_servicio">
-                                        Documentación del servicio (PDF)
-                                    </Label>
-                                    <Input
-                                        id="pdf_servicio"
-                                        name="pdf_servicio"
-                                        type="file"
-                                        accept="application/pdf"
-                                        data-test="servicio-tercero-pdf-input"
-                                    />
-                                    <InputError message={errors.pdf_servicio} />
-                                </div>
-
-                                {/* Datos del documento del tercero: van en la etiqueta del equipo. */}
-                                <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="finalizar_numero_certificado">
-                                            Número de certificado
+                                        <Label htmlFor="pdf_servicio">
+                                            Documentación del servicio (PDF)
                                         </Label>
                                         <Input
-                                            id="finalizar_numero_certificado"
-                                            name="numero_certificado"
-                                            defaultValue={
-                                                servicio.numero_certificado ??
-                                                ''
+                                            id="pdf_servicio"
+                                            name="pdf_servicio"
+                                            type="file"
+                                            accept="application/pdf"
+                                            onChange={(evento) =>
+                                                setArchivoPdf(
+                                                    evento.target.files?.[0] ??
+                                                        null,
+                                                )
                                             }
-                                            maxLength={100}
-                                            required={
-                                                estadoFinalEquipo === 'APROBADO'
-                                            }
-                                            placeholder="Ej. CERT-2026-0154"
-                                            data-test="finalizar-numero-certificado"
+                                            data-test="servicio-tercero-pdf-input"
                                         />
                                         <InputError
-                                            message={errors.numero_certificado}
+                                            message={errors.pdf_servicio}
                                         />
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="finalizar_fecha_servicio">
-                                            Fecha del servicio
+
+                                    {/* Datos del documento del tercero: van en la etiqueta del equipo. */}
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="finalizar_numero_certificado">
+                                                Número de certificado
+                                            </Label>
+                                            <Input
+                                                id="finalizar_numero_certificado"
+                                                name="numero_certificado"
+                                                defaultValue={
+                                                    servicio.numero_certificado ??
+                                                    ''
+                                                }
+                                                maxLength={100}
+                                                required={
+                                                    estadoFinalEquipo ===
+                                                    'APROBADO'
+                                                }
+                                                placeholder="Ej. CERT-2026-0154"
+                                                data-test="finalizar-numero-certificado"
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.numero_certificado
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="finalizar_fecha_servicio">
+                                                Fecha del servicio
+                                            </Label>
+                                            <Input
+                                                id="finalizar_fecha_servicio"
+                                                name="fecha_servicio"
+                                                type="date"
+                                                defaultValue={
+                                                    servicio.fecha_servicio ??
+                                                    ''
+                                                }
+                                                required={
+                                                    estadoFinalEquipo ===
+                                                    'APROBADO'
+                                                }
+                                                data-test="finalizar-fecha-servicio"
+                                            />
+                                            <InputError
+                                                message={errors.fecha_servicio}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">
+                                            Estado final del equipo
                                         </Label>
-                                        <Input
-                                            id="finalizar_fecha_servicio"
-                                            name="fecha_servicio"
-                                            type="date"
-                                            defaultValue={
-                                                servicio.fecha_servicio ?? ''
-                                            }
-                                            required={
-                                                estadoFinalEquipo === 'APROBADO'
-                                            }
-                                            data-test="finalizar-fecha-servicio"
-                                        />
-                                        <InputError
-                                            message={errors.fecha_servicio}
-                                        />
+                                        <ToggleGroup
+                                            type="single"
+                                            variant="outline"
+                                            value={estadoFinalEquipo}
+                                            onValueChange={(value) => {
+                                                if (value) {
+                                                    setEstadoFinalEquipo(
+                                                        value as EstadoFinal,
+                                                    );
+                                                }
+                                            }}
+                                            className="w-full"
+                                            data-test="estado-final-equipo-toggle"
+                                        >
+                                            <ToggleGroupItem
+                                                value="APROBADO"
+                                                className="grow basis-0 data-[state=on]:!border-emerald-500 data-[state=on]:!bg-emerald-500 data-[state=on]:!text-white"
+                                            >
+                                                Aprobado
+                                            </ToggleGroupItem>
+                                            <ToggleGroupItem
+                                                value="FUERA_DE_SERVICIO"
+                                                className="grow basis-0 data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
+                                            >
+                                                Fuera de servicio
+                                            </ToggleGroupItem>
+                                        </ToggleGroup>
                                     </div>
+
+                                    {estadoFinalEquipo ===
+                                    'FUERA_DE_SERVICIO' ? (
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id="re_agendar"
+                                                checked={reAgendar}
+                                                onCheckedChange={(checked) =>
+                                                    setReAgendar(
+                                                        checked === true,
+                                                    )
+                                                }
+                                                data-test="re-agendar-checkbox"
+                                            />
+                                            <Label htmlFor="re_agendar">
+                                                Re-agendar (crear una nueva
+                                                orden de trabajo)
+                                            </Label>
+                                        </div>
+                                    ) : null}
                                 </div>
 
-                                <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">
-                                        Estado final del equipo
-                                    </Label>
-                                    <ToggleGroup
-                                        type="single"
-                                        variant="outline"
-                                        value={estadoFinalEquipo}
-                                        onValueChange={(value) => {
-                                            if (value) {
-                                                setEstadoFinalEquipo(
-                                                    value as EstadoFinal,
-                                                );
-                                            }
-                                        }}
-                                        className="w-full"
-                                        data-test="estado-final-equipo-toggle"
-                                    >
-                                        <ToggleGroupItem
-                                            value="APROBADO"
-                                            className="grow basis-0 data-[state=on]:!border-emerald-500 data-[state=on]:!bg-emerald-500 data-[state=on]:!text-white"
-                                        >
-                                            Aprobado
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem
-                                            value="FUERA_DE_SERVICIO"
-                                            className="grow basis-0 data-[state=on]:!border-red-500 data-[state=on]:!bg-red-500 data-[state=on]:!text-white"
-                                        >
-                                            Fuera de servicio
-                                        </ToggleGroupItem>
-                                    </ToggleGroup>
-                                </div>
-
-                                {estadoFinalEquipo === 'FUERA_DE_SERVICIO' ? (
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            id="re_agendar"
-                                            checked={reAgendar}
-                                            onCheckedChange={(checked) =>
-                                                setReAgendar(checked === true)
-                                            }
-                                            data-test="re-agendar-checkbox"
-                                        />
-                                        <Label htmlFor="re_agendar">
-                                            Re-agendar (crear una nueva orden de
-                                            trabajo)
-                                        </Label>
-                                    </div>
-                                ) : null}
+                                <VistaPreviaPdf
+                                    archivo={archivoPdf}
+                                    urlActual={servicio.pdf_url}
+                                    className="h-96 lg:h-auto lg:min-h-[60vh]"
+                                />
                             </div>
 
                             <input
