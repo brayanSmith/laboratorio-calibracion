@@ -574,7 +574,7 @@ test('la etiqueta de mantenimiento lleva un color distinto al de la de calibraci
 
     $this->actingAs($this->admin)->get(route('mantenimientos.etiqueta', $mantenimiento))->assertOk();
 
-    expect($vista['colorFijo'])->toBe(GenerarEtiquetaServicio::COLOR_MANTENIMIENTO);
+    expect($vista['color'])->toBe(GenerarEtiquetaServicio::COLOR_MANTENIMIENTO);
 });
 
 test('no genera etiqueta de mantenimiento para equipos tipo A ni mantenimientos sin finalizar', function () {

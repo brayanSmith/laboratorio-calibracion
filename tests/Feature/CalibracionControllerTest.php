@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Etiquetas\GenerarEtiquetaServicio;
 use App\Enums\TenantPermission;
 use App\Enums\TenantRole;
 use App\Models\Empresa;
@@ -1067,6 +1068,5 @@ test('la etiqueta de calibracion muestra el certificado vigente, la serie, el te
             'Técnico' => $calibracion->tecnico->name,
         ])
         ->and($vista['contacto'])->toBe(['lab@acme.test', '555-1234'])
-        // Lleva el color de tema de la empresa, no el fijo de mantenimiento.
-        ->and($vista['colorFijo'])->toBeNull();
+        ->and($vista['color'])->toBe(GenerarEtiquetaServicio::COLOR_CALIBRACION);
 });

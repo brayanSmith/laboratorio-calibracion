@@ -1,9 +1,8 @@
 @php
-    // Un color fijo por servicio si lo trae (mantenimiento); si no, el mismo acento que la
-    // plataforma: el color de tema de la empresa (o el negro por defecto).
-    $acento = $colorFijo ?? (preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($empresa?->color_tema)) ? $empresa->color_tema : '#171717');
-    [$r, $g, $b] = sscanf($acento, '#%02x%02x%02x');
-    $sobreAcento = (0.299 * $r + 0.587 * $g + 0.114 * $b) > 160 ? '#171717' : '#ffffff';
+    // Color del servicio (verde calibración, azul mantenimiento) en el borde y la franja del
+    // título, con letra blanca; el resto de la etiqueta va sobre blanco.
+    $acento = preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($color ?? '')) ? $color : '#171717';
+    $sobreAcento = '#ffffff';
 @endphp
 <!DOCTYPE html>
 <html lang="es">

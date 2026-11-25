@@ -421,7 +421,7 @@ function crearServicioTerceroAprobado(Bahia $bahia, string $tipoServicio, string
     return $servicio;
 }
 
-test('genera la etiqueta de un servicio de tercero con su certificado, fecha y laboratorio, y su QR abre el documento del tercero', function (string $tipoServicio, string $tipoMantenimiento, string $rotuloFecha, ?string $colorFijo) {
+test('genera la etiqueta de un servicio de tercero con su certificado, fecha y laboratorio, y su QR abre el documento del tercero', function (string $tipoServicio, string $tipoMantenimiento, string $rotuloFecha, string $color) {
     $servicio = crearServicioTerceroAprobado($this->bahia, $tipoServicio, $tipoMantenimiento);
 
     $vista = null;
@@ -440,7 +440,7 @@ test('genera la etiqueta de un servicio de tercero con su certificado, fecha y l
             'Cert. N°' => 'CERT-TER-88',
             'Laboratorio' => $servicio->empresaTercero->nombre,
         ])
-        ->and($vista['colorFijo'])->toBe($colorFijo);
+        ->and($vista['color'])->toBe($color);
 
     auth()->logout();
 
@@ -451,8 +451,8 @@ test('genera la etiqueta de un servicio de tercero con su certificado, fecha y l
 })->with([
     'mantenimiento de equipo tipo B' => ['MANTENIMIENTO', 'B', 'Fecha mantenimiento', GenerarEtiquetaServicio::COLOR_MANTENIMIENTO],
     'mantenimiento de equipo tipo A' => ['MANTENIMIENTO', 'A', 'Fecha mantenimiento', GenerarEtiquetaServicio::COLOR_MANTENIMIENTO],
-    'calibracion de equipo tipo A' => ['CALIBRACION', 'A', 'Fecha calibración', null],
-    'calibracion de equipo tipo B' => ['CALIBRACION', 'B', 'Fecha calibración', null],
+    'calibracion de equipo tipo A' => ['CALIBRACION', 'A', 'Fecha calibración', GenerarEtiquetaServicio::COLOR_CALIBRACION],
+    'calibracion de equipo tipo B' => ['CALIBRACION', 'B', 'Fecha calibración', GenerarEtiquetaServicio::COLOR_CALIBRACION],
 ]);
 
 test('no genera etiqueta de tercero si el servicio no quedo aprobado', function (array $cambios) {

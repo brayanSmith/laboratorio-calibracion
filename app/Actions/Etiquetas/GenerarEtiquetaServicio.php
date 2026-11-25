@@ -21,9 +21,15 @@ class GenerarEtiquetaServicio
     private const TAMANO_PAPEL = [0, 0, 226.77, 141.73];
 
     /**
-     * Color de la etiqueta de mantenimiento (naranja), distinto al de calibración.
+     * Fondo de la etiqueta de calibración: el verde de la interfaz (emerald-600), con letra
+     * blanca. Un tono más oscuro que el de la pantalla para que el blanco se lea impreso.
      */
-    public const COLOR_MANTENIMIENTO = '#c2410c';
+    public const COLOR_CALIBRACION = '#059669';
+
+    /**
+     * Fondo de la etiqueta de mantenimiento: el azul de la interfaz (blue-600), con letra blanca.
+     */
+    public const COLOR_MANTENIMIENTO = '#2563eb';
 
     /**
      * Genera la etiqueta (PDF) que se pega en el equipo tras un servicio: logo de la empresa,
@@ -53,9 +59,9 @@ class GenerarEtiquetaServicio
             'empresa' => $empresa,
             'logo' => $this->comoDataUri($empresa?->logo),
             'titulo' => $titulo,
-            // La de calibración lleva el color de tema de la empresa; la de mantenimiento uno
-            // fijo, para distinguirlas a simple vista en el equipo.
-            'colorFijo' => $servicio === 'mantenimiento' ? self::COLOR_MANTENIMIENTO : null,
+            // Verde la de calibración y azul la de mantenimiento, para distinguirlas a simple
+            // vista en el equipo.
+            'color' => $servicio === 'mantenimiento' ? self::COLOR_MANTENIMIENTO : self::COLOR_CALIBRACION,
             'datos' => [
                 "Fecha {$servicio}" => $fechaServicio->format('d/m/Y'),
                 "Próx. {$servicio}" => $fechaProximoServicio ? Carbon::parse($fechaProximoServicio)->format('d/m/Y') : '—',
