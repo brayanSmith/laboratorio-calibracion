@@ -49,7 +49,7 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'total_equipos' => $usuario->can(TenantPermission::DashboardTodosEquipos->value)
-                ? Equipo::query()->where('tenant_id', $tenantId)->count()
+                ? Equipo::query()->where('tenant_id', $tenantId)->activos()->count()
                 : null,
             'vencimientos' => [
                 'al_dia' => $usuario->can(TenantPermission::DashboardEquiposAlDia->value) ? $porEstado->get('AL_DIA', 0) : null,
@@ -57,7 +57,7 @@ class DashboardController extends Controller
                 'vencidos' => $usuario->can(TenantPermission::DashboardEquiposVencidos->value) ? $porEstado->get('VENCIDO', 0) : null,
             ],
             ...($puedeUrgentes ? ['equipos_urgentes' => $this->equiposUrgentes($tenantId, $estadoPorEquipo)] : []),
-            ...($puedeUrgentes || $puedeTabla ? $this->datosListadoEquipos($request, incluirEquipos: $puedeTabla) : []),
+            ...($puedeUrgentes || $puedeTabla ? $this->datosListadoEquipos($request, incluirEquipos: $puedeTabla, soloActivos: true) : []),
             'indicadores' => $this->indicadores($usuario),
         ]);
     }

@@ -20,17 +20,19 @@ trait ListaEquipos
     /**
      * Todos los equipos del tenant y las opciones de sus formularios. La tabla los filtra,
      * ordena y pagina en el navegador, así que el servidor no vuelve a intervenir al
-     * usarla. La comparten el listado de equipos y el dashboard.
+     * usarla. La comparten el listado de equipos (todos, para poder reactivarlos) y el
+     * dashboard (solo los activos: un equipo inactivo no cuenta ahí).
      *
      * @return array<string, mixed>
      */
-    protected function datosListadoEquipos(Request $request, bool $incluirEquipos = true): array
+    protected function datosListadoEquipos(Request $request, bool $incluirEquipos = true, bool $soloActivos = false): array
     {
         $tenantId = $request->user()->tenant_id;
 
         return [
             ...($incluirEquipos ? ['equipos' => Equipo::query()
                 ->where('tenant_id', $tenantId)
+                ->when($soloActivos, fn ($query) => $query->activos())
                 ->with($this->relacionesListadoEquipos())
                 ->latest()
                 ->get()

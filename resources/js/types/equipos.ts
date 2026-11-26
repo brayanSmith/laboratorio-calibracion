@@ -123,6 +123,8 @@ export type EquipoProgramacionBusquedaItem = {
         id: number;
         codigo: string;
         modelo: string;
+        /** Solo en el detalle de un ingreso: si está inactivo, se marca. */
+        activo?: boolean;
         tipo_equipo: { nombre: string };
         cliente: { nombre: string } | null;
         /** Solo en la búsqueda del ingreso, que puede abarcar varias bahías. */

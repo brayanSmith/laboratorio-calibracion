@@ -174,7 +174,10 @@ class Despacho extends Model
      */
     public function scopeListosParaAgendar(Builder $query, int $tenantId): void
     {
-        $query->where('tenant_id', $tenantId)->whereNull('tecnico_entrega_id');
+        $query->where('tenant_id', $tenantId)
+            ->whereNull('tecnico_entrega_id')
+            // Un equipo inactivo no entra en lo que está por hacer.
+            ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos());
     }
 
     /**

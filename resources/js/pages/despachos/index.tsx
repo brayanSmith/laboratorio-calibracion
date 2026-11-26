@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
+import { CLASE_FILA_EQUIPO_INACTIVO } from '@/components/equipo-inactivo-badge';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -147,6 +148,7 @@ export default function DespachosIndex({
                         header: 'Equipo',
                         cell: ({ row }) => (
                             <CeldaEquipo
+                                inactivo={!row.original.equipo_activo}
                                 codigo={row.original.equipo.codigo}
                                 tipo={row.original.equipo.tipo_equipo.nombre}
                                 clase={
@@ -319,6 +321,11 @@ export default function DespachosIndex({
                 />
 
                 <DataTable
+                    claseFila={(fila) =>
+                        fila.equipo_activo
+                            ? undefined
+                            : CLASE_FILA_EQUIPO_INACTIVO
+                    }
                     eliminarPorLote={
                         canDeleteLote
                             ? { url: destroyLote().url, nombre: 'despachos' }

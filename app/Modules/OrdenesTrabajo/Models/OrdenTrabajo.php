@@ -9,6 +9,7 @@ use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\ServiciosTerceros\Models\ServicioTercero;
+use Closure;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -133,7 +134,10 @@ class OrdenTrabajo extends Model
             ->where('mantenimiento_finalizado', true)
             ->where('calibracion_finalizado', false)
             ->where('listo_para_calibracion', false)
-            ->whereHas('equipoProgramacion', fn (Builder $programacion) => $programacion->where('tipo_servicio', 'like', '%CALIBRACION%'))
+            // De un equipo activo: un equipo inactivo no sigue a calibración.
+            ->whereHas('equipoProgramacion', fn (Builder $programacion) => $programacion
+                ->where('tipo_servicio', 'like', '%CALIBRACION%')
+                ->deEquiposActivos())
             ->whereNotExists(self::mantenimientoFueraDeServicio(...));
     }
 
@@ -161,6 +165,22 @@ class OrdenTrabajo extends Model
             ->whereColumn('mantenimientos.orden_trabajo_id', 'orden_trabajos.id')
             ->where('mantenimientos.estado_final_equipo', 'FUERA_DE_SERVICIO')
             ->whereNull('mantenimientos.deleted_at');
+    }
+
+    /**
+     * Subconsulta (para whereExists): el equipo de la orden cuyo id está en $columnaOrden
+     * está activo y no eliminado. La usan las validaciones de agendar, que no pasan por
+     * los scopes de Eloquent.
+     */
+    public static function deEquipoActivo(string $columnaOrden = 'orden_trabajos.id'): Closure
+    {
+        return fn (QueryBuilder $query) => $query->select(DB::raw(1))
+            ->from('orden_trabajos as orden_equipo')
+            ->join('equipo_programacions', 'equipo_programacions.id', '=', 'orden_equipo.equipo_programacion_id')
+            ->join('equipos', 'equipos.id', '=', 'equipo_programacions.equipo_id')
+            ->whereColumn('orden_equipo.id', $columnaOrden)
+            ->where('equipos.activo', 1)
+            ->whereNull('equipos.deleted_at');
     }
 
     /**

@@ -1,4 +1,6 @@
+import EquipoInactivoBadge from '@/components/equipo-inactivo-badge';
 import CorreoIngresoClientes from '@/components/ingresos/correo-ingreso-clientes';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -175,11 +177,21 @@ function EquipoDetalle({
 }) {
     return (
         <li
-            className="space-y-1 px-3 py-2 text-sm"
+            className={cn(
+                'space-y-1 px-3 py-2 text-sm',
+                item.equipo.activo === false && 'bg-muted/50',
+            )}
             data-test="ver-ingreso-equipo"
         >
             <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div
+                    className={cn(
+                        'min-w-0',
+                        // El equipo quedó inactivo: su paso por el ingreso se ve, pero tachado.
+                        item.equipo.activo === false &&
+                            'text-muted-foreground line-through',
+                    )}
+                >
                     <p className="font-medium">
                         {item.equipo.codigo} · {item.equipo.modelo}
                     </p>
@@ -189,6 +201,9 @@ function EquipoDetalle({
                             ? ' · Correctivo'
                             : ''}
                     </p>
+                    {item.equipo.activo === false ? (
+                        <EquipoInactivoBadge className="mt-1" />
+                    ) : null}
                 </div>
                 <Badge
                     className={

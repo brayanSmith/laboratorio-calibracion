@@ -73,6 +73,8 @@ class MedicionAlcanceController extends Controller
                 ->join('equipos', 'equipos.id', '=', 'equipo_especificacion_tecnicas.equipo_id')
                 ->where('equipo_especificacion_tecnicas.tenant_id', $tenantId)
                 ->whereNull('equipos.deleted_at')
+                // Solo de equipos activos: un equipo inactivo no cuenta.
+                ->where('equipos.activo', true)
                 ->distinct()
                 ->orderBy('equipo_especificacion_tecnicas.alcance_indicacion')
                 ->get(['equipos.tipo_equipo_id', 'equipos.modelo', 'equipo_especificacion_tecnicas.alcance_indicacion'])
@@ -83,6 +85,7 @@ class MedicionAlcanceController extends Controller
                 ->join('equipos', 'equipos.id', '=', 'equipo_especificacion_tecnicas.equipo_id')
                 ->where('equipo_especificacion_tecnicas.tenant_id', $tenantId)
                 ->whereNull('equipos.deleted_at')
+                ->where('equipos.activo', true)
                 ->orderBy('equipo_especificacion_tecnicas.id')
                 ->get(['equipos.tipo_equipo_id', 'equipos.modelo', 'equipo_especificacion_tecnicas.alcance_indicacion', 'equipo_especificacion_tecnicas.precision', 'equipo_especificacion_tecnicas.unidad_medida_id'])
                 ->groupBy(fn (EquipoEspecificacionTecnica $especificacion) => "{$especificacion->tipo_equipo_id}|{$especificacion->modelo}|{$especificacion->alcance_indicacion}")

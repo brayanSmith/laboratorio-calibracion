@@ -53,7 +53,7 @@ class ServicioTerceroController extends Controller
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
-                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,tipo_equipo_id,cliente_id',
+                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,tipo_equipo_id,cliente_id,activo',
                 'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'empresaTercero:id,nombre',
@@ -62,6 +62,8 @@ class ServicioTerceroController extends Controller
             ->get()
             ->map(fn (ServicioTercero $servicio) => [
                 'id' => $servicio->id,
+                // El historial de un equipo inactivo se sigue viendo, pero marcado (tachado).
+                'equipo_activo' => (bool) $servicio->ordenTrabajo?->equipoProgramacion?->equipo?->activo,
                 'tipo_servicio' => $servicio->tipo_servicio,
                 'codigo_compra' => $servicio->codigo_compra,
                 'codigo_despacho' => $servicio->codigo_despacho,

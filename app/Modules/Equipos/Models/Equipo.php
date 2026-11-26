@@ -300,6 +300,17 @@ class Equipo extends Model
     }
 
     /**
+     * Scope a query to the equipos activos: un equipo inactivo no cuenta en el dashboard ni
+     * en nada de lo que está por hacer (agenda, agendar, ingresar, recordatorios).
+     *
+     * @param  Builder<Equipo>  $query
+     */
+    public function scopeActivos(Builder $query): void
+    {
+        $query->where('activo', true);
+    }
+
+    /**
      * Whether the equipo already has service history: a programación that was ingresada,
      * moved past PENDIENTE or got an orden de trabajo, or an imported servicio histórico.
      * The programación created with the equipo (still PENDIENTE) is not history.

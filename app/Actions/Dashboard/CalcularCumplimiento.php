@@ -45,16 +45,23 @@ class CalcularCumplimiento
         // A, B o los dos (sin elegir, los dos).
         $tiposMantenimiento = ($filtros['tipos_mantenimiento'] ?? []) ?: self::TIPOS_MANTENIMIENTO;
 
+        $ordenAtendida = fn (Builder $orden) => $orden->where(fn (Builder $servicio) => $servicio
+            ->whereHas('mantenimientos', fn (Builder $q) => $q->where('estado_mantenimiento', 'FINALIZADO'))
+            ->orWhereHas('calibraciones', fn (Builder $q) => $q->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA))
+            ->orWhereHas('serviciosTerceros', fn (Builder $q) => $q->where('estado_servicio', 'FINALIZADO')));
+
         $programaciones = EquipoProgramacion::query()
             ->where('tenant_id', $tenantId)
             ->where('tipo_mantenimiento', 'PREVENTIVO')
             ->whereDate('fecha_proximo_servicio', '>=', $filtros['desde'])
             ->whereDate('fecha_proximo_servicio', '<=', $filtros['hasta'])
+            // Un equipo inactivo no cuenta en el plan, salvo que se haya atendido: el que
+            // quedó fuera de servicio en su servicio se inactivó, pero el trabajo se hizo.
+            ->where(fn (Builder $programacion) => $programacion
+                ->deEquiposActivos()
+                ->orWhereHas('ordenesTrabajo', $ordenAtendida))
             ->whereHas('equipo.tipoEquipo', fn (Builder $tipo) => $tipo->whereIn('tipo_mantenimiento', $tiposMantenimiento))
-            ->withExists(['ordenesTrabajo as atendida' => fn (Builder $orden) => $orden->where(fn (Builder $servicio) => $servicio
-                ->whereHas('mantenimientos', fn (Builder $q) => $q->where('estado_mantenimiento', 'FINALIZADO'))
-                ->orWhereHas('calibraciones', fn (Builder $q) => $q->whereIn('estado_calibracion', self::CALIBRACION_TERMINADA))
-                ->orWhereHas('serviciosTerceros', fn (Builder $q) => $q->where('estado_servicio', 'FINALIZADO')))])
+            ->withExists(['ordenesTrabajo as atendida' => $ordenAtendida])
             // La orden ya pasó a calibración (propia o de tercero, en cualquier estado): el
             // mantenimiento de la misma orden quedó atrás.
             ->withExists(['ordenesTrabajo as paso_a_calibracion' => fn (Builder $orden) => $orden->where(fn (Builder $servicio) => $servicio
@@ -310,6 +317,7 @@ class CalcularCumplimiento
             ->whereHas('ingreso', fn (Builder $ingreso) => $ingreso
                 ->whereDate('desde', '<=', $filtros['hasta'])
                 ->whereDate('hasta', '>=', $filtros['desde']))
+            ->deEquiposActivos()
             ->whereHas('equipo', fn (Builder $equipo) => $this->filtrarEquipo($equipo, $filtros, $tiposMantenimiento))
             ->with([
                 'equipo:id,codigo,modelo,numero_serie,area_id,bahia_id,tipo_equipo_id,criticidad',

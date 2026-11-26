@@ -51,6 +51,8 @@ export type CalibracionDetalleMedicion = {
  * procedimiento/novedad quedan nulos hasta que se realiza la calibración.
  */
 export type Calibracion = {
+    /** El equipo está activo; si no, el registro se muestra tachado (ver CLASE_FILA_EQUIPO_INACTIVO). */
+    equipo_activo: boolean;
     id: number;
     orden_trabajo_id: number;
     orden_trabajo_codigo: string;

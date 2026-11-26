@@ -67,7 +67,7 @@ class DespachoController extends Controller
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
-                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,cliente_id,tipo_equipo_id',
+                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,numero_serie,cliente_id,tipo_equipo_id,activo',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
                 'tecnicoEntrega:id,name',
@@ -79,6 +79,8 @@ class DespachoController extends Controller
             ->get()
             ->map(fn (Despacho $despacho) => [
                 'id' => $despacho->id,
+                // El historial de un equipo inactivo se sigue viendo, pero marcado (tachado).
+                'equipo_activo' => (bool) $despacho->ordenTrabajo?->equipoProgramacion?->equipo?->activo,
                 'orden_trabajo_id' => $despacho->orden_trabajo_id,
                 'orden_trabajo_codigo' => $despacho->ordenTrabajo->codigo,
                 'tecnico_entrega_id' => $despacho->tecnico_entrega_id,

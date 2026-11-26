@@ -73,7 +73,10 @@ class StoreCalibracionAgendamientoRequest extends FormRequest
                     ->where('calibracion_finalizado', 0)
                     ->where('listo_para_calibracion', 0)
                     // Un equipo que salió del mantenimiento fuera de servicio no sigue a calibración.
-                    ->using(fn ($query) => $query->whereNotExists(OrdenTrabajo::mantenimientoFueraDeServicio(...))),
+                    ->using(fn ($query) => $query
+                        ->whereNotExists(OrdenTrabajo::mantenimientoFueraDeServicio(...))
+                        // Ni un equipo inactivo.
+                        ->whereExists(OrdenTrabajo::deEquipoActivo())),
             ],
             'ordenes_listas.*.listo_para_calibracion' => ['boolean'],
             // Solo quien tiene el permiso de calibraciones de terceros puede asignarlas a un tercero.

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import EquipoInactivoBadge from '@/components/equipo-inactivo-badge';
 
 /**
  * Celda "Equipo" de las tablas: código, tipo y su clase de mantenimiento (A o B) arriba;
@@ -10,6 +11,7 @@ export function CeldaEquipo({
     clase,
     modelo,
     serie,
+    inactivo = false,
 }: {
     codigo: ReactNode;
     tipo?: string | null;
@@ -17,6 +19,8 @@ export function CeldaEquipo({
     clase?: string | null;
     modelo?: string | null;
     serie?: string | null;
+    /** El equipo quedó inactivo: se muestra la etiqueta (el servicio igual se ve en el historial). */
+    inactivo?: boolean;
 }) {
     return (
         <div className="min-w-40">
@@ -40,6 +44,7 @@ export function CeldaEquipo({
             <span className="block text-xs text-muted-foreground">
                 Modelo: {modelo || '—'} · Serie: {serie || '—'}
             </span>
+            {inactivo ? <EquipoInactivoBadge className="mt-1" /> : null}
         </div>
     );
 }

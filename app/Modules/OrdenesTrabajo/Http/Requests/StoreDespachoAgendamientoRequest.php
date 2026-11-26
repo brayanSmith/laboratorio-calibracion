@@ -3,6 +3,7 @@
 namespace App\Modules\OrdenesTrabajo\Http\Requests;
 
 use App\Enums\TenantPermission;
+use App\Modules\OrdenesTrabajo\Models\OrdenTrabajo;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -55,7 +56,9 @@ class StoreDespachoAgendamientoRequest extends FormRequest
                 'required',
                 Rule::exists('despachos', 'id')
                     ->where('tenant_id', $tenantId)
-                    ->whereNull('tecnico_entrega_id'),
+                    ->whereNull('tecnico_entrega_id')
+                    // Un equipo inactivo no se agenda.
+                    ->using(fn ($query) => $query->whereExists(OrdenTrabajo::deEquipoActivo('despachos.orden_trabajo_id'))),
             ],
             'despachos_listos.*.entrega_autorizada' => ['boolean'],
             'despachos_listos.*.fecha_programada' => ['nullable', 'required_if:despachos_listos.*.entrega_autorizada,true', 'date'],

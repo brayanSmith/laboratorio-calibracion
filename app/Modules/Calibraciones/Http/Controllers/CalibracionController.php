@@ -97,7 +97,7 @@ class CalibracionController extends Controller
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
-                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,fabricante_id,area_id,numero_serie,tipo_tecnologia,ficha_tecnica',
+                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,fabricante_id,area_id,numero_serie,tipo_tecnologia,ficha_tecnica,activo',
                 'ordenTrabajo.equipoProgramacion.equipo.area:id,nombre,descripcion,direccion',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.fabricante:id,nombre',
@@ -113,6 +113,8 @@ class CalibracionController extends Controller
             ->get()
             ->map(fn (Calibracion $calibracion) => [
                 'id' => $calibracion->id,
+                // El historial de un equipo inactivo se sigue viendo, pero marcado (tachado).
+                'equipo_activo' => (bool) $calibracion->ordenTrabajo?->equipoProgramacion?->equipo?->activo,
                 'orden_trabajo_id' => $calibracion->orden_trabajo_id,
                 'orden_trabajo_codigo' => $calibracion->ordenTrabajo->codigo,
                 'fecha_calibracion' => $calibracion->fecha_calibracion->toDateString(),

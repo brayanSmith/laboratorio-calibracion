@@ -69,6 +69,8 @@ class IngresoController extends Controller
         return EquipoProgramacion::query()
             ->join('equipos', 'equipos.id', '=', 'equipo_programacions.equipo_id')
             ->whereNull('equipos.deleted_at')
+            // Un equipo inactivo no se ingresa.
+            ->where('equipos.activo', true)
             ->where('equipo_programacions.tenant_id', $tenantId)
             ->where('equipo_programacions.tipo_mantenimiento', 'PREVENTIVO')
             ->where('equipo_programacions.estado_programacion', 'PENDIENTE')
@@ -100,7 +102,7 @@ class IngresoController extends Controller
                 'bahia:id,nombre',
                 'tecnicoRecibe:id,name',
                 'clienteEntrega:id,nombre,email',
-                'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id',
+                'equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,activo',
                 'equipoProgramacion.equipo.cliente:id,nombre,email',
                 'equipoProgramacion.equipo.tipoEquipo:id,nombre',
                 'equipoProgramacion.fotosRecepcion',
@@ -152,6 +154,8 @@ class IngresoController extends Controller
                         'id' => $programacion->equipo->id,
                         'codigo' => $programacion->equipo->codigo,
                         'modelo' => $programacion->equipo->modelo,
+                        // Inactivo: su paso por el ingreso se sigue viendo, pero marcado.
+                        'activo' => (bool) $programacion->equipo->activo,
                         'tipo_equipo' => ['nombre' => $programacion->equipo->tipoEquipo->nombre],
                         'cliente' => ['nombre' => $programacion->equipo->cliente->nombre],
                     ],

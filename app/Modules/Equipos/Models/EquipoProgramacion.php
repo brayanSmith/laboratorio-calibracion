@@ -103,7 +103,8 @@ class EquipoProgramacion extends Model
     /**
      * Most urgent estado de vencimiento (vencido, próximo a vencer, al día) of each equipo
      * among its programaciones still to attend (those that haven't arrived yet), the same
-     * criterion the equipos listing and the dashboard show. Equipos without any are left out.
+     * criterion the equipos listing and the dashboard show. Equipos without any, and
+     * inactive ones (they don't count in the dashboard), are left out.
      *
      * @return \Illuminate\Support\Collection<int, string>
      */
@@ -113,6 +114,7 @@ class EquipoProgramacion extends Model
 
         return static::query()
             ->where('tenant_id', $tenantId)
+            ->deEquiposActivos()
             ->where('estado_programacion', '!=', 'RECIBIDO')
             ->get(['id', 'equipo_id', 'fecha_proximo_servicio', 'dias_plazo_vencimiento'])
             ->groupBy('equipo_id')
@@ -232,7 +234,19 @@ class EquipoProgramacion extends Model
                 ->orWhereHas('ordenesTrabajo', fn ($q2) => $q2->where('listo_para_mantenimiento', false)))
             ->whereHas('ingreso', fn ($q) => $q->where('estado_ingreso', 'RECIBIDO'))
             // Un equipo inactivo (ej. por una novedad del ingreso) no sigue a mantenimiento.
-            ->whereHas('equipo', fn ($q) => $q->withoutTrashed()->where('activo', true));
+            ->deEquiposActivos();
+    }
+
+    /**
+     * Scope a query to the programaciones de equipos activos (ni inactivos ni eliminados):
+     * un equipo inactivo no cuenta en el dashboard ni en nada de lo que está por hacer
+     * (agenda, agendar, ingresar, recordatorios).
+     *
+     * @param  Builder<EquipoProgramacion>  $query
+     */
+    public function scopeDeEquiposActivos(Builder $query): void
+    {
+        $query->whereHas('equipo', fn ($equipo) => $equipo->withoutTrashed()->where('activo', true));
     }
 
     /**

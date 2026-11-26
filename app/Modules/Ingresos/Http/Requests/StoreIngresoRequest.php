@@ -79,7 +79,7 @@ class StoreIngresoRequest extends FormRequest
             'programaciones_correctivas' => ['array'],
             'programaciones_correctivas.*.equipo_id' => [
                 'required',
-                Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->whereIn('bahia_id', $this->bahiaIds())->whereNull('deleted_at'),
+                Rule::exists('equipos', 'id')->where('tenant_id', $tenantId)->whereIn('bahia_id', $this->bahiaIds())->whereNull('deleted_at')->where('activo', 1),
             ],
             'programaciones_correctivas.*.falla_detectada' => ['required', 'string', 'max:2000'],
         ];

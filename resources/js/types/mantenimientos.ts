@@ -77,6 +77,8 @@ export type MantenimientoFoto = {
  * No se crea desde este módulo: solo se edita o elimina.
  */
 export type Mantenimiento = {
+    /** El equipo está activo; si no, el registro se muestra tachado (ver CLASE_FILA_EQUIPO_INACTIVO). */
+    equipo_activo: boolean;
     id: number;
     orden_trabajo_id: number;
     orden_trabajo_codigo: string;
@@ -128,6 +130,8 @@ export type MantenimientoOptions = {
 
 /** Servicio (de mantenimiento o calibración) realizado por una empresa tercera. */
 export type ServicioTerceroListado = {
+    /** El equipo está activo; si no, el registro se muestra tachado (ver CLASE_FILA_EQUIPO_INACTIVO). */
+    equipo_activo: boolean;
     id: number;
     tipo_servicio: 'MANTENIMIENTO' | 'CALIBRACION';
     /** Solo en servicios de mantenimiento; opcional. */

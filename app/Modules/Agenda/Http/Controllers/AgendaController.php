@@ -9,6 +9,7 @@ use App\Modules\Calibraciones\Models\Calibracion;
 use App\Modules\Despachos\Models\Despacho;
 use App\Modules\Mantenimientos\Models\Mantenimiento;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -36,6 +37,8 @@ class AgendaController extends Controller
             $eventos = $eventos->concat(
                 Mantenimiento::query()
                     ->where('tenant_id', $tenantId)
+                    // Un equipo inactivo no entra en la agenda.
+                    ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos())
                     ->where('estado_mantenimiento', '!=', 'FINALIZADO')
                     ->when($soloPropias, fn ($query) => $query->where('tecnico_id', $usuario->id))
                     ->with(['tecnico:id,name', 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre'])
@@ -56,6 +59,7 @@ class AgendaController extends Controller
             $eventos = $eventos->concat(
                 Calibracion::query()
                     ->where('tenant_id', $tenantId)
+                    ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos())
                     ->whereNotIn('estado_calibracion', ['FINALIZADO', 'DEVOLVER_MANTENIMIENTO', 'FUERA_DE_SERVICIO'])
                     ->when($soloPropias, fn ($query) => $query->where('tecnico_id', $usuario->id))
                     ->with(['tecnico:id,name', 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre'])
@@ -76,6 +80,7 @@ class AgendaController extends Controller
             $eventos = $eventos->concat(
                 Despacho::query()
                     ->where('tenant_id', $tenantId)
+                    ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos())
                     ->whereNotNull('tecnico_entrega_id')
                     ->when($soloPropias, fn ($query) => $query->where('tecnico_entrega_id', $usuario->id))
                     ->where('entrega_recibida', false)

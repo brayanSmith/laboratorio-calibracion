@@ -32,7 +32,7 @@ class ObtenerEquiposRecordatorio
             ->when($diasHastaInicio > 0, fn ($query) => $query->where(fn ($rango) => $rango
                 ->whereDate('fecha_proximo_servicio', '<', $hoy->toDateString())
                 ->orWhereDate('fecha_proximo_servicio', '>=', $inicio->toDateString())))
-            ->whereHas('equipo', fn ($query) => $query->withoutTrashed()->where('activo', true))
+            ->deEquiposActivos()
             ->with(['equipo.tipoEquipo', 'equipo.cliente', 'equipo.bahia', 'equipo.area'])
             ->orderBy('fecha_proximo_servicio')
             ->get()

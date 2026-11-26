@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from 'react';
 import ServicioTerceroController from '@/actions/App/Modules/ServiciosTerceros/Http/Controllers/ServicioTerceroController';
 import BotonAccion from '@/components/boton-accion';
+import { CLASE_FILA_EQUIPO_INACTIVO } from '@/components/equipo-inactivo-badge';
 import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
@@ -181,6 +182,7 @@ export default function ServicioTercerosTab({
                         header: 'Equipo',
                         cell: ({ row }) => (
                             <CeldaEquipo
+                                inactivo={!row.original.equipo_activo}
                                 codigo={row.original.equipo_codigo}
                                 tipo={row.original.equipo_tipo}
                                 clase={row.original.equipo_clase}
@@ -377,6 +379,9 @@ export default function ServicioTercerosTab({
                 />
             </div>
             <DataTable
+                claseFila={(fila) =>
+                    fila.equipo_activo ? undefined : CLASE_FILA_EQUIPO_INACTIVO
+                }
                 key={claveTabla}
                 initialColumnFilters={filtrosIniciales}
                 data={servicios}

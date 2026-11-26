@@ -121,7 +121,7 @@ class MantenimientoController extends Controller
             ->with([
                 'ordenTrabajo:id,codigo,equipo_programacion_id',
                 'ordenTrabajo.equipoProgramacion:id,equipo_id',
-                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,fabricante_id,numero_serie,tipo_tecnologia,ficha_tecnica',
+                'ordenTrabajo.equipoProgramacion.equipo:id,codigo,modelo,cliente_id,tipo_equipo_id,fabricante_id,numero_serie,tipo_tecnologia,ficha_tecnica,activo',
                 'ordenTrabajo.equipoProgramacion.equipo.cliente:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.fabricante:id,nombre',
                 'ordenTrabajo.equipoProgramacion.equipo.tipoEquipo:id,nombre,tipo_mantenimiento',
@@ -139,6 +139,8 @@ class MantenimientoController extends Controller
             ->get()
             ->map(fn (Mantenimiento $mantenimiento) => [
                 'id' => $mantenimiento->id,
+                // El historial de un equipo inactivo se sigue viendo, pero marcado (tachado).
+                'equipo_activo' => (bool) $mantenimiento->ordenTrabajo?->equipoProgramacion?->equipo?->activo,
                 'orden_trabajo_id' => $mantenimiento->orden_trabajo_id,
                 'orden_trabajo_codigo' => $mantenimiento->ordenTrabajo->codigo,
                 'tipo_mantenimiento' => $mantenimiento->tipo_mantenimiento,
