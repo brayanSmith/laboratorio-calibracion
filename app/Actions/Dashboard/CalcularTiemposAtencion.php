@@ -4,7 +4,6 @@ namespace App\Actions\Dashboard;
 
 use App\Concerns\SerieMensual;
 use App\Modules\Despachos\Models\Despacho;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -84,8 +83,6 @@ class CalcularTiemposAtencion
         return Despacho::query()
             ->where('tenant_id', $tenantId)
             ->where('entrega_recibida', true)
-            // Un equipo inactivo no cuenta en el dashboard.
-            ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos())
             ->whereDate('fecha_despacho', '>=', $desde)
             ->whereDate('fecha_despacho', '<=', $hasta)
             ->with([

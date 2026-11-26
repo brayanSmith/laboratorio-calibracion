@@ -774,3 +774,29 @@ test('un equipo que no llego varias veces por re-agendarse sale en una sola fila
         ->assertJsonPath('no_recibidos.0.veces_no_recibido', 2)
         ->assertJsonCount(2, 'novedades_no_recibidos');
 });
+
+test('desempeno por tecnico y tiempos de atencion cuentan el trabajo hecho a equipos que luego quedaron inactivos', function () {
+    $orden = crearCicloAtencion($this->bahia, 'EQ-INACTIVO', '2026-10-01', '2026-10-03');
+    Mantenimiento::create([
+        'orden_trabajo_id' => $orden->id,
+        'tipo_mantenimiento' => 'PREVENTIVO',
+        'fecha_mantenimiento' => '2026-10-02',
+        'tecnico_id' => $this->admin->id,
+        'estado_mantenimiento' => 'FINALIZADO',
+        'estado_final_equipo' => 'FUERA_DE_SERVICIO',
+        'fecha_realizacion' => '2026-10-02',
+        'tenant_id' => $this->tenant->id,
+    ]);
+    $orden->equipoProgramacion->equipo->update(['activo' => false]);
+    $rango = ['desde' => '2026-10-01', 'hasta' => '2026-10-31'];
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.desempeno-tecnicos', $rango))
+        ->assertOk()
+        ->assertJsonPath('totales.mantenimientos.cantidad', 1);
+
+    $this->actingAs($this->admin)
+        ->getJson(route('dashboard.indicadores.tiempos-atencion', $rango))
+        ->assertOk()
+        ->assertJsonPath('resumen.cantidad', 1);
+});

@@ -209,8 +209,6 @@ class CalcularDesempenoTecnicos
         return $query
             ->where('tenant_id', $tenantId)
             ->whereNotNull('tecnico_id')
-            // Un equipo inactivo no cuenta en el dashboard.
-            ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos())
             ->whereDate('fecha_realizacion', '>=', $filtros['desde'])
             ->whereDate('fecha_realizacion', '<=', $filtros['hasta'])
             ->with(['tecnico:id,name', ...self::EQUIPO])
@@ -245,7 +243,6 @@ class CalcularDesempenoTecnicos
             ->where('tenant_id', $tenantId)
             ->where('estado_servicio', 'FINALIZADO')
             ->whereIn('tipo_servicio', $tiposServicio)
-            ->whereHas('ordenTrabajo.equipoProgramacion', fn (Builder $programacion) => $programacion->deEquiposActivos())
             ->whereDate('fecha_realizacion', '>=', $filtros['desde'])
             ->whereDate('fecha_realizacion', '<=', $filtros['hasta'])
             ->with(['empresaTercero:id,nombre', ...self::EQUIPO])
