@@ -4,6 +4,7 @@ namespace App\Modules\Ingresos\Actions;
 
 use App\Models\Empresa;
 use App\Modules\Calibraciones\Models\Calibracion;
+use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Equipos\Models\EquipoProgramacion;
 use App\Modules\Equipos\Models\SeguimientoProgramacionEquipo;
 use App\Modules\Ingresos\Models\FotoRecepcion;
@@ -103,6 +104,36 @@ class DatosSeguimientoIngreso
                 ['ingreso', 'desc'],
                 ['codigo', 'asc'],
             ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * La traza de un equipo para el portal de clientes: cada vez que pasó por un ingreso,
+     * con su historial de fases y los documentos de los servicios terminados, del ingreso
+     * más reciente al más antiguo.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function trazaDeEquipo(Equipo $equipo): array
+    {
+        $empresa = Empresa::query()->where('tenant_id', $equipo->tenant_id)->first();
+        $laboratorioPropio = $empresa?->laboratorio_nombre ?: $empresa?->nombre;
+
+        return $equipo->equipoProgramaciones()
+            ->whereNotNull('ingreso_id')
+            ->with([...$this->relaciones(), 'ingreso.bahia:id,nombre'])
+            ->get()
+            ->filter(fn (EquipoProgramacion $programacion): bool => $programacion->ingreso !== null)
+            ->map(fn (EquipoProgramacion $programacion): array => [
+                ...$this->equipo($programacion, $programacion->ingreso, $laboratorioPropio),
+                'id' => $programacion->id,
+                'ingreso' => $programacion->ingreso->codigo,
+                'bahia' => $programacion->ingreso->bahia?->nombre,
+                'estado_ingreso' => $programacion->ingreso->estado_ingreso,
+                'fecha_ingreso_ingreso' => ($programacion->ingreso->fecha_recepcion ?? $programacion->ingreso->desde)?->toDateString(),
+            ])
+            ->sortByDesc('fecha_ingreso_ingreso')
             ->values()
             ->all();
     }

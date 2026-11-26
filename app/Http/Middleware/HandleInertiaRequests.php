@@ -50,7 +50,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
+        // Siempre el usuario del laboratorio (guard "web"): en el portal de clientes el guard
+        // por defecto es "cliente", y un cliente no tiene permisos, pendientes ni menú.
+        $user = $request->user('web');
 
         return [
             ...parent::share($request),

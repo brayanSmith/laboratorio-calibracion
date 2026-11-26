@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
+import PortalLayout from '@/layouts/portal-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { escapeHtml } from '@/lib/escape-html';
 
@@ -33,7 +34,11 @@ void createInertiaApp({
             case name.startsWith('seguimiento/'):
                 return null;
             case name.startsWith('auth/'):
+            case name.startsWith('portal/auth/'):
                 return AuthLayout;
+            // El portal de clientes, con su propio marco (sin el menú del laboratorio).
+            case name.startsWith('portal/'):
+                return PortalLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             default:

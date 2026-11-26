@@ -31,7 +31,7 @@ class ClienteController extends Controller
             ->where('tenant_id', $request->user()->tenant_id)
             ->withCount('equipo as equipos_count')
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'tipo_documento', 'numero_documento', 'email', 'telefono', 'direccion'])
+            ->get(['id', 'nombre', 'tipo_documento', 'numero_documento', 'email', 'telefono', 'direccion', 'portal_usuario', 'portal_password', 'portal_activo', 'portal_ultimo_acceso'])
             ->map(fn (Cliente $cliente) => [
                 'id' => $cliente->id,
                 'nombre' => $cliente->nombre,
@@ -41,6 +41,13 @@ class ClienteController extends Controller
                 'telefono' => $cliente->telefono,
                 'direccion' => $cliente->direccion,
                 'equipos_count' => (int) $cliente->getAttribute('equipos_count'),
+                // Acceso al portal de clientes (la contraseña nunca sale: solo si tiene una).
+                'portal' => [
+                    'activo' => $cliente->portal_activo,
+                    'usuario' => $cliente->portal_usuario,
+                    'tiene_contrasena' => $cliente->portal_password !== null,
+                    'ultimo_acceso' => $cliente->portal_ultimo_acceso?->toIso8601String(),
+                ],
             ]);
 
         return Inertia::render('clientes/index', [

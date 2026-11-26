@@ -23,6 +23,7 @@ use App\Modules\Calibraciones\Http\Controllers\ProcedimientoCalibracionControlle
 use App\Modules\Catalogos\Http\Controllers\AreaController;
 use App\Modules\Catalogos\Http\Controllers\BahiaController;
 use App\Modules\Catalogos\Http\Controllers\ClienteController;
+use App\Modules\Catalogos\Http\Controllers\ClientePortalController;
 use App\Modules\Catalogos\Http\Controllers\FabricanteController;
 use App\Modules\Catalogos\Http\Controllers\NovedadController;
 use App\Modules\Catalogos\Http\Controllers\TipoEquipoCheckListController;
@@ -49,6 +50,10 @@ use App\Modules\Mantenimientos\Http\Controllers\MantenimientoController;
 use App\Modules\Mantenimientos\Http\Controllers\MantenimientoDefectoIdentificadoController;
 use App\Modules\Objetivos\Http\Controllers\ObjetivoUserController;
 use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
+use App\Modules\Portal\Http\Controllers\PortalAuthController;
+use App\Modules\Portal\Http\Controllers\PortalCuentaController;
+use App\Modules\Portal\Http\Controllers\PortalEquipoController;
+use App\Modules\Portal\Http\Middleware\EnsureClientePuedeEntrar;
 use App\Modules\Recordatorios\Http\Controllers\RecordatorioController;
 use App\Modules\Recordatorios\Http\Controllers\RecordatorioPlantillaController;
 use App\Modules\ServiciosTerceros\Http\Controllers\EmpresaTerceroController;
@@ -56,6 +61,26 @@ use App\Modules\ServiciosTerceros\Http\Controllers\ServicioTerceroController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+// Portal de clientes: el cliente entra con su propio usuario (guard "cliente"), separado de
+// la sesión y los permisos del laboratorio. Solo ve sus equipos y los de sus bahías.
+Route::prefix('portal')->name('portal.')->group(function () {
+    Route::middleware('guest:cliente')->group(function () {
+        Route::get('login', [PortalAuthController::class, 'create'])->name('login');
+        Route::post('login', [PortalAuthController::class, 'store'])->middleware('throttle:10,1')->name('login.store');
+        Route::get('olvide', [PortalAuthController::class, 'olvide'])->name('olvide');
+        Route::post('olvide', [PortalAuthController::class, 'recuperar'])->middleware('throttle:5,1')->name('olvide.store');
+    });
+
+    Route::middleware(['auth:cliente', EnsureClientePuedeEntrar::class])->group(function () {
+        Route::redirect('/', '/portal/equipos')->name('inicio');
+        Route::get('equipos', [PortalEquipoController::class, 'index'])->name('equipos.index');
+        Route::get('equipos/{equipo}', [PortalEquipoController::class, 'show'])->whereNumber('equipo')->name('equipos.show');
+        Route::get('cuenta', [PortalCuentaController::class, 'show'])->name('cuenta');
+        Route::put('cuenta/contrasena', [PortalCuentaController::class, 'update'])->name('cuenta.contrasena');
+        Route::post('logout', [PortalAuthController::class, 'destroy'])->name('logout');
+    });
+});
 
 // Pública: el cliente consulta sus equipos con el código del ingreso, sin iniciar sesión.
 Route::get('seguimiento', SeguimientoIngresoController::class)
@@ -206,6 +231,7 @@ Route::middleware(['auth', EnsureUserHasActiveTenant::class])->group(function ()
     Route::delete('galeria/{galeriaMantenimiento}', [GaleriaMantenimientoController::class, 'destroy'])->name('galeria.destroy');
 
     Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::put('clientes/{cliente}/portal', [ClientePortalController::class, 'update'])->name('clientes.portal.update');
 
     Route::resource('areas', AreaController::class)->only(['index', 'store', 'update', 'destroy']);
 

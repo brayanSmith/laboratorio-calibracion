@@ -1,7 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { KeyRound, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BotonAccion from '@/components/boton-accion';
+import AccesoPortalModal from '@/components/clientes/acceso-portal-modal';
 import CreateClienteModal from '@/components/clientes/create-cliente-modal';
 import DeleteClienteModal from '@/components/clientes/delete-cliente-modal';
 import EditClienteModal from '@/components/clientes/edit-cliente-modal';
@@ -9,6 +10,7 @@ import DataTable, {
     createDataTableColumnHelper,
 } from '@/components/data-table';
 import Heading from '@/components/heading';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { destroyLote, index } from '@/routes/clientes';
@@ -31,6 +33,10 @@ export default function ClientesIndex({ clientes }: Props) {
     const [editOpen, setEditOpen] = useState(false);
     const [deleting, setDeleting] = useState<Cliente | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [portalId, setPortalId] = useState<number | null>(null);
+    const clientePortal =
+        clientes.find((cliente) => cliente.id === portalId) ?? null;
+    const [portalOpen, setPortalOpen] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -54,12 +60,44 @@ export default function ClientesIndex({ clientes }: Props) {
                     cell: (info) => info.getValue() ?? '—',
                 }),
                 columnHelper.accessor('equipos_count', { header: 'Equipos' }),
+                columnHelper.accessor((row) => row.portal.activo, {
+                    id: 'portal',
+                    header: 'Portal',
+                    meta: {
+                        filterOptions: [
+                            { value: 'true', label: 'Habilitado' },
+                            { value: 'false', label: 'Sin acceso' },
+                        ],
+                    },
+                    cell: ({ row }) =>
+                        row.original.portal.activo ? (
+                            <Badge
+                                className="!border-transparent !bg-emerald-500 !text-white"
+                                title={`Usuario: ${row.original.portal.usuario}`}
+                            >
+                                Habilitado
+                            </Badge>
+                        ) : (
+                            <span className="text-muted-foreground">—</span>
+                        ),
+                }),
                 columnHelper.display({
                     id: 'acciones',
                     header: '',
                     enableSorting: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-2">
+                            {canEdit ? (
+                                <BotonAccion
+                                    icono={KeyRound}
+                                    etiqueta="Acceso al portal"
+                                    data-test="cliente-portal-button"
+                                    onClick={() => {
+                                        setPortalId(row.original.id);
+                                        setPortalOpen(true);
+                                    }}
+                                />
+                            ) : null}
                             {canEdit ? (
                                 <BotonAccion
                                     icono={Pencil}
@@ -135,6 +173,13 @@ export default function ClientesIndex({ clientes }: Props) {
                 cliente={deleting}
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
+            />
+            {/* Con key: cada vez que se abre arranca con los datos actuales del cliente. */}
+            <AccesoPortalModal
+                key={`${portalId}-${String(portalOpen)}`}
+                cliente={clientePortal}
+                open={portalOpen}
+                onOpenChange={setPortalOpen}
             />
         </>
     );

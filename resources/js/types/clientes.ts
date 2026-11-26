@@ -14,4 +14,11 @@ export type Cliente = {
     telefono: string | null;
     direccion: string | null;
     equipos_count: number;
+    /** Acceso al portal de clientes (la contraseña nunca llega: solo si tiene una). */
+    portal: {
+        activo: boolean;
+        usuario: string | null;
+        tiene_contrasena: boolean;
+        ultimo_acceso: string | null;
+    };
 };

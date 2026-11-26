@@ -19,6 +19,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // El portal de clientes tiene su propio inicio de sesión (guard "cliente").
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->routeIs('portal.*')
+            ? route('portal.login')
+            : route('login'));
+        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('portal.*')
+            ? route('portal.equipos.index')
+            : config('fortify.home'));
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

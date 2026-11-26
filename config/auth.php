@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Catalogos\Models\Cliente;
 
 return [
 
@@ -42,6 +43,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Portal de clientes: sesión aparte, con los clientes en vez de los usuarios del laboratorio.
+        'cliente' => [
+            'driver' => 'session',
+            'provider' => 'clientes',
+        ],
     ],
 
     /*
@@ -65,6 +72,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'clientes' => [
+            'driver' => 'eloquent',
+            'model' => Cliente::class,
         ],
 
         // 'users' => [
