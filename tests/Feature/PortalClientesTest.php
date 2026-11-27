@@ -7,8 +7,10 @@ use App\Modules\Catalogos\Models\Bahia;
 use App\Modules\Catalogos\Models\Cliente;
 use App\Modules\Equipos\Models\Equipo;
 use App\Modules\Portal\Mail\AccesoPortalCliente;
+use App\Modules\Portal\Mail\RegistroPortalCliente;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -181,6 +183,64 @@ test('el cliente cambia su contrasena dando la actual', function () {
         ->assertSessionHasNoErrors();
 
     expect(Hash::check('NuevaClave1', $cliente->refresh()->portal_password))->toBeTrue();
+});
+
+test('un cliente registrado crea su cuenta desde el enlace que le llega a su correo', function () {
+    Mail::fake();
+    $cliente = Cliente::factory()->for($this->tenant)->create(['email' => 'compras@acme.test']);
+
+    $this->post(route('portal.registro.store'), ['correo' => ' Compras@ACME.test '])
+        ->assertRedirect(route('portal.login'))
+        ->assertSessionHas('status');
+
+    $enlace = null;
+    Mail::assertSent(RegistroPortalCliente::class, function (RegistroPortalCliente $correo) use ($cliente, &$enlace): bool {
+        $enlace = $correo->enlace;
+
+        return $correo->hasTo('compras@acme.test') && $correo->cliente->is($cliente);
+    });
+
+    $this->get($enlace)->assertOk()->assertInertia(fn ($page) => $page->component('portal/auth/completar-registro'));
+
+    $this->post($enlace, ['portal_usuario' => 'Acme', 'contrasena' => 'Clave-1234', 'contrasena_confirmation' => 'Clave-1234'])
+        ->assertRedirect(route('portal.equipos.index'));
+
+    $cliente->refresh();
+    expect($cliente->portal_usuario)->toBe('acme')
+        ->and($cliente->portal_activo)->toBeTrue()
+        ->and(Hash::check('Clave-1234', $cliente->portal_password))->toBeTrue();
+    $this->assertAuthenticatedAs($cliente, 'cliente');
+
+    // El enlace sirve una sola vez.
+    $this->post(route('portal.logout'));
+    $this->post($enlace, ['portal_usuario' => 'otro', 'contrasena' => 'Otra-12345', 'contrasena_confirmation' => 'Otra-12345'])
+        ->assertRedirect(route('portal.login'));
+    expect($cliente->refresh()->portal_usuario)->toBe('acme');
+});
+
+test('no se crea la cuenta con un correo que no es de un cliente o que ya tiene una', function () {
+    Mail::fake();
+    clienteConPortal($this->tenant)->update(['email' => 'ya@acme.test']);
+    Cliente::factory()->for($this->tenant)->create(['email' => 'apagado@acme.test', 'portal_usuario' => 'apagado', 'portal_activo' => false]);
+
+    $this->post(route('portal.registro.store'), ['correo' => 'nadie@acme.test'])
+        ->assertSessionHasErrors(['correo' => 'Ese correo no está registrado como cliente. Por favor contacta al administrador del laboratorio.']);
+    $this->post(route('portal.registro.store'), ['correo' => 'ya@acme.test'])->assertSessionHasErrors('correo');
+    $this->post(route('portal.registro.store'), ['correo' => 'apagado@acme.test'])->assertSessionHasErrors('correo');
+
+    Mail::assertNothingSent();
+});
+
+test('el enlace para crear la cuenta no sirve si se altera', function () {
+    $cliente = Cliente::factory()->for($this->tenant)->create();
+    $otro = Cliente::factory()->for($this->tenant)->create();
+    $enlace = URL::temporarySignedRoute('portal.registro.completar', now()->addHour(), ['cliente' => $cliente->id]);
+
+    $this->get(str_replace("/registro/{$cliente->id}", "/registro/{$otro->id}", $enlace))->assertForbidden();
+    $this->post(route('portal.registro.guardar', $cliente), ['portal_usuario' => 'intruso', 'contrasena' => 'Clave-1234', 'contrasena_confirmation' => 'Clave-1234'])
+        ->assertForbidden();
+
+    expect($cliente->refresh()->portal_usuario)->toBeNull();
 });
 
 test('el detalle del equipo trae su paso por cada ingreso', function () {

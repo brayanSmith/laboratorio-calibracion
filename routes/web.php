@@ -53,6 +53,7 @@ use App\Modules\OrdenesTrabajo\Http\Controllers\OrdenTrabajoController;
 use App\Modules\Portal\Http\Controllers\PortalAuthController;
 use App\Modules\Portal\Http\Controllers\PortalCuentaController;
 use App\Modules\Portal\Http\Controllers\PortalEquipoController;
+use App\Modules\Portal\Http\Controllers\PortalRegistroController;
 use App\Modules\Portal\Http\Middleware\EnsureClientePuedeEntrar;
 use App\Modules\Recordatorios\Http\Controllers\RecordatorioController;
 use App\Modules\Recordatorios\Http\Controllers\RecordatorioPlantillaController;
@@ -70,6 +71,11 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::post('login', [PortalAuthController::class, 'store'])->middleware('throttle:10,1')->name('login.store');
         Route::get('olvide', [PortalAuthController::class, 'olvide'])->name('olvide');
         Route::post('olvide', [PortalAuthController::class, 'recuperar'])->middleware('throttle:5,1')->name('olvide.store');
+        Route::get('registro', [PortalRegistroController::class, 'create'])->name('registro');
+        Route::post('registro', [PortalRegistroController::class, 'store'])->middleware('throttle:5,1')->name('registro.store');
+        // Desde el enlace firmado del correo: el mismo enlace sirve para ver y enviar el formulario.
+        Route::get('registro/{cliente}', [PortalRegistroController::class, 'edit'])->middleware('signed')->whereNumber('cliente')->name('registro.completar');
+        Route::post('registro/{cliente}', [PortalRegistroController::class, 'update'])->middleware(['signed', 'throttle:10,1'])->whereNumber('cliente')->name('registro.guardar');
     });
 
     Route::middleware(['auth:cliente', EnsureClientePuedeEntrar::class])->group(function () {

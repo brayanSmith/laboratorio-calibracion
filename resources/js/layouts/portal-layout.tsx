@@ -1,6 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { LogOut, Monitor, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
+import SelectorTema from '@/components/portal/selector-tema';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { cuenta, logout } from '@/routes/portal';
@@ -68,6 +69,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
                                 </Link>
                             </Button>
                         ))}
+                        <SelectorTema />
                         <Button
                             variant="ghost"
                             size="sm"

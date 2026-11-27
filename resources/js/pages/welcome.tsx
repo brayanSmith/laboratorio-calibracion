@@ -1,17 +1,27 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
+    Building2,
     CalendarDays,
+    ChevronDown,
     ClipboardCheck,
     Gauge,
     ShieldCheck,
+    UsersRound,
     Wrench,
 } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import BrandingHead from '@/components/branding-head';
 import ElegirSeguimiento from '@/components/seguimiento/elegir-seguimiento';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { dashboard, login } from '@/routes';
+import { login as portalLogin } from '@/routes/portal';
 
 const features = [
     {
@@ -39,6 +49,65 @@ const features = [
             'Programa y documenta los mantenimientos para conservar la trazabilidad.',
     },
 ];
+
+/**
+ * "Iniciar sesión" despliega las dos puertas: la del personal del laboratorio y la del
+ * portal de clientes (que también deja crear la cuenta).
+ */
+function MenuIniciarSesion({
+    variant = 'default',
+    size = 'default',
+}: {
+    variant?: 'default' | 'outline';
+    size?: 'default' | 'lg';
+}) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant={variant}
+                    size={size}
+                    data-test="welcome-iniciar-sesion"
+                >
+                    Iniciar sesión
+                    <ChevronDown />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-64">
+                <DropdownMenuItem asChild>
+                    <Link href={login()} className="flex items-start gap-3">
+                        <Building2 className="mt-0.5 size-4" />
+                        <span>
+                            <span className="block font-medium">
+                                Personal del laboratorio
+                            </span>
+                            <span className="block text-xs text-muted-foreground">
+                                Panel de gestión
+                            </span>
+                        </span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        href={portalLogin()}
+                        className="flex items-start gap-3"
+                        data-test="welcome-portal"
+                    >
+                        <UsersRound className="mt-0.5 size-4" />
+                        <span>
+                            <span className="block font-medium">
+                                Portal de clientes
+                            </span>
+                            <span className="block text-xs text-muted-foreground">
+                                Tus equipos, certificados e informes
+                            </span>
+                        </span>
+                    </Link>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
 export default function Welcome() {
     const { auth, plataforma } = usePage().props;
@@ -80,9 +149,7 @@ export default function Welcome() {
                                 <Link href={dashboard()}>Ir al panel</Link>
                             </Button>
                         ) : (
-                            <Button asChild variant="outline">
-                                <Link href={login()}>Iniciar sesión</Link>
-                            </Button>
+                            <MenuIniciarSesion variant="outline" />
                         )}
                     </nav>
                 </header>
@@ -104,14 +171,16 @@ export default function Welcome() {
                             mantenimientos de {nombre} desde un solo lugar.
                         </p>
                         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                            <Button asChild size="lg">
-                                <Link href={auth.user ? dashboard() : login()}>
-                                    {auth.user
-                                        ? 'Ir al panel'
-                                        : 'Iniciar sesión'}
-                                    <ArrowRight />
-                                </Link>
-                            </Button>
+                            {auth.user ? (
+                                <Button asChild size="lg">
+                                    <Link href={dashboard()}>
+                                        Ir al panel
+                                        <ArrowRight />
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <MenuIniciarSesion size="lg" />
+                            )}
                             {/* Para los clientes: consultan sus equipos sin cuenta, por el
                                 código de un ingreso o por todas sus bahías. */}
                             <ElegirSeguimiento />

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Gauge, ShieldCheck } from 'lucide-react';
+import { Building2, Gauge, ShieldCheck } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
@@ -83,6 +83,15 @@ export default function AuthSimpleLayout({
                                     {plataforma.nombre}
                                 </span>
                             </Link>
+
+                            {/* Para no confundirlo con el login del portal de clientes. */}
+                            <span
+                                className="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary uppercase"
+                                data-test="auth-badge-personal"
+                            >
+                                <Building2 className="size-3.5" />
+                                Acceso del personal
+                            </span>
 
                             <div className="space-y-2">
                                 <h1 className="text-2xl font-semibold tracking-tight">

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { olvide } from '@/routes/portal';
+import { login as staffLogin } from '@/routes';
+import { olvide, registro } from '@/routes/portal';
 import { store } from '@/routes/portal/login';
 
 type Props = {
@@ -85,12 +86,23 @@ export default function PortalLogin({ status }: Props) {
                     </div>
                 )}
             </Form>
+
+            <p className="text-center text-sm text-muted-foreground">
+                ¿Aún no tienes cuenta?{' '}
+                <TextLink href={registro()} data-test="portal-crear-cuenta">
+                    Crear cuenta
+                </TextLink>
+            </p>
+
+            <p className="border-t pt-4 text-center text-xs text-muted-foreground">
+                ¿Trabajas en el laboratorio?{' '}
+                <TextLink href={staffLogin()}>Acceso del personal</TextLink>
+            </p>
         </>
     );
 }
 
 PortalLogin.layout = {
     title: 'Portal de clientes',
-    description:
-        'Ingresa con el usuario y la contraseña que te dio el laboratorio para ver tus equipos.',
+    description: 'Ingresa con tu usuario y tu contraseña para ver tus equipos.',
 };

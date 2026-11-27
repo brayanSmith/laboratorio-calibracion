@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
+import { login as portalLogin } from '@/routes/portal';
 import PasskeyVerify from '@/components/passkey-verify';
 
 type Props = {
@@ -93,6 +94,13 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
+
+            <p className="text-center text-sm text-muted-foreground">
+                ¿Eres cliente?{' '}
+                <TextLink href={portalLogin()}>
+                    Entra al portal de clientes
+                </TextLink>
+            </p>
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
