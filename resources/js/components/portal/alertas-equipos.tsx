@@ -141,7 +141,7 @@ export default function AlertasEquipos({
                 </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-                <ul className="max-h-96 overflow-y-auto border-t border-red-200 dark:border-red-900">
+                <ul className="max-h-[60svh] overflow-y-auto border-t border-red-200 dark:border-red-900">
                     {alertas.map((equipo) => {
                         const estilo = ESTILO[equipo.estado_vencimiento];
 
@@ -179,7 +179,7 @@ export default function AlertasEquipos({
                                         </p>
                                     ) : null}
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
                                     <Badge className={estilo.badge}>
                                         {estilo.etiqueta}
                                     </Badge>

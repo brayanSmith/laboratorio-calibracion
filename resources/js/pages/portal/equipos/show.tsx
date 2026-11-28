@@ -66,7 +66,7 @@ export default function PortalEquipo({ equipo, traza, historicos }: Props) {
                         modelo={equipo.modelo}
                         serie={equipo.numero_serie}
                     />
-                    <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+                    <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                         <Dato etiqueta="Fabricante" valor={equipo.fabricante} />
                         <Dato etiqueta="Área" valor={equipo.area} />
                         <Dato etiqueta="Bahía" valor={equipo.bahia} />
@@ -122,13 +122,17 @@ export default function PortalEquipo({ equipo, traza, historicos }: Props) {
                                                     : ''}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">
+                                        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+                                            <Badge
+                                                variant="outline"
+                                                className="max-w-[60%] truncate sm:max-w-none"
+                                            >
                                                 {etapaActual(paso)}
                                             </Badge>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
+                                                className="shrink-0"
                                                 onClick={() =>
                                                     setHistorial(paso)
                                                 }
@@ -141,7 +145,7 @@ export default function PortalEquipo({ equipo, traza, historicos }: Props) {
                                     </div>
 
                                     {paso.documentos.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="grid gap-2 sm:flex sm:flex-wrap">
                                             {paso.documentos.map(
                                                 (documento) => (
                                                     <Button
@@ -149,6 +153,7 @@ export default function PortalEquipo({ equipo, traza, historicos }: Props) {
                                                         variant="secondary"
                                                         size="sm"
                                                         asChild
+                                                        className="h-auto min-h-9 justify-start py-2 text-left whitespace-normal"
                                                     >
                                                         <a
                                                             href={documento.url}
@@ -156,7 +161,7 @@ export default function PortalEquipo({ equipo, traza, historicos }: Props) {
                                                             rel="noreferrer"
                                                             data-test="portal-documento"
                                                         >
-                                                            <FileText className="size-4" />
+                                                            <FileText className="size-4 shrink-0" />
                                                             {documento.nombre}
                                                             {documento.fecha
                                                                 ? ` · ${formatearFecha(documento.fecha)}`
@@ -212,9 +217,9 @@ export default function PortalEquipo({ equipo, traza, historicos }: Props) {
                                             href={historico.adjunto_url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                                            className="inline-flex min-w-0 items-center gap-1 break-all text-primary hover:underline"
                                         >
-                                            <FileText className="size-4" />
+                                            <FileText className="size-4 shrink-0" />
                                             {historico.adjunto_nombre ??
                                                 'Ver documento'}
                                         </a>
